@@ -1,38 +1,75 @@
 import fetch from "node-fetch";
 
-let handler = async (m, { conn, text, usedPrefix, command }) => {
-  if (!text) return conn.reply(m.chat, `✐ Ingresa un prompt válido.\n\nEjemplo:\n${usedPrefix + command} un dragón volando entre montañas`, m);
-
+let handler = async (m, { conn, args, usedPrefix, command }) => {
   try {
-    await m.react("🕓");
+    const prompt = args.join(" ").trim();
 
-    const url = `https://api-adonix.gleeze.com/ai/veo3?apikey=Adofreekey&prompt=${encodeURIComponent(text)}`;
-    const res = await fetch(url);
-    const data = await res.json();
+    if (!prompt)
+      throw new Error(
+        `Usage: ${usedPrefix}${command} <prompt>\n\nExample:\n${usedPrefix}${command} A woman giving a motivation quote`
+      );
 
-    if (!data.status || !data.video) {
-      return conn.reply(m.chat, "❒ No se pudo generar el contenido, intenta con otro prompt.", m);
+    // 🌀 Start generation
+    const msg = await conn.sendMessage(m.chat, {
+      text: `🎥 *Veo3-v3 Generation Started...*\n🧠 Prompt: ${prompt}\n⏳ Please wait...`,
+    });
+
+    // 🔹 Create generation task
+    const create = await fetch(
+      `https://omegatech-api.dixonomega.tech/api/ai/Veo3-v3?prompt=${encodeURIComponent(prompt)}`
+    ).then((res) => res.json());
+
+    if (!create?.success || !create?.task_id)
+      throw new Error(`❌ Failed to create task.\nResponse: ${JSON.stringify(create)}`);
+
+    const taskId = create.task_id;
+    const checkUrl = `https://omegatech-api.dixonomega.tech/api/ai/Veo3-v3-status?task_id=${taskId}`;
+
+    // 🔄 Poll for completion
+    let videoUrl;
+    const dots = ["◐", "◓", "◑", "◒"];
+
+    for (let i = 0; i < 60; i++) {
+      const status = await fetch(checkUrl).then((r) => r.json()).catch(() => ({}));
+
+      if (status?.status?.toLowerCase() === "success" && status?.video_url) {
+        videoUrl = status.video_url;
+        break;
+      }
+
+      await conn.sendMessage(m.chat, {
+        edit: msg.key,
+        text: `${dots[i % dots.length]} *Generating video...*\n🧠 Prompt: ${prompt}\nProgress: ${
+          status?.status || "Pending"
+        }`,
+      });
+
+      await new Promise((r) => setTimeout(r, 5000));
     }
 
-    const caption = `「✦」Veo3 Generator
+    if (!videoUrl)
+      throw new Error("⚠️ Generation pending or failed. Try again later.");
 
-✐ Prompt » *${text}*
-🜸 Fuente » *Adonix API*`;
-
-    await conn.sendMessage(m.chat, {
-      video: { url: data.video },
-      caption
-    }, { quoted: m });
-
-    await m.react("✔️");
+    // 🧩 Send result
+    await conn.sendMessage(m.chat, { delete: msg.key });
+    await conn.sendMessage(
+      m.chat,
+      {
+        video: { url: videoUrl },
+        caption: `✅ *Veo3-v3 Video Generated!*\n🧠 *Prompt:* ${prompt}\n🎞️ *Source:* OMEGATECH API`,
+      },
+      { quoted: m }
+    );
   } catch (e) {
-    console.error(e);
-    conn.reply(m.chat, `⚠︎ Ocurrió un error al generar el contenido.\n> Usa *${usedPrefix}report* para informarlo.\n\n🜸 Detalles: ${e.message}`, m);
+    console.error("💀 Veo3-v3 Error:", e);
+    m.reply(`💀 *Veo3-v3 Generation Failed.*\n⚙️ Error: ${e.message}\n🌐 API by *OMEGATECH*`);
   }
 };
 
-handler.help = ["veo3"];
-handler.tags = ["inteligencia artificial"];
-handler.command = ["veo3"];
+handler.help = ["veo3 <prompt>"];
+handler.tags = ["ai"];
+handler.command = /^veo3$/i;
+handler.premium = false;
+handler.limit = true;
 
 export default handler;
