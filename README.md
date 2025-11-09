@@ -41,9 +41,13 @@ Este bot no es solo funcional, es una declaración de estilo. Su diseño modular
 <a href="https://github.com/dev-fedexyzz">
   <img src="https://github.com/dev-fedexyzz.png" width="80" height="80" alt="dev-fedexyzz"style="border-radius: 50%;" />
 </a>
+<a href="https://github.com/SoySapo6">
+  <img src="https://github.com/SoySapo6.png" width="80" height="80" alt="SoySapo6"style="border-radius: 50%;" />
+</a>
 
 ### ** `🌌𝘾𝙍𝙀𝘼𝘿𝙊𝙍 𝙙𝙚 𝙨𝙝𝙖𝙙𝙤𝙬 🌌`**
 <a
 href="https://github.com/yosue891-Chian"><img src="https://github.com/yosue891.png" width="150" height="150" alt="yosue891"/></a>
+
 
 
