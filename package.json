@@ -1,7 +1,7 @@
 {
 "name": "shadowMD",
 "version": "1.3.2",
-"description": "WhatsApp Bot Multi Device",
+"description": "Shadow WhatsApp Bot Multi Device",
 "main": "index.js",
 "type": "module",
 "directories": {
