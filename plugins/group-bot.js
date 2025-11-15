@@ -1,11 +1,14 @@
 const keywords = ['bot', 'Bot', 'shadow', 'Shadow'];
 const creatorNumber = '584242773183';
 
+// Objeto para guardar últimos usos de keywords
+let lastKeywordUse = {};
+
 function pickRandom(list) {
     return list[Math.floor(Math.random() * list.length)];
 }
 
-export async function before(m, { conn}) {
+export async function before(m, { conn }) {
     const text = m.text.toLowerCase();
 
     // ⚠️ Si mencionan al creador
@@ -14,8 +17,8 @@ export async function before(m, { conn}) {
             m.chat,
             `⚠️ *No etiquetes al creador. Si tienes dudas, contáctalo directamente al privado.*`,
             m
-);
-}
+        );
+    }
 
     // 📜 Si escriben "reglas"
     if (/^reglas$/i.test(m.text)) {
@@ -37,23 +40,40 @@ export async function before(m, { conn}) {
         await conn.sendMessage(
             m.chat,
             {
-                image: { url: 'https://n.uguu.se/ZZHiiljb.jpg'},
+                image: { url: 'https://n.uguu.se/ZZHiiljb.jpg' },
                 caption: reglas
-},
-            { quoted: m}
-);
+            },
+            { quoted: m }
+        );
         return;
-}
+    }
 
-    // 👋 Si contiene palabra clave
+    // 🎭 Si escriben "xd" → siempre responde con sticker
+    if (/^xd$/i.test(m.text)) {
+        await conn.sendMessage(
+            m.chat,
+            { sticker: { url: 'https://stickerswiki.uguu.se/ejemplo.webp' } }, // coloca tu sticker aquí
+            { quoted: m }
+        );
+        return;
+    }
+
+    // 👋 Si contiene palabra clave con cooldown de 2 horas
     const hasKeyword = keywords.some(k => text.includes(k.toLowerCase()));
     if (hasKeyword) {
-        return conn.reply(
-            m.chat,
-            `👋 *Hola soy Shadow.*\nUsa *.menu* para ver mi lista de comandos.`,
-            m
-);
-}
+        const now = Date.now();
+        const lastUse = lastKeywordUse[m.chat] || 0;
+        const cooldown = 2 * 60 * 60 * 1000; // 2 horas en ms
 
-    return!0;
-              }
+        if (now - lastUse >= cooldown) {
+            lastKeywordUse[m.chat] = now; // actualizar último uso
+            return conn.reply(
+                m.chat,
+                `👋 *Hola soy Shadow.*\nUsa *.menu* para ver mi lista de comandos.`,
+                m
+            );
+        }
+    }
+
+    return !0;
+            }
