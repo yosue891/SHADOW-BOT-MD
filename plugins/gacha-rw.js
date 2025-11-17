@@ -47,7 +47,7 @@ const verifi = async () => {
   try {
     const _0x2f140c = await _0xd02b6a.readFile("./package.json", "utf-8");
     const _0x4ba22e = JSON.parse(_0x2f140c);
-    return _0x4ba22e.repository?.['url'] === "git+https://github.com/meado-learner/Michi-WaMD.git";
+    return _0x4ba22e.repository?.['url'] === "git+https://github.com/meado-learner/SHADOW-BOT-MD.git";
   } catch {
     return false;
   }
