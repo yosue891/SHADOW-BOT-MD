@@ -1,26 +1,60 @@
 import { areJidsSameUser } from '@whiskeysockets/baileys'
+
 export async function before(m, { participants, conn }) {
-    if (m.isGroup) {
-        let chat = global.db.data.chats[m.chat];
+    if (!m.isGroup) return
 
-         if (!chat.antiBot2) {
-            return
-        }
+    const chat = global?.db?.data?.chats?.[m.chat]
+    if (!chat || !chat.antiBot2) return
+    if (chat.__antiBot2Leaving) return
 
+    const mainConn = (global.mainBot && global.mainBot.user?.jid) ? global.mainBot : global.conn
+    if (!mainConn?.user?.jid) return
 
-        let botJid = global.conn.user.jid // JID del bot principal
+    const mainJid = mainConn.user.jid
+    const thisJid  = conn.user.jid
+    if (areJidsSameUser(mainJid, thisJid)) return
 
-       if (botJid === conn.user.jid) {
-           return
-        } else {
-           let isBotPresent = participants.some(p => areJidsSameUser(botJid, p.id))
-
-          if (isBotPresent) {
-                setTimeout(async () => {
-                    await conn.reply(m.chat, `《✧》En este grupo está el bot principal, el cual me saldré para no hacer spam.`, m)
-                    await this.groupLeave(m.chat)
-                }, 5000)// 5 segundos
-            }
-        }
+    async function getLidFromJid(id) {
+        if (!id) return id
+        if (id.endsWith('@lid')) return id
+        const res = await conn.onWhatsApp(id).catch(() => [])
+        return res?.[0]?.lid || id
     }
+
+    const [mainLid, thisLid] = await Promise.all([
+        getLidFromJid(mainJid),
+        getLidFromJid(thisJid)
+    ])
+
+    const groupMetadata = m.isGroup
+        ? ((conn.chats[m.chat] || {}).metadata || await conn.groupMetadata?.(m.chat).catch(() => null))
+        : null
+
+    const list = (Array.isArray(participants) && participants.length)
+        ? participants
+        : (groupMetadata?.participants || [])
+
+    const isBotPresent = list.some(p => {
+        const pid = p?.id || p?.jid
+        if (!pid) return false
+        return areJidsSameUser(pid, mainJid) || areJidsSameUser(pid, mainLid)
+    })
+
+    if (!isBotPresent) return
+
+    chat.__antiBot2Leaving = true
+
+    setTimeout(async () => {
+        try {
+            await conn.reply(
+                m.chat,
+                '🥀 En este grupo está ya está shadow el bot principal haci que me saldré y haci evito spam byes a todos shadow subbot se despide 👋.',
+                m
+            )
+            await conn.groupLeave(m.chat)
+        } catch (err) {
+            console.error('Error al salir del grupo:', err)
+            setTimeout(() => { chat.__antiBot2Leaving = false }, 5000)
+        }
+    }, 5000)
     }
