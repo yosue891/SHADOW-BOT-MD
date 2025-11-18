@@ -1,89 +1,56 @@
 import { sticker } from '../lib/sticker.js'
-// import uploadFile from '../lib/uploadFile.js'
-// import uploadImage from '../lib/uploadImage.js'
-// import { webp2png } from '../lib/webp2mp4.js'
+import uploadFile from '../lib/uploadFile.js'
+import uploadImage from '../lib/uploadImage.js'
+import { webp2png } from '../lib/webp2mp4.js'
 
-let handler = async (m, { conn, args, usedPrefix, command }) => {
-  let stiker = false;
-  try {
-    let q = m.quoted ? m.quoted : m;
-    let mime = (q.msg || q).mimetype || q.mediaType || '';
+let handler = async (m, { conn, args }) => {
+    let stiker = false
+    let userId = m.sender
+    let packstickers = global.db.data.users[userId] || {}
+    let texto2 = packstickers.text2 || '🌌❄️ Shadow Garden Navidad'
+    let texto1 = ''
 
-    if (/webp|image|video/g.test(mime)) {
-      if (/video/g.test(mime)) {
-        if ( > 8) return m.reply(`🥷 *Las sombras no aceptan videos mayores a 8 segundos...*`);
-      }
-
-      let img = await q.download?.();
-      if (!img) return conn.reply(m.chat, `⚠️ *Responde a una imagen o video para invocar el sticker navideño de las sombras.*`, m);
-
-      let out;
-      try {
-        stiker = await sticker(img, false, global.packsticker, global.author);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        if (!stiker) {
-          if (/webp/g.test(mime)) out = await webp2png(img);
-          else if (/image/g.test(mime)) out = await uploadImage(img);
-          else if (/video/g.test(mime)) out = await uploadFile(img);
-          if (typeof out !== 'string') out = await uploadImage(img);
-          stiker = await sticker(false, out, global.packsticker, global.author);
-        }
-      }
-    } else if (args[0]) {
-      if (isUrl(args[0])) {
-        stiker = await sticker(false, args[0], global.packsticker, global.author);
-      } else {
-        return m.reply(`🎁 *El URL no es válido para invocar el arte sombrío.*`);
-      }
-    }
-  } catch (e) {
-    console.error(e);
-    if (!stiker) stiker = e;
-  } finally {
-    if (stiker) {
-      conn.sendFile(
-        m.chat,
-        stiker,
-        'sticker.webp',
-        '',
-        m,
-        true,
-        {
-          contextInfo: {
-            forwardingScore: 999,
-            isForwarded: false,
-            externalAdReply: {
-              showAdAttribution: false,
-              title: '🎄 Sticker de las Sombras 🎅',
-              body: 'Creado por Yosue uwu',
-              mediaType: 2,
-              sourceUrl: global.redes || 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O',
-              thumbnail: global.icons || 'https://n.uguu.se/ZZHiiljb.jpg'
-            }
-          }
-        },
-        { quoted: m }
-      );
+    if (args.length > 0) {
+        texto1 = args.join(' ').trim() || '🎄 Sombras Festivas'
     } else {
-      return conn.reply(
-        m.chat,
-        `🎅 *Las sombras no pueden crear el sticker...*\n✨ Asegúrate de responder a una imagen o video válido.\n\n🎄 *Creado por Yosue uwu*`,
-        m
-      );
+        texto1 = '🎄 Sombras Festivas'
     }
-  }
-};
 
-handler.help = ['stiker <img>', 'sticker <url>'];
-handler.tags = ['sticker'];
-handler.group = false;
-handler.register = true;
-handler.command = ['s', 'sticker', 'stiker'];
+    try {
+        let q = m.quoted ? m.quoted : m
+        let mime = (q.msg || q).mimetype || q.mediaType || ''
 
-export default handler;
+        if (/webp|image|video/g.test(mime) && q.download) {
+            if (/video/.test(mime) && (q.msg || q).seconds > 16)
+                return conn.reply(m.chat, '🌌✧ *Las sombras no aceptan videos mayores a 15 segundos...*', m)
+
+            let buffer = await q.download()
+            await m.react('🕓')
+            let marca = [texto1, texto2]
+            stiker = await sticker(buffer, false, marca[0], marca[1])
+        } else if (args[0] && isUrl(args[0])) {
+            let buffer = await sticker(false, args[0], texto1, texto2)
+            stiker = buffer
+        } else {
+            return conn.reply(m.chat, '🎄《✧》 *Invoca un arte sombrío respondiendo a una imagen o video.*', m)
+        }
+    } catch (e) {
+        await conn.reply(m.chat, '⚠︎🌌 *Las sombras detectaron un error:* ' + e.message, m)
+        await m.react('✖️')
+    } finally {
+        if (stiker) {
+            conn.sendFile(m.chat, stiker, 'sticker.webp', '🎅✨ *Sticker invocado por el Shadow Garden en esta navidad...*', m)
+            await m.react('✅')
+        }
+    }
+}
+
+handler.help = ['sticker']
+handler.tags = ['sticker']
+handler.command = ['s', 'sticker']
+
+export default handler
 
 const isUrl = (text) => {
-  return text.match(new RegExp(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)(jpe?g|gif|png)/, 'gi'));
-};
+    return text.match(new RegExp(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)(jpe?g|gif|png)/, 'gi'))
+        }
