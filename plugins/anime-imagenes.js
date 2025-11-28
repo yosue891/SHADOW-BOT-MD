@@ -1,27 +1,28 @@
 import axios from 'axios';
 
-// ✅ Solo las categorías que quieres
+// ✅ Todos los tags disponibles en waifu.im
 const categoriasValidas = [
-  'waifu', 'husbando', 'kitsune', 'neko', 'kemonomimi'
+  'waifu','maid','uniform','oppai','selfies',
+  'marin-kitagawa','raiden-shogun','makima','zero-two','yumeko-jabami',
+  'kurumi-tokisaki','miku','toga','yor-forger','power',
+  'emilia','rem','ram','futaba-sakura','hinata',
+  'sakura','tsunade','boa-hancock','nami','robin'
 ];
 
 const handler = async (m, { command, conn }) => {
   try {
-    // Si el comando no está en las categorías válidas, no hace nada
     if (!categoriasValidas.includes(command)) return;
 
-    const res = await axios.get('https://api.kirito.my/api/anime?apikey=by_deylin');
-    const images = res.data.images;
+    // 🔑 Consulta a waifu.im con el tag correspondiente
+    const res = await axios.get(`https://api.waifu.im/search/?included_tags=${command}`);
+    const images = res?.data?.images;
 
-    if (!images || images.length === 0) throw 'No se encontraron imágenes';
+    if (!Array.isArray(images) || images.length === 0) {
+      throw new Error('No se encontraron imágenes');
+    }
 
-    // Filtra imágenes que contengan el nombre del comando en la URL
-    const filtradas = images.filter(url => url.toLowerCase().includes(command.toLowerCase()));
-
-    // Si no hay coincidencias, usa una imagen aleatoria
-    const imageUrl = filtradas.length > 0
-      ? filtradas[Math.floor(Math.random() * filtradas.length)]
-      : images[Math.floor(Math.random() * images.length)];
+    // Selecciona una imagen aleatoria
+    const imageUrl = images[Math.floor(Math.random() * images.length)].url;
 
     // Reacciona al mensaje del usuario con ♥️
     await conn.sendMessage(m.chat, { react: { text: '♥️', key: m.key } });
@@ -34,20 +35,19 @@ const handler = async (m, { command, conn }) => {
       buttons: [
         {
           buttonId: `.${command}`,
-          buttonText: { displayText: `Siguiente ${command} 🔁` },
-          type: 1
+          buttonText: { displayText: `Siguiente ${command} 🔁` }
         }
       ],
-      headerType: 4
+      headerType: 1
     }, { quoted: m });
 
   } catch (e) {
-    m.reply('⚠️ Las sombras no pudieron encontrar una imagen...');
     console.error(e);
+    m.reply('⚠️ Las sombras no pudieron encontrar una imagen...');
   }
 };
 
-// ✅ Solo los comandos válidos
+// ✅ Todos los comandos válidos
 handler.command = handler.help = categoriasValidas;
 handler.tags = ['anime'];
 export default handler;
