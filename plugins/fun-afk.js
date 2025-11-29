@@ -1,66 +1,50 @@
-// Middleware que vigila el estado AFK
-export function before(m, { conn }) {
-  const user = global.db.data.users[m.sender];
-  
-  // Cuando el usuario regresa de AFK
-  if (user.afk > -1) {
-    conn.reply(
-      m.chat,
-      `🌌🎄 *Has regresado del silencio sombrío...*\n` +
-      `${user.afkReason ? '❄️ *Motivo de tu retiro*: ' + user.afkReason : ''}\n\n` +
-      `✨ *Tiempo en las sombras*: ${msToTime(new Date - user.afk)}\n\n` +
-      `🎅 El Shadow Garden celebra tu retorno bajo la nieve.`,
-      m
-    );
-    user.afk = -1;
-    user.afkReason = '';
+export async function before(m, { conn }) {
+  const primaryBot = global.db.data.chats[m.chat].primaryBot
+  if (primaryBot && conn.user.jid !== primaryBot) throw !1
+
+  const user = global.db.data.users[m.sender]
+  user.afk = user.afk || -1
+  user.afkReason = user.afkReason || ''
+
+  const formatTiempo = (ms) => {
+    if (typeof ms !== 'number' || isNaN(ms)) return 'desconocido'
+    const h = Math.floor(ms / 3600000)
+    const min = Math.floor((ms % 3600000) / 60000)
+    const s = Math.floor((ms % 60000) / 1000)
+    const parts = []
+    if (h) parts.push(`${h} ${h === 1 ? 'hora' : 'horas'}`)
+    if (min) parts.push(`${min} ${min === 1 ? 'minuto' : 'minutos'}`)
+    if (s || (!h && !min)) parts.push(`${s} ${s === 1 ? 'segundo' : 'segundos'}`)
+    return parts.join(' ')
   }
 
-  // Aviso cuando se etiqueta a alguien AFK
-  const jids = [...new Set([...(m.mentionedJid || []), ...(m.quoted ? [m.quoted.sender] : [])])];
+  // 🔧 Cuando el usuario vuelve del AFK
+  if (typeof user.afk === 'number' && user.afk > -1) {
+    const ms = Date.now() - user.afk
+    const tiempo = formatTiempo(ms)
+    await conn.reply(
+      m.chat,
+      `🌌 *Discípulo de las Sombras* 🎄\nHas regresado del reino de la inactividad.\n○ Motivo » *${user.afkReason || 'sin especificar'}*\n○ Tiempo ausente » *${tiempo}*`,
+      m
+    )
+    user.afk = -1
+    user.afkReason = ''
+  }
+
+  // 🔧 Aviso cuando mencionas a alguien que está AFK
+  const quoted = m.quoted ? await m.quoted.sender : null
+  const jids = [...new Set([...(await m.mentionedJid || []), ...(quoted ? [quoted] : [])])]
   for (const jid of jids) {
-    const user = global.db.data.users[jid];
-    if (!user) continue;
-
-    const afkTime = user.afk;
-    if (!afkTime || afkTime < 0) continue;
-
-    const reason = user.afkReason || '';
-    conn.reply(
+    const target = global.db.data.users[jid]
+    if (!target || typeof target.afk !== 'number' || target.afk < 0) continue
+    const ms = Date.now() - target.afk
+    const tiempo = formatTiempo(ms)
+    await conn.reply(
       m.chat,
-      `❄️🌌 *El alma invocada está en reposo sombrío...*\n` +
-      `${reason ? '🎄 *Motivo*: ' + reason : ''}\n\n` +
-      `✨ No lo etiquetes, pues el Shadow Garden protege su descanso.`,
+      `💫 *Invocación Sombría – Edición Navideña* 🎅\nEl usuario ${await conn.getName(jid)} está AFK.\n○ Motivo: ${target.afkReason || 'sin especificar'}\n○ Tiempo ausente: ${tiempo}`,
       m
-    );
+    )
   }
-  return true;
-}
 
-// Comando para activar AFK
-let handler = async (m, { conn, text }) => {
-  let user = global.db.data.users[m.sender];
-  user.afk = +new Date;
-  user.afkReason = text || '';
-  conn.reply(
-    m.chat,
-    `🌌❄️ *Has entrado en modo AFK...*\n${text ? '🎄 Motivo: ' + text : ''}`,
-    m
-  );
-};
-
-handler.help = ['afk [razón]'];
-handler.tags = ['tools'];
-handler.command = ['afk'];
-
-export default handler;
-
-// Función auxiliar para mostrar tiempo AFK en formato legible
-function msToTime(ms) {
-  let seconds = Math.floor(ms / 1000);
-  let minutes = Math.floor(seconds / 60);
-  let hours = Math.floor(minutes / 60);
-  seconds = seconds % 60;
-  minutes = minutes % 60;
-  return `${hours}h ${minutes}m ${seconds}s`;
-}
+  return true
+    }
