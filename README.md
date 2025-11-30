@@ -23,7 +23,7 @@ html
 *🧪 ¿Por qué SHADOW-BOT-MD?*
 Este bot no es solo funcional, es una declaración de estilo. Su diseño modular permite personalizar comandos, añadir plugins, y adaptarlo a cualquier necesidad. Ideal para quienes buscan un bot con carácter, rendimiento y estética.
 
-<img src="https://qu.ax/Ncuyr.jpg" alt="shadow-BOT" style="width: 100%; height: auto; max-width: 500px;">
+<img src="https://qu.ax/fWLDs" alt="shadow-BOT" style="width: 100%; height: auto; max-width: 500px;">
 
 > [!CAUTION]\
 > este bot no es compatible *por ahora* con termux ni cloud shell 
@@ -48,6 +48,7 @@ Este bot no es solo funcional, es una declaración de estilo. Su diseño modular
 ### ** `🌌𝘾𝙍𝙀𝘼𝘿𝙊𝙍 𝙙𝙚 𝙨𝙝𝙖𝙙𝙤𝙬 🌌`**
 <a
 href="https://github.com/yosue891-Chian"><img src="https://github.com/yosue891.png" width="150" height="150" alt="yosue891"/></a>
+
 
 
 
