@@ -5,7 +5,7 @@ import { generateWAMessageFromContent } from '@whiskeysockets/baileys'
 
 async function sendCustomPedido(m, conn, texto) {
   try {
-    const img = 'https://raw.githubusercontent.com/El-brayan502/dat4/main/uploads/3e1dfb-1763309355015.jpg'
+    const img = 'https://files.catbox.moe/deo9r9.jpg'
     const res = await axios.get(img, { responseType: 'arraybuffer' })
     const imgBuffer = Buffer.from(res.data)
 
