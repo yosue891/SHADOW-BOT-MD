@@ -1,44 +1,67 @@
-const handler = async (m, { conn, command }) => {
-  try {
-    // Decoración navideña con estilo Shadow
-    let txt = 
-`┏━━━━━━━━━━━━━━━━━━━┓
-🎄 *Reino de las Sombras Navideñas* 🎄
+import fetch from 'node-fetch';
+
+let handler = async (m, { conn }) => {
+  await m.react('🎅'); // reacción navideña
+
+  // Lista de contactos estilo Shadow Garden
+  let list = [
+    {
+      displayName: " Shadow Creator ",
+      vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:Shadow Master\nTEL;type=CELL;waid=584242773183:+58 424-2773183\nTEL;type=CELL;waid=50493732693:+504 9373-2693\nEND:VCARD`
+    }
+  ];
+
+  const canalInfo = {
+    title: '⚔️🎄 Canal Oficial de SHADOW 🎄⚔️',
+    body: 'Sumérgete en las sombras festivas. Únete al canal oficial.',
+    thumbnailUrl: 'https://qu.ax/QXPmz.jpg',
+    sourceUrl: 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O',
+    mediaType: 1,
+    renderLargerThumbnail: true
+  };
+
+  // Enviar contacto con preview
+  await conn.sendMessage(m.chat, {
+    contacts: {
+      displayName: `${list.length} Contacto`,
+      contacts: list
+    },
+    contextInfo: {
+      externalAdReply: canalInfo
+    }
+  }, { quoted: m });
+
+  // Mensaje decorado estilo The Eminence in Shadow con toque navideño
+  let txt = `┏━━━━━━━━━━━━━━━━━━━┓
+🌑🎄 *I N F O  D E L  C R E A D O R* 🎄🌑
 ┗━━━━━━━━━━━━━━━━━━━┛
 
-🌌 *Invocaste el poder oculto...*  
-✨ Aquí están los guardianes y creadores del bot:
+> ⚔️ 𝗦𝗛𝗔𝗗𝗢𝗪 𝗠𝗔𝗦𝗧𝗘𝗥 ⚔️  
+> 😉 El estratega oculto tras las líneas del código
 
-👑 *Dueño Principal (Shadow Master)*  
-📱 +58 424-2773183
+📡 𝗖𝗔𝗡𝗔𝗟 𝗢𝗙𝗜𝗖𝗜𝗔𝗟:  
+https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
 
-🕯️ *Colaborador de las Sombras*  
-📱 +504 9373-2693
+📱 𝗖𝗢𝗡𝗧𝗔𝗖𝗧𝗢𝗦 𝗗𝗘 𝗟𝗔 𝗢𝗥𝗚𝗔𝗡𝗜𝗭𝗔𝗖𝗜𝗢́𝗡:  
+👑 Creador Principal 🎅: +58 424-2773183 (Yosue)  
+❄️ Segundo Guardián 🎁: +504 9373-2693  
 
-━━━━━━━━━━━━━━━━━━━━━━
-🎅 *Ellos son los arquitectos del Reino* 🎅
-❄️ Gracias a su guía, las sombras siguen vivas.
-━━━━━━━━━━━━━━━━━━━━━━
+🧬 𝗖𝗢𝗗𝗘 𝗗𝗘 𝗔𝗖𝗖𝗘𝗦𝗢:  
+https://wa.me/584242773183?text=.code
 
-🎄✨ *Creado por Yosue uwu* ✨🎄`;
+🎄✨ *SHADOW-BOT-MD* — El poder no se muestra... se oculta, incluso bajo las luces de Navidad ✨🎄`;
 
-    await conn.reply(m.chat, txt, m, {
-      contextInfo: {
-        externalAdReply: {
-          title: '🎄 Shadow Bot - Creadores 🎅',
-          body: 'Los números de los maestros de las sombras',
-          thumbnailUrl: global.michipg || 'https://n.uguu.se/ZZHiiljb.jpg',
-          mediaType: 1,
-          renderLargerThumbnail: false,
-          sourceUrl: 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O'
-        }
-      }
-    });
-  } catch (e) {
-    console.error(e);
-    conn.reply(m.chat, "👻 Error al invocar a los creadores...", m);
-  }
+  // Enviar mensaje decorado con preview al final
+  await conn.sendMessage(m.chat, {
+    text: txt,
+    contextInfo: {
+      externalAdReply: canalInfo
+    }
+  }, { quoted: m });
 };
 
-handler.command = ['owner', 'creador'];
+handler.help = ['owner', 'creador'];
+handler.tags = ['info'];
+handler.command = /^(owner|creator|creador|dueño)$/i;
+
 export default handler;
