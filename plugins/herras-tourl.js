@@ -1,21 +1,28 @@
 import { createHash } from 'crypto'
 import fetch from 'node-fetch'
-import uploadFile from '../lib/uploadFile.js'
-import uploadImage from '../lib/uploadImage.js'
+import FormData from 'form-data'
+import axios from 'axios'
 
 const handler = async (m, { conn, command, usedPrefix, text }) => {
   try {
     let q = m.quoted ? m.quoted : m
     let mime = (q.msg || q).mimetype || ''
+    
     switch (command) {
       case 'tourl': {
-        if (!mime) return conn.reply(m.chat, `💫 hey Por favor responde a una Imagen o Vídeo porfavor...`, m)
+        if (!mime) return conn.reply(m.chat, `💫 Por favor responde a una Imagen, Vídeo o Audio...`, m)
         await m.react('🕒')
+
         const media = await q.download()
-        const isTele = /image\/(png|jpe?g|gif)|video\/mp4/.test(mime)
-        const link = await uploadImage(media)
-        const txt = `乂  *L I N K - E N L A C E* 乂\n\n*» Enlace* : ${link}\n*» Tamaño* : ${formatBytes(media.length)}\n*» Expiración* : ${isTele ? 'No expira' : 'Desconocido'}\n\n> *${dev}*`
-        await conn.sendFile(m.chat, media, 'thumbnail.jpg', txt, fkontak)
+        const isMedia = /image\/(png|jpe?g|gif)|video\/(mp4|webm)|audio\/(mp3|mpeg|wav|ogg|m4a)/.test(mime)
+
+        if (!isMedia) return conn.reply(m.chat, '⚠️ Tipo de archivo no soportado.', m)
+
+        const link = await uploadFileHostrta(media, mime, q.filename || `file`)
+
+        const txt = `乂  *L I N K - E N L A C E* 乂\n\n*» Enlace* : ${link}\n*» Tamaño* : ${formatBytes(media.length)}\n*» Expiración* : No expira\n\n> *${dev || 'Michi-WaBot'}*`
+
+        await conn.sendFile(m.chat, media, q.filename || 'file', txt, m)
         await m.react('✔️')
         break
       }
@@ -39,7 +46,23 @@ function formatBytes(bytes) {
   return `${(bytes / 1024 ** i).toFixed(2)} ${sizes[i]}`
 }
 
-async function shortUrl(url) {
-  const res = await fetch(`https://tinyurl.com/api-create.php?url=${url}`)
-  return await res.text()
-          }
+async function uploadFileHostrta(buffer, mime, filename) {
+  const form = new FormData()
+  const ext = mime.split('/')[1] || filename.split('.').pop() || 'bin'
+  form.append('file', buffer, { filename: `${filename}.${ext}`, contentType: mime })
+
+  const uploadResponse = await axios.post('https://files.hostrta.win/upload', form, {
+    headers: {
+      ...form.getHeaders(),
+      'User-Agent': 'Michi-WaBot'
+    },
+    maxContentLength: Infinity,
+    maxBodyLength: Infinity
+  })
+
+  if (uploadResponse.data?.url) {
+    return uploadResponse.data.url
+  } else {
+    throw new Error('CDN did not return a URL')
+  }
+                                                                                                      }
