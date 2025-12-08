@@ -44,7 +44,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     };
 
     await m.react('❤️');
-    await conn.reply(m.chat, '🌌 *Buscando una waifu para ti... espera un momento por favor*', m, { contextInfo });
+    await conn.reply(m.chat, '🌌 *Buscando una waifu para ti espera un momento por favor...*', m, { contextInfo });
 
     let res = await fetch('https://api.waifu.pics/sfw/waifu');
     if (!res.ok) throw new Error('No se pudo obtener la waifu.');
