@@ -84,7 +84,7 @@ let handler = async (m, { conn, usedPrefix }) => {
 ┗━━━━━━━━━━━━━━━━━━━┛\n`;
 
     let txt = intro +
-      `🌐 *Canal Navideño de Shadow:*\nhttps://whatsapp.com/channel/0029Vb7GXFc9cDDW4i1gJY1m\n\n` +
+      `🌐 *Canal Navideño de Shadow:*\nhttps://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O\n\n` +
       `🎅 Soy *${botNameToShow}*, el ser en las sombras ${(conn.user.jid == global.conn.user.jid ? '(Principal 🅥)' : '(Sub-Bot 🅑)')}\n` +
       `🕒 *Hora:* ${timeStr}\n` +
       `📅 *Fecha:* ${dateStr}\n` +
@@ -133,7 +133,7 @@ let handler = async (m, { conn, usedPrefix }) => {
                   name: "cta_url",
                   buttonParamsJson: JSON.stringify({
                     display_text: "🌐 Canal de Shadow",
-                    url: "https://whatsapp.com/channel/0029Vb7GXFc9cDDW4i1gJY1m"
+                    url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
                   })
                 }
               ],
