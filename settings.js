@@ -36,8 +36,8 @@ global.dev = "SHADOW-BOT-MD"
 global.author = "© mᥲძᥱ ᥕі𝗍һ 𝙮𝙤𝙨𝙪𝙚"
 global.etiqueta = "© 𝙮𝙤𝙨𝙪𝙚 | 𝟤𝟢𝟤𝟧"
 global.currency = "¢ Pesos"
-global.michipg = "https://raw.githubusercontent.com/UploadsAdonix/archivos/main/1763165065152-94d843.jpg"
-global.icono = "https://raw.githubusercontent.com/UploadsAdonix/archivos/main/1763165065152-94d843.jpg"
+global.michipg = "https://files.catbox.moe/oqp2kh.jpg"
+global.icono = "https://files.catbox.moe/r5f3xk.jpg"
 global.catalogo = fs.readFileSync('./lib/catalogo.jpg')
 
 
