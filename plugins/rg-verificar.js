@@ -58,8 +58,8 @@ let handler = async function (m, { conn, text, usedPrefix, command }) {
     image: { url: pp },
     caption: certificadoPacto,
     buttons: [
-      { buttonId: `${usedPrefix}menu`, buttonText: { displayText: '📜 Volver al Menú' }, type: 1 },
-      { buttonId: `${usedPrefix}perfil`, buttonText: { displayText: '🕶️ Ver Perfil Shadow' }, type: 1 }
+      { buttonId: `${usedPrefix}menu`, buttonText: { displayText: '🌌 Volver al Menú' }, type: 1 },
+      { buttonId: `${usedPrefix}perfil`, buttonText: { displayText: '👻 Ver Perfil Shadow' }, type: 1 }
     ],
     headerType: 4, // tipo imagen
     contextInfo: {
