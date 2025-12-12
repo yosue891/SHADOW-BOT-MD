@@ -70,9 +70,10 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
   }, { quoted: m })
 }
 
-handler.help = ["apk"]
-handler.tags = ["downloader"]
-handler.command = /^apk$/i
+handler.help = ['apk']
+handler.tags = ['downloader']
+handler.command = ['apk']   // corregido para que se registre bien
+handler.register = true     // asegura que se cargue en tu bot
 
 export default handler
 
@@ -105,4 +106,4 @@ const aptoide = {
       link: app.file?.path
     }
   }
-        }
+    }
