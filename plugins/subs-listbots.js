@@ -29,7 +29,7 @@ let handler = async (m, { conn: _envio, command, usedPrefix, args, text, isOwner
 
       if (global.conn.user.jid !== conn.user.jid) {
         return conn.sendMessage(m.chat, {
-          text: `⚠️ Use este comando desde el *Bot Principal*.\n\nhttps://api.whatsapp.com/send/?phone=573136379995&text=${usedPrefix + command}&type=phone_number&app_absent=0`,
+          text: `⚠️ Use este comando desde el *Bot Principal*.\n\nhttps://api.whatsapp.com/send/?phone=522483649647&text=${usedPrefix + command}&type=phone_number&app_absent=0`,
           quoted: m
         });
       } else {
@@ -99,8 +99,8 @@ El número principal no se hace responsable del mal uso.
 
 ${replyMessage}
 
-╰❍👻 *grupo de shadow* 👻❍╯
-🔗 https://chat.whatsapp.com/KqkJwla1aq1LgaPiuFFtEY`.trim();
+╰❍👻 *canal de shadow* 👻❍╯
+🔗 https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O`.trim();
 
       await _envio.sendMessage(m.chat, {
         image: { url: 'https://files.catbox.moe/1iurgf.jpg' },
