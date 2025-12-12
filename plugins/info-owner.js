@@ -44,14 +44,14 @@ let handler = async (m, { conn }) => {
 > 😉 El estratega oculto tras las líneas del código
 
 📡 𝗖𝗔𝗡𝗔𝗟 𝗢𝗙𝗜𝗖𝗜𝗔𝗟:  
-https://whatsapp.com/channel/0029Vb7GXFc9cDDW4i1gJY1m
+https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
 
 📱 𝗖𝗢𝗡𝗧𝗔𝗖𝗧𝗢𝗦 𝗗𝗘 𝗟𝗔 𝗢𝗥𝗚𝗔𝗡𝗜𝗭𝗔𝗖𝗜𝗢́𝗡:  
 👑 Creador Principal 🎅: +58 424-2773183 (Yosue)  
 ❄️ Segundo creador 🎁: +504 9373-2693 (ado)
 
 🧬 𝗖𝗢𝗗𝗘 𝗗𝗘 𝗔𝗖𝗖𝗘𝗦𝗢:  
-https://wa.me/584242773183?text=.code
+https://wa.me/522483649647?text=.code
 
 🎄✨ *SHADOW-BOT-MD* — El poder no se muestra... se oculta, incluso bajo las luces de Navidad ✨🎄`
 
