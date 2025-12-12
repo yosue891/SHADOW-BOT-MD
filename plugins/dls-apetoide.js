@@ -1,38 +1,108 @@
-import { search, download } from 'aptoide-scraper'
+let handler = async (m, { conn, usedPrefix, command, text }) => {
+  conn.apk = conn.apk || {}
 
-var handler = async (m, { conn, usedPrefix, command, text }) => {
-  if (!text) return conn.reply(m.chat, `❐ Por favor, ingrese el nombre de la apk para descargarlo.`, m, { ...rcanal })
-  try {
-    await m.react('🕒')
-    let searchA = await search(text)
-    let data5 = await download(searchA[0].id)
-    let txt = `> *_✿  APTOIDE - DESCARGAS ✿_*\n\n`
-    txt += `➭ *Nombre* » ${data5.name}\n`
-    txt += `➭ *Package* » ${data5.package}\n`
-    txt += `➭ *Update* » ${data5.lastup}\n`
-    txt += `➭ *Peso* »  ${data5.size}`
-    await conn.sendFile(m.chat, data5.icon, 'thumbnail.jpg', txt, m, { ...rcanal })
-    if (data5.size.includes('GB') || data5.size.replace(' MB', '') > 999) {
-      return await conn.reply(m.chat, `〄 El archivo es demasiado pesado.`, m, { ...rcanal })
-    }
-    await conn.sendMessage(m.chat, { 
-      document: { url: data5.dllink }, 
-      mimetype: 'application/vnd.android.package-archive', 
-      fileName: data5.name + '.apk', 
-      caption: "> ⌗ 𝖠𝗊𝗎𝗂 𝖳𝗂𝖾𝗇𝖾𝗌",
-      ...rcanal
+  if (!text) {
+    return conn.sendMessage(m.chat, {
+      text: `⚠️ Ingresa el nombre de la aplicación que quieres buscar\n\n📌 Ejemplo:\n${usedPrefix + command} Facebook Lite`
     }, { quoted: m })
-    await m.react('✔️')
-  } catch (error) {
-    await m.react('✖️')
-    return conn.reply(m.chat, `⚠︎ Se ha producido un problema.\n> Usa *${usedPrefix}report* para informarlo.\n\n${error.message}`, m, { ...rcanal })
   }
+
+  // Si el texto es número y tiene registro previo
+  if (!isNaN(text) && m.sender in conn.apk) {
+    const idx = parseInt(text) - 1
+    let dt = conn.apk[m.sender]
+
+    if (dt.download) return conn.sendMessage(m.chat, { text: "⏳ Ya estás descargando un archivo, espera...", ...global.rcanal }, { quoted: m })
+    if (!dt.data[idx]) return conn.sendMessage(m.chat, { text: "❌ Número inválido", ...global.rcanal }, { quoted: m })
+
+    try {
+      dt.download = true
+      let data = await aptoide.download(dt.data[idx].id)
+
+      await conn.sendMessage(m.chat, {
+        image: { url: data.img },
+        caption: `📱 *Nombre:* ${data.appname}\n👨‍💻 *Desarrollador:* ${data.developer}`
+      }, { quoted: m })
+
+      let dl = await conn.getFile(data.link)
+      await conn.sendMessage(m.chat, {
+        document: dl.data,
+        fileName: `${data.appname}.apk`,
+        mimetype: dl.mime,
+        ...global.rcanal
+      }, { quoted: m })
+
+    } catch (e) {
+      console.error(e)
+      conn.sendMessage(m.chat, { text: "❌ Ocurrió un error al descargar el APK.", ...global.rcanal }, { quoted: m })
+    } finally {
+      dt.download = false
+    }
+    return
+  }
+
+  // Buscar apps
+  let results = await aptoide.search(text)
+  if (!results.length) {
+    return conn.sendMessage(m.chat, { text: "⚠️ No se encontraron resultados para tu búsqueda."}, { quoted: m })
+  }
+
+  conn.apk[m.sender] = {
+    data: results,
+    download: false,
+    time: setTimeout(() => delete conn.apk[m.sender], 10 * 60 * 1000)
+  }
+
+  // Mostrar botones con primeros 3 resultados
+  const top3 = results.slice(0, 3)
+  const buttons = top3.map((v, i) => ({
+    buttonId: `${usedPrefix + command} ${i + 1}`,
+    buttonText: { displayText: `${i + 1}. ${v.name}` },
+    type: 1
+  }))
+
+  await conn.sendMessage(m.chat, {
+    text: `> 🦞 Resultados para: *${text}*\n\nSelecciona una app para descargar el APK:`,
+    footer: `📦 Mostrando top 3 de ${results.length} resultados`,
+    buttons,
+    headerType: 1,
+    ...global.rcanal
+  }, { quoted: m })
 }
 
-handler.tags = ['descargas']
-handler.help = ['apk']
-handler.command = ['apk', 'modapk', 'aptoide']
-handler.group = true
-//handler.coin = 45
+handler.help = ["apk"]
+handler.tags = ["downloader"]
+handler.command = /^apk$/i
 
 export default handler
+
+// Módulo Aptoide
+const aptoide = {
+  search: async function (query) {
+    let res = await global.fetch(`https://ws75.aptoide.com/api/7/apps/search?query=${encodeURIComponent(query)}&limit=100`)
+    res = await res.json()
+    if (!res.datalist?.list?.length) return []
+
+    return res.datalist.list.map((v) => ({
+      name: v.name,
+      size: v.size,
+      version: v.file?.vername || "N/A",
+      id: v.package,
+      download: v.stats?.downloads || 0
+    }))
+  },
+
+  download: async function (id) {
+    let res = await global.fetch(`https://ws75.aptoide.com/api/7/apps/search?query=${encodeURIComponent(id)}&limit=1`)
+    res = await res.json()
+    if (!res.datalist?.list?.length) throw new Error("App no encontrada")
+
+    const app = res.datalist.list[0]
+    return {
+      img: app.icon,
+      developer: app.store?.name || "Desconocido",
+      appname: app.name,
+      link: app.file?.path
+    }
+  }
+        }
