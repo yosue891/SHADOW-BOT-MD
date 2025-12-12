@@ -103,7 +103,7 @@ ${replyMessage}
 🔗 https://chat.whatsapp.com/KqkJwla1aq1LgaPiuFFtEY`.trim();
 
       await _envio.sendMessage(m.chat, {
-        image: { url: 'https://kirito.my/media/images/51309221_k.jpg' },
+        image: { url: 'https://files.catbox.moe/1iurgf.jpg' },
         caption: responseMessage,
         mentions: _envio.parseMention(responseMessage)
       }, { quoted: m });
