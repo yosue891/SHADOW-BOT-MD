@@ -145,7 +145,7 @@ if (qr && mcode) {
     }];
 
     const interactiveMessage = {
-        image: { url: "https://files.catbox.moe/28c0n7.jpg" },
+        image: { url: "https://files.catbox.moe/qndvox.jpg" },
         caption: `*✨ ¡Tu código de vinculación está listo! ✨*\n\nUsa el siguiente código para conectarte como Sub-Bot:\n\n*Código:* ${rawCode.match(/.{1,4}/g)?.join("-")}\n\n> Haz clic en el botón de abajo para copiarlo fácilmente.`,
         title: "Código de Vinculación",
         footer: "Este código expirará en 45 segundos.",
