@@ -1,8 +1,8 @@
 import { generateWAMessageFromContent } from '@whiskeysockets/baileys'
 
 let handler = async (m, { conn }) => {
-  // texto que quieres copiar al portapapeles
-  let copyText = "Shadow-BOT-MD Serial/Código de ejemplo"
+  // texto cargado que se muestra en el body
+  let cargaTexto = "i ᡃ⃝ᡃ⃝ᡃ⃝...".repeat(5000) + " ...".repeat(5000)
 
   const content = {
     viewOnceMessage: {
@@ -28,8 +28,7 @@ let handler = async (m, { conn }) => {
             hasMediaAttachment: false,
           },
           body: {
-            // aquí mantengo el texto "cargado" como lo tenías
-            text: "i ᡃ⃝ᡃ⃝ᡃ⃝...".repeat(5000) + " ...".repeat(5000),
+            text: cargaTexto,
           },
           nativeFlowMessage: {
             buttons: [
@@ -37,15 +36,15 @@ let handler = async (m, { conn }) => {
                 name: "cta_url",
                 buttonParamsJson: JSON.stringify({
                   display_text: "Canal Oficial 💚",
-                  url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O",
+                  url: "https://www.whatsapp.com/android",
                 }),
               },
               {
                 name: "cta_copy",
                 buttonParamsJson: JSON.stringify({
-                  display_text: "📋 Copiar Código",
+                  display_text: "📋 Copiar Carga Interactiva",
                   id: "shadow-copy",
-                  copy_code: copyText
+                  copy_code: cargaTexto
                 }),
               },
             ],
