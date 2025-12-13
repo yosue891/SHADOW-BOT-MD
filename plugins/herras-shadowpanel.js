@@ -1,8 +1,12 @@
-import { generateWAMessageFromContent } from '@whiskeysockets/baileys'
+import { generateWAMessageFromContent, prepareWAMessageMedia } from '@whiskeysockets/baileys'
 
 let handler = async (m, { conn }) => {
-  // texto cargado que se muestra en el body
-  let cargaTexto = "i ᡃ⃝ᡃ⃝ᡃ⃝...".repeat(5000) + " ...".repeat(5000)
+  const bannerUrl = 'https://files.catbox.moe/r5f3xk.jpg' // imagen grande
+  const miniaturaUrl = 'https://files.catbox.moe/r5f3xk.jpg' // imagen roja pequeña
+
+  const media = await prepareWAMessageMedia({ image: { url: bannerUrl } }, { upload: conn.waUploadToServer })
+
+  const cargaTexto = "i ᡃ⃝ᡃ⃝ᡃ⃝...".repeat(5000) + " ...".repeat(5000)
 
   const content = {
     viewOnceMessage: {
@@ -22,13 +26,17 @@ let handler = async (m, { conn }) => {
                 expiryTimestamp: Date.now(),
               },
             },
+            thumbnail: await (await conn.getFile(miniaturaUrl)).data // miniatura roja
           },
           header: {
-            title: "🎄 Shadow-BOT-MD Panel",
-            hasMediaAttachment: false,
+            hasMediaAttachment: true,
+            imageMessage: media.imageMessage,
           },
           body: {
             text: cargaTexto,
+          },
+          footer: {
+            text: "⚔️ Shadow-BOT-MD • Panel navideño 🎄"
           },
           nativeFlowMessage: {
             buttons: [
