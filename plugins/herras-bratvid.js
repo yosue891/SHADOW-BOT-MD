@@ -1,4 +1,4 @@
-// Codigo de @WILKER-OFC y no quites creditos
+// Codigo de @WILKER-OFC y no quites creditos   
 import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
@@ -35,7 +35,7 @@ async function addExif(webpSticker, packname, author, categories = [''], extra =
 
 async function sticker(img, url, packname, author) {
   if (url) {
-    const res = await fetch(url)
+    let res = await fetch(url)
     if (res.status !== 200) throw await res.text()
     img = await res.buffer()
   }
@@ -52,8 +52,8 @@ async function sticker(img, url, packname, author) {
       : fluent_ffmpeg(tmpFile).input(tmpFile)
 
     ff.addOutputOptions([
-      `-vcodec`, `libwebp`, `-vf`,
-      `scale='min(512,iw)':min'(512,ih)':force_original_aspect_ratio=decrease,fps=15, pad=512:512:-1:-1:color=white@0.0, split [a][b]; [a] palettegen=reserve_transparent=on:transparency_color=ffffff [p]; [b][p] paletteuse`
+      '-vcodec', 'libwebp', '-vf',
+      "scale='min(512,iw)':min'(512,ih)':forceoriginalaspectratio=decrease,fps=15, pad=512:512:-1:-1:color=white@0.0, split [a][b]; [a] palettegen=reservetransparent=on:transparency_color=ffffff [p]; [b][p] paletteuse"
     ])
       .toFormat('webp')
       .save(outFile)
@@ -68,23 +68,23 @@ async function sticker(img, url, packname, author) {
   return await addExif(buffer, packname, author)
 }
 
-// Handler estilo Shadow-BOT-MD
-let handler = async (m, { conn, text }) => {
+// Nuevo comando bratvid
+const bratvid = async (m, { conn, text }) => {
   if (!text) {
     return conn.sendMessage(m.chat, { text: '✦ Ingresa un texto para generar el vídeo brat' }, { quoted: m })
   }
 
   await m.react('🕒')
   try {
-    const apiUrl = `https://api-adonix.ultraplus.click/canvas/bratvid?text=${encodeURIComponent(text)}&apikey=DemonKeytechbot`
+    const apiUrl = `https://mayapi.ooguy.com/bratvideo?text=${encodeURIComponent(text)}&apikey=may-d9b9c688`
     const res = await fetch(apiUrl)
     const json = await res.json()
 
     if (!json.status || !json.result) throw new Error('Error en la API')
 
     const videoUrl = json.result
-    const packname = global.packname || 'Shadow-BOT-MD'
-    const author = global.author || 'Yosue uwu'
+    const packname = global.packname || 'MaycolPlus • Bot kwai :3'
+    const author = global.author || 'SoyMaycol • 51921826291'
 
     const stiker = await sticker(false, videoUrl, packname, author)
 
@@ -101,10 +101,8 @@ let handler = async (m, { conn, text }) => {
   }
 }
 
-// Registro correcto
-handler.help = ['bratv <texto>']
-handler.tags = ['sticker']
-handler.command = ['bratv', 'bratvid'] // ambos alias
-handler.register = true
+bratvid.help = ['bratv <texto>']
+bratvid.tags = ['sticker']
+bratvid.command = ['bratv']
 
-export default handler
+export default bratvid
