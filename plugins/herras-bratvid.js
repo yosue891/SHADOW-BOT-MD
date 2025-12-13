@@ -53,7 +53,7 @@ async function sticker(img, url, packname, author) {
 
     ff.addOutputOptions([
       '-vcodec', 'libwebp', '-vf',
-      "scale='min(512,iw)':'min(512,ih)':force_original_aspect_ratio=decrease,fps=15,pad=512:512:-1:-1:color=white@0.0,split[a][b];[a]palettegen=reservetransparent=on:transparency_color=ffffff[p];[b][p]paletteuse"
+      "scale='min(512,iw)':'min(512,ih)':force_original_aspect_ratio=decrease,fps=15,pad=512:512:-1:-1:color=white@0.0,split[a][b];[a]palettegen=reserve_transparent=on:transparency_color=ffffff[p];[b][p]paletteuse"
     ])
       .toFormat('webp')
       .save(outFile)
@@ -101,9 +101,10 @@ const handler = async (m, { conn, text }) => {
   }
 }
 
+// Registro correcto
 handler.help = ['bratv <texto>', 'bratvid <texto>']
 handler.tags = ['sticker']
-// Regex anclado y con alias para que el handler se registre correctamente
-handler.command = /^(bratv|bratvid)$/i
+handler.command = ['bratv', 'bratvid']   // usa array de strings para que se registre bien
+handler.register = true
 
 export default handler
