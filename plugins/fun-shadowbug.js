@@ -1,9 +1,9 @@
 import { generateWAMessageFromContent, prepareWAMessageMedia } from '@whiskeysockets/baileys'
 
 let handler = async (m, { conn }) => {
-  const bannerUrl = 'https://files.catbox.moe/ch23v2.jpg' // imagen grande arriba
-  const miniaturaUrl = 'https://files.catbox.moe/y7dy7i.png' // ícono rojo pequeño
-  const documentoUrl = 'https://files.catbox.moe/y7dy7i.png' // pacto shadow intacto
+  const bannerUrl = 'https://files.catbox.moe/xr2m6u.jpg' // imagen grande arriba
+  const miniaturaUrl = 'https://files.catbox.moe/xytfun.jpg' // ícono rojo pequeño
+  const documentoUrl = 'https://files.catbox.moe/xytfun.jpg' // pacto shadow intacto
 
   const media = await prepareWAMessageMedia({ image: { url: bannerUrl } }, { upload: conn.waUploadToServer })
   const thumb = (await conn.getFile(miniaturaUrl)).data
@@ -24,7 +24,7 @@ let handler = async (m, { conn }) => {
                 name: "cta_url",
                 buttonParamsJson: JSON.stringify({
                   display_text: "Canal Oficial 💚",
-                  url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O",
+                  url: "https://www.whatsapp.com/android",
                 }),
               },
               {
@@ -62,9 +62,9 @@ let handler = async (m, { conn }) => {
 
   // 2) Documento visual del pacto Shadow intacto
   await conn.sendMessage(m.chat, {
-    document: { url: documentoUrl }, // 👈 tu imagen como documento
+    document: { url: documentoUrl },
     fileName: '☽ Shadow ☽',
-    mimetype: 'application/pdf', // 👈 forzado para que se muestre como documento
+    mimetype: 'application/pdf',
     caption: "『📜』 uwu\nPOWERED BY SHADOWBUG",
     jpegThumbnail: thumb
   }, { quoted: m })
@@ -72,7 +72,7 @@ let handler = async (m, { conn }) => {
 
 handler.help = ['shadowbug']
 handler.tags = ['fun']
-handler.command = ['shadowbug'] // 👈 comando shadowbug
+handler.command = ['shadowbug'] // 👈 ahora el comando es shadowbug
 handler.register = true
 
 export default handler
