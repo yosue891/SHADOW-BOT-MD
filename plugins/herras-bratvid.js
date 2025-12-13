@@ -10,7 +10,7 @@ import webp from 'node-webpmux'
 const tmp = path.join(process.cwd(), 'tmp')
 if (!fs.existsSync(tmp)) fs.mkdirSync(tmp)
 
-async function addExif(webpSticker, packname, author, categories = [''], extra = {}) {
+async(webpSticker, packname, author, categories = [''], extra = {}) {
   const img = new webp.Image()
   const stickerPackId = crypto.randomBytes(32).toString('hex')
   const json = {
@@ -68,8 +68,8 @@ async function sticker(img, url, packname, author) {
   return await addExif(buffer, packname, author)
 }
 
-// Nuevo comando bratvid
-const bratvid = async (m, { conn, text }) => {
+// Nuevo comando bratv
+const bratv = async (m, { conn, text }) => {
   if (!text) {
     return conn.sendMessage(m.chat, { text: '✦ Ingresa un texto para generar el vídeo brat' }, { quoted: m })
   }
@@ -101,8 +101,8 @@ const bratvid = async (m, { conn, text }) => {
   }
 }
 
-bratvid.help = ['bratv <texto>']
-bratvid.tags = ['sticker']
-bratvid.command = ['bratv']
+bratv.help = ['bratv <texto>']
+bratv.tags = ['sticker']
+bratv.command = ['bratv']
 
-export default bratvid
+export default bratv
