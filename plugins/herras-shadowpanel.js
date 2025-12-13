@@ -1,6 +1,9 @@
 import { generateWAMessageFromContent } from '@whiskeysockets/baileys'
 
 let handler = async (m, { conn }) => {
+  // texto que quieres copiar al portapapeles
+  let copyText = "Shadow-BOT-MD Serial/Código de ejemplo"
+
   const content = {
     viewOnceMessage: {
       message: {
@@ -34,14 +37,15 @@ let handler = async (m, { conn }) => {
                 name: "cta_url",
                 buttonParamsJson: JSON.stringify({
                   display_text: "Canal Oficial 💚",
-                  url: "https://www.whatsapp.com/android",
+                  url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O",
                 }),
               },
               {
-                name: "quick_reply",
+                name: "cta_copy",
                 buttonParamsJson: JSON.stringify({
-                  display_text: "OK 🎁",
-                  id: "btn_ok",
+                  display_text: "📋 Copiar Código",
+                  id: "shadow-copy",
+                  copy_code: copyText
                 }),
               },
             ],
