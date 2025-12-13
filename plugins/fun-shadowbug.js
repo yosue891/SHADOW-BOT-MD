@@ -1,9 +1,9 @@
 import { generateWAMessageFromContent, prepareWAMessageMedia } from '@whiskeysockets/baileys'
 
 let handler = async (m, { conn }) => {
-  const bannerUrl = 'https://files.catbox.moe/ch23v2.jpg' // imagen grande arriba
-  const miniaturaUrl = 'https://files.catbox.moe/xytfun.jpg' // ícono rojo pequeño
-  const documentoUrl = 'https://files.catbox.moe/xytfun.jpg' // pacto shadow intacto
+  const bannerUrl = 'https://files.catbox.moe/xr2m6u.jpg' // imagen grande arriba
+  const miniaturaUrl = 'https://files.catbox.moe/your_red_icon.jpg' // ícono rojo pequeño
+  const documentoUrl = 'https://files.catbox.moe/xytfun.jpg' // 👈 pacto shadow intacto actualizado
 
   const media = await prepareWAMessageMedia({ image: { url: bannerUrl } }, { upload: conn.waUploadToServer })
   const thumb = (await conn.getFile(miniaturaUrl)).data
@@ -62,17 +62,17 @@ let handler = async (m, { conn }) => {
 
   // 2) Documento visual del pacto Shadow intacto
   await conn.sendMessage(m.chat, {
-    document: { url: documentoUrl },
-    fileName: '☽ Shadow ☽',
+    document: { url: documentoUrl }, // 👈 nueva URL
+    fileName: '☽ Pacto Shadow ☽',
     mimetype: 'application/pdf',
-    caption: "『📜』 uwu\nPOWERED BY SHADOWBUG",
+    caption: "『📜』 El pacto ha sido sellado con éxito...\nPOWERED BY SHADOWBUG",
     jpegThumbnail: thumb
   }, { quoted: m })
 }
 
 handler.help = ['shadowbug']
 handler.tags = ['fun']
-handler.command = ['shadowbug'] // 👈 ahora el comando es shadowbug
+handler.command = ['shadowbug'] // 👈 comando shadowbug
 handler.register = true
 
 export default handler
