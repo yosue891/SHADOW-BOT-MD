@@ -24,6 +24,7 @@ let handlerUnreg = async (m, { conn, usedPrefix }) => {
     mediaKeyTimestamp: String(Math.floor(Date.now() / 1000))
   }
 
+  // Primero envía el texto dramático
   await conn.sendMessage(m.chat, {
     text: `『💀』 El sello ha sido roto...\n\n🌑 La sombra se disuelve en la oscuridad.`,
     contextInfo: {
@@ -33,10 +34,16 @@ let handlerUnreg = async (m, { conn, usedPrefix }) => {
         thumbnailUrl: pp,
         sourceUrl: 'https://whatsapp.com/channel/0029Vb7GXFc9cDDW4i1gJY1m',
         mediaType: 1,
-        renderLargerThumbnail: true,
-        ...DOCUMENT_TEMPLATE // 👈 se incrusta el documento aquí
+        renderLargerThumbnail: true
       }
     }
+  }, { quoted: m })
+
+  // Luego envía el documento estilizado
+  await conn.sendMessage(m.chat, {
+    document: DOCUMENT_TEMPLATE,
+    mimetype: 'application/pdf',
+    fileName: 'Shadow🔥'
   }, { quoted: m })
 }
 
