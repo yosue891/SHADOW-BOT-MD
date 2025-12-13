@@ -1,4 +1,4 @@
-// Codigo de @WILKER-OFC y no quites creditos   
+// Codigo de @WILKER-OFC y no quites creditos
 import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
@@ -35,7 +35,7 @@ async function addExif(webpSticker, packname, author, categories = [''], extra =
 
 async function sticker(img, url, packname, author) {
   if (url) {
-    let res = await fetch(url)
+    const res = await fetch(url)
     if (res.status !== 200) throw await res.text()
     img = await res.buffer()
   }
@@ -68,8 +68,8 @@ async function sticker(img, url, packname, author) {
   return await addExif(buffer, packname, author)
 }
 
-// Nuevo comando bratvid
-const bratvid = async (m, { conn, text }) => {
+// Handler estilo Shadow-BOT-MD
+let handler = async (m, { conn, text }) => {
   if (!text) {
     return conn.sendMessage(m.chat, { text: '✦ Ingresa un texto para generar el vídeo brat' }, { quoted: m })
   }
@@ -101,8 +101,10 @@ const bratvid = async (m, { conn, text }) => {
   }
 }
 
-bratvid.help = ['bratv <texto>']
-bratvid.tags = ['sticker']
-bratvid.command = ['bratv']
+// Registro correcto
+handler.help = ['bratv <texto>']
+handler.tags = ['sticker']
+handler.command = ['bratv', 'bratvid'] // ambos alias
+handler.register = true
 
-export default bratvid
+export default handler
