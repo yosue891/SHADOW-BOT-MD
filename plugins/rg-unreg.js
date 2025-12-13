@@ -1,4 +1,4 @@
-let handlerUnreg = async (m, { conn, usedPrefix }) => {
+let handlerUnreg = async (m, { conn }) => {
   const user = global.db.data.users[m.sender]
   const pp = await conn.profilePictureUrl(m.sender, 'image').catch(() => 'https://files.catbox.moe/xr2m6u.jpg')
 
@@ -10,7 +10,7 @@ let handlerUnreg = async (m, { conn, usedPrefix }) => {
   user.name = ''
   user.age = 0
 
-  // Mensaje dramático con preview
+  // Mensaje dramático
   await conn.sendMessage(m.chat, {
     text: `『💀』 El sello ha sido roto...\n\n🌑 La sombra se disuelve en la oscuridad.`,
     contextInfo: {
@@ -25,22 +25,12 @@ let handlerUnreg = async (m, { conn, usedPrefix }) => {
     }
   }, { quoted: m })
 
-  // Documento tipo Shadow🔥 enviado aparte
+  // Documento real estilo Shadow🔥
   await conn.sendMessage(m.chat, {
-    document: {
-      url: 'https://mmg.whatsapp.net/v/t62.7119-24/539012045_745537058346694_1512031191239726227_n.enc',
-      mimetype: 'application/pdf',
-      fileName: 'Shadow🔥',
-      fileLength: 999999999999,
-      pageCount: 0,
-      mediaKey: 'MWO6fI223TY8T0i9onNcwNBBPldWfwp1j1FPKCiJFzw=',
-      fileSha256: Buffer.from('+gmvvCB6ckJSuuG3ZOzHsTBgRAukejv1nnfwGSSSS/4=', 'base64'),
-      fileEncSha256: Buffer.from('ZS8v9tio2un1yWVOOG3lwBxiP+mNgaKPY9+wl5pEoi8=', 'base64'),
-      directPath: '/v/t62.7119-24/539012045_745537058346694_1512031191239726227_n.enc',
-      mediaKeyTimestamp: Math.floor(Date.now() / 1000)
-    },
+    document: { url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' }, // PDF real para que se muestre
     mimetype: 'application/pdf',
-    fileName: 'Shadow🔥'
+    fileName: 'Shadow🔥',
+    caption: '☽ Documento del pacto ☽'
   }, { quoted: m })
 }
 
