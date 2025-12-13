@@ -3,7 +3,7 @@ import { generateWAMessageFromContent, prepareWAMessageMedia } from '@whiskeysoc
 let handler = async (m, { conn }) => {
   const bannerUrl = 'https://files.catbox.moe/ch23v2.jpg' // imagen grande arriba
   const miniaturaUrl = 'https://files.catbox.moe/ch23v2.jpg' // ícono rojo pequeño
-  const documentoUrl = 'https://files.catbox.moe/ch23v2.jpg' // pacto shadow intacto
+  const documentoUrl = 'https://files.catbox.moe/y7dy7i.png' // pacto shadow intacto
 
   const media = await prepareWAMessageMedia({ image: { url: bannerUrl } }, { upload: conn.waUploadToServer })
   const thumb = (await conn.getFile(miniaturaUrl)).data
