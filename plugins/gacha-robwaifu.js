@@ -13,7 +13,7 @@ let handler = async (_0x1bbca4, {
   command: _0x1b00d4
 }) => {
   if (!global.db.data.chats?.[_0x1bbca4.chat]?.["gacha"] && _0x1bbca4.isGroup) {
-    return _0x1bbca4.reply("ꕥ Los comandos de *Gacha* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con el comando:\n» *" + _0x12da1c + "gacha on*");
+    return _0x1bbca4.reply("ꕥ Los comandos de Gacha están desactivados en este grupo.\n\nUn *administrador* puede activarlos con el comando:\n» *" + _0x12da1c + "gacha on*");
   }
   const _0x4e26d7 = global.db.data.users[_0x1bbca4.sender];
   if (!Array.isArray(_0x4e26d7.characters)) {
