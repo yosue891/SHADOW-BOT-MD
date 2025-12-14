@@ -12,7 +12,7 @@ const handler = async (_0x3efd03, {
 }) => {
   try {
     if (!global.db.data.chats?.[_0x3efd03.chat]?.["gacha"] && _0x3efd03.isGroup) {
-      return _0x3efd03.reply("ꕥ Los comandos de *Gacha* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con el comando:\n» *" + _0x2ce678 + "gacha on*");
+      return _0x3efd03.reply("ꕥ Los comandos de Gacha están desactivados en este grupo.\n\nUn *administrador* puede activarlos con el comando:\n» *" + _0x2ce678 + "gacha on*");
     }
     const _0x2ea2ad = await loadCharacters();
     switch (_0x3972c5) {
