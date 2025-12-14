@@ -15,11 +15,12 @@ const handler = async (m, { conn, usedPrefix }) => {
     subBots.push(global.conn.user.jid)
   }
 
-  const chat = global.db.data.chats[m.chat]
-  const mentionedJid = await m.mentionedJid
-  const who = mentionedJid[0] ? mentionedJid[0] : m.quoted ? await m.quoted.sender : false
+  const chat = global.db.data.chats?.[m.chat] || {}
+  const mentionedJid = m.mentionedJid
+  const who = mentionedJid && mentionedJid[0] ? mentionedJid[0] : m.quoted ? m.quoted.sender : false
+  
   if (!who) return conn.reply(m.chat, `❀ Por favor, menciona a un Socket para hacerlo Bot principal del grupo.`, m)
-  if (!subBots.includes(who)) return conn.reply(m.chat, `ꕥ El usuario mencionado no es un Socket de: *${botname}*.`, m)
+  if (!subBots.includes(who)) return conn.reply(m.chat, `ꕥ El usuario mencionado no es un Socket de: *${global.botname}*.`, m)
   if (chat.primaryBot === who) {
     return conn.reply(
       m.chat,
@@ -30,9 +31,14 @@ const handler = async (m, { conn, usedPrefix }) => {
   }
 
   try {
-    chat.primaryBot = who
-    global.db.data.chats[m.chat] = chat
+    if (!global.db.data.chats[m.chat]) {
+        global.db.data.chats[m.chat] = { primaryBot: who }
+    } else {
+        global.db.data.chats[m.chat].primaryBot = who
+    }
+    
     await global.db.write()
+    
     conn.reply(
       m.chat,
       `✏ Se ha establecido a @${who.split`@`[0]} como Bot primario de este grupo.\n> Ahora todos los comandos de este grupo serán ejecutados por @${who.split`@`[0]}.`,
@@ -40,6 +46,7 @@ const handler = async (m, { conn, usedPrefix }) => {
       { mentions: [who] }
     )
   } catch (e) {
+    console.error(e)
     conn.reply(
       m.chat,
       `⚠︎ Se ha producido un problema.\n> Usa *${usedPrefix}report* para informarlo.\n\n${e.message}`,
