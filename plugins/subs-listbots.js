@@ -1,128 +1,91 @@
-import { existsSync, rmdirSync } from "fs";
-import ws from 'ws';
+import ws from "ws"
 
-let handler = async (m, { conn: _envio, command, usedPrefix, args, text, isOwner }) => {
-  const isCommand1 = /^(deletesesion|deletebot|deletesession|deletesesaion)$/i.test(command);
-  const isCommand2 = /^(stop|pausarai|pausarbot)$/i.test(command);
-  const isCommand3 = /^(bots|sockets|socket)$/i.test(command);
+const handler = async (m, { conn, command, usedPrefix }) => {
+try {
+const users = [global.conn.user.jid, ...new Set(global.conns.filter((conn) => conn.user && conn.ws.socket && conn.ws.socket.readyState !== ws.CLOSED).map((conn) => conn.user.jid))]
 
-  const botNameSafe = typeof botname !== 'undefined' ? botname : 'Sub-Bot';
-  const jadiSafe = typeof jadi !== 'undefined' ? jadi : 'sessions';
+function convertirMsADiasHorasMinutosSegundos(ms) {
+    const segundos = Math.floor(ms / 1000)
+    const minutos = Math.floor(segundos / 60)
+    const horas = Math.floor(minutos / 60)
+    const días = Math.floor(horas / 24)
+    const segRest = segundos % 60
+    const minRest = minutos % 60
+    const horasRest = horas % 24
+    let resultado = ""
+    if (días) resultado += `${días}d `
+    if (horasRest) resultado += `${horasRest}h `
+    if (minRest) resultado += `${minRest}m `
+    if (segRest) resultado += `${segRest}s`
+    return resultado.trim() || 'menos de 1s'
+}
 
-  async function reportError(e) {
-    await m.reply('⚠️ Ocurrió un error en el sistema de Sub-Bots. Consulte la consola.');
-    console.log(e);
-  }
+const subBotsActivos = users.filter(jid => jid !== global.conn.user.jid).map((botJid, index) => {
+    const v = global.conns.find((conn) => conn.user.jid === botJid)
+    const uptime = v?.uptime ? convertirMsADiasHorasMinutosSegundos(Date.now() - v.uptime) : "Activo desde ahora"
+    const mention = botJid.replace(/[^0-9]/g, '')
+    const botNumber = botJid.split('@')[0]
+    const botName = v?.user?.name || `Sub-Bot ${index + 1}`
+    
+    return `\`🪴 Subbot\`  *[ ${index + 1} ]*
 
-  switch (true) {
-    case isCommand1:
-      let who = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.fromMe ? conn.user.jid : m.sender;
-      let uniqid = `${who.split('@')[0]}`;
-      const sessionPath = `./${jadiSafe}/${uniqid}`; 
-
-      if (!existsSync(sessionPath)) {
-        await conn.sendMessage(m.chat, {
-          text: `🚫 Usted no tiene una sesión activa.\n\nPuede crear una usando:\n${usedPrefix + command}\n\nSi tiene una ID, puede usar:\n${usedPrefix + command} (ID)`,
-          quoted: m
-        });
-        return;
-      }
-
-      if (global.conn.user.jid !== conn.user.jid) {
-        return conn.sendMessage(m.chat, {
-          text: `⚠️ Use este comando desde el *Bot Principal*.\n\nhttps://api.whatsapp.com/send/?phone=522483649647&text=${usedPrefix + command}&type=phone_number&app_absent=0`,
-          quoted: m
-        });
-      } else {
-        await conn.sendMessage(m.chat, { text: `✅ Tu sesión como *Sub-Bot* ha sido eliminada.`, quoted: m });
-      }
-
-      try {
-        rmdirSync(sessionPath, { recursive: true, force: true });
-        await conn.sendMessage(m.chat, { text: `🧹 Sesión cerrada y rastro eliminado.`, quoted: m });
-      } catch (e) {
-        reportError(e);
-      }
-      break;
-
-    case isCommand2:
-      if (global.conn.user.jid === conn.user.jid) {
-        conn.reply(m.chat, `⚠️ Este comando solo funciona si eres *Sub-Bot*.\n\n📞 Comunícate con el número principal para activarte:\nhttps://wa.me/573136379995?text=${usedPrefix}code`, m);
-      } else {
-        await conn.reply(m.chat, `🛑 ${botNameSafe} desactivada.`, m); 
-        conn.ws.close();
-      }
-      break;
-
-    case isCommand3:
-      const users = [...new Set([...global.conns.filter((conn) => conn.user && conn.ws.socket && conn.ws.socket.readyState !== ws.CLOSED)])];
-
-      function convertirMsADiasHorasMinutosSegundos(ms) {
-        let segundos = Math.floor(ms / 1000);
-        let minutos = Math.floor(segundos / 60);
-        let horas = Math.floor(minutos / 60);
-        let días = Math.floor(horas / 24);
-        segundos %= 60;
-        minutos %= 60;
-        horas %= 24;
-        let resultado = "";
-        if (días) resultado += `${días} días, `;
-        if (horas) resultado += `${horas} horas, `;
-        if (minutos) resultado += `${minutos} minutos, `;
-        if (segundos) resultado += `${segundos} segundos`;
-        if (resultado.endsWith(', ')) {
-          resultado = resultado.slice(0, -2);
-        }
-        return resultado || 'Menos de 1 segundo';
-      }
-      
-      const message = users.map((v, index) => {
-          const mention = v.user.jid.split('@')[0];
-          const botNumber = v.user.jid.replace(/[^0-9]/g, '');
-          const botName = v.user.name || 'Sub-Bot';
-          const uptime = v.uptime ? convertirMsADiasHorasMinutosSegundos(Date.now() - v.uptime) : 'Tiempo Desconocido 💀';
-          
-          return `
-Shadow | Sub-bots [ ${index + 1} ]
- 
 🌿 Tag:: @${mention}
 🌴 ID:: wa.me/${botNumber}?text=.menu
 🌱 Bot:: ${botName}
 🍄 Uptime:: ${uptime}
- 
-────────────────`.trim();
-      }).join('\n\n'); 
+────────────────`
+}).join("\n")
 
-      const replyMessage = message.length === 0
-        ? `🚫 Actualmente no hay Sub-Bots disponibles.\n⏳ Por favor, vuelva a intentarlo más tarde.`
-        : message;
+const countSubBotsActivos = users.length - 1
 
-      const responseMessage = replyMessage;
+const message = `\`🌴 Subbots activos:\` *${countSubBotsActivos}/20*
 
-      const buttons = [
-          {
-              name: "cta_url",
-              buttonParamsJson: JSON.stringify({
-                  display_text: "Canal Oficial",
-                  url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
-              })
-          }
-      ];
+${subBotsActivos}`
 
-      await _envio.sendMessage(m.chat, {
-        image: { url: 'https://files.catbox.moe/1iurgf.jpg' },
-        caption: responseMessage,
-        mentions: _envio.parseMention(responseMessage),
-        buttons: buttons, 
-        footer: 'Presiona el botón para ir al canal oficial.', 
-      }, { quoted: m });
-      
-      break;
-  }
-};
+const mentionList = users.filter(jid => jid !== global.conn.user.jid)
 
-handler.tags = ['serbot'];
-handler.help = ['sockets', 'deletesesion', 'pausarai'];
-handler.command = ['deletesesion', 'deletebot', 'deletesession', 'stop', 'pausarai', 'pausarbot', 'bots', 'sockets', 'socket'];
+const buttonParams = [
+    {
+        name: "cta_url",
+        buttonParamsJson: JSON.stringify({
+            display_text: "Canal Oficial",
+            url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
+        })
+    }
+]
 
-export default handler;
+const interactiveMessage = {
+    body: { text: message },
+    footer: { text: "¡Únete a nuestro canal para más novedades!" },
+    header: { 
+        imageMessage: {
+            url: "https://files.catbox.moe/1iurgf.jpg",
+            mimetype: "image/jpeg"
+        }
+    },
+    nativeFlowMessage: {
+        buttons: buttonParams,
+        messageParamsJson: "" 
+    }
+}
+
+await conn.sendMessage(m.chat, { 
+    viewOnceMessage: {
+        message: {
+            "interactiveMessage": interactiveMessage
+        }
+    },
+    contextInfo: {
+        mentionedJid: mentionList
+    } 
+}, { quoted: m })
+
+} catch (error) {
+m.reply(`⚠︎ Se ha producido un problema.\n> Usa *${usedPrefix}report* para informarlo.\n\n${error.message}`)
+}}
+
+handler.tags = ["serbot"]
+handler.help = ["botlist"]
+handler.command = ["botlist", "listbots", "listbot", "bots", "sockets", "socket"]
+
+export default handler
