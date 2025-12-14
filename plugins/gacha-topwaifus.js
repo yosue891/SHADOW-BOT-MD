@@ -6,23 +6,12 @@ async function loadCharacters() {
 function flattenCharacters(_0x69d770) {
   return Object.values(_0x69d770).flatMap(_0x24074a => Array.isArray(_0x24074a.characters) ? _0x24074a.characters : []);
 }
-const verifi = async () => {
-  try {
-    const _0x5c6210 = await _0x5059c8.readFile("./package.json", "utf-8");
-    const _0x1223ed = JSON.parse(_0x5c6210);
-    return _0x1223ed.repository?.["url"] === "git+https://github.com/meado-learner/Michi-WaMD.git";
-  } catch {
-    return false;
-  }
-};
+
 let handler = async (_0x29a52a, {
   conn: _0x5236b1,
   args: _0xcd3487,
   usedPrefix: _0x4f501f
 }) => {
-  if (!(await verifi())) {
-    return _0x5236b1.reply(_0x29a52a.chat, "❀ El comando *<" + command + ">* solo está disponible para Michi.", _0x29a52a);
-  }
   if (!global.db.data.chats?.[_0x29a52a.chat]?.["gacha"] && _0x29a52a.isGroup) {
     return _0x29a52a.reply("ꕥ Los comandos de *Gacha* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con el comando:\n» *" + _0x4f501f + "gacha on*");
   }
