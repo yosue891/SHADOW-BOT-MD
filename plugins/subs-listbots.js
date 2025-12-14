@@ -60,15 +60,14 @@ ${subBotsActivos}`
       image: imageBuffer,
       caption: message,
       footer: "¡Únete a nuestro canal para más novedades!",
-      templateButtons: [
+      buttons: [
         {
-          index: 1,
-          urlButton: {
-            displayText: "Canal Oficial",
-            url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
-}
+          buttonId: ".code",
+          buttonText: { displayText: "Ser Sub-Bot"},
+          type: 1
 }
       ],
+      headerType: 4,
       contextInfo: {
         mentionedJid: mentionList
 }
