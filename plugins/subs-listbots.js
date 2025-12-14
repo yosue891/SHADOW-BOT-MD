@@ -37,7 +37,7 @@ const handler = async (m, { conn, command, usedPrefix}) => {
         const botNumber = botJid.split('@')[0]
         const botName = v?.user?.name || `Sub-Bot ${index + 1}`
 
-        return `\`🪴 Subbot\`  *[ ${index + 1} ]*
+        return `\`🪴 Shadow Subbot\`  *[ ${index + 1} ]*
 
 🌿 Tag:: @${mention}
 🌴 ID:: wa.me/${botNumber}?text=.menu
