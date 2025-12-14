@@ -52,8 +52,8 @@ let handler = async (m, { conn, usedPrefix }) => {
     let uptimeStr = `${hours}h ${minutes}m ${seconds}s`;
 
     let botNameToShow = global.botname || "Shadow 🎄";
-    let bannerUrl = global.michipg || "https://n.uguu.se/ZZHiiljb.jpg";
-    let videoUrl = "https://files.catbox.moe/johk6u.mp4";
+    let videoUrl = "https://files.catbox.moe/johk6u.mp4"; 
+    
     const senderBotNumber = conn.user.jid.split('@')[0];
     const configPath = path.join('./Sessions/SubBot', senderBotNumber, 'config.json');
 
@@ -61,7 +61,6 @@ let handler = async (m, { conn, usedPrefix }) => {
       try {
         const subBotConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
         if (subBotConfig.name) botNameToShow = subBotConfig.name;
-        if (subBotConfig.banner) bannerUrl = subBotConfig.banner;
         if (subBotConfig.video) videoUrl = subBotConfig.video;
       } catch (e) {}
     }
@@ -72,42 +71,58 @@ let handler = async (m, { conn, usedPrefix }) => {
     const timeStr = now.format("HH:mm:ss");
     const dateStr = now.format("DD/MM/YYYY");
 
-    let saludo = "🎅 ¡Feliz Navidad!";
-    if (hour >= 12 && hour < 18) saludo = "🎁 ¡Feliz tarde navideña!";
-    else if (hour >= 18 || hour < 5) saludo = "🌙 ¡Feliz noche navideña!";
+    let saludoNavideño = "🌟 *¡Feliz Día de Sombra!* 🌟";
+    if (hour >= 12 && hour < 18) saludoNavideño = "🎁 *¡Tarde de Regalos!* 🎁";
+    else if (hour >= 18 || hour < 5) saludoNavideño = "🕯️ *¡Noche de Luces!* 🕯️";
 
-    let intro = 
-`┏━━━━━━━━━━━━━━━━━━━┓
-🎄 *${saludo}* 🎄
-✨ Bienvenido al Reino de las Sombras festivas ✨
-❄️ Que las luces iluminen tu camino y las sombras te protejan ❄️
-┗━━━━━━━━━━━━━━━━━━━┛\n`;
+    const tagUser = '@' + m.sender.split('@')[0];
+    const separador = '—————————————';
 
-    let txt = intro +
-      `🌐 *Canal Navideño de Shadow:*\nhttps://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O\n\n` +
-      `🎅 Soy *${botNameToShow}*, el ser en las sombras ${(conn.user.jid == global.conn.user.jid ? '(Principal 🅥)' : '(Sub-Bot 🅑)')}\n` +
-      `🕒 *Hora:* ${timeStr}\n` +
-      `📅 *Fecha:* ${dateStr}\n` +
-      `⚙️ *Actividad:* ${uptimeStr}\n\n` +
-      `❄️ *Comandos mágicos:*`;
+    let txt =
+`
+╔═══════ 🎄 ═══════╗
+   *M E N Ú D E L A S S O M B R A S*
+╚═══════ ❄️ ═══════╝
 
-    const emojis = ['🎄', '🎁', '✨', '⛄', '🔔', '🎶'];
-    let emojiIndex = 0;
+${saludoNavideño} ${tagUser}
 
+${separador}
+
+*★ D A T O S - B O T*
+• *Nombre:* ${botNameToShow}
+• *Estado:* ${(conn.user.jid == global.conn.user.jid ? 'Principal 🅥' : 'Sub-Bot 🅑')}
+• *Uptime:* ${uptimeStr}
+• *Hora (TGU):* ${timeStr}
+
+${separador}
+
+*★ M E N U - C O M A N D O S*
+
+`;
+
+    const iconos = {
+        'main': '🏠', 'menu': '📜', 'rg': '📝', 'rpg': '⚔️', 'econ': '💰', 'group': '👥',
+        'tools': '🔧', 'admin': '👑', 'owner': '🌟', 'fun': '🎈', 'sticker': '🖼️',
+        'downloader': '📥', 'internet': '📡', 'audio': '🎧', 'nsfw': '🔞', 'xp': '✨'
+    };
+    
     for (let tag in menu) {
-      txt += `\n━━━━━━━━━━━━━━━━━━━━━━\n🎅 ${tag.toUpperCase()} 🎅\n━━━━━━━━━━━━━━━━━━━━━━\n`;
-      for (let plugin of menu[tag]) {
-        for (let cmd of plugin.help) {
-          let emoji = emojis[emojiIndex % emojis.length];
-          txt += `${emoji} ${usedPrefix + cmd}\n`;
-          emojiIndex++;
-        }
-      }
+        const tagTitle = iconos[tag] ? `${iconos[tag]} ${tag.toUpperCase()} ${iconos[tag]}` : tag.toUpperCase();
+        txt += `\n*• ${tagTitle}*`;
+        
+        let commands = menu[tag].map(plugin => {
+            const cmdList = Array.isArray(plugin.help) ? plugin.help : [plugin.help];
+            return cmdList.map(cmd => {
+                return `   - ${usedPrefix}${cmd}`;
+            }).join('\n');
+        }).join('\n');
+        
+        txt += `\n${commands}\n`;
     }
 
-    txt += `\n\n🎄✨ *Creado por Yosue uwu* ✨🎄`;
+    txt += `\n${separador}\n*Creado por Yosue uwu ❤️*`;
 
-    await conn.sendMessage(m.chat, { react: { text: '🎅', key: m.key } });
+    await conn.sendMessage(m.chat, { react: { text: '☃️', key: m.key } });
 
     let mediaMessage = null;
     try {
@@ -117,12 +132,20 @@ let handler = async (m, { conn, usedPrefix }) => {
       );
     } catch (e) {}
 
+    const newMessageParamsJson = JSON.stringify({
+      limited_time_offer: {
+        text: "🌑 Shadow - Menu",
+        url: "https://github.com/the-xyzz",
+        expiration_time: 1754613436864329,
+      },
+    });
+
     const msg = generateWAMessageFromContent(m.chat, {
       viewOnceMessage: {
         message: {
           interactiveMessage: {
             body: { text: txt },
-            footer: { text: "🎄 Menú Navideño 🎄" },
+            footer: { text: "✧ Visita  nuestro  canal oficial ✧" }, 
             header: {
               hasMediaAttachment: !!mediaMessage,
               videoMessage: mediaMessage ? mediaMessage.videoMessage : null
@@ -132,12 +155,12 @@ let handler = async (m, { conn, usedPrefix }) => {
                 {
                   name: "cta_url",
                   buttonParamsJson: JSON.stringify({
-                    display_text: "🌐 Canal de Shadow",
+                    display_text: "🌐 Canal Oficial",
                     url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
                   })
                 }
               ],
-              messageParamsJson: ""
+              messageParamsJson: newMessageParamsJson
             },
             contextInfo: {
               mentionedJid: [m.sender],
@@ -152,9 +175,10 @@ let handler = async (m, { conn, usedPrefix }) => {
     await conn.relayMessage(m.chat, msg.message, {});
 
   } catch (e) {
-    conn.reply(m.chat, "👻 Error en las sombras navideñas...", m);
+    console.error(e);
+    conn.reply(m.chat, "👻 Error al generar el menú mejorado...", m);
   }
 };
 
-handler.command = ['help', 'menu'];
+handler.command = ['menu', 'help'];
 export default handler;
