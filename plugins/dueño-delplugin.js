@@ -1,6 +1,6 @@
 /*
 	* Create By Fede Uchiha 
-	* GitHub https://github.com/dev-fedexyro
+	* GitHub https://github.com/the-xyzz
 	* Whatsapp: https://whatsapp.com/channel/0029VbBG4i2GE56rSgXsqw2W
 */
 
