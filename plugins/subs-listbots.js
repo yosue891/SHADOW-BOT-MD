@@ -1,5 +1,4 @@
-import { promises as fsPromises } from "fs";
-const fs = { ...fsPromises, existsSync: (path) => require('fs').existsSync(path), rmdirSync: (path, options) => require('fs').rmdirSync(path, options) };
+import { existsSync, rmdirSync } from "fs";
 import ws from 'ws';
 
 let handler = async (m, { conn: _envio, command, usedPrefix, args, text, isOwner }) => {
@@ -18,7 +17,7 @@ let handler = async (m, { conn: _envio, command, usedPrefix, args, text, isOwner
       let uniqid = `${who.split('@')[0]}`;
       const sessionPath = `./${jadi}/${uniqid}`; 
 
-      if (!fs.existsSync(sessionPath)) {
+      if (!existsSync(sessionPath)) {
         await conn.sendMessage(m.chat, {
           text: `🚫 Usted no tiene una sesión activa.\n\nPuede crear una usando:\n${usedPrefix + command}\n\nSi tiene una ID, puede usar:\n${usedPrefix + command} (ID)`,
           quoted: m
@@ -36,7 +35,7 @@ let handler = async (m, { conn: _envio, command, usedPrefix, args, text, isOwner
       }
 
       try {
-        fs.rmdirSync(sessionPath, { recursive: true, force: true });
+        rmdirSync(sessionPath, { recursive: true, force: true });
         await conn.sendMessage(m.chat, { text: `🧹 Sesión cerrada y rastro eliminado.`, quoted: m });
       } catch (e) {
         reportError(e);
@@ -87,6 +86,7 @@ Shadow | Sub-bots [ ${index + 1} ]
 🌴 ID:: wa.me/${botNumber}?text=.menu
 🌱 Bot:: ${botName}
 🍄 Uptime:: ${uptime}
+ 
 ────────────────`.trim();
       }).join('\n\n'); 
 
@@ -100,7 +100,7 @@ Shadow | Sub-bots [ ${index + 1} ]
           {
               name: "cta_url",
               buttonParamsJson: JSON.stringify({
-                  display_text: "Canal Oficial",
+                  display_text: "Canal Oficial ",
                   url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
               })
           }
