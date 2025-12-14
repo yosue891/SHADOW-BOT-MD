@@ -29,7 +29,7 @@ var handler = async (m, { conn, args }) => {
         let inviteCode = await conn.groupInviteCode(group)
         let link = 'https://chat.whatsapp.com/' + inviteCode
 
-        let title = '🌑 Shadow Invitación del Grupo'
+        let title = '\`🌑 Shadow Invitación del Grupo\`'
         let bodyText = `*Aquí tienes el enlace de invitación:*\n\n> \`Link:\` ${link}`
         let footerText = 'Toca el botón para copiar el link.'
 
