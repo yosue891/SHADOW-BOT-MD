@@ -1,26 +1,15 @@
 async function handler(m, { conn, args, usedPrefix, command, participants }) {
+  if (!global.db.data.chats[m.chat].economy && m.isGroup) {
+    return m.reply(`《✦》Los comandos de *Economía* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con el comando:\n» *${usedPrefix}economy on*`)
+  }
+
   let who;
   if (m.isGroup) {
     who = m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : false;
   } else {
     who = m.chat;
   }
-
-  if (!who) {
-    return m.reply(`🎄✨ Etiqueta o responde al mensaje del usuario al que quieras transferir tus *pesos*. UwU`);
-  }
-
-  let senderJid = m.sender;
-  if (m.sender.endsWith('@lid') && m.isGroup) {
-    const pInfo = participants.find(p => p.lid === m.sender);
-    if (pInfo && pInfo.id) senderJid = pInfo.id; 
-  }
-
-  let targetJid = who;
-  if (who.endsWith('@lid') && m.isGroup) {
-    const pInfo = participants.find(p => p.lid === who);
-    if (pInfo && pInfo.id) targetJid = pInfo.id; 
-  }
+  if (!who) return m.reply(`🎄✨ Etiqueta o responde al mensaje del usuario al que quieras transferir tus *pesos*. UwU`);
 
   const amountText = args.find(arg => !arg.startsWith('@') && isNumber(arg));
   if (!amountText) {
@@ -30,30 +19,23 @@ async function handler(m, { conn, args, usedPrefix, command, participants }) {
   const count = Math.min(Number.MAX_SAFE_INTEGER, Math.max(1, parseInt(amountText)));
 
   // Inicializar siempre los campos de cada usuario
-  const user = global.db.data.users[senderJid] || {};
-  user.coin = user.coin || 0;
-  user.bank = user.bank || 0;
-  global.db.data.users[senderJid] = user;
+  const sender = global.db.data.users[m.sender] || {};
+  sender.coin = sender.coin || 0;
+  sender.bank = sender.bank || 0;
+  global.db.data.users[m.sender] = sender;
 
-  const targetUser = global.db.data.users[targetJid] || {};
-  targetUser.coin = targetUser.coin || 0;
-  targetUser.bank = targetUser.bank || 0;
-  global.db.data.users[targetJid] = targetUser;
+  const target = global.db.data.users[who] || {};
+  target.coin = target.coin || 0;
+  target.bank = target.bank || 0;
+  global.db.data.users[who] = target;
 
-  if (user.bank < count) {
-    return m.reply(`⚠️ No tienes suficientes *pesos* en tu banco para realizar la transferencia.\n💰 Tu saldo actual: *${user.bank.toLocaleString()} pesos*`);
+  if (sender.bank < count) {
+    return m.reply(`⚠️ No tienes suficientes *pesos* en tu banco para realizar la transferencia.\n💰 Tu saldo actual: *${sender.bank.toLocaleString()} pesos*`);
   }
+  if (who === m.sender) return m.reply(`❌ No puedes transferirte *pesos* a ti mismo.`);
 
-  if (!(targetJid in global.db.data.users)) {
-    return m.reply(`❌ El usuario no se encuentra en mi base de datos.`);
-  }
-
-  if (targetJid === senderJid) {
-    return m.reply(`❌ No puedes transferirte *pesos* a ti mismo.`);
-  }
-
-  user.bank -= count;
-  targetUser.coin += count;
+  sender.bank -= count;
+  target.coin += count;
 
   const mentionText = `@${who.split('@')[0]}`;
   m.reply(`
@@ -65,20 +47,20 @@ async function handler(m, { conn, args, usedPrefix, command, participants }) {
 el poder oculto fluye entre usuarios...
 
 🎁 Has enviado: *${count.toLocaleString()} pesos* a ${mentionText}.
-💰 Te quedan: *${user.bank.toLocaleString()} pesos* en tu banco.
+💰 Te quedan: *${sender.bank.toLocaleString()} pesos* en tu banco.
 
 🎅 UwU ¡Feliz Navidad desde las sombras! 🎄
 `, null, { mentions: [who] });
 }
 
 handler.help = ['pay <cantidad> @usuario'];
-handler.tags = ['rpg'];
+handler.tags = ['economia'];
 handler.command = ['pay', 'transfer'];
 handler.group = true;
 handler.register = true;
 export default handler;
 
 function isNumber(x) {
-  if (typeof x === 'string') { x = x.trim(); }
+  if (typeof x === 'string') x = x.trim();
   return !isNaN(x) && x !== '';
 }
