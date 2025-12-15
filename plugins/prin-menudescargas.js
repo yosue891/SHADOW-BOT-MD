@@ -18,7 +18,7 @@ let handler = async (m, { conn, usedPrefix }) => {
 
     // Imagen en el header (se reemplaza el video)
     let mediaMessage = await prepareWAMessageMedia(
-      { image: { url: "https://raw.githubusercontent.com/UploadsAdonix/archivos/main/menu-descargas.jpg" } },
+      { image: { url: "https://files.catbox.moe/me80dc.jpg" } },
       { upload: conn.waUploadToServer }
     );
 
