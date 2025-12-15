@@ -28,13 +28,20 @@ async function handler(m, { conn, args, usedPrefix, command, participants }) {
   }
 
   const count = Math.min(Number.MAX_SAFE_INTEGER, Math.max(1, parseInt(amountText)));
-  
-  const user = global.db.data.users[senderJid];
-  const type = 'coin';
-  const bankType = 'bank';
 
-  if (user[bankType] < count) {
-    return m.reply(`⚠️ No tienes suficientes *pesos* en tu banco para realizar la transferencia.`);
+  // Inicializar siempre los campos de cada usuario
+  const user = global.db.data.users[senderJid] || {};
+  user.coin = user.coin || 0;
+  user.bank = user.bank || 0;
+  global.db.data.users[senderJid] = user;
+
+  const targetUser = global.db.data.users[targetJid] || {};
+  targetUser.coin = targetUser.coin || 0;
+  targetUser.bank = targetUser.bank || 0;
+  global.db.data.users[targetJid] = targetUser;
+
+  if (user.bank < count) {
+    return m.reply(`⚠️ No tienes suficientes *pesos* en tu banco para realizar la transferencia.\n💰 Tu saldo actual: *${user.bank.toLocaleString()} pesos*`);
   }
 
   if (!(targetJid in global.db.data.users)) {
@@ -45,8 +52,8 @@ async function handler(m, { conn, args, usedPrefix, command, participants }) {
     return m.reply(`❌ No puedes transferirte *pesos* a ti mismo.`);
   }
 
-  user[bankType] -= count;
-  global.db.data.users[targetJid][type] += count;
+  user.bank -= count;
+  targetUser.coin += count;
 
   const mentionText = `@${who.split('@')[0]}`;
   m.reply(`
@@ -58,7 +65,7 @@ async function handler(m, { conn, args, usedPrefix, command, participants }) {
 el poder oculto fluye entre usuarios...
 
 🎁 Has enviado: *${count.toLocaleString()} pesos* a ${mentionText}.
-💰 Te quedan: *${user[bankType].toLocaleString()} pesos* en tu banco.
+💰 Te quedan: *${user.bank.toLocaleString()} pesos* en tu banco.
 
 🎅 UwU ¡Feliz Navidad desde las sombras! 🎄
 `, null, { mentions: [who] });
