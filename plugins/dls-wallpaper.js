@@ -1,7 +1,7 @@
 import { wallpaper, wallpaperv2 } from '@bochilteam/scraper'
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
-  if (!text || !text.trim()) {
+  if (!text?.trim()) {
     return m.reply(
       `🎭 Falta tu búsqueda, sombra...\n` +
       `Ejemplos:\n` +
@@ -12,12 +12,11 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   }
 
   try {
-    const src = /2$/.test(command) ? wallpaperv2 : wallpaper
+    const src = command.endsWith('2') ? wallpaperv2 : wallpaper
     const res = await src(text.trim())
-    if (!res?.length) return m.reply(`❄️ La sombra no halló imágenes para: "${text}". Prueba otra palabra.`)
+    if (!res?.length) return m.reply(`❄️ Sin resultados para: "${text}". Cambia la búsqueda.`)
 
     const img = res[Math.floor(Math.random() * res.length)]
-
     await conn.sendButton(
       m.chat,
       `❄️✨ La sombra sonríe entre luces festivas...\n🔎 Búsqueda: *${text}*`,
@@ -26,22 +25,22 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       [
         ['🔄 Siguiente sombra', `${usedPrefix}${command} ${text}`],
         ['🎄 Pinterest navideño', `#pinterest ${text}`],
-        ['👻 Google sombrío', `#image ${text}`]
+        ['🕶️ Google sombrío', `#image ${text}`]
       ],
       null,
       null,
       fkontak
     )
   } catch (e) {
-    await conn.reply(m.chat, `⚠️ La sombra encontró un error...\n#report ${usedPrefix}${command}\n🎄 Intenta otra vez.`, m)
-    console.log(`❗ Error en ${usedPrefix}${command}`, e)
+    await conn.reply(m.chat, `⚠️ Error en ${usedPrefix}${command}. #report\n🎄 Reintenta.`, m)
+    console.log(e)
     handler.limit = false
   }
 }
 
 handler.help = ['wp <query>', 'wallpaper <query>', 'wallpaper2 <query>']
 handler.tags = ['downloader']
-handler.command = /^(wp|wallpaper2?)$/i
+handler.command = ['wp', 'wallpaper', 'wallpaper2']  // aliases
 handler.register = true
 handler.limit = 1
 handler.level = 3
