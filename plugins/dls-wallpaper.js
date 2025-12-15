@@ -1,18 +1,16 @@
-import { wallpaper, wallpaperv2 } from '@bochilteam/scraper';
+import { wallpaper } from '@bochilteam/scraper';
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text?.trim()) {
     return m.reply(
       `🎭 Falta tu búsqueda, sombra...\n\nEjemplos:\n` +
       `• ${usedPrefix}wp eminence in shadow\n` +
-      `• ${usedPrefix}wallpaper Navidad\n` +
-      `• ${usedPrefix}wallpaper2 anime`
+      `• ${usedPrefix}wallpaper Navidad`
     );
   }
 
   try {
-    const src = command === 'wallpaper2' ? wallpaperv2 : wallpaper;
-    const res = await src(text.trim());
+    const res = await wallpaper(text.trim());
     if (!res?.length) return m.reply(`❄️ Sin resultados para: "${text}". Cambia la búsqueda.`);
 
     const pick = res[Math.floor(Math.random() * res.length)];
@@ -35,9 +33,9 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   }
 };
 
-handler.help = ['wp <query>', 'wallpaper <query>', 'wallpaper2 <query>'];
+handler.help = ['wp <query>', 'wallpaper <query>'];
 handler.tags = ['downloader'];
-handler.command = ['wp', 'wallpaper', 'wallpaper2']; // ✅ array, no regex
+handler.command = ['wp', 'wallpaper']; // ✅ solo comandos válidos
 handler.group = false;
 handler.register = false;
 handler.limit = 1;
