@@ -1,20 +1,32 @@
-import { wallpaper } from '@bochilteam/scraper'
+import { wallpaper, wallpaperv2 } from '@bochilteam/scraper'
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
-  if (!text) throw `🎭 Falta tu búsqueda, sombra...\nEjemplo: ${usedPrefix + command} Eminence | Navidad`
+  if (!text || !text.trim()) {
+    return m.reply(
+      `🎭 Falta tu búsqueda, sombra...\n` +
+      `Ejemplos:\n` +
+      `• ${usedPrefix}wp eminence in shadow\n` +
+      `• ${usedPrefix}wallpaper Navidad\n` +
+      `• ${usedPrefix}wallpaper2 anime`
+    )
+  }
 
   try {
-    const res = await (/2/.test(command) ? wallpaperv2 : wallpaper)(text)
-    const img = res[Math.floor(Math.random() * res.length)]
-    let link = img
+    const src = /2$/.test(command) ? wallpaperv2 : wallpaper
+    const res = await src(text.trim())
+    if (!res || !res.length) {
+      return m.reply(`❄️ La sombra no halló imágenes para: "${text}". Intenta con otra palabra.`)
+    }
 
-    conn.sendButton(
+    const img = res[Math.floor(Math.random() * res.length)]
+
+    await conn.sendButton(
       m.chat,
       `❄️✨ La sombra sonríe entre luces festivas...\n🔎 Búsqueda: *${text}*`,
       `⚔️ Shadow-BOT-MD • Panel navideño 🎄`,
       img,
       [
-        ['🔄 Siguiente sombra', `${usedPrefix + command} ${text}`],
+        ['🔄 Siguiente sombra', `${usedPrefix}${command} ${text}`],
         ['🎄 Pinterest navideño', `#pinterest ${text}`],
         ['👻 Google sombrío', `#image ${text}`]
       ],
@@ -22,25 +34,29 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       null,
       fkontak
     )
-
-    // Alternativa: enviar archivo directo
-    // conn.sendFile(m.chat, img, 'shadow.jpg', `❄️✨ Resultado navideño: ${text}\n⚔️ Shadow-BOT-MD`, m)
-
   } catch (e) {
     await conn.reply(
       m.chat,
-      `⚠️ La sombra encontró un error...\n#report ${usedPrefix + command}\n🎄 Intenta de nuevo bajo las luces festivas.`,
+      `⚠️ La sombra encontró un error...\n` +
+      `#report ${usedPrefix}${command}\n` +
+      `🎄 Intenta de nuevo bajo las luces festivas.`,
       m
     )
-    console.log(`❗ Error en comando ${usedPrefix + command}`)
-    console.log(e)
+    console.log(`❗ Error en comando ${usedPrefix}${command}`, e)
     handler.limit = false
   }
 }
 
-handler.help = ['', '2'].map((v) => 'wallpaper' + v + ' <query>')
+handler.help = [
+  'wallpaper <query>',
+  'wallpaper2 <query>',
+  'wp <query>'
+]
 handler.tags = ['downloader']
-handler.command = /^(wp|wallpaper2?)$/i
+
+// Registro como array para evitar “comando no existe”
+handler.command = ['wp', 'wallpaper', 'wallpaper2']
+
 handler.register = true
 handler.limit = 1
 handler.level = 3
