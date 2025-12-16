@@ -15,7 +15,7 @@ let str = `🎄💙 𝘽𝙄𝙀𝙉𝙑𝙀𝙉𝙄𝘿𝙊(𝘼) 𝘼 𝙇𝘼
 💖 𝙎𝙝𝙖𝙙𝙤𝙬-𝘽𝙊𝙏-𝙈𝘿 ⚔️✨
 El poder oculto entre luces navideñas UwU
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-✅ *GITHUB OFICIAL*
+✅ GITHUB OFICIAL
 https://github.com/yosue891
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 ✅ *CANAL OFICIAL - YOSUE*
