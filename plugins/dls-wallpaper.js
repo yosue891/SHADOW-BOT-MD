@@ -1,4 +1,4 @@
-import { wallpaper } from '@bochilteam/scraper';
+import fetch from 'node-fetch';
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text?.trim()) {
@@ -10,22 +10,17 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   }
 
   try {
-    const res = await wallpaper(text.trim());
-    if (!res?.length) return m.reply(`❄️ Sin resultados para: "${text}". Cambia la búsqueda.`);
+    let apiKey = '53759164-e570f6b40878738322bd6681a'; // Puedes reemplazar por tu clave personal
+    let res = await fetch(`https://pixabay.com/api/?key=${apiKey}&q=${encodeURIComponent(text)}&image_type=photo&orientation=vertical&per_page=50`);
+    let data = await res.json();
 
-    const pick = res[Math.floor(Math.random() * res.length)];
-    const imageUrl = typeof pick === 'string' ? pick : (pick.image || pick.url || pick.link);
+    if (!data.hits?.length) return m.reply(`❄️ Sin resultados para: "${text}". Cambia la búsqueda.`);
+
+    let img = data.hits[Math.floor(Math.random() * data.hits.length)].largeImageURL;
 
     await conn.sendMessage(m.chat, {
-      image: { url: imageUrl },
-      caption: `❄️✨ La sombra sonríe entre luces festivas...\n🔎 Búsqueda: *${text}*\n\n⚔️ Shadow-BOT-MD • Panel navideño 🎄`,
-      footer: 'Presiona un botón para continuar',
-      buttons: [
-        { buttonId: `${usedPrefix}${command} ${text}`, buttonText: { displayText: '🔄 Siguiente sombra' }, type: 1 },
-        { buttonId: `${usedPrefix}pinterest ${text}`, buttonText: { displayText: '🎄 Pinterest navideño' }, type: 1 },
-        { buttonId: `${usedPrefix}image ${text}`, buttonText: { displayText: '🕶️ Google sombrío' }, type: 1 }
-      ],
-      headerType: 4
+      image: { url: img },
+      caption: `❄️✨ La sombra sonríe entre luces festivas...\n🔎 Búsqueda: *${text}*\n⚔️ Shadow-BOT-MD • Panel navideño 🎄`
     }, { quoted: m });
   } catch (e) {
     console.log('[wallpaper] error:', e);
@@ -33,12 +28,5 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   }
 };
 
-handler.help = ['wp <query>', 'wallpaper <query>'];
-handler.tags = ['downloader'];
-handler.command = ['wp', 'wallpaper']; // ✅ solo comandos válidos
-handler.group = false;
-handler.register = false;
-handler.limit = 1;
-handler.level = 0;
-
+handler.command = ['wallpaper', 'wp'];
 export default handler;
