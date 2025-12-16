@@ -20,7 +20,14 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     await conn.sendMessage(m.chat, {
       image: { url: img },
-      caption: `❄️✨ La sombra sonríe entre luces festivas...\n🔎 Búsqueda: *${text}*\n⚔️ Shadow-BOT-MD • Panel navideño 🎄`
+      caption: `❄️✨ La sombra sonríe entre luces festivas...\n🔎 Búsqueda: *${text}*\n⚔️ Shadow-BOT-MD • Panel navideño 🎄`,
+      footer: 'Presiona un botón para continuar',
+      buttons: [
+        { buttonId: `${usedPrefix}${command} ${text}`, buttonText: { displayText: '🔄 Siguiente sombra' }, type: 1 },
+        { buttonId: `${usedPrefix}pinterest ${text}`, buttonText: { displayText: '🎄 Pinterest navideño' }, type: 1 },
+        { buttonId: `${usedPrefix}image ${text}`, buttonText: { displayText: '👻 Google sombrío' }, type: 1 }
+      ],
+      headerType: 4
     }, { quoted: m });
   } catch (e) {
     console.log('[wallpaper] error:', e);
