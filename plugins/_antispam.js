@@ -1,115 +1,67 @@
 const userSpamData = {}
+
 let handler = m => m
-handler.before = async function (m, {conn, isAdmin, isBotAdmin, isOwner, isROwner, isPrems}) {
-const chat = global.db.data.chats[m.chat]
-const bot = global.db.data.settings[conn.user.jid] || {}
-if (!bot.antiSpam) return
-if (m.isGroup && chat.modoadmin) return  
-if (m.isGroup) {
-if (isOwner || isROwner || isAdmin || !isBotAdmin || isPrems) return
-}  
-let user = global.db.data.users[m.sender]
-const sender = m.sender
-const currentTime = new Date().getTime()
-const timeWindow = 5000 // tiempo límite 
-const messageLimit = 10 // cantidad de mensajes en dicho tiempo
 
-let time, time2, time3, mensaje, motive
-time = 30000 // 30 seg
-time2 = 60000 // 1 min
-time3 = 120000 // 2 min 
+handler.before = async function (m, { conn, isAdmin, isBotAdmin, isOwner, isROwner, isPrems }) {
+  const chat = global.db.data.chats[m.chat]
+  const bot = global.db.data.settings[conn.user.jid] || {}
 
-if (!(sender in userSpamData)) {
-userSpamData[sender] = {
-lastMessageTime: currentTime,
-messageCount: 1, 
-antiBan: 0, 
-message: 0,
-message2: 0,
-message3: 0,
+  if (!bot.antiSpam) return
+  if (m.isGroup && chat.modoadmin) return  
+
+  // No aplicar antispam a dueños, admins o premium
+  if (isOwner || isROwner || isAdmin || isPrems) return
+
+  const sender = m.sender
+  const currentTime = Date.now()
+  const timeWindow = 5000   // 5 segundos
+  const messageLimit = 10   // máximo 10 mensajes en ese tiempo
+
+  if (!(sender in userSpamData)) {
+    userSpamData[sender] = {
+      lastMessageTime: currentTime,
+      messageCount: 1,
+      antiBan: 0
+    }
+  } else {
+    const userData = userSpamData[sender]
+    const timeDifference = currentTime - userData.lastMessageTime
+
+    // Si sigue dentro de la ventana de tiempo, acumula mensajes
+    if (timeDifference <= timeWindow) {
+      userData.messageCount++
+
+      if (userData.messageCount >= messageLimit) {
+        userData.antiBan++
+
+        if (userData.antiBan === 1) {
+          await conn.reply(m.chat, `🎄 Primera advertencia @${sender.split('@')[0]}: no hagas spam.`, m, { mentions: [sender] })
+        } else if (userData.antiBan === 2) {
+          await conn.reply(m.chat, `✨ Segunda advertencia @${sender.split('@')[0]}: insiste y serás expulsado.`, m, { mentions: [sender] })
+        } else if (userData.antiBan >= 3) {
+          if (isBotAdmin) {
+            try {
+              await conn.reply(m.chat, `❄️ Expulsado por spam: @${sender.split('@')[0]}`, m, { mentions: [sender] })
+              await conn.groupParticipantsUpdate(m.chat, [sender], 'remove')
+            } catch (err) {
+              console.error('Error al expulsar:', err)
+              await conn.reply(m.chat, `⚠️ No pude expulsar a @${sender.split('@')[0]} aunque soy admin.`, m, { mentions: [sender] })
+            }
+          } else {
+            await conn.reply(m.chat, `⚠️ No puedo expulsar porque no soy admin, pero @${sender.split('@')[0]} está spameando.`, m, { mentions: [sender] })
+          }
+        }
+
+        // Reinicia contador
+        userData.messageCount = 1
+      }
+    } else {
+      // Si pasó más tiempo, reinicia el conteo
+      userData.messageCount = 1
+    }
+
+    userData.lastMessageTime = currentTime
+  }
 }
-} else {
-const userData = userSpamData[sender]
-const timeDifference = currentTime - userData.lastMessageTime
-
-if (userData.antiBan === 1) {
-if (userData.message < 1) {
-userData.message++  
-motive = `🎄 [Shadow-BOT-MD] ◗ No hagas spam... la sombra vigila entre luces festivas.`
-await conn.reply(m.chat, motive, m, { mentions: [m.sender] })  
-user.messageSpam = motive
-}} else if (userData.antiBan === 2) {
-if (userData.message2 < 1) {
-userData.message2++  
-motive =  `✨🕯️ [Shadow-BOT-MD] ◗ La eminencia advierte: no insistas con spam bajo las estrellas de Navidad.`
-await conn.reply(m.chat, motive, m, { mentions: [m.sender] })  
-user.messageSpam = motive
-}} else if (userData.antiBan === 3) {
-if (userData.message3 < 1) {
-userData.message3++  
-motive = `❄️👻 [Shadow-BOT-MD] ◗ Serás eliminado(a) por invocar demasiado ruido... incluso la sombra celebra en silencio la Navidad.`
-await conn.reply(m.chat, motive, m, { mentions: [m.sender] }) 
-user.messageSpam = motive
-await conn.groupParticipantsUpdate(m.chat, [sender], 'remove')
-}}
-
-if (timeDifference <= timeWindow) {
-userData.messageCount += 1
-
-if (userData.messageCount >= messageLimit) {
-const mention = `@${sender.split("@")[0]}`
-const warningMessage = `🚩🎁 _*Demasiado Spam*_\n\n👤 Usuario: ${mention}\n👻 La sombra dicta silencio navideño.`
-if (userData.antiBan > 2) return
-await conn.reply(m.chat, warningMessage, m, { mentions: [m.sender] })  
-user.banned = true
-userData.antiBan++
-userData.messageCount = 1
-
-if (userData.antiBan === 1) {
-setTimeout(() => {
-if (userData.antiBan === 1) {
-userData.antiBan = 0
-userData.message = 0
-userData.message2 = 0
-userData.message3 = 0
-user.antispam = 0
-motive = 0
-user.messageSpam = 0
-user.banned = false
-}}, time) 
-
-} else if (userData.antiBan === 2) {
-setTimeout(() => {
-if (userData.antiBan === 2) {
-userData.antiBan = 0
-userData.message = 0
-userData.message2 = 0
-userData.message3 = 0
-user.antispam = 0
-motive = 0
-user.messageSpam = 0
-user.banned = false
-}}, time2) 
-
-} else if (userData.antiBan === 3) {
-setTimeout(() => {
-if (userData.antiBan === 3) {
-userData.antiBan = 0
-userData.message = 0
-userData.message2 = 0
-userData.message3 = 0
-user.antispam = 0
-motive = 0
-user.messageSpam = 0
-user.banned = false
-}}, time3)
-
-}}
-} else {
-if (timeDifference >= 2000) {
-userData.messageCount = 1
-}}
-userData.lastMessageTime = currentTime
-}}
 
 export default handler
