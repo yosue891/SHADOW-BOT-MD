@@ -91,8 +91,8 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
     const headerGreet = `${limaGreetingText()}`
     const tagUser = '@' + m.sender.split('@')[0]
 
-    const menu = `Hey *${tagUser}!* ${headerGreet}
-Welcome To *${meName || 'MyBot'}*, Un Assistant WhatsApp listo para ayudarte y alegrar tu día!
+    const menu = `hello *${tagUser}!* ${headerGreet}
+bienvenido uwu *${meName || 'MyBot'}*, soy Shadow-BOT-MD estoy aquí para ayudarte 🌌
 
 ╭──┈➤ *\`𝗜𝗡𝗙𝗢 𝗨𝗦𝗘𝗥\`*
 │ 𔓕 *Nombre*  : ${name}
