@@ -6,7 +6,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
     if (!prompt)
       throw new Error(
-        `Usage: ${usedPrefix}${command} <prompt>\n\nExample:\n${usedPrefix}${command} A woman giving a motivation quote`
+        `Uso: ${usedPrefix}${command} <prompt>\n\nEjemplo:\n${usedPrefix}${command} Una mujer dando una frase motivacional`
       );
 
     // 🌀 Start generation
@@ -68,7 +68,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
 handler.help = ["veo3 <prompt>"];
 handler.tags = ["ai"];
-handler.command = /^veo3$/i;
+handler.command = ["veo3"];   
 handler.premium = false;
 handler.limit = true;
 
