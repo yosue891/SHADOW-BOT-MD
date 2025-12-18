@@ -315,7 +315,7 @@ async function sendChooser(m, conn, usedPrefix) {
         buttonTitle: 'Abrir lista',
         buttons,
         limitedText: 'CDN 🌲',
-        limitedCopyCode: 'Ado',
+        limitedCopyCode: 'Ado,yosue',
         tapDescription: 'Sube tus archivos con un estilo interactivo.'
       })
 
@@ -448,7 +448,7 @@ let handler = async (m, { conn, args, usedPrefix }) => {
 
 handler.help = ['tourl [servicio]']
 handler.tags = ['tools']
-handler.command = /^(tourl|upload)$/i
+handler.command = ['tourl', 'upload']
 
 handler.before = async function (m, { conn, usedPrefix }) {
   try {
