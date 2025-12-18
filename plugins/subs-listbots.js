@@ -44,7 +44,7 @@ const handler = async (m, { conn, command, usedPrefix}) => {
         const botNumber = botJid.split('@')[0]
         const botName = v?.user?.name || `Sub-Bot ${index + 1}`
 
-        return `\`🪴 Shadow Subbot\`  *[ ${index + 1} ]*
+        return `\`🪴 Shadow Sub-Bots\`  *[ ${index + 1} ]*
 
 🌿 Tag:: @${mention}
 🌴 ID:: wa.me/${botNumber}?text=.menu
@@ -115,6 +115,6 @@ const handler = async (m, { conn, command, usedPrefix}) => {
 
 handler.tags = ["serbot"]
 handler.help = ["botlist"]
-handler.command = ["botlist", "listbots", "listbot", "bots"]
+handler.command = ["botlist", "listbots", "bots"]
 
 export default handler
