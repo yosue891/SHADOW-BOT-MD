@@ -34,9 +34,6 @@ Porque no es solo un bot, es un regalo envuelto en sombras y luces festivas. Su 
 <a href="https://github.com/ado926">
   <img src="https://github.com/ado926.png" width="80" height="80" alt="ado" style="border-radius: 50%;" />
 </a>
-<a href="https://github.com/Miku-18">
-  <img src="https://github.com/Miku-18.png" width="80" height="80" alt="miku" style="border-radius: 50%;" />
-</a>
 <a href="https://github.com/GianPoolS">
   <img src="https://github.com/GianPoolS.png" width="80" height="80" alt="GianPools"style="border-radius: 50%;" />
 </a>
@@ -50,6 +47,7 @@ Porque no es solo un bot, es un regalo envuelto en sombras y luces festivas. Su 
 ### ** `🌌𝘾𝙍𝙀𝘼𝘿𝙊𝙍 𝙙𝙚 𝙨𝙝𝙖𝙙𝙤𝙬 🌌`**
 <a
 href="https://github.com/yosue891-Chian"><img src="https://github.com/yosue891.png" width="150" height="150" alt="yosue891"/></a>
+
 
 
 
