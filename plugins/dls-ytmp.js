@@ -34,7 +34,7 @@ const handler = async (m, { conn, text, command }) => {
     }
 
     const isAudio = ["ytmp3"].includes(command)
-    const isVideo = ["playvid", "ytv", "ytmp4"].includes(command)
+    const isVideo = ["playvid", "ytv", "ytmp4", "play2"].includes(command)
 
     if (isAudio) {
       await downloadMedia(conn, m, url, title, thumbnail, "mp3")
@@ -50,7 +50,8 @@ const handler = async (m, { conn, text, command }) => {
 
 Comandos disponibles:
 • *.ytmp3 ${url}*
-• *.ytmp4 ${url}*`)
+• *.ytmp4 ${url}*
+• *.play2 ${url}*`)
     }
 
   } catch (error) {
@@ -86,8 +87,8 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
     }
 
     const apiUrl = type === "mp3"
-      ? `https://api-adonix.ultraplus.click/download/ytaudio?url=${encodeURIComponent(url)}&apikey=DemonKeytechbot`
-      : `https://api-adonix.ultraplus.click/download/ytvideo?url=${encodeURIComponent(url)}&apikey=DemonKeytechbot`
+      ? `https://api-adonix.ultraplus.click/download/ytaudio?url=${encodeURIComponent(url)}&apikey=ShadowkeyBotMD`
+      : `https://api-adonix.ultraplus.click/download/ytvideo?url=${encodeURIComponent(url)}&apikey=ShadowkeyBotMD`
 
     const response = await fetch(apiUrl)
     const data = await response.json()
@@ -156,7 +157,7 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
 
 const cleanName = (name) => name.replace(/[^\w\s-_.]/gi, "").substring(0, 50)
 
-handler.command = handler.help = ["ytmp3", "playvid", "ytv", "ytmp4", "yt"]
+handler.command = handler.help = ["ytmp3", "playvid", "ytv", "ytmp4", "play2", "yt"]
 handler.tags = ["descargas"]
 handler.register = true
 
