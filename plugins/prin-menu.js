@@ -1,107 +1,133 @@
-import moment from "moment-timezone";
-import axios from "axios";
-const { prepareWAMessageMedia, generateWAMessageFromContent } = (await import("@whiskeysockets/baileys")).default;
+import moment from "moment-timezone"
+import fs from "fs"
+import path from "path"
+import fetch from "node-fetch"
+const { generateWAMessageFromContent, prepareWAMessageMedia } = (await import("@whiskeysockets/baileys")).default
 
 let handler = async (m, { conn, usedPrefix }) => {
   try {
-    const isRegistered = global.db.data.users[m.sender]?.registered;
-    if (!isRegistered) {
-      return conn.sendMessage(m.chat, {
-        text: `┏━━━━━━━━━━━━━━━━━━┓\n🎄 *ACCESO DENEGADO* 🎄\n┗━━━━━━━━━━━━━━━━━━┛\n\n🕯️ Lo siento, viajero del Shadow Garden...\n✨ Para acceder al *Gran Banquete Navideño de las Sombras* debes estar registrado.\n\n🔐 Usa *${usedPrefix}reg shadow.18* para unirte al Reino.\n🎁 ¡Las Sombras festivas te esperan!`,
-        buttons: [{ buttonId: `${usedPrefix}reg shadow.18`, buttonText: { displayText: '🎅 Reg Shadow.18' }, type: 1 }],
-        headerType: 6
-      }, { quoted: m });
+    const userData = global.db.data.users[m.sender] || {}
+    if (!userData.registered) {
+      const thumbUrl = 'https://files.catbox.moe/k45sr6.jpg'
+      const thumbBuffer = await fetch(thumbUrl).then(res => res.buffer())
+
+      const fkontak = {
+        key: { participant: '0@s.whatsapp.net', remoteJid: 'status@broadcast', fromMe: false, id: 'Halo' },
+        message: { locationMessage: { name: '🎄 REGISTRO | SHADOW BOT 💫', jpegThumbnail: thumbBuffer } },
+        participant: '0@s.whatsapp.net'
+      }
+
+      const productMessage = {
+        product: {
+          productImage: { url: thumbUrl },
+          productId: '999999999999999',
+          title: `꒰ঌ*˚🎄 ˗ˏˋ REGISTRO ˎˊ˗ 🎁 ꒱`,
+          description: `👋 Hola ${m.pushName || 'usuario'}\n\n🌌 Para usar el menú necesitas registrarte.\n\nUsa: *${usedPrefix}register nombre.edad*`,
+          currencyCode: 'USD',
+          priceAmount1000: '100000',
+          retailerId: 1677,
+          url: `https://wa.me/${m.sender.split('@')[0]}`,
+          productImageCount: 1
+        },
+        businessOwnerJid: m.sender,
+        caption: `🎄 Registro requerido`,
+        footer: `🌌 Shadow Bot`,
+        interactiveButtons: [
+          {
+            name: 'quick_reply',
+            buttonParamsJson: JSON.stringify({
+              display_text: '📝 Registrarse',
+              id: `${usedPrefix}register`
+            })
+          }
+        ],
+        mentions: [m.sender]
+      }
+
+      return await conn.sendMessage(m.chat, productMessage, { quoted: fkontak })
     }
 
-    // Construcción del menú dinámico
-    let menu = {};
+    let menu = {}
     for (let plugin of Object.values(global.plugins)) {
-      if (!plugin || !plugin.help) continue;
-      let taglist = plugin.tags || [];
+      if (!plugin || !plugin.help) continue
+      let taglist = plugin.tags || []
       for (let tag of taglist) {
-        if (!menu[tag]) menu[tag] = [];
-        menu[tag].push(plugin);
+        if (!menu[tag]) menu[tag] = []
+        menu[tag].push(plugin)
       }
     }
 
-    let uptimeSec = process.uptime();
-    let uptimeStr = `${Math.floor(uptimeSec / 3600)}h ${Math.floor((uptimeSec % 3600) / 60)}m ${Math.floor(uptimeSec % 60)}s`;
+    let uptimeSec = process.uptime()
+    let hours = Math.floor(uptimeSec / 3600)
+    let minutes = Math.floor((uptimeSec % 3600) / 60)
+    let seconds = Math.floor(uptimeSec % 60)
+    let uptimeStr = `${hours}h ${minutes}m ${seconds}s`
 
-    let botNameToShow = global.botname || "Shadow Garden 🎄";
-    let videoUrl = "https://files.catbox.moe/2gczk3.mp4"; 
+    let botNameToShow = global.botname || ""
+    let bannerUrl = global.michipg || ""
+    let videoUrl = null
 
-    const tz = "America/Tegucigalpa";
-    const now = moment.tz(tz);
-    const hour = now.hour();
-    const timeStr = now.format("HH:mm:ss");
-
-    // Mensajes navideños según la hora
-    let saludoNavideño = "🌟 *¡Sombras festivas te rodean!* 🌟";
-    if (hour >= 6 && hour < 12) saludoNavideño = "🎄 *¡Buenos días sombríos y navideños en el Shadow Garden!* 🎄";
-    else if (hour >= 12 && hour < 18) saludoNavideño = "🎁 *¡Tarde de regalos y risas en el Reino!* 🎁";
-    else saludoNavideño = "🕯️ *¡Noche de luces, misterio y villancicos sombríos!* 🕯️";
-
-    const tagUser = '@' + m.sender.split('@')[0];
-    const separador = '❄️❄️❄️❄️❄️❄️❄️❄️';
-
-    let txt = `
-╔════════ 🎅 ════════╗
-   *M E N Ú N A V I D E Ñ O - S H A D O W G A R D E N*
-╚════════ ❄️ ════════╝
-
-${saludoNavideño} ${tagUser}
-
-${separador}
-
-*★ D A T O S - D E L - R E I N O*
-🎄 *Nombre:* ${botNameToShow}
-🎁 *Estado:* ${(conn.user.jid == global.conn.user.jid ? 'Principal 🅥' : 'Sub-Bot 🅑')}
-⛄ *Uptime:* ${uptimeStr}
-🕯️ *Hora (TGU):* ${timeStr}
-
-${separador}
-
-*★ C O M A N D O S - N A V I D E Ñ O S*
-`;
-
-    // Emojis navideños para las categorías
-    const iconos = {
-      'main': '🎄', 
-      'menu': '❄️', 
-      'rg': '🎅', 
-      'rpg': '🦌', 
-      'econ': '🎁', 
-      'group': '⛄',
-      'tools': '🔔', 
-      'admin': '⭐', 
-      'owner': '🌟', 
-      'fun': '🍬', 
-      'sticker': '🎨',
-      'downloader': '📥', 
-      'internet': '🌐', 
-      'audio': '🎶', 
-      'nsfw': '🎀', 
-      'xp': '✨'
-    };
-
-    for (let tag in menu) {
-      const tagTitle = iconos[tag] ? `${iconos[tag]} ${tag.toUpperCase()} ${iconos[tag]}` : tag.toUpperCase();
-      txt += `\n*• ${tagTitle}*`;
-      let commands = menu[tag].map(plugin => {
-        const cmdList = Array.isArray(plugin.help) ? plugin.help : [plugin.help];
-        return cmdList.map(cmd => `   🎄 ${usedPrefix}${cmd}`).join('\n');
-      }).join('\n');
-      txt += `\n${commands}\n`;
+    const senderBotNumber = conn.user.jid.split('@')[0]
+    let configPath
+    if (conn.user.jid === global.conn.user.jid) {
+      configPath = path.join("./Sessions", "config.json")
+    } else {
+      configPath = path.join("./Sessions/SubBot", senderBotNumber, "config.json")
     }
 
-    txt += `\n${separador}\n🎅 *Creado por Yosue • Shadow Garden Navideño 🕯️🎄*`;
+    if (fs.existsSync(configPath)) {
+      try {
+        const botConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"))
+        if (botConfig.name) botNameToShow = botConfig.name
+        if (botConfig.banner) bannerUrl = botConfig.banner
+        if (botConfig.video) videoUrl = botConfig.video
+      } catch (e) { console.error(e) }
+    }
 
-    await conn.sendMessage(m.chat, { react: { text: '🎄', key: m.key } });
+    let txt = `📢 *Canal Oficial del Bot:*
+https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
 
-    let mediaMessage = await prepareWAMessageMedia(
-      { video: { url: videoUrl }, gifPlayback: true },
-      { upload: conn.waUploadToServer }
-    );
+🎄 ¡Bienvenido al *Shadow Garden Navideño*! 🎄
+Soy *${botNameToShow}* ${(conn.user.jid == global.conn.user.jid ? '(Principal 🅥)' : '(Sub-Bot 🅑)')}
+
+> 🕒 *Hora:* ${moment.tz("America/Tegucigalpa").format("HH:mm:ss")}
+> 📅 *Fecha:* ${moment.tz("America/Tegucigalpa").format("DD/MM/YYYY")}
+> ⛄ *Actividad:* ${uptimeStr}
+
+Aquí tienes la lista de comandos:\n\n`
+
+    for (let tag in menu) {
+      txt += `*» 🎁 ${tag.toUpperCase()} 🎁*\n`
+      for (let plugin of menu[tag]) {
+        for (let cmd of plugin.help) {
+          txt += `> ✨ ${usedPrefix + cmd}\n`
+        }
+      }
+      txt += `\n`
+    }
+
+    txt += `⚠️ *No olvides:* Si eres Sub-Bot puedes cambiar el nombre con *${usedPrefix}setname*, la imagen con *${usedPrefix}setimagen* y colocar un video con *${usedPrefix}setvid*.\n\n`
+
+    let mediaMessage = null
+    if (videoUrl) {
+      mediaMessage = await prepareWAMessageMedia(
+        { video: { url: videoUrl }, gifPlayback: false },
+        { upload: conn.waUploadToServer }
+      )
+    } else if (bannerUrl) {
+      mediaMessage = await prepareWAMessageMedia(
+        { image: { url: bannerUrl } },
+        { upload: conn.waUploadToServer }
+      )
+    }
+
+    let profilePic
+    try {
+      profilePic = await conn.profilePictureUrl(m.sender, 'image')
+    } catch {
+      profilePic = "https://i.ibb.co/3NfYh9k/default-avatar.png"
+    }
+    if (!profilePic) profilePic = "https://i.ibb.co/3NfYh9k/default-avatar.png"
 
     const nativeFlowPayload = {
       buttons: [
@@ -113,25 +139,18 @@ ${separador}
               title: "Shadow Garden 🌌",
               highlight_label: "🎄",
               rows: [
-                { title: "📊 Status", description: "Estado actual del Reino", id: `${usedPrefix}status` },
-                { title: "🚀 Ping", description: "Velocidad de respuesta sombría", id: `${usedPrefix}ping` },
-                { title: "👤 Creador", description: "Contacto de Yosue, Maestro de las Sombras", id: `${usedPrefix}creador` }
+                { title: "📊 Status", description: "Estado actual del Reino", id: `${usedPrefix}status`, thumbnail_url: profilePic },
+                { title: "🚀 Ping", description: "Velocidad de respuesta sombría", id: `${usedPrefix}ping`, thumbnail_url: profilePic },
+                { title: "👤 Creador", description: "Contacto de Yosue, Maestro de las Sombras", id: `${usedPrefix}creador`, thumbnail_url: profilePic }
               ]
             }]
-          })
-        },
-        {
-          name: "cta_url",
-          buttonParamsJson: JSON.stringify({
-            display_text: "🎁 Canal del Reino 🎁",
-            url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
           })
         }
       ],
       messageParamsJson: JSON.stringify({
         bottom_sheet: { button_title: "🎅 Menú Navideño Shadow Garden 🎅" }
       })
-    };
+    }
 
     const msg = generateWAMessageFromContent(m.chat, {
       viewOnceMessage: {
@@ -140,26 +159,28 @@ ${separador}
             body: { text: txt },
             footer: { text: "Shadow Garden • Reino Navideño de las Sombras ❤️🎄" },
             header: {
-              hasMediaAttachment: true,
-              videoMessage: mediaMessage.videoMessage
+              hasMediaAttachment: !!mediaMessage,
+              ...(mediaMessage?.videoMessage ? { videoMessage: mediaMessage.videoMessage } : {}),
+              ...(mediaMessage?.imageMessage ? { imageMessage: mediaMessage.imageMessage } : {})
             },
             nativeFlowMessage: nativeFlowPayload,
             contextInfo: {
-              mentionedJid: [m.sender]
+              mentionedJid: [m.sender],
+              isForwarded: true,
+              forwardingScore: 9999999
             }
           }
         }
       }
-    }, { quoted: m });
+    }, { quoted: m })
 
-    await conn.relayMessage(m.chat, msg.message, {});
+    await conn.relayMessage(m.chat, msg.message, {})
 
   } catch (e) {
-    console.error(e);
-    conn.reply(m.chat, "❌ Las Sombras fallaron al invocar el menú navideño.", m);
+    console.error(e)
+    conn.reply(m.chat, "👻 Ocurrió un error al generar el menú.", m)
   }
-};
+}
 
-// los quero att:yosue uwu
-handler.command = ['menu', 'help', 'ayuda'];  
-export default handler;
+handler.command = ['help', 'menu', 'm']
+export default handler
