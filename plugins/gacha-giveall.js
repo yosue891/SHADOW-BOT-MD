@@ -1,130 +1,141 @@
-import { promises as _0x157ffe } from 'fs';
+import { promises as fs } from 'fs';
+
 async function load() {
-  const _0x470dee = await _0x157ffe.readFile('./lib/characters.json', 'utf-8');
-  return JSON.parse(_0x470dee);
+  const data = await fs.readFile('./lib/characters.json', 'utf-8');
+  return JSON.parse(data);
 }
-function get(_0x2aa386) {
-  return Object.values(_0x2aa386).flatMap(_0x4eb119 => Array.isArray(_0x4eb119.characters) ? _0x4eb119.characters : []);
+
+function get(series) {
+  return Object.values(series).flatMap(s => Array.isArray(s.characters) ? s.characters : []);
 }
+
 let pending = {};
-const verifi = async () => {
-  try {
-    const _0x8ce889 = await _0x157ffe.readFile("./package.json", "utf-8");
-    const _0x57bf4e = JSON.parse(_0x8ce889);
-    return _0x57bf4e.repository?.["url"] === "git+https://github.com/meado-learner/Michi-WaMD.git";
-  } catch {
-    return false;
-  }
-};
-let handler = async (_0x45a781, {
-  conn: _0x5860b1,
-  usedPrefix: _0x2619ab
-}) => {
-  if (!(await verifi())) {
-    return _0x5860b1.reply(_0x45a781.chat, "❀ El comando *<" + command + ">* solo está disponible para Michi", _0x45a781);
-  }
-  if (!global.db.data.chats?.[_0x45a781.chat]?.["gacha"] && _0x45a781.isGroup) {
-    return _0x45a781.reply("ꕥ Los comandos de *Gacha* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con el comando:\n» *" + _0x2619ab + "gacha on*");
+
+let handler = async (m, { conn, usedPrefix }) => {
+  if (!global.db.data.chats?.[m.chat]?.gacha && m.isGroup) {
+    return m.reply(`ꕥ Los comandos de *Gacha* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con:\n» *${usedPrefix}gacha on*`);
   }
   try {
-    const _0x41020e = global.db.data.users[_0x45a781.sender];
-    if (!Array.isArray(_0x41020e.characters)) {
-      _0x41020e.characters = [];
+    const senderUser = global.db.data.users[m.sender];
+    if (!Array.isArray(senderUser.characters)) senderUser.characters = [];
+
+    const mentioned = await m.mentionedJid;
+    const target = mentioned[0] || (m.quoted && m.quoted.sender);
+    if (!target || typeof target !== "string" || !target.includes('@')) {
+      return m.reply("❀ Debes mencionar a quien quieras regalarle tus personajes.");
     }
-    const _0x48a52a = await _0x45a781.mentionedJid;
-    const _0x50ef6e = _0x48a52a[0x0] || _0x45a781.quoted && (await _0x45a781.quoted.sender);
-    if (!_0x50ef6e || typeof _0x50ef6e !== "string" || !_0x50ef6e.includes('@')) {
-      return _0x45a781.reply("❀ Debes mencionar a quien quieras regalarle tus personajes.");
+
+    const targetUser = global.db.data.users[target];
+    if (!targetUser) {
+      return m.reply("ꕥ El usuario mencionado no está registrado.");
     }
-    const _0x2ae5f9 = global.db.data.users[_0x50ef6e];
-    if (!_0x2ae5f9) {
-      return _0x45a781.reply("ꕥ El usuario mencionado no está registrado.");
-    }
-    if (!Array.isArray(_0x2ae5f9.characters)) {
-      _0x2ae5f9.characters = [];
-    }
-    const _0x3864ce = await load();
-    const _0x1a8927 = get(_0x3864ce);
-    const _0x72b3aa = _0x41020e.characters;
-    const _0x515919 = _0x72b3aa.map(_0xa33fec => {
-      const _0x151eb9 = global.db.data.characters?.[_0xa33fec] || {};
-      const _0x15105f = _0x1a8927.find(_0x3f377b => _0x3f377b.id === _0xa33fec);
-      const _0x5596a7 = typeof _0x151eb9.value === 'number' ? _0x151eb9.value : typeof _0x15105f?.['value'] === 'number' ? _0x15105f.value : 0x0;
+    if (!Array.isArray(targetUser.characters)) targetUser.characters = [];
+
+    const seriesData = await load();
+    const allCharacters = get(seriesData);
+    const senderChars = senderUser.characters;
+
+    const charList = senderChars.map(id => {
+      const charData = global.db.data.characters?.[id] || {};
+      const charInfo = allCharacters.find(c => c.id === id);
+      const value = typeof charData.value === 'number'
+        ? charData.value
+        : typeof charInfo?.value === 'number'
+        ? charInfo.value
+        : 0;
       return {
-        'id': _0xa33fec,
-        'name': _0x151eb9.name || _0x15105f?.["name"] || "ID:" + _0xa33fec,
-        'value': _0x5596a7
+        id,
+        name: charData.name || charInfo?.name || "ID:" + id,
+        value
       };
     });
-    if (_0x515919.length === 0x0) {
-      return _0x45a781.reply("ꕥ No tienes personajes para regalar.");
+
+    if (charList.length === 0) {
+      return m.reply("ꕥ No tienes personajes para regalar.");
     }
-    const _0x305027 = _0x515919.reduce((_0x2d32e0, _0x259ef1) => _0x2d32e0 + _0x259ef1.value, 0x0);
-    let _0x2243a8 = await (async () => global.db.data.users[_0x50ef6e].name.trim() || (await _0x5860b1.getName(_0x50ef6e).then(_0x3240e9 => typeof _0x3240e9 === "string" && _0x3240e9.trim() ? _0x3240e9 : _0x50ef6e.split('@')[0x0])["catch"](() => _0x50ef6e.split('@')[0x0])))();
-    let _0x4e2dac = await (async () => global.db.data.users[_0x45a781.sender].name.trim() || (await _0x5860b1.getName(_0x45a781.sender).then(_0x2e7d6a => typeof _0x2e7d6a === "string" && _0x2e7d6a.trim() ? _0x2e7d6a : _0x45a781.sender.split('@')[0x0])["catch"](() => _0x45a781.sender.split('@')[0x0])))();
-    pending[_0x45a781.sender] = {
-      'sender': _0x45a781.sender,
-      'to': _0x50ef6e,
-      'value': _0x305027,
-      'count': _0x515919.length,
-      'ids': _0x515919.map(_0xc761b8 => _0xc761b8.id),
-      'chat': _0x45a781.chat,
-      'timeout': setTimeout(() => delete pending[_0x45a781.sender], 0xea60)
+
+    const totalValue = charList.reduce((sum, c) => sum + c.value, 0);
+
+    const targetName = await (async () =>
+      targetUser.name?.trim() ||
+      (await conn.getName(target).catch(() => target.split('@')[0])))();
+    const senderName = await (async () =>
+      senderUser.name?.trim() ||
+      (await conn.getName(m.sender).catch(() => m.sender.split('@')[0])))();
+
+    pending[m.sender] = {
+      sender: m.sender,
+      to: target,
+      value: totalValue,
+      count: charList.length,
+      ids: charList.map(c => c.id),
+      chat: m.chat,
+      timeout: setTimeout(() => delete pending[m.sender], 60000)
     };
-    await _0x5860b1.reply(_0x45a781.chat, "「✿」 *" + _0x4e2dac + "*, ¿confirmas regalar todo tu harem a *" + _0x2243a8 + "*?\n\n❏ Personajes a transferir: *" + _0x515919.length + "*\n❏ Valor total: *" + _0x305027.toLocaleString() + "*\n\n✐ Para confirmar responde a este mensaje con \"Aceptar\".\n> Esta acción no se puede deshacer, revisa bien los datos antes de confirmar.", _0x45a781, {
-      'mentions': [_0x50ef6e]
-    });
-  } catch (_0x383c8f) {
-    await _0x5860b1.reply(_0x45a781.chat, "⚠︎ Se ha producido un problema.\n> Usa *" + _0x2619ab + "report* para informarlo.\n\n" + _0x383c8f.message, _0x45a781);
+
+    await conn.reply(
+      m.chat,
+      `「✿」 *${senderName}*, ¿confirmas regalar todo tu harem a *${targetName}*?\n\n❏ Personajes a transferir: *${charList.length}*\n❏ Valor total: *${totalValue.toLocaleString()}*\n\n✐ Para confirmar responde a este mensaje con "Aceptar".\n> Esta acción no se puede deshacer, revisa bien los datos antes de confirmar.`,
+      m,
+      { mentions: [target] }
+    );
+  } catch (err) {
+    await conn.reply(
+      m.chat,
+      `⚠︎ Se ha producido un problema.\n> Usa *${usedPrefix}report* para informarlo.\n\n${err.message}`,
+      m
+    );
   }
 };
-handler.before = async (_0x23079a, {
-  conn: _0x233ef8
-}) => {
+
+handler.before = async (m, { conn }) => {
   try {
-    const _0x582ff5 = pending[_0x23079a.sender];
-    if (!_0x582ff5 || _0x23079a.text?.["trim"]()["toLowerCase"]() !== "aceptar") {
-      return;
-    }
-    if (_0x23079a.sender !== _0x582ff5.sender || _0x582ff5.chat !== _0x23079a.chat) {
-      return;
-    }
-    if (typeof _0x582ff5.to !== "string" || !_0x582ff5.to.includes('@')) {
-      return;
-    }
-    const _0x32448b = global.db.data.users[_0x23079a.sender];
-    const _0x30cca9 = global.db.data.users[_0x582ff5.to];
-    for (const _0x201ce4 of _0x582ff5.ids) {
-      const _0x1c823a = global.db.data.characters?.[_0x201ce4];
-      if (!_0x1c823a || _0x1c823a.user !== _0x23079a.sender) {
-        continue;
-      }
-      _0x1c823a.user = _0x582ff5.to;
-      if (!_0x30cca9.characters.includes(_0x201ce4)) {
-        _0x30cca9.characters.push(_0x201ce4);
-      }
-      _0x32448b.characters = _0x32448b.characters.filter(_0x5e23f8 => _0x5e23f8 !== _0x201ce4);
-      if (_0x32448b.sales?.[_0x201ce4]?.["user"] === _0x23079a.sender) {
-        delete _0x32448b.sales[_0x201ce4];
-      }
-      if (_0x32448b.favorite === _0x201ce4) {
-        delete _0x32448b.favorite;
-      }
-      if (global.db.data.users[_0x23079a.sender]?.["favorite"] === _0x201ce4) {
-        delete global.db.data.users[_0x23079a.sender].favorite;
+    const trade = pending[m.sender];
+    if (!trade || m.text?.trim().toLowerCase() !== "aceptar") return;
+    if (m.sender !== trade.sender || trade.chat !== m.chat) return;
+    if (typeof trade.to !== "string" || !trade.to.includes('@')) return;
+
+    const senderUser = global.db.data.users[m.sender];
+    const targetUser = global.db.data.users[trade.to];
+
+    for (const id of trade.ids) {
+      const char = global.db.data.characters?.[id];
+      if (!char || char.user !== m.sender) continue;
+
+      char.user = trade.to;
+      if (!targetUser.characters.includes(id)) targetUser.characters.push(id);
+      senderUser.characters = senderUser.characters.filter(c => c !== id);
+
+      if (senderUser.sales?.[id]?.user === m.sender) delete senderUser.sales[id];
+      if (senderUser.favorite === id) delete senderUser.favorite;
+      if (global.db.data.users[m.sender]?.favorite === id) {
+        delete global.db.data.users[m.sender].favorite;
       }
     }
-    clearTimeout(_0x582ff5.timeout);
-    delete pending[_0x23079a.sender];
-    let _0x420883 = await (async () => global.db.data.users[_0x582ff5.to].name.trim() || (await _0x233ef8.getName(_0x582ff5.to).then(_0x419e49 => typeof _0x419e49 === "string" && _0x419e49.trim() ? _0x419e49 : _0x582ff5.to.split('@')[0x0])['catch'](() => _0x582ff5.to.split('@')[0x0])))();
-    await _0x23079a.reply("「✿」 Has regalado con éxito todos tus personajes a *" + _0x420883 + "*!\n\n> ❏ Personajes regalados: *" + _0x582ff5.count + "*\n> ⴵ Valor total: *" + _0x582ff5.value.toLocaleString() + '*');
+
+    clearTimeout(trade.timeout);
+    delete pending[m.sender];
+
+    const targetName = await (async () =>
+      targetUser.name?.trim() ||
+      (await conn.getName(trade.to).catch(() => trade.to.split('@')[0])))();
+
+    await m.reply(
+      `「✿」 Has regalado con éxito todos tus personajes a *${targetName}*!\n\n> ❏ Personajes regalados: *${trade.count}*\n> ⴵ Valor total: *${trade.value.toLocaleString()}*`
+    );
     return true;
-  } catch (_0x128286) {
-    await _0x233ef8.reply(_0x23079a.chat, "⚠︎ Se ha producido un problema.\n> Usa *" + usedPrefix + "report* para informarlo.\n\n" + _0x128286.message, _0x23079a);
+  } catch (err) {
+    await conn.reply(
+      m.chat,
+      `⚠︎ Se ha producido un problema.\n> Usa *report* para informarlo.\n\n${err.message}`,
+      m
+    );
   }
 };
+
 handler.help = ["giveallharem"];
 handler.tags = ["gacha"];
-handler.command = ['giveallharem'];
+handler.command = ["giveallharem"];
 handler.group = true;
+
 export default handler;
