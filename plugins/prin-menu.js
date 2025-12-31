@@ -24,7 +24,7 @@ let handler = async (m, { conn, usedPrefix }) => {
           title: `꒰ঌ*˚🎄 ˗ˏˋ REGISTRO ˎˊ˗ 🎁 ꒱`,
           description: `👋 Hola ${m.pushName || 'usuario'}\n\n🌌 Para usar el menú necesitas registrarte.\n\nUsa: *${usedPrefix}register nombre.edad*`,
           currencyCode: 'USD',
-          priceAmount1000: '100000',
+          priceAmount1000: '000000',
           retailerId: 1677,
           url: `https://wa.me/${m.sender.split('@')[0]}`,
           productImageCount: 1
