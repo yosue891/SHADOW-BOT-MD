@@ -27,15 +27,15 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         productImage: { url: 'https://files.catbox.moe/k45sr6.jpg' },
         productId: '999999999999999',
         title: `꒰ঌ*˚🎄 ˗ˏˋ REGISTRO ˎˊ˗ 🎁 ꒱`,
-        description: `👋 Hola ${m.pushName || 'usuario'}\n\n🌌 Para usar el comando necesitas registrarte.\n\nUsa: *${usedPrefix}reg nombre.edad*\n\n📌 Ejemplo: *${usedPrefix}reg shadow.18*`,
+        description: `Registro requerido`, // corto para no interferir
         currencyCode: 'USD',
         priceAmount1000: '0',
         retailerId: 1677,
-        url: `https://wa.me/584242773183`, // igual que en mute
+        url: `https://wa.me/584242773183`,
         productImageCount: 1
       },
-      businessOwnerJid: '584242773183@s.whatsapp.net', // sello WhatsApp Business
-      caption: `🎄 Registro requerido`,
+      businessOwnerJid: '584242773183@s.whatsapp.net',
+      caption: `👋 Hola ${m.pushName || 'usuario'}\n\n🌌 Para usar el comando necesitas registrarte.\n\nUsa: *${usedPrefix}reg nombre.edad*\n\n📌 Ejemplo: *${usedPrefix}reg shadow.18*`,
       footer: `🌌 Shadow Bot`,
       interactiveButtons: [
         {
@@ -49,7 +49,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
       mentions: [m.sender],
       contextInfo: {
         externalAdReply: {
-          showAdAttribution: true, // activar sello WhatsApp Business
+          showAdAttribution: true,
           title: 'Shadow • Sistema de Registro',
           body: 'Registro uwu',
           mediaType: 1,
