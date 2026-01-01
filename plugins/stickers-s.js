@@ -62,140 +62,79 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     return await conn.sendMessage(m.chat, productMessage, { quoted: fkontak })
   }
 
-    let menu = {}
-    for (let plugin of Object.values(global.plugins)) {
-      if (!plugin || !plugin.help) continue
-      let taglist = plugin.tags || []
-      for (let tag of taglist) {
-        if (!menu[tag]) menu[tag] = []
-        menu[tag].push(plugin)
-      }
-    }
+  let stiker = false;
+  try {
+    let q = m.quoted ? m.quoted : m;
+    let mime = (q.msg || q).mimetype || q.mediaType || '';
+    if (/webp|image|video/g.test(mime)) {
+      if (/video/g.test(mime)) 
+        if ((q.msg || q).seconds > 8) 
+          return m.reply(`🥀 *¡El video no puede durar más de 8 segundos!*`);
 
-    let uptimeSec = process.uptime()
-    let hours = Math.floor(uptimeSec / 3600)
-    let minutes = Math.floor((uptimeSec % 3600) / 60)
-    let seconds = Math.floor(uptimeSec % 60)
-    let uptimeStr = `${hours}h ${minutes}m ${seconds}s`
+      let img = await q.download?.();
+      if (!img) 
+        return conn.reply(m.chat, ` 🌌 *_¿Y el video? Intenta enviar primero imagen/video/gif y luego responde con el comando._*`, m);
 
-    let botNameToShow = global.botname || ""
-    let bannerUrl = global.michipg || ""
-    let videoUrl = null
-
-    const senderBotNumber = conn.user.jid.split('@')[0]
-    let configPath
-    if (conn.user.jid === global.conn.user.jid) {
-      configPath = path.join("./Sessions", "config.json")
-    } else {
-      configPath = path.join("./Sessions/SubBot", senderBotNumber, "config.json")
-    }
-
-    if (fs.existsSync(configPath)) {
+      let out;
       try {
-        const botConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"))
-        if (botConfig.name) botNameToShow = botConfig.name
-        if (botConfig.banner) bannerUrl = botConfig.banner
-        if (botConfig.video) videoUrl = botConfig.video
-      } catch (e) { console.error(e) }
-    }
-
-    let txt = `📢 *Canal Oficial del Bot:*
-https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
-
-🎄 ¡Bienvenido al *Shadow Garden Navideño*! 🎄
-Soy *${botNameToShow}* ${(conn.user.jid == global.conn.user.jid ? '(Principal 🅥)' : '(Sub-Bot 🅑)')}
-
-> 🕒 *Hora:* ${moment.tz("America/Tegucigalpa").format("HH:mm:ss")}
-> 📅 *Fecha:* ${moment.tz("America/Tegucigalpa").format("DD/MM/YYYY")}
-> ⛄ *Actividad:* ${uptimeStr}
-
-Aquí tienes la lista de comandos:\n\n`
-
-    for (let tag in menu) {
-      txt += `*» 🎁 ${tag.toUpperCase()} 🎁*\n`
-      for (let plugin of menu[tag]) {
-        for (let cmd of plugin.help) {
-          txt += `> ✨ ${usedPrefix + cmd}\n`
+        stiker = await sticker(img, false, global.packname, global.author);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (!stiker) {
+          if (/webp/g.test(mime)) out = await webp2png(img);
+          else if (/image/g.test(mime)) out = await uploadImage(img);
+          else if (/video/g.test(mime)) out = await uploadFile(img);
+          if (typeof out !== 'string') out = await uploadImage(img);
+          stiker = await sticker(false, out, global.packname, global.author);
         }
       }
-      txt += `\n`
+    } else if (args[0]) {
+      if (isUrl(args[0])) 
+        stiker = await sticker(false, args[0], global.packname, global.author);
+      else 
+        return m.reply(`💫 El URL es incorrecto`);
     }
-
-    txt += `⚠️ *No olvides:* Si eres Sub-Bot puedes cambiar el nombre con *${usedPrefix}setname*, la imagen con *${usedPrefix}setimagen* y colocar un video con *${usedPrefix}setvid*.\n\n`
-
-    let mediaMessage = null
-    if (videoUrl) {
-      mediaMessage = await prepareWAMessageMedia(
-        { video: { url: videoUrl }, gifPlayback: false },
-        { upload: conn.waUploadToServer }
-      )
-    } else if (bannerUrl) {
-      mediaMessage = await prepareWAMessageMedia(
-        { image: { url: bannerUrl } },
-        { upload: conn.waUploadToServer }
-      )
-    }
-
-    let profilePic
-    try {
-      profilePic = await conn.profilePictureUrl(m.sender, 'image')
-    } catch {
-      profilePic = "https://i.ibb.co/3NfYh9k/default-avatar.png"
-    }
-    if (!profilePic) profilePic = "https://i.ibb.co/3NfYh9k/default-avatar.png"
-
-    const nativeFlowPayload = {
-      buttons: [
-        {
-          name: "single_select",
-          buttonParamsJson: JSON.stringify({
-            title: "🎄 𝚂𝚎𝚕𝚎𝚌𝚝 𝙼𝚎𝚗𝚞 🎄",
-            sections: [{
-              title: "Shadow Garden 🌌",
-              highlight_label: "🎄",
-              rows: [
-                { title: "📊 Status", description: "Estado actual del Reino", id: `${usedPrefix}status`, thumbnail_url: profilePic },
-                { title: "🚀 Ping", description: "Velocidad de respuesta sombría", id: `${usedPrefix}ping`, thumbnail_url: profilePic },
-                { title: "👤 Creador", description: "Contacto de Yosue, Maestro de las Sombras", id: `${usedPrefix}creador`, thumbnail_url: profilePic }
-              ]
-            }]
-          })
-        }
-      ],
-      messageParamsJson: JSON.stringify({
-        bottom_sheet: { button_title: "🎅 Menú Navideño Shadow Garden 🎅" }
-      })
-    }
-
-    const msg = generateWAMessageFromContent(m.chat, {
-      viewOnceMessage: {
-        message: {
-          interactiveMessage: {
-            body: { text: txt },
-            footer: { text: "Shadow Garden • Reino Navideño de las Sombras ❤️🎄" },
-            header: {
-              hasMediaAttachment: !!mediaMessage,
-              ...(mediaMessage?.videoMessage ? { videoMessage: mediaMessage.videoMessage } : {}),
-              ...(mediaMessage?.imageMessage ? { imageMessage: mediaMessage.imageMessage } : {})
-            },
-            nativeFlowMessage: nativeFlowPayload,
-            contextInfo: {
-              mentionedJid: [m.sender],
-              isForwarded: true,
-              forwardingScore: 9999999
+  } catch (e) {
+    console.error(e);
+    if (!stiker) stiker = e;
+  } finally {
+    if (stiker) {
+      conn.sendFile(
+        m.chat, 
+        stiker, 
+        'sticker.webp', 
+        '', 
+        m, 
+        true, 
+        { 
+          contextInfo: { 
+            'forwardingScore': 200, 
+            'isForwarded': false, 
+            externalAdReply: { 
+              showAdAttribution: false, 
+              title: global.packname, 
+              body: `🌌aqui tienes tu sticker uwu🌌`, 
+              mediaType: 2, 
+              sourceUrl: 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O', 
+              thumbnailUrl: 'https://files.catbox.moe/1ric0g.jpg' 
             }
           }
-        }
-      }
-    }, { quoted: m })
-
-    await conn.relayMessage(m.chat, msg.message, {})
-
-  } catch (e) {
-    console.error(e)
-    conn.reply(m.chat, "👻 Ocurrió un error al generar el menú.", m)
+        }, 
+        { quoted: m }
+      );
+    } else {
+      return conn.reply(m.chat, '👻 *_¿Y el video? Intenta enviar primero imagen/video/gif y luego responde con el comando._*', m);
+    }
   }
-}
+};
 
-handler.command = ['help', 'menu', 'm']
-export default handler
+handler.help = ['stiker <img>', 'sticker <url>'];
+handler.tags = ['sticker'];
+handler.command = ['s', 'sticker', 'stiker'];
+
+export default handler;
+
+const isUrl = (text) => {
+  return text.match(new RegExp(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)(jpe?g|gif|png)/, 'gi'));
+};
