@@ -1,98 +1,61 @@
 import moment from "moment-timezone"
-import fs from "fs"
-import path from "path"
+import fs, { promises as fsp } from "fs"
+import path, { dirname, join } from "path"
+import { fileURLToPath } from "url"
 import fetch from "node-fetch"
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+
 const { generateWAMessageFromContent, prepareWAMessageMedia } = (await import("@whiskeysockets/baileys")).default
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+function clockString(ms) {
+  let h = isNaN(ms) ? "--" : Math.floor(ms / 3600000)
+  let m = isNaN(ms) ? "--" : Math.floor(ms / 60000) % 60
+  let s = isNaN(ms) ? "--" : Math.floor(ms / 1000) % 60
+  return [h, m, s].map((v) => v.toString().padStart(2, "0")).join(":")
+}
+
+async function getBufferFromUrl(url) {
+  const r = await fetch(url)
+  if (!r.ok) throw new Error(`No se pudo descargar: ${url}`)
+  return await r.buffer()
+}
 
 let handler = async (m, { conn, usedPrefix }) => {
   try {
-    const userData = global.db.data.users[m.sender] || {}
-    if (!userData.registered) {
-      const thumbBuffer = await (await fetch('https://iili.io/fXp3swb.jpg')).buffer()
+    const userData = global.db?.data?.users?.[m.sender] || {}
+    const isRegistered = !!userData.registered
 
-      // Bloque estilo mute (imagen pequeña + vCard)
-      const fkontak = {
-        key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'Halo' },
-        message: {
-          locationMessage: {
-            name: '📍 Registro denegado por las Sombras 🎄',
-            jpegThumbnail: thumbBuffer,
-            vcard:
-              'BEGIN:VCARD\nVERSION:3.0\nN:;Shadow;;;\nFN:Shadow\nORG:Eminence in Shadow\nTITLE:\nitem1.TEL;waid=584242773183:+58 424 2773183\nitem1.X-ABLabel:Shadow\nX-WA-BIZ-DESCRIPTION:Reino de las Sombras\nX-WA-BIZ-NAME:Shadow\nEND:VCARD'
-          }
-        },
-        participant: '0@s.whatsapp.net'
-      }
+    const tz = "America/Tegucigalpa"
+    const time = moment.tz(tz).format("HH:mm:ss")
+    const date = moment.tz(tz).format("DD/MM/YYYY")
 
-      // Mensaje tipo catálogo con imagen grande y botón
-      const productMessage = {
-        product: {
-          productImage: { url: 'https://files.catbox.moe/k45sr6.jpg' },
-          productId: '999999999999999',
-          title: `꒰ঌ*˚🎄 ˗ˏˋ REGISTRO ˎˊ˗ 🎁 ꒱`,
-          description: `Registro requerido`,
-          currencyCode: 'USD',
-          priceAmount1000: '0',
-          retailerId: 1677,
-          url: `https://wa.me/584242773183`,
-          productImageCount: 1
-        },
-        businessOwnerJid: '584242773183@s.whatsapp.net',
-        caption: `👋 Hola ${m.pushName || 'usuario'}\n\n🌌 Para usar el menú necesitas registrarte.\n\nUsa: *${usedPrefix}reg nombre.edad*\n\n📌 Ejemplo: *${usedPrefix}reg shadow.18*`,
-        footer: `🌌 Shadow Bot`,
-        interactiveButtons: [
-          {
-            name: 'quick_reply',
-            buttonParamsJson: JSON.stringify({
-              display_text: '📝 Registrarse',
-              id: `${usedPrefix}reg`
-            })
-          }
-        ],
-        mentions: [m.sender],
-        contextInfo: {
-          externalAdReply: {
-            showAdAttribution: true,
-            title: 'Shadow • Sistema de Registro',
-            body: 'Registro uwu',
-            mediaType: 1,
-            thumbnailUrl: 'https://files.catbox.moe/k45sr6.jpg',
-            sourceUrl: 'https://wa.me/584242773183'
-          }
-        }
-      }
+    const _uptime = process.uptime() * 1000
+    const uptime = clockString(_uptime)
 
-      return await conn.sendMessage(m.chat, productMessage, { quoted: fkontak })
+    const tagUser = "@" + m.sender.split("@")[0]
+    const name = (await conn.getName(m.sender)) || "User"
+    const meName = (await conn.getName(conn.user?.id || conn.user?.jid || "")) || (global.botname || "Bot")
+
+    let profilePic
+    try {
+      profilePic = await conn.profilePictureUrl(m.sender, "image")
+    } catch {
+      profilePic = "https://i.ibb.co/3NfYh9k/default-avatar.png"
     }
+    if (!profilePic) profilePic = "https://i.ibb.co/3NfYh9k/default-avatar.png"
 
-    // Construcción del menú si ya está registrado
-    let menu = {}
-    for (let plugin of Object.values(global.plugins)) {
-      if (!plugin || !plugin.help) continue
-      let taglist = plugin.tags || []
-      for (let tag of taglist) {
-        if (!menu[tag]) menu[tag] = []
-        menu[tag].push(plugin)
-      }
-    }
-
-    let uptimeSec = process.uptime()
-    let hours = Math.floor(uptimeSec / 3600)
-    let minutes = Math.floor((uptimeSec % 3600) / 60)
-    let seconds = Math.floor(uptimeSec % 60)
-    let uptimeStr = `${hours}h ${minutes}m ${seconds}s`
-
-    let botNameToShow = global.botname || ""
-    let bannerUrl = global.michipg || ""
+    let botNameToShow = global.botname || meName
+    let bannerUrl = global.michipg || "https://files.catbox.moe/k45sr6.jpg"
     let videoUrl = null
 
-    const senderBotNumber = conn.user.jid.split('@')[0]
+    const senderBotNumber = conn.user.jid.split("@")[0]
     let configPath
-    if (conn.user.jid === global.conn.user.jid) {
-      configPath = path.join("./Sessions", "config.json")
-    } else {
-      configPath = path.join("./Sessions/SubBot", senderBotNumber, "config.json")
-    }
+    if (conn.user.jid === global.conn.user.jid) configPath = join("./Sessions", "config.json")
+    else configPath = join("./Sessions/SubBot", senderBotNumber, "config.json")
 
     if (fs.existsSync(configPath)) {
       try {
@@ -100,106 +63,230 @@ let handler = async (m, { conn, usedPrefix }) => {
         if (botConfig.name) botNameToShow = botConfig.name
         if (botConfig.banner) bannerUrl = botConfig.banner
         if (botConfig.video) videoUrl = botConfig.video
-      } catch (e) { console.error(e) }
+      } catch {}
     }
 
-    let txt = `📢 *Canal Oficial del Bot:*
-https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
-
-🎄 ¡Bienvenido al *Shadow Garden Navideño*! 🎄
-Soy *${botNameToShow}* ${(conn.user.jid == global.conn.user.jid ? '(Principal 🅥)' : '(Sub-Bot 🅑)')}
-
-> 🕒 *Hora:* ${moment.tz("America/Tegucigalpa").format("HH:mm:ss")}
-> 📅 *Fecha:* ${moment.tz("America/Tegucigalpa").format("DD/MM/YYYY")}
-> ⛄ *Actividad:* ${uptimeStr}
-
-Aquí tienes la lista de comandos:\n\n`
-
-    for (let tag in menu) {
-      txt += `*» 🎁 ${tag.toUpperCase()} 🎁*\n`
-      for (let plugin of menu[tag]) {
-        for (let cmd of plugin.help) {
-          txt += `> ✨ ${usedPrefix + cmd}\n`
-        }
+    let menuByTag = {}
+    for (const plugin of Object.values(global.plugins || {})) {
+      if (!plugin || !plugin.help) continue
+      const tags = plugin.tags || []
+      for (const tag of tags) {
+        if (!menuByTag[tag]) menuByTag[tag] = []
+        menuByTag[tag].push(plugin)
       }
-      txt += `\n`
     }
 
-    txt += `⚠️ *No olvides:* Si eres Sub-Bot puedes cambiar el nombre con *${usedPrefix}setname*, la imagen con *${usedPrefix}setimagen* y colocar un video con *${usedPrefix}setvid*.\n\n`
+    const channelUrl = "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
+    const botType = conn.user.jid === global.conn.user.jid ? "Principal" : "Sub-Bot"
 
-    let mediaMessage = null
-    if (videoUrl) {
-      mediaMessage = await prepareWAMessageMedia(
-        { video: { url: videoUrl }, gifPlayback: false },
-        { upload: conn.waUploadToServer }
-      )
-    } else if (bannerUrl) {
-      mediaMessage = await prepareWAMessageMedia(
-        { image: { url: bannerUrl } },
-        { upload: conn.waUploadToServer }
-      )
+    const infoUser = [
+      "─┈➤ *`INFO USER`*",
+      `𔓕 *Nombre* : ${name}`,
+      `𔓕 *Tag*    : ${tagUser}`,
+      `𔓕 *Registro* : ${isRegistered ? "✅" : "❌"}`
+    ].join("\n")
+
+    const infoBot = [
+      "╭──┈ *`INFO BOT`*",
+      `│ 🐢 *Nombre*  : ${botNameToShow}`,
+      `│ 🌲 *Tipo*  : ${botType}`,
+      `│ 🌾 *Prefix*  : ${usedPrefix}`,
+      `│ 🪴 *Uptime*  : ${uptime}`,
+      `│ 🌵 *Hora*   : ${time}`,
+      `│ 🌱 *Fecha*  : ${date}`,
+      "╰------------------------------------------"
+    ].join("\n")
+
+    const menuText = [
+      `Hola *${tagUser}!* uwu`,
+      `Bienvenido *${meName}*, soy *${botNameToShow}* y estoy aquí para ayudarte 🌿`,
+      ``,
+      infoUser,
+      ``,
+      infoBot,
+      ``,
+      ` *\`CANAL\`*`,
+      `🌵 ${channelUrl}`
+    ].join("\n")
+
+    if (!isRegistered) {
+      const thumbBuffer = await getBufferFromUrl(bannerUrl).catch(async () => await getBufferFromUrl("https://files.catbox.moe/k45sr6.jpg"))
+
+      const fkontak = {
+        key: { participants: "0@s.whatsapp.net", fromMe: false, id: "Shadow" },
+        message: {
+          locationMessage: {
+            name: "Registro requerido",
+            jpegThumbnail: thumbBuffer,
+            vcard:
+              "BEGIN:VCARD\nVERSION:3.0\nN:;Shadow;;;\nFN:Shadow\nORG:Shadow Garden\nitem1.TEL;waid=584242773183:+58 424 2773183\nitem1.X-ABLabel:Shadow\nEND:VCARD"
+          }
+        },
+        participant: "0@s.whatsapp.net"
+      }
+
+      const productMessage = {
+        product: {
+          productImage: { url: bannerUrl },
+          productId: "999999999999999",
+          title: "REGISTRO",
+          description: "Registro requerido",
+          currencyCode: "USD",
+          priceAmount1000: 0,
+          retailerId: "1677",
+          url: "https://wa.me/584242773183",
+          productImageCount: 1
+        },
+        businessOwnerJid: "584242773183@s.whatsapp.net",
+        caption: [
+          `➤ *\`REGISTRO\`*`,
+          `𔓕 Hola ${tagUser}`,
+          `𔓕 Para usar el menú necesitas registrarte`,
+          `𔓕 Comando: \`${usedPrefix}reg nombre.edad\``,
+          `𔓕 Ejemplo: \`${usedPrefix}reg shadow.18\``
+        ].join("\n"),
+        footer: "Shadow Bot",
+        interactiveButtons: [
+          {
+            name: "quick_reply",
+            buttonParamsJson: JSON.stringify({ display_text: "📝 Registrarse", id: `${usedPrefix}reg` })
+          },
+          {
+            name: "cta_url",
+            buttonParamsJson: JSON.stringify({ display_text: "👑 Creador", url: "https://wa.me/584242773183" })
+          }
+        ],
+        mentions: [m.sender]
+      }
+
+      return await conn.sendMessage(m.chat, productMessage, { quoted: fkontak })
     }
 
-    let profilePic
-    try {
-      profilePic = await conn.profilePictureUrl(m.sender, 'image')
-    } catch {
-      profilePic = "https://i.ibb.co/3NfYh9k/default-avatar.png"
-    }
-    if (!profilePic) profilePic = "https://i.ibb.co/3NfYh9k/default-avatar.png"
+    const thumbBuffer = await getBufferFromUrl(bannerUrl).catch(async () => await getBufferFromUrl("https://files.catbox.moe/k45sr6.jpg"))
 
-    const nativeFlowPayload = {
-      buttons: [
-        {
-          name: "single_select",
-          buttonParamsJson: JSON.stringify({
-            title: "🎄 𝚂𝚎𝚕𝚎𝚌𝚝 𝙼𝚎𝚗𝚞 🎄",
-            sections: [{
-              title: "Shadow Garden 🌌",
-              highlight_label: "🎄",
-              rows: [
-                { title: "📊 Status", description: "Estado actual del Reino", id: `${usedPrefix}status`, thumbnail_url: profilePic },
-                { title: "🚀 Ping", description: "Velocidad de respuesta sombría", id: `${usedPrefix}ping`, thumbnail_url: profilePic },
-                { title: "👤 Creador", description: "Contacto de Yosue, Maestro de las Sombras", id: `${usedPrefix}creador`, thumbnail_url: profilePic }
-              ]
-            }]
+    const sections = []
+    const quickRows = [
+      { title: "Ping", description: "🌴 Velocidad del bot", id: `${usedPrefix}ping` },
+      { title: "Status", description: "🌴 Estado del bot", id: `${usedPrefix}status` },
+      { title: "Creador", description: "🌴 Contacto del creador", id: `${usedPrefix}creador` }
+    ].map((r) => ({ ...r, thumbnail_url: profilePic }))
+
+    sections.push({
+      title: "𝗦𝗵𝗮𝗱𝗼𝘄 𝗠𝗲𝗻𝘂",
+      highlight_label: "🐛",
+      rows: quickRows
+    })
+
+    for (const tag of Object.keys(menuByTag)) {
+      const rows = []
+      for (const plugin of menuByTag[tag]) {
+        for (const cmd of plugin.help || []) {
+          rows.push({
+            title: `${usedPrefix}${cmd}`,
+            description: `🦖 Ejecutar: ${usedPrefix}${cmd}`,
+            id: `${usedPrefix}${cmd}`,
+            thumbnail_url: profilePic
           })
         }
-      ],
-      messageParamsJson: JSON.stringify({
-        bottom_sheet: { button_title: "🎅 Menú Navideño Shadow Garden 🎅" }
-      })
+      }
+      if (rows.length) {
+        sections.push({
+          title: String(tag).toUpperCase(),
+          highlight_label: "🫟",
+          rows: rows.slice(0, 50)
+        })
+      }
     }
 
-    const msg = generateWAMessageFromContent(m.chat, {
-      viewOnceMessage: {
-        message: {
-          interactiveMessage: {
-            body: { text: txt },
-            footer: { text: "Shadow Garden • Reino Navideño de las Sombras ❤️🎄" },
-            header: {
-              hasMediaAttachment: !!mediaMessage,
-              ...(mediaMessage?.videoMessage ? { videoMessage: mediaMessage.videoMessage } : {}),
-              ...(mediaMessage?.imageMessage ? { imageMessage: mediaMessage.imageMessage } : {})
-            },
-            nativeFlowMessage: nativeFlowPayload,
-            contextInfo: {
-              mentionedJid: [m.sender],
-              isForwarded: true,
-              forwardingScore: 9999999
-            }
+    const nativeFlowPayload = {
+      header: {
+        documentMessage: {
+          url: "https://mmg.whatsapp.net/v/t62.7119-24/539012045_745537058346694_1512031191239726227_n.enc",
+          mimetype: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          fileSha256: Buffer.from("fa09afbc207a724252bae1b764ecc7b13060440ba47a3bf59e77f01924924bfe", "hex"),
+          fileLength: { low: 0, high: 0, unsigned: true },
+          pageCount: 0,
+          mediaKey: Buffer.from("3163ba7c8db6dd363c4f48bda2735cc0d0413e57567f0a758f514f282889173c", "hex"),
+          fileName: `⊹ Shadow • ${botNameToShow}`,
+          fileEncSha256: Buffer.from("652f2ff6d8a8dae9f5c9654e386de5c01c623fe98d81a28f63dfb0979a44a22f", "hex"),
+          directPath: "/v/t62.7119-24/539012045_745537058346694_1512031191239726227_n.enc",
+          mediaKeyTimestamp: { low: 1756370084, high: 0, unsigned: false },
+          jpegThumbnail: thumbBuffer,
+          contextInfo: {
+            mentionedJid: [m.sender],
+            forwardingScore: 777,
+            isForwarded: true
+          }
+        },
+        hasMediaAttachment: true
+      },
+      body: { text: "" },
+      footer: { text: menuText },
+      nativeFlowMessage: {
+        buttons: [
+          {
+            name: "single_select",
+            buttonParamsJson: JSON.stringify({
+              title: "𝖲𝖾𝗅𝖾𝖼𝗍 𝖬𝖾𝗇𝗎",
+              sections,
+              has_multiple_buttons: true
+            })
+          },
+          {
+            name: "quick_reply",
+            buttonParamsJson: JSON.stringify({
+              display_text: "🚀 𝗣𝗶𝗻𝗴",
+              id: `${usedPrefix}ping`
+            })
+          },
+          {
+            name: "quick_reply",
+            buttonParamsJson: JSON.stringify({
+              display_text: "📊 𝗦𝘁𝗮𝘁𝘂𝘀",
+              id: `${usedPrefix}status`
+            })
+          },
+          {
+            name: "cta_url",
+            buttonParamsJson: JSON.stringify({
+              display_text: "🍁 𝗖𝗮𝗻𝗮𝗹",
+              url: channelUrl,
+              merchant_url: channelUrl
+            })
+          }
+        ],
+        messageParamsJson: JSON.stringify({
+          bottom_sheet: {
+            list_title: "🐢 Select Menu",
+            button_title: "🍄 Menu List",
+            in_thread_buttons_limit: 2,
+            divider_indices: [1, 2, 3, 999]
+          }
+        })
+      },
+      contextInfo: {
+        mentionedJid: [m.sender],
+        forwardingScore: 777,
+        isForwarded: true
+      }
+    }
+
+    await conn.relayMessage(
+      m.chat,
+      {
+        viewOnceMessage: {
+          message: {
+            interactiveMessage: nativeFlowPayload
           }
         }
-      }
-    }, { quoted: m })
-
-    await conn.relayMessage(m.chat, msg.message, {})
-
+      },
+      { quoted: m }
+    )
   } catch (e) {
     console.error(e)
-    conn.reply(m.chat, "👻 Ocurrió un error al generar el menú.", m)
+    await m.reply(`Error: ${e?.message || e}`)
   }
 }
 
-handler.command = ['help', 'menu', 'm']
+handler.command = ["help", "menu", "m"]
 export default handler
