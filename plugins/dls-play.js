@@ -26,19 +26,33 @@ const handler = async (m, { conn, text }) => {
       thumbnail = video.thumbnail;
     }
 
-    const caption = `🎄 Shadow — Selección navideña
+    const vistas = formatViews(views);
 
-✨ Título: ${title}
-🔔 Canal: ${authorName}
-🎬 Duración: ${durationTimestamp}
-👁️ Vistas: ${views}
+    const res3 = await fetch("https://files.catbox.moe/wfd0ze.jpg");
+    const thumb3 = Buffer.from(await res3.arrayBuffer());
 
-🎁 Elige qué deseas descargar:`;
+    const fkontak = {
+      key: { fromMe: false, participant: "0@s.whatsapp.net" },
+      message: {
+        documentMessage: {
+          title: `「 ${title} 」`,
+          fileName: global.botname || "Bot",
+          jpegThumbnail: thumb3
+        }
+      }
+    };
 
-    const buttons = [
-      { buttonId: `shadowaudio ${url}`, buttonText: { displayText: "🎧 Descargar Audio" }, type: 1 },
-      { buttonId: `shadowvideo ${url}`, buttonText: { displayText: "🎥 Descargar Video" }, type: 1 }
-    ];
+    const caption = `❄️ *Título:* ☃️ ${title}
+> ▶️ *Canal:* ${authorName}
+*°.⎯⃘̶⎯̸⎯ܴ⎯̶᳞͇ࠝ⎯⃘̶⎯̸⎯ܴ⎯̶᳞͇ࠝ⎯⃘̶⎯̸.°*
+> 💫 *Vistas:* ${vistas}
+*°.⎯⃘̶⎯̸⎯ܴ⎯̶᳞͇ࠝ⎯⃘̶⎯̸⎯ܴ⎯̶᳞͇ࠝ⎯⃘̶⎯̸.°*
+> ⏳ *Duración:* ${durationTimestamp}
+*°.⎯⃘̶⎯̸⎯ܴ⎯̶᳞͇ࠝ⎯⃘̶⎯̸⎯ܴ⎯̶᳞͇ࠝ⎯⃘̶⎯̸.°*
+> 🌐 *Link:* ${url}
+*⏝ּׅ︣︢ۛ۫۫۫۫۫۫ۜ⏝ּׅ︣︢ۛ۫۫۫۫۫۫ۜ⏝ּׅ︢︣ۛ۫۫۫۫۫۫ۜ*
+𖹭.╭╭ִ╼࣪━ִﮩ٨ـﮩ♡̫shadow bot♡ִ̫ﮩ٨ـﮩ━ִ╾࣪╮╮.𖹭*
+> .𖹭 © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʏᴏsᴜᴇ𖹭.`;
 
     await conn.sendMessage(
       m.chat,
@@ -46,10 +60,13 @@ const handler = async (m, { conn, text }) => {
         image: { url: thumbnail },
         caption,
         footer: "Shadow — Descargas",
-        buttons,
+        buttons: [
+          { buttonId: `shadowaudio ${url}`, buttonText: { displayText: "🎧 Descargar Audio" }, type: 1 },
+          { buttonId: `shadowvideo ${url}`, buttonText: { displayText: "🎥 Descargar Video" }, type: 1 }
+        ],
         headerType: 4
       },
-      { quoted: m }
+      { quoted: fkontak }
     );
 
     await m.react("✨");
@@ -76,7 +93,6 @@ handler.before = async (m, { conn }) => {
   }
 };
 
-// Función auxiliar para descargar el archivo como ArrayBuffer
 const fetchBuffer = async (url) => {
   const response = await fetch(url);
   const buffer = await response.buffer();
@@ -92,8 +108,8 @@ const downloadMedia = async (conn, m, url, type) => {
     const sent = await conn.sendMessage(m.chat, { text: msg }, { quoted: m });
 
     const apiUrl = type === "mp3"
-      ? `https://api-adonix.ultraplus.click/download/ytaudio?url=${encodeURIComponent(url)}&apikey=AdonixKeyuxuacv6765`
-      : `https://api-adonix.ultraplus.click/download/ytvideo?url=${encodeURIComponent(url)}&apikey=AdonixKeyuxuacv6765`;
+      ? `https://api-adonix.ultraplus.click/download/ytaudio?url=${encodeURIComponent(url)}&apikey=ShadowkeyBotMD`
+      : `https://api-adonix.ultraplus.click/download/ytvideo?url=${encodeURIComponent(url)}&apikey=ShadowkeyBotMD`;
 
     const r = await fetch(apiUrl);
     const data = await r.json();
@@ -104,7 +120,6 @@ const downloadMedia = async (conn, m, url, type) => {
     const fileTitle = cleanName(data.data.title || "video");
 
     if (type === "mp3") {
-      // Descarga el archivo como buffer para usar con ptt
       const audioBuffer = await fetchBuffer(fileUrl);
 
       await conn.sendMessage(
@@ -112,8 +127,7 @@ const downloadMedia = async (conn, m, url, type) => {
         {
           audio: audioBuffer,
           mimetype: "audio/mpeg",
-          fileName: fileTitle + ".mp3",
-          ptt: true
+          fileName: fileTitle + ".mp3"
         },
         { quoted: m }
       );
@@ -146,6 +160,13 @@ const downloadMedia = async (conn, m, url, type) => {
 };
 
 const cleanName = (name) => name.replace(/[^\w\s-_.]/gi, "").substring(0, 50);
+const formatViews = (views) => {
+  if (views === undefined || views === null) return "No disponible";
+  if (views >= 1_000_000_000) return `${(views / 1_000_000_000).toFixed(1)}B`;
+  if (views >= 1_000_000) return `${(views / 1_000_000).toFixed(1)}M`;
+  if (views >= 1_000) return `${(views / 1_000).toFixed(1)}K`;
+  return views.toString();
+};
 
 handler.command = ["play", "yt", "ytsearch"];
 handler.tags = ["descargas"];
