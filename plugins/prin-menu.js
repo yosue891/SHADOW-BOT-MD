@@ -1,13 +1,13 @@
 import moment from "moment-timezone"
-import fs, { promises as fsp } from "fs"
-import path, { dirname, join } from "path"
+import fs from "fs"
+import { dirname, join } from "path"
 import { fileURLToPath } from "url"
 import fetch from "node-fetch"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-const { generateWAMessageFromContent, prepareWAMessageMedia } = (await import("@whiskeysockets/baileys")).default
+const { prepareWAMessageMedia } = (await import("@whiskeysockets/baileys")).default
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -24,6 +24,22 @@ async function getBufferFromUrl(url) {
   return await r.buffer()
 }
 
+function toJid(user) {
+  return user?.endsWith("@s.whatsapp.net") || user?.endsWith("@g.us") ? user : `${user}@s.whatsapp.net`
+}
+
+function dedupeRows(rows = []) {
+  const seen = new Set()
+  const out = []
+  for (const r of rows) {
+    const k = String(r?.id || r?.title || "").trim()
+    if (!k || seen.has(k)) continue
+    seen.add(k)
+    out.push(r)
+  }
+  return out
+}
+
 let handler = async (m, { conn, usedPrefix }) => {
   try {
     const userData = global.db?.data?.users?.[m.sender] || {}
@@ -33,12 +49,14 @@ let handler = async (m, { conn, usedPrefix }) => {
     const time = moment.tz(tz).format("HH:mm:ss")
     const date = moment.tz(tz).format("DD/MM/YYYY")
 
-    const _uptime = process.uptime() * 1000
-    const uptime = clockString(_uptime)
+    const uptime = clockString(process.uptime() * 1000)
 
     const tagUser = "@" + m.sender.split("@")[0]
     const name = (await conn.getName(m.sender)) || "User"
-    const meName = (await conn.getName(conn.user?.id || conn.user?.jid || "")) || (global.botname || "Bot")
+    const meName =
+      (await conn.getName(conn.user?.id || conn.user?.jid || "")) ||
+      global.botname ||
+      "Bot"
 
     let profilePic
     try {
@@ -52,32 +70,22 @@ let handler = async (m, { conn, usedPrefix }) => {
     let bannerUrl = global.michipg || "https://files.catbox.moe/k45sr6.jpg"
     let videoUrl = null
 
-    const senderBotNumber = conn.user.jid.split("@")[0]
+    const senderBotNumber = (conn.user?.jid || "").split("@")[0]
     let configPath
-    if (conn.user.jid === global.conn.user.jid) configPath = join("./Sessions", "config.json")
+    if ((conn.user?.jid || "") === (global.conn?.user?.jid || "")) configPath = join("./Sessions", "config.json")
     else configPath = join("./Sessions/SubBot", senderBotNumber, "config.json")
 
-    if (fs.existsSync(configPath)) {
+    if (configPath && fs.existsSync(configPath)) {
       try {
         const botConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"))
-        if (botConfig.name) botNameToShow = botConfig.name
-        if (botConfig.banner) bannerUrl = botConfig.banner
-        if (botConfig.video) videoUrl = botConfig.video
+        if (botConfig?.name) botNameToShow = botConfig.name
+        if (botConfig?.banner) bannerUrl = botConfig.banner
+        if (botConfig?.video) videoUrl = botConfig.video
       } catch {}
     }
 
-    let menuByTag = {}
-    for (const plugin of Object.values(global.plugins || {})) {
-      if (!plugin || !plugin.help) continue
-      const tags = plugin.tags || []
-      for (const tag of tags) {
-        if (!menuByTag[tag]) menuByTag[tag] = []
-        menuByTag[tag].push(plugin)
-      }
-    }
-
     const channelUrl = "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
-    const botType = conn.user.jid === global.conn.user.jid ? "Principal" : "Sub-Bot"
+    const botType = (conn.user?.jid || "") === (global.conn?.user?.jid || "") ? "Principal" : "Sub-Bot"
 
     const infoUser = [
       "─┈➤ *`INFO USER`*",
@@ -89,17 +97,17 @@ let handler = async (m, { conn, usedPrefix }) => {
     const infoBot = [
       "╭──┈ *`INFO BOT`*",
       `│ 🐢 *Nombre*  : ${botNameToShow}`,
-      `│ 🌲 *Tipo*  : ${botType}`,
+      `│ 🌲 *Tipo*    : ${botType}`,
       `│ 🌾 *Prefix*  : ${usedPrefix}`,
-      `│ 🪴 *Uptime*  : ${uptime}`,
-      `│ 🌵 *Hora*   : ${time}`,
-      `│ 🌱 *Fecha*  : ${date}`,
+      `│ 🪴 *Uptime*   : ${uptime}`,
+      `│ 🌵 *Hora*    : ${time}`,
+      `│ 🌱 *Fecha*   : ${date}`,
       "╰------------------------------------------"
     ].join("\n")
 
     const menuText = [
-      `Hola *${tagUser}!* uwu`,
-      `Bienvenido *${meName}*, soy *${botNameToShow}* y estoy aquí para ayudarte 🌿`,
+      `Hola *${tagUser}!*`,
+      `Bienvenido a *${botNameToShow}*`,
       ``,
       infoUser,
       ``,
@@ -109,9 +117,11 @@ let handler = async (m, { conn, usedPrefix }) => {
       `🌵 ${channelUrl}`
     ].join("\n")
 
-    if (!isRegistered) {
-      const thumbBuffer = await getBufferFromUrl(bannerUrl).catch(async () => await getBufferFromUrl("https://files.catbox.moe/k45sr6.jpg"))
+    const thumbBuffer = await getBufferFromUrl(bannerUrl).catch(async () =>
+      await getBufferFromUrl("https://files.catbox.moe/k45sr6.jpg")
+    )
 
+    if (!isRegistered) {
       const fkontak = {
         key: { participants: "0@s.whatsapp.net", fromMe: false, id: "Shadow" },
         message: {
@@ -145,16 +155,10 @@ let handler = async (m, { conn, usedPrefix }) => {
           `𔓕 Comando: \`${usedPrefix}reg nombre.edad\``,
           `𔓕 Ejemplo: \`${usedPrefix}reg shadow.18\``
         ].join("\n"),
-        footer: "Shadow Bot",
+        footer: botNameToShow,
         interactiveButtons: [
-          {
-            name: "quick_reply",
-            buttonParamsJson: JSON.stringify({ display_text: "📝 Registrarse", id: `${usedPrefix}reg` })
-          },
-          {
-            name: "cta_url",
-            buttonParamsJson: JSON.stringify({ display_text: "👑 Creador", url: "https://wa.me/584242773183" })
-          }
+          { name: "quick_reply", buttonParamsJson: JSON.stringify({ display_text: "📝 Registrarse", id: `${usedPrefix}reg` }) },
+          { name: "cta_url", buttonParamsJson: JSON.stringify({ display_text: "👑 Creador", url: "https://wa.me/584242773183" }) }
         ],
         mentions: [m.sender]
       }
@@ -162,74 +166,88 @@ let handler = async (m, { conn, usedPrefix }) => {
       return await conn.sendMessage(m.chat, productMessage, { quoted: fkontak })
     }
 
-    const thumbBuffer = await getBufferFromUrl(bannerUrl).catch(async () => await getBufferFromUrl("https://files.catbox.moe/k45sr6.jpg"))
+    const menuByTag = {}
+    for (const plugin of Object.values(global.plugins || {})) {
+      if (!plugin || !plugin.help) continue
+      const tags = Array.isArray(plugin.tags) ? plugin.tags : []
+      for (const tag of tags) {
+        const t = String(tag || "OTROS").trim() || "OTROS"
+        if (!menuByTag[t]) menuByTag[t] = []
+        menuByTag[t].push(plugin)
+      }
+    }
+
+    const quickRows = dedupeRows(
+      [
+        { title: "Ping", description: "🌴 Velocidad del bot", id: `${usedPrefix}ping` },
+        { title: "Status", description: "🌴 Estado del bot", id: `${usedPrefix}status` },
+        { title: "Creador", description: "🌴 Contacto del creador", id: `${usedPrefix}creador` }
+      ].map((r) => ({ ...r, thumbnail_url: profilePic }))
+    )
 
     const sections = []
-    const quickRows = [
-      { title: "Ping", description: "🌴 Velocidad del bot", id: `${usedPrefix}ping` },
-      { title: "Status", description: "🌴 Estado del bot", id: `${usedPrefix}status` },
-      { title: "Creador", description: "🌴 Contacto del creador", id: `${usedPrefix}creador` }
-    ].map((r) => ({ ...r, thumbnail_url: profilePic }))
-
     sections.push({
-      title: "𝗦𝗵𝗮𝗱𝗼𝘄 𝗠𝗲𝗻𝘂",
-      highlight_label: "🐛",
-      rows: quickRows
+      title: "𝗔𝗖𝗖𝗘𝗦𝗢 𝗥𝗔𝗣𝗜𝗗𝗢",
+      highlight_label: "⚡",
+      rows: quickRows.slice(0, 30)
     })
 
-    for (const tag of Object.keys(menuByTag)) {
+    const sortedTags = Object.keys(menuByTag)
+      .map((t) => String(t))
+      .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }))
+
+    const MAX_ROWS_PER_SECTION = 45
+
+    for (const tag of sortedTags) {
+      const plugins = menuByTag[tag] || []
       const rows = []
-      for (const plugin of menuByTag[tag]) {
+
+      for (const plugin of plugins) {
         for (const cmd of plugin.help || []) {
+          const c = String(cmd || "").trim()
+          if (!c) continue
           rows.push({
-            title: `${usedPrefix}${cmd}`,
-            description: `🦖 Ejecutar: ${usedPrefix}${cmd}`,
-            id: `${usedPrefix}${cmd}`,
+            title: `${usedPrefix}${c}`,
+            description: `🦖 Ejecutar: ${usedPrefix}${c}`,
+            id: `${usedPrefix}${c}`,
             thumbnail_url: profilePic
           })
         }
       }
-      if (rows.length) {
+
+      const clean = dedupeRows(rows).slice(0, MAX_ROWS_PER_SECTION)
+      if (clean.length) {
         sections.push({
           title: String(tag).toUpperCase(),
-          highlight_label: "🫟",
-          rows: rows.slice(0, 50)
+          highlight_label: "📁",
+          rows: clean
         })
       }
     }
 
+    const media = await prepareWAMessageMedia(
+      { image: thumbBuffer },
+      { upload: conn.waUploadToServer }
+    )
+
+    const bodyText = `𝗠𝗘𝗡𝗨 • ${botNameToShow}`
+
     const nativeFlowPayload = {
-      header: {
-        documentMessage: {
-          url: "https://mmg.whatsapp.net/v/t62.7119-24/539012045_745537058346694_1512031191239726227_n.enc",
-          mimetype: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          fileSha256: Buffer.from("fa09afbc207a724252bae1b764ecc7b13060440ba47a3bf59e77f01924924bfe", "hex"),
-          fileLength: { low: 0, high: 0, unsigned: true },
-          pageCount: 0,
-          mediaKey: Buffer.from("3163ba7c8db6dd363c4f48bda2735cc0d0413e57567f0a758f514f282889173c", "hex"),
-          fileName: `⊹ Shadow • ${botNameToShow}`,
-          fileEncSha256: Buffer.from("652f2ff6d8a8dae9f5c9654e386de5c01c623fe98d81a28f63dfb0979a44a22f", "hex"),
-          directPath: "/v/t62.7119-24/539012045_745537058346694_1512031191239726227_n.enc",
-          mediaKeyTimestamp: { low: 1756370084, high: 0, unsigned: false },
-          jpegThumbnail: thumbBuffer,
-          contextInfo: {
-            mentionedJid: [m.sender],
-            forwardingScore: 777,
-            isForwarded: true
-          }
-        },
-        hasMediaAttachment: true
-      },
-      body: { text: "" },
+      body: { text: bodyText },
       footer: { text: menuText },
+      header: {
+        title: `🐢 ${botNameToShow}`,
+        subtitle: `👤 ${name} • ⏱ ${uptime}`,
+        hasMediaAttachment: true,
+        imageMessage: media.imageMessage
+      },
       nativeFlowMessage: {
         buttons: [
           {
             name: "single_select",
             buttonParamsJson: JSON.stringify({
-              title: "𝖲𝖾𝗅𝖾𝖼𝗍 𝖬𝖾𝗇𝗎",
-              sections,
-              has_multiple_buttons: true
+              title: "📜 𝗦𝗲𝗹𝗲𝗰𝘁 𝗠𝗲𝗻𝘂",
+              sections
             })
           },
           {
