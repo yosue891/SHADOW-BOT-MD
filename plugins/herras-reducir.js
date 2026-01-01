@@ -1,4 +1,4 @@
-import Jimp from 'jimp'
+import * as Jimp from 'jimp'
 import axios from 'axios'
 import FormData from 'form-data' 
 
