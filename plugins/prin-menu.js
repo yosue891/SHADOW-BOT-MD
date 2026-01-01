@@ -7,9 +7,14 @@ import fetch from "node-fetch"
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-const { prepareWAMessageMedia } = (await import("@whiskeysockets/baileys")).default
+const baileysMod = await import("@whiskeysockets/baileys")
+const prepareWAMessageMedia =
+  baileysMod.prepareWAMessageMedia ||
+  baileysMod.default?.prepareWAMessageMedia
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+if (typeof prepareWAMessageMedia !== "function") {
+  throw new Error("Tu versión de Baileys no expone prepareWAMessageMedia")
+}
 
 function clockString(ms) {
   let h = isNaN(ms) ? "--" : Math.floor(ms / 3600000)
@@ -22,10 +27,6 @@ async function getBufferFromUrl(url) {
   const r = await fetch(url)
   if (!r.ok) throw new Error(`No se pudo descargar: ${url}`)
   return await r.buffer()
-}
-
-function toJid(user) {
-  return user?.endsWith("@s.whatsapp.net") || user?.endsWith("@g.us") ? user : `${user}@s.whatsapp.net`
 }
 
 function dedupeRows(rows = []) {
@@ -48,7 +49,6 @@ let handler = async (m, { conn, usedPrefix }) => {
     const tz = "America/Tegucigalpa"
     const time = moment.tz(tz).format("HH:mm:ss")
     const date = moment.tz(tz).format("DD/MM/YYYY")
-
     const uptime = clockString(process.uptime() * 1000)
 
     const tagUser = "@" + m.sender.split("@")[0]
@@ -68,7 +68,9 @@ let handler = async (m, { conn, usedPrefix }) => {
 
     let botNameToShow = global.botname || meName
     let bannerUrl = global.michipg || "https://files.catbox.moe/k45sr6.jpg"
-    let videoUrl = null
+
+    const channelUrl = "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
+    const botType = (conn.user?.jid || "") === (global.conn?.user?.jid || "") ? "Principal" : "Sub-Bot"
 
     const senderBotNumber = (conn.user?.jid || "").split("@")[0]
     let configPath
@@ -80,12 +82,8 @@ let handler = async (m, { conn, usedPrefix }) => {
         const botConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"))
         if (botConfig?.name) botNameToShow = botConfig.name
         if (botConfig?.banner) bannerUrl = botConfig.banner
-        if (botConfig?.video) videoUrl = botConfig.video
       } catch {}
     }
-
-    const channelUrl = "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
-    const botType = (conn.user?.jid || "") === (global.conn?.user?.jid || "") ? "Principal" : "Sub-Bot"
 
     const infoUser = [
       "─┈➤ *`INFO USER`*",
@@ -185,12 +183,13 @@ let handler = async (m, { conn, usedPrefix }) => {
       ].map((r) => ({ ...r, thumbnail_url: profilePic }))
     )
 
-    const sections = []
-    sections.push({
-      title: "𝗔𝗖𝗖𝗘𝗦𝗢 𝗥𝗔𝗣𝗜𝗗𝗢",
-      highlight_label: "⚡",
-      rows: quickRows.slice(0, 30)
-    })
+    const sections = [
+      {
+        title: "𝗔𝗖𝗖𝗘𝗦𝗢 𝗥𝗔𝗣𝗜𝗗𝗢",
+        highlight_label: "⚡",
+        rows: quickRows.slice(0, 30)
+      }
+    ]
 
     const sortedTags = Object.keys(menuByTag)
       .map((t) => String(t))
@@ -199,10 +198,8 @@ let handler = async (m, { conn, usedPrefix }) => {
     const MAX_ROWS_PER_SECTION = 45
 
     for (const tag of sortedTags) {
-      const plugins = menuByTag[tag] || []
       const rows = []
-
-      for (const plugin of plugins) {
+      for (const plugin of menuByTag[tag] || []) {
         for (const cmd of plugin.help || []) {
           const c = String(cmd || "").trim()
           if (!c) continue
@@ -214,7 +211,6 @@ let handler = async (m, { conn, usedPrefix }) => {
           })
         }
       }
-
       const clean = dedupeRows(rows).slice(0, MAX_ROWS_PER_SECTION)
       if (clean.length) {
         sections.push({
@@ -230,10 +226,8 @@ let handler = async (m, { conn, usedPrefix }) => {
       { upload: conn.waUploadToServer }
     )
 
-    const bodyText = `𝗠𝗘𝗡𝗨 • ${botNameToShow}`
-
     const nativeFlowPayload = {
-      body: { text: bodyText },
+      body: { text: `𝗠𝗘𝗡𝗨 • ${botNameToShow}` },
       footer: { text: menuText },
       header: {
         title: `🐢 ${botNameToShow}`,
@@ -252,25 +246,15 @@ let handler = async (m, { conn, usedPrefix }) => {
           },
           {
             name: "quick_reply",
-            buttonParamsJson: JSON.stringify({
-              display_text: "🚀 𝗣𝗶𝗻𝗴",
-              id: `${usedPrefix}ping`
-            })
+            buttonParamsJson: JSON.stringify({ display_text: "🚀 𝗣𝗶𝗻𝗴", id: `${usedPrefix}ping` })
           },
           {
             name: "quick_reply",
-            buttonParamsJson: JSON.stringify({
-              display_text: "📊 𝗦𝘁𝗮𝘁𝘂𝘀",
-              id: `${usedPrefix}status`
-            })
+            buttonParamsJson: JSON.stringify({ display_text: "📊 𝗦𝘁𝗮𝘁𝘂𝘀", id: `${usedPrefix}status` })
           },
           {
             name: "cta_url",
-            buttonParamsJson: JSON.stringify({
-              display_text: "🍁 𝗖𝗮𝗻𝗮𝗹",
-              url: channelUrl,
-              merchant_url: channelUrl
-            })
+            buttonParamsJson: JSON.stringify({ display_text: "🍁 𝗖𝗮𝗻𝗮𝗹", url: channelUrl, merchant_url: channelUrl })
           }
         ],
         messageParamsJson: JSON.stringify({
@@ -282,22 +266,12 @@ let handler = async (m, { conn, usedPrefix }) => {
           }
         })
       },
-      contextInfo: {
-        mentionedJid: [m.sender],
-        forwardingScore: 777,
-        isForwarded: true
-      }
+      contextInfo: { mentionedJid: [m.sender], forwardingScore: 777, isForwarded: true }
     }
 
     await conn.relayMessage(
       m.chat,
-      {
-        viewOnceMessage: {
-          message: {
-            interactiveMessage: nativeFlowPayload
-          }
-        }
-      },
+      { viewOnceMessage: { message: { interactiveMessage: nativeFlowPayload } } },
       { quoted: m }
     )
   } catch (e) {
