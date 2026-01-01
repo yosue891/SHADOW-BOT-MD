@@ -1,35 +1,40 @@
 import { sticker } from '../lib/sticker.js';
-//import uploadFile from '../lib/uploadFile.js';
-//import uploadImage from '../lib/uploadImage.js';
-//import { webp2png } from '../lib/webp2mp4.js';
-import fetch from 'node-fetch'
+import fetch from 'node-fetch';
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
 
   const chat = global.db.data.users[m.sender] || {}
   if (!chat.registered) {
-    const thumbUrl = 'https://files.catbox.moe/k45sr6.jpg'
-    const thumbBuffer = await fetch(thumbUrl).then(res => res.buffer())
+    const thumbBuffer = await (await fetch('https://iili.io/fXp3swb.jpg')).buffer()
 
+    // Bloque estilo mute (imagen pequeña + vCard)
     const fkontak = {
-      key: { participant: '0@s.whatsapp.net', remoteJid: 'status@broadcast', fromMe: false, id: 'Halo' },
-      message: { locationMessage: { name: '🎄 REGISTRO | SHADOW BOT 💫', jpegThumbnail: thumbBuffer } },
+      key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'Halo' },
+      message: {
+        locationMessage: {
+          name: '📍 Registro denegado por las Sombras 🎄',
+          jpegThumbnail: thumbBuffer,
+          vcard:
+            'BEGIN:VCARD\nVERSION:3.0\nN:;Shadow;;;\nFN:Shadow\nORG:Eminence in Shadow\nTITLE:\nitem1.TEL;waid=584242773183:+58 424 2773183\nitem1.X-ABLabel:Shadow\nX-WA-BIZ-DESCRIPTION:Reino de las Sombras\nX-WA-BIZ-NAME:Shadow\nEND:VCARD'
+        }
+      },
       participant: '0@s.whatsapp.net'
     }
 
+    // Mensaje tipo catálogo con imagen grande y botón
     const productMessage = {
       product: {
-        productImage: { url: thumbUrl },
+        productImage: { url: 'https://files.catbox.moe/k45sr6.jpg' },
         productId: '999999999999999',
         title: `꒰ঌ*˚🎄 ˗ˏˋ REGISTRO ˎˊ˗ 🎁 ꒱`,
-        description: `👋 Hola ${m.pushName || 'usuario'}\n\n🌌 Para usar el comando necesitas registrarte.\n\nUsa: *${usedPrefix}register nombre.edad*`,
+        description: `👋 Hola ${m.pushName || 'usuario'}\n\n🌌 Para usar el comando necesitas registrarte.\n\nUsa: *${usedPrefix}reg nombre.edad*\n\n📌 Ejemplo: *${usedPrefix}reg shadow.18*`,
         currencyCode: 'USD',
-        priceAmount1000: '000000',
+        priceAmount1000: '0',
         retailerId: 1677,
-        url: `https://wa.me/${m.sender.split('@')[0]}`,
+        url: `https://wa.me/584242773183`, // igual que en mute
         productImageCount: 1
       },
-      businessOwnerJid: m.sender,
+      businessOwnerJid: '584242773183@s.whatsapp.net', // sello WhatsApp Business
       caption: `🎄 Registro requerido`,
       footer: `🌌 Shadow Bot`,
       interactiveButtons: [
@@ -37,11 +42,21 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
           name: 'quick_reply',
           buttonParamsJson: JSON.stringify({
             display_text: '📝 Registrarse',
-            id: `${usedPrefix}register`
+            id: `${usedPrefix}reg`
           })
         }
       ],
-      mentions: [m.sender]
+      mentions: [m.sender],
+      contextInfo: {
+        externalAdReply: {
+          showAdAttribution: true, // activar sello WhatsApp Business
+          title: 'Shadow • Sistema de Registro',
+          body: 'Registro uwu',
+          mediaType: 1,
+          thumbnailUrl: 'https://files.catbox.moe/k45sr6.jpg',
+          sourceUrl: 'https://wa.me/584242773183'
+        }
+      }
     }
 
     return await conn.sendMessage(m.chat, productMessage, { quoted: fkontak })
