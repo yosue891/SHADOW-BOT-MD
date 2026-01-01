@@ -128,6 +128,7 @@ const downloadMedia = async (conn, m, url, type) => {
           audio: audioBuffer,
           mimetype: "audio/mpeg",
           fileName: fileTitle + ".mp3"
+          // ptt: true ❌ eliminado
         },
         { quoted: m }
       );
