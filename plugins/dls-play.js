@@ -31,6 +31,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     const res3 = await fetch("https://files.catbox.moe/wfd0ze.jpg")
     const thumb3 = Buffer.from(await res3.arrayBuffer())
 
+    // Imagen pequeña arriba (quoted)
     const fkontak = {
       key: { fromMe: false, participant: "0@s.whatsapp.net" },
       message: {
@@ -54,30 +55,42 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 > .𖹭 © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʏᴏsᴜᴇ𖹭.`
 
     const thumb = (await conn.getFile(thumbnail)).data
-    await conn.sendMessage(m.chat, { image: thumb, caption }, { quoted: fkontak })
-
-    await m.react("🎧")
-
-    const audio = await getAudio(url)
-    if (!audio?.status) throw `Error al obtener el audio: ${audio?.error || "Desconocido"}`
-
-    const audioBuffer = await fetchBuffer(audio.result.download)
-
     await conn.sendMessage(
       m.chat,
       {
-        audio: audioBuffer,
-        mimetype: "audio/mpeg",
-        fileName: `${title}.mp3`
+        image: thumb,
+        caption,
+        footer: "Shadow — Descargas",
+        buttons: [
+          { buttonId: `shadowaudio ${url}`, buttonText: { displayText: "🎧 Descargar Audio" }, type: 1 },
+          { buttonId: `shadowvideo ${url}`, buttonText: { displayText: "🎥 Descargar Video" }, type: 1 }
+        ],
+        headerType: 4
       },
       { quoted: fkontak }
     )
 
-    await m.react("✅")
+    await m.react("✨")
   } catch (e) {
-    console.error(e)
     m.reply("Error: " + e.message)
     m.react("⚠️")
+  }
+}
+
+handler.before = async (m, { conn }) => {
+  const selected = m?.message?.buttonsResponseMessage?.selectedButtonId
+  if (!selected) return
+
+  const parts = selected.split(" ")
+  const cmd = parts.shift()
+  const url = parts.join(" ")
+
+  if (cmd === "shadowaudio") {
+    return downloadMedia(conn, m, url, "mp3")
+  }
+
+  if (cmd === "shadowvideo") {
+    return downloadMedia(conn, m, url, "mp4")
   }
 }
 
@@ -86,27 +99,67 @@ const fetchBuffer = async (url) => {
   return await response.buffer()
 }
 
-const getAudio = async (url) => {
+const downloadMedia = async (conn, m, url, type) => {
   try {
-    const endpoint = `https://api-adonix.ultraplus.click/download/ytaudio?apikey=shadow.xyz&url=${encodeURIComponent(url)}`
-    const r = await fetch(endpoint)
-    const json = await r.json()
+    const msg = type === "mp3"
+      ? "🎄 Shadow — Descargando audio..."
+      : "🎄 Shadow — Descargando video..."
 
-    if (!json?.status || !json?.data?.url)
-      return { status: false, error: "No se pudo obtener audio" }
+    const sent = await conn.sendMessage(m.chat, { text: msg }, { quoted: m })
 
-    return {
-      status: true,
-      result: {
-        download: json.data.url,
-        title: json.data.title || "audio"
-      }
+    const apiUrl = type === "mp3"
+      ? `https://api-adonix.ultraplus.click/download/ytaudio?url=${encodeURIComponent(url)}&apikey=ShadowkeyBotMD`
+      : `https://api-adonix.ultraplus.click/download/ytvideo?url=${encodeURIComponent(url)}&apikey=ShadowkeyBotMD`
+
+    const r = await fetch(apiUrl)
+    const data = await r.json()
+
+    if (!data?.status || !data?.data?.url) return m.reply("No se pudo descargar el archivo.")
+
+    const fileUrl = data.data.url
+    const fileTitle = cleanName(data.data.title || "video")
+
+    if (type === "mp3") {
+      const audioBuffer = await fetchBuffer(fileUrl)
+
+      await conn.sendMessage(
+        m.chat,
+        {
+          audio: audioBuffer,
+          mimetype: "audio/mpeg",
+          fileName: fileTitle + ".mp3"
+        },
+        { quoted: m }
+      )
+    } else {
+      await conn.sendMessage(
+        m.chat,
+        {
+          video: { url: fileUrl },
+          mimetype: "video/mp4",
+          fileName: fileTitle + ".mp4"
+        },
+        { quoted: m }
+      )
     }
+
+    await conn.sendMessage(
+      m.chat,
+      {
+        text: `🎄 Shadow — Completado\n\n✨ Título: ${fileTitle}`,
+        edit: sent.key
+      }
+    )
+
+    await m.react("✅")
   } catch (e) {
-    return { status: false, error: e.message }
+    console.error(e)
+    m.reply("Error: " + e.message)
+    m.react("❌")
   }
 }
 
+const cleanName = (name) => name.replace(/[^\w\s-_.]/gi, "").substring(0, 50)
 const formatViews = (views) => {
   if (views === undefined || views === null) return "No disponible"
   if (views >= 1_000_000_000) return `${(views / 1_000_000_000).toFixed(1)}B`
@@ -115,7 +168,7 @@ const formatViews = (views) => {
   return views.toString()
 }
 
-handler.command = ["play"]
+handler.command = ["play", "yt", "ytsearch"]
 handler.tags = ["descargas"]
 handler.register = true
 
