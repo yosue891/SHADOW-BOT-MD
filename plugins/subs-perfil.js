@@ -1,5 +1,5 @@
 import fetch from 'node-fetch';
-import Jimp from 'jimp';
+import * as Jimp from 'jimp';
 
 const handler = async (m, { conn, command, usedPrefix, text }) => {
   const isSubBots = [conn.user.jid, ...global.owner.map(([number]) => `${number}@s.whatsapp.net`)].includes(m.sender);
