@@ -1,51 +1,66 @@
-import moment from "moment-timezone"
-import fs from "fs"
-import path from "path"
-import fetch from "node-fetch"
-const { generateWAMessageFromContent, prepareWAMessageMedia } = (await import("@whiskeysockets/baileys")).default
+import { sticker } from '../lib/sticker.js';
+import fetch from 'node-fetch';
 
-let handler = async (m, { conn, usedPrefix }) => {
-  try {
-    const userData = global.db.data.users[m.sender] || {}
-    if (!userData.registered) {
-      const thumbUrl = 'https://files.catbox.moe/k45sr6.jpg'
-      const thumbBuffer = await fetch(thumbUrl).then(res => res.buffer())
+let handler = async (m, { conn, args, usedPrefix, command }) => {
 
-      const fkontak = {
-        key: { participant: '0@s.whatsapp.net', remoteJid: 'status@broadcast', fromMe: false, id: 'Halo' },
-        message: { locationMessage: { name: '🎄 REGISTRO | SHADOW BOT 💫', jpegThumbnail: thumbBuffer } },
-        participant: '0@s.whatsapp.net'
-      }
+  const chat = global.db.data.users[m.sender] || {}
+  if (!chat.registered) {
+    const thumbBuffer = await (await fetch('https://iili.io/fXp3swb.jpg')).buffer()
 
-      const productMessage = {
-        product: {
-          productImage: { url: thumbUrl },
-          productId: '999999999999999',
-          title: `꒰ঌ*˚🎄 ˗ˏˋ REGISTRO ˎˊ˗ 🎁 ꒱`,
-          description: `👋 Hola ${m.pushName || 'usuario'}\n\n🌌 Para usar el menú necesitas registrarte.\n\nUsa: *${usedPrefix}register nombre.edad*`,
-          currencyCode: 'USD',
-          priceAmount1000: '000000',
-          retailerId: 1677,
-          url: `https://wa.me/${m.sender.split('@')[0]}`,
-          productImageCount: 1
-        },
-        businessOwnerJid: m.sender,
-        caption: `🎄 Registro requerido`,
-        footer: `🌌 Shadow Bot`,
-        interactiveButtons: [
-          {
-            name: 'quick_reply',
-            buttonParamsJson: JSON.stringify({
-              display_text: '📝 Registrarse',
-              id: `${usedPrefix}register`
-            })
-          }
-        ],
-        mentions: [m.sender]
-      }
-
-      return await conn.sendMessage(m.chat, productMessage, { quoted: fkontak })
+    // Bloque estilo mute (imagen pequeña + vCard)
+    const fkontak = {
+      key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'Halo' },
+      message: {
+        locationMessage: {
+          name: '📍 Registro denegado por las Sombras 🎄',
+          jpegThumbnail: thumbBuffer,
+          vcard:
+            'BEGIN:VCARD\nVERSION:3.0\nN:;Shadow;;;\nFN:Shadow\nORG:Eminence in Shadow\nTITLE:\nitem1.TEL;waid=584242773183:+58 424 2773183\nitem1.X-ABLabel:Shadow\nX-WA-BIZ-DESCRIPTION:Reino de las Sombras\nX-WA-BIZ-NAME:Shadow\nEND:VCARD'
+        }
+      },
+      participant: '0@s.whatsapp.net'
     }
+
+    // Mensaje tipo catálogo con imagen grande y botón
+    const productMessage = {
+      product: {
+        productImage: { url: 'https://files.catbox.moe/k45sr6.jpg' },
+        productId: '999999999999999',
+        title: `꒰ঌ*˚🎄 ˗ˏˋ REGISTRO ˎˊ˗ 🎁 ꒱`,
+        description: `👋 Hola ${m.pushName || 'usuario'}\n\n🌌 Para usar el comando necesitas registrarte.\n\nUsa: *${usedPrefix}reg nombre.edad*\n\n📌 Ejemplo: *${usedPrefix}reg shadow.18*`,
+        currencyCode: 'USD',
+        priceAmount1000: '0',
+        retailerId: 1677,
+        url: `https://wa.me/584242773183`, // igual que en mute
+        productImageCount: 1
+      },
+      businessOwnerJid: '584242773183@s.whatsapp.net', // sello WhatsApp Business
+      caption: `🎄 Registro requerido`,
+      footer: `🌌 Shadow Bot`,
+      interactiveButtons: [
+        {
+          name: 'quick_reply',
+          buttonParamsJson: JSON.stringify({
+            display_text: '📝 Registrarse',
+            id: `${usedPrefix}reg`
+          })
+        }
+      ],
+      mentions: [m.sender],
+      contextInfo: {
+        externalAdReply: {
+          showAdAttribution: true, // activar sello WhatsApp Business
+          title: 'Shadow • Sistema de Registro',
+          body: 'Registro uwu',
+          mediaType: 1,
+          thumbnailUrl: 'https://files.catbox.moe/k45sr6.jpg',
+          sourceUrl: 'https://wa.me/584242773183'
+        }
+      }
+    }
+
+    return await conn.sendMessage(m.chat, productMessage, { quoted: fkontak })
+  }
 
     let menu = {}
     for (let plugin of Object.values(global.plugins)) {
