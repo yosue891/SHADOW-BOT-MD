@@ -1,16 +1,10 @@
 import fetch from 'node-fetch'
 
-const imagen1 = 'https://files.catbox.moe/7sc3os.jpg'
+const media = 'https://files.catbox.moe/lcn1kw.mp4'
 
 var handler = async (m, { conn }) => {
   let who = m.mentionedJid?.[0] || m.quoted?.sender || m.sender
-
-  let pp
-  try {
-    pp = await conn.profilePictureUrl(who, 'image')
-  } catch {
-    pp = imagen1
-  }
+  let username = await conn.getName(who)
 
   let user = global.db.data.users[who]
   if (!user) {
@@ -23,7 +17,6 @@ var handler = async (m, { conn }) => {
   }
 
   let { registered } = user
-  let username = await conn.getName(who)
 
   // Frases estilo Shadow navideñas
   const frasesShadow = [
@@ -48,26 +41,10 @@ var handler = async (m, { conn }) => {
 *El archivo de las sombras ha sido abierto...*
 `.trim()
 
-  await conn.sendMessage(m.chat, { text: animacion }, { quoted: m })
+  await conn.sendMessage(m.chat, { text: animacion, ...rcanal }, { quoted: m })
 
-  // Imagen pequeña estilo WhatsApp Business
-  const thumbBuffer = await (await fetch(imagen1)).buffer()
-  const fkontak = {
-    key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'Shadow' },
-    message: {
-      locationMessage: {
-        name: '📍 Shadow Bot — Perfil 🎄',
-        jpegThumbnail: thumbBuffer,
-        vcard:
-          'BEGIN:VCARD\nVERSION:3.0\nN:;Shadow;;;\nFN:Shadow\nORG:Shadow Garden\nitem1.TEL;waid=584242773183:+58 424 2773183\nitem1.X-ABLabel:Shadow\nEND:VCARD'
-      }
-    },
-    participant: '0@s.whatsapp.net'
-  }
-
-  // Mensaje principal
-  let perfilMsg = `
-『 ＡＲＣＨＩＶＯ ＳＯＭＢＲＡ 』🎄
+  // Texto principal estilo Shadow navideño
+  let str = `🎄✨ 『 ＡＲＣＨＩＶＯ ＳＯＭＢＲＡ 』 ✨🎄
 
 🎅 *Portador:* ${username}
 🆔 *Identificador:* @${who.replace(/@.+/, '')}
@@ -75,25 +52,36 @@ var handler = async (m, { conn }) => {
 
 ✨ *Frase de las sombras:*
 "${fraseElegida}"
-`.trim()
 
-  await conn.sendMessage(
-    m.chat,
-    {
-      image: { url: pp },
-      caption: perfilMsg,
-      mentions: [who],
-      footer: 'Shadow Bot — Perfil',
-      buttons: [
-        {
-          buttonId: 'menu',
-          buttonText: { displayText: '🎄 Volver al Menú 🎄' },
-          type: 1
-        }
-      ],
-      headerType: 4
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+🌌 *Shadow-BOT-MD* — La sombra también celebra la Navidad UwU 🎁
+`
+
+  const wm = (typeof global !== 'undefined' && global.wm) ? global.wm : 'Shadow-BOT-MD ⚔️'
+  const bot = 'Shadow-BOT-MD ⚔️'
+
+  let fkontak = {
+    key: { participants: '0@s.whatsapp.net', remoteJid: 'status@broadcast', fromMe: false, id: 'Halo' },
+    message: {
+      contactMessage: {
+        vcard: `BEGIN:VCARD\nVERSION:3.0\nN:Sy;Bot;;;\nFN:y\nitem1.TEL;waid=${m.sender.split('@')[0]}:${m.sender.split('@')[0]}\nitem1.X-ABLabel:Ponsel\nEND:VCARD`
+      }
     },
-    { quoted: fkontak }
+    participant: '0@s.whatsapp.net'
+  }
+
+  await conn.sendButton(
+    m.chat,
+    str,
+    wm,
+    media,
+    [
+      ['👑 Creadores 💗', '#owner'],
+      ['☘️ Volver al Menú', '/menu']
+    ],
+    null,
+    [[bot, 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O']],
+    fkontak
   )
 }
 
