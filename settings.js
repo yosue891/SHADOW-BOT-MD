@@ -33,10 +33,10 @@ global.MichiJadibts = true
 global.botname = "Shadow-BOT-MD"
 global.textbot = "Shadow-BOT, yosue"
 global.dev = "SHADOW-BOT-MD"
-global.author = "© mᥲძᥱ ᥕі𝗍һ 𝙮𝙤𝙨𝙪𝙚"
+global.author = "*SHADOW-BOT-MD* © mᥲძᥱ ᥕі𝗍һ 𝙮𝙤𝙨𝙪𝙚"
 global.etiqueta = "© 𝙮𝙤𝙨𝙪𝙚 | 𝟤𝟢𝟤𝟧"
 global.currency = "¢ Pesos"
-global.michipg = "https://files.catbox.moe/oqp2kh.jpg"
+global.michipg = "https://files.catbox.moe/rxxhxq.jpg"
 global.icono = "https://files.catbox.moe/oqp2kh.jpg"
 global.catalogo = fs.readFileSync('./lib/catalogo.jpg')
 
