@@ -59,7 +59,8 @@ let handler = async function (m, { conn, text, usedPrefix, command }) {
     caption: certificadoPacto,
     buttons: [
       { buttonId: `${usedPrefix}menu`, buttonText: { displayText: '🌌 Volver al Menú' }, type: 1 },
-      { buttonId: `${usedPrefix}perfil`, buttonText: { displayText: '👻 perfil' }, type: 1 }
+      // Ajuste: el botón perfil ahora apunta al perfil del que lo presiona
+      { buttonId: `${usedPrefix}perfil ${m.sender}`, buttonText: { displayText: '👻 perfil' }, type: 1 }
     ],
     headerType: 4,
     contextInfo: {
