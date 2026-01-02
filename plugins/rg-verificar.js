@@ -59,7 +59,7 @@ let handler = async function (m, { conn, text, usedPrefix, command }) {
     caption: certificadoPacto,
     buttons: [
       { buttonId: `${usedPrefix}menu`, buttonText: { displayText: '🌌 Volver al Menú' }, type: 1 },
-      // Ajuste: el botón perfil ahora apunta al perfil del que lo presiona
+      // ✅ botón perfil incluye el JID del que lo presiona
       { buttonId: `${usedPrefix}perfil ${m.sender}`, buttonText: { displayText: '👻 perfil' }, type: 1 }
     ],
     headerType: 4,
@@ -74,7 +74,7 @@ let handler = async function (m, { conn, text, usedPrefix, command }) {
     }
   }, { quoted: m })
 
-  // Enviamos el documento visual del pacto intacto
+  // Documento visual del pacto
   await conn.sendMessage(m.chat, {
     document: { url: 'https://files.catbox.moe/zbyywc.jpg' }, 
     mimetype: 'application/pdf', 
