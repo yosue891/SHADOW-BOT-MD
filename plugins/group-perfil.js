@@ -1,10 +1,17 @@
 import fetch from 'node-fetch'
 
-const media = 'https://files.catbox.moe/lcn1kw.mp4'
+const imagen1 = 'https://files.catbox.moe/7sc3os.jpg'
 
 var handler = async (m, { conn }) => {
   let who = m.mentionedJid?.[0] || m.quoted?.sender || m.sender
   let username = await conn.getName(who)
+
+  let pp
+  try {
+    pp = await conn.profilePictureUrl(who, 'image')
+  } catch {
+    pp = imagen1
+  }
 
   let user = global.db.data.users[who]
   if (!user) {
@@ -74,7 +81,7 @@ var handler = async (m, { conn }) => {
     m.chat,
     str,
     wm,
-    media,
+    pp, 
     [
       ['👑 Creadores 💗', '#owner'],
       ['☘️ Volver al Menú', '/menu']
