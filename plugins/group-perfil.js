@@ -1,128 +1,100 @@
-import PhoneNumber from 'awesome-phonenumber'
 import fetch from 'node-fetch'
 
 const imagen1 = 'https://files.catbox.moe/7sc3os.jpg'
 
-var handler = async (m, { conn}) => {
+var handler = async (m, { conn }) => {
   let who = m.mentionedJid?.[0] || m.quoted?.sender || m.sender
 
   let pp
   try {
     pp = await conn.profilePictureUrl(who, 'image')
-} catch {
+  } catch {
     pp = imagen1
-}
+  }
 
   let user = global.db.data.users[who]
   if (!user) {
     global.db.data.users[who] = {
-      premium: false,
-      level: 0,
-      cookies: 0,
-      exp: 0,
-      lastclaim: 0,
       registered: false,
       regTime: -1,
-      age: 0,
-      role: '⭑ Novato ⭑'
-}
+      age: 0
+    }
     user = global.db.data.users[who]
-}
+  }
 
-  let { premium, level, exp, registered, role} = user
+  let { registered } = user
   let username = await conn.getName(who)
 
-  // Detectar si es el creador
-  const creadorJID = '584242773183@s.whatsapp.net'
-  const esCreador = who === creadorJID
-  const esPremium = premium || esCreador
-
-  // Frases estilo Shadow
+  // Frases estilo Shadow navideñas
   const frasesShadow = [
-    'Quienes conocen sus sombras tienen más poder que quienes presumen su luz',
-    'Las sombras te recuerdan que ellas librarán tu mayor potencial',
-    'El poder se mide en silencio, no en palabras',
-    'Yosue vigila desde el abismo, y tú formas parte de su legado',
-    'Nuestro silencio no es debilidad, es estrategia',
-    'Tu perfil ha sido analizado por la oscuridad',
-    'Observa sus sus derrotas, llega a la cima desde las sombras',
-    'Solo los dignos son reconocidos por el maestro de las sombras'
+    'Las sombras celebran en silencio, pero su poder nunca se apaga 🎄',
+    'El invierno cubre la luz, pero las sombras siguen vigilando ❄️',
+    'La navidad también pertenece al reino oculto 🌌',
+    'Quien abraza sus sombras, encuentra la verdadera calma ✨',
+    'Las sombras no descansan, ni siquiera en fiestas 🎁'
   ]
   const fraseElegida = frasesShadow[Math.floor(Math.random() * frasesShadow.length)]
 
+  // Animación inicial estilo bot cargando
   let animacion = `
-〘 *Sistema de Sombras* 〙🕸️
+〘 *Shadow Bot — Sistema en Carga* 〙🎄
 
-🔍 Escaneando energía oculta...
-⏳ Analizando grimorio del portador...
-🕶️ Sincronizando con el núcleo sombrío...
+🎅 Preparando archivos secretos...
+❄️ Sincronizando con el Reino Oculto...
+🎁 Activando protocolos navideños...
 
-✨✨✨ 𝙰𝙲𝚃𝙸𝚅𝙰𝙲𝙸𝙾́𝙽 𝙲𝙾𝙼𝙿𝙻𝙴𝚃𝙰 ✨✨✨
+✨✨✨ 𝙲𝙰𝚁𝙶𝙰 𝙲𝙾𝙼𝙿𝙻𝙴𝚃𝙰 ✨✨✨
 
 *El archivo de las sombras ha sido abierto...*
 `.trim()
 
-  await conn.sendMessage(m.chat, { text: animacion}, { quoted: m})
+  await conn.sendMessage(m.chat, { text: animacion }, { quoted: m })
 
-  let noprem = `
-『 ＡＲＣＨ（ＩＶＯ ＳＯＭＢＲＡ ＢＡＳＥ 』📕
+  // Imagen pequeña estilo WhatsApp Business
+  const thumbBuffer = await (await fetch(imagen1)).buffer()
+  const fkontak = {
+    key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'Shadow' },
+    message: {
+      locationMessage: {
+        name: '📍 Shadow Bot — Perfil 🎄',
+        jpegThumbnail: thumbBuffer,
+        vcard:
+          'BEGIN:VCARD\nVERSION:3.0\nN:;Shadow;;;\nFN:Shadow\nORG:Shadow Garden\nitem1.TEL;waid=584242773183:+58 424 2773183\nitem1.X-ABLabel:Shadow\nEND:VCARD'
+      }
+    },
+    participant: '0@s.whatsapp.net'
+  }
 
-⚔️ *Portador:* ${username}
+  // Mensaje principal
+  let perfilMsg = `
+『 ＡＲＣＨＩＶＯ ＳＯＭＢＲＡ 』🎄
+
+🎅 *Portador:* ${username}
 🆔 *Identificador:* @${who.replace(/@.+/, '')}
-📜 *Registrado:* ${registered? '✅ Activado': '❌ No'}
+📜 *Registrado:* ${registered ? '✅ Sí' : '❌ No'}
 
-🧪 *Estado de Energía:*
-⚡ *Nivel:* ${level}
-✨ *Experiencia:* ${exp}
-📈 *Rango:* ${role}
-🔮 *Premium:* ❌ No activo
-
-📔 *Grimorio:* Básico de 1 hoja 📘
-🔒 *Elemento:* Desconocido
-
-🕶️ *Frase de las sombras:*
+✨ *Frase de las sombras:*
 "${fraseElegida}"
-
-━━━━━━━━━━━━━━━━━━
 `.trim()
 
-  let prem = `
-👹〘 𝐌𝐎𝐃𝐎 𝐒𝐇𝐀𝐃𝐎𝐖: *𝐀𝐂𝐓𝐈𝐕𝐀𝐃𝐎* 〙👹
-
-🌌 ＧＲＩＭＯＲＩＯ ５ＬＴ（Ａ）
-
-🧛 *Portador Élite:* ${username}
-🧿 *ID:* @${who.replace(/@.+/, '')}
-✅ *Registrado:* ${registered? 'Sí': 'No'}
-👑 *Rango:* 🟣 *Supremo de las Sombras*
-
-🔮 *Energía Oscura:*
-⚡ *Nivel:* ${level}
-🌟 *Experiencia:* ${exp}
-🪄 *Rango Mágico:* ${role}
-💠 *Estado Premium:* ✅ ACTIVADO
-
-📕 *Grimorio:* ☯️ Anti-Magia de 5 hojas
-🔥 *Modo Especial:* ✦ *Despertar de las Sombras*
-🧩 *Elemento:* Anti-Magia & Espada Abismal
-
-📜 *Hechizo Desbloqueado:*
-❖ 「𝙱𝚕𝚊𝚌𝚔 the Legends ⚡」
-   ↳ Daño masivo a bots enemigos.
-
-🕶️ *Frase de las sombras:*
-"${fraseElegida}"
-
-📔 *Nota:* Este usuario ha superado sus límites... ☄️
-
-🌌⟣══════════════⟢🌌
-`.trim()
-
-  await conn.sendMessage(m.chat, {
-    image: { url: pp},
-    caption: esPremium? prem: noprem,
-    mentions: [who]
-}, { quoted: m})
+  await conn.sendMessage(
+    m.chat,
+    {
+      image: { url: pp },
+      caption: perfilMsg,
+      mentions: [who],
+      footer: 'Shadow Bot — Perfil',
+      buttons: [
+        {
+          buttonId: 'menu',
+          buttonText: { displayText: '🎄 Volver al Menú 🎄' },
+          type: 1
+        }
+      ],
+      headerType: 4
+    },
+    { quoted: fkontak }
+  )
 }
 
 handler.help = ['profile']
