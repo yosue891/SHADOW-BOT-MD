@@ -59,7 +59,7 @@ let handler = async function (m, { conn, text, usedPrefix, command }) {
     caption: certificadoPacto,
     buttons: [
       { buttonId: `${usedPrefix}menu`, buttonText: { displayText: '🌌 Volver al Menú' }, type: 1 },
-      { buttonId: `${usedPrefix}perfil`, buttonText: { displayText: '👻 Ver Perfil Shadow' }, type: 1 }
+      { buttonId: `${usedPrefix}perfil`, buttonText: { displayText: '👻 perfil' }, type: 1 }
     ],
     headerType: 4,
     contextInfo: {
@@ -75,8 +75,8 @@ let handler = async function (m, { conn, text, usedPrefix, command }) {
 
   // Enviamos el documento visual del pacto intacto
   await conn.sendMessage(m.chat, {
-    document: { url: 'https://files.catbox.moe/zbyywc.jpg' }, // 👈 tu imagen como documento
-    mimetype: 'application/pdf', // 👈 forzado para que se muestre como documento
+    document: { url: 'https://files.catbox.moe/zbyywc.jpg' }, 
+    mimetype: 'application/pdf', 
     fileName: '☽ Pacto Shadow ☽',
     caption: '『📜』 El pacto ha sido sellado con éxito...'
   }, { quoted: m })
