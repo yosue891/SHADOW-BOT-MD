@@ -53,14 +53,12 @@ let handler = async function (m, { conn, text, usedPrefix, command }) {
 
   await m.react('🌑')
 
-  // Enviamos la imagen de perfil con el certificado
   await conn.sendMessage(m.chat, {
     image: { url: pp },
     caption: certificadoPacto,
     buttons: [
       { buttonId: `${usedPrefix}menu`, buttonText: { displayText: '🌌 Volver al Menú' }, type: 1 },
-      // ✅ botón perfil incluye el JID del que lo presiona
-      { buttonId: `${usedPrefix}perfil ${m.sender}`, buttonText: { displayText: '👻 perfil' }, type: 1 }
+      { buttonId: `${usedPrefix}perfil ${m.sender}`, buttonText: { displayText: 'perfil del bot 🤷' }, type: 1 }
     ],
     headerType: 4,
     contextInfo: {
