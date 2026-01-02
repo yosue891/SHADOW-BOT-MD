@@ -2,7 +2,7 @@ import yts from "yt-search"
 import fetch from "node-fetch"
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
-  if (!text) return m.reply("Escribe el nombre del video o un enlace de YouTube.")
+  if (!text) return m.reply("🎄 Ingresa el nombre del video o un enlace de YouTube.")
 
   await m.react("❄️")
 
@@ -16,7 +16,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 
     if (!text.startsWith("https://")) {
       const res = await yts(text)
-      if (!res?.videos?.length) return m.reply("No encontré nada.")
+      if (!res?.videos?.length) return m.reply("🚫 No encontré nada.")
       const video = res.videos[0]
       title = video.title
       authorName = video.author?.name
@@ -36,23 +36,26 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       key: { fromMe: false, participant: "0@s.whatsapp.net" },
       message: {
         documentMessage: {
-          title: `「 ${title} 」`,
-          fileName: global.botname || "Bot",
+          title: `『 ${title} 』`,
+          fileName: global.botname || "Shadow Bot",
           jpegThumbnail: thumb3
         }
       }
     }
 
-    const caption = `❄️ *Título:* ☃️ ${title}
-> ▶️ *Canal:* ${authorName}
-*°.⎯⃘̶⎯̸⎯ܴ⎯̶᳞͇ࠝ⎯⃘̶⎯̸⎯ܴ⎯̶᳞͇ࠝ⎯⃘̶⎯̸.°*
-> 💫 *Vistas:* ${vistas}
-*°.⎯⃘̶⎯̸⎯ܴ⎯̶᳞͇ࠝ⎯⃘̶⎯̸⎯ܴ⎯̶᳞͇ࠝ⎯⃘̶⎯̸.°*
-> ⏳ *Duración:* ${durationTimestamp}
-*°.⎯⃘̶⎯̸⎯ܴ⎯̶᳞͇ࠝ⎯⃘̶⎯̸⎯ܴ⎯̶᳞͇ࠝ⎯⃘̶⎯̸.°*
-> 🌐 *Link:* ${url}
-𖹭.╭╭ִ╼࣪━ִﮩ٨ـﮩ♡̫shadow bot♡ִ̫ﮩ٨ـﮩ━ִ╾࣪╮╮.𖹭*
-> .𖹭 © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʏᴏsᴜᴇ𖹭.`
+    // Nuevo estilo del caption con otra tipografía y adornos
+    const caption = `
+✧━───『 𝙸𝚗𝚏𝚘 𝚍𝚎𝚕 𝚅𝚒𝚍𝚎𝚘 』───━✧
+
+🎼 𝑻𝒊́𝒕𝒖𝒍𝒐: ${title}
+📺 𝑪𝒂𝒏𝒂𝒍: ${authorName}
+👁️ 𝑽𝒊𝒔𝒕𝒂𝒔: ${vistas}
+⏳ 𝑫𝒖𝒓𝒂𝒄𝒊𝒐́𝒏: ${durationTimestamp}
+🌐 𝑬𝒏𝒍𝒂𝒄𝒆: ${url}
+
+✧━───『 𝑺𝒉𝒂𝒅𝒐𝒘 𝑩𝒐𝒕 』───━✧
+⚡ 𝑷𝒐𝒘𝒆𝒓𝒆𝒅 𝒃𝒚 𝒀𝒐𝒔𝒖𝒆 ⚡
+`
 
     const thumb = (await conn.getFile(thumbnail)).data
     await conn.sendMessage(
@@ -60,19 +63,19 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       {
         image: thumb,
         caption,
-        footer: "Shadow — Descargas",
+        footer: "⚡ Shadow — Descargas rápidas ⚡",
         buttons: [
-          { buttonId: `shadowaudio ${url}`, buttonText: { displayText: "🎧 Descargar Audio" }, type: 1 },
-          { buttonId: `shadowvideo ${url}`, buttonText: { displayText: "🎥 Descargar Video" }, type: 1 }
+          { buttonId: `shadowaudio ${url}`, buttonText: { displayText: "🎵 𝘿𝙚𝙨𝙘𝙖𝙧𝙜𝙖𝙧 𝘼𝙪𝙙𝙞𝙤" }, type: 1 },
+          { buttonId: `shadowvideo ${url}`, buttonText: { displayText: "🎬 𝘿𝙚𝙨𝙘𝙖𝙧𝙜𝙖𝙧 𝙑𝙞𝙙𝙚𝙤" }, type: 1 }
         ],
         headerType: 4
       },
       { quoted: fkontak }
     )
 
-    await m.react("✨")
+    await m.react("✅")
   } catch (e) {
-    m.reply("Error: " + e.message)
+    m.reply("❌ Error: " + e.message)
     m.react("⚠️")
   }
 }
@@ -102,8 +105,8 @@ const fetchBuffer = async (url) => {
 const downloadMedia = async (conn, m, url, type) => {
   try {
     const msg = type === "mp3"
-      ? "🎄 Shadow — Descargando audio..."
-      : "🎄 Shadow — Descargando video..."
+      ? "🎵 Descargando audio..."
+      : "🎬 Descargando video..."
 
     const sent = await conn.sendMessage(m.chat, { text: msg }, { quoted: m })
 
@@ -114,57 +117,45 @@ const downloadMedia = async (conn, m, url, type) => {
     const r = await fetch(apiUrl)
     const data = await r.json()
 
-    if (!data?.status || !data?.data?.url) return m.reply("No se pudo descargar el archivo.")
+    if (!data?.status || !data?.data?.url) return m.reply("🚫 No se pudo descargar el archivo.")
 
     const fileUrl = data.data.url
     const fileTitle = cleanName(data.data.title || "video")
 
     if (type === "mp3") {
       const audioBuffer = await fetchBuffer(fileUrl)
-
       await conn.sendMessage(
         m.chat,
-        {
-          audio: audioBuffer,
-          mimetype: "audio/mpeg",
-          fileName: fileTitle + ".mp3"
-        },
+        { audio: audioBuffer, mimetype: "audio/mpeg", fileName: fileTitle + ".mp3" },
         { quoted: m }
       )
     } else {
       await conn.sendMessage(
         m.chat,
-        {
-          video: { url: fileUrl },
-          mimetype: "video/mp4",
-          fileName: fileTitle + ".mp4"
-        },
+        { video: { url: fileUrl }, mimetype: "video/mp4", fileName: fileTitle + ".mp4" },
         { quoted: m }
       )
     }
 
     await conn.sendMessage(
       m.chat,
-      {
-        text: `🎄 Shadow — Completado\n\n✨ Título: ${fileTitle}`,
-        edit: sent.key
-      }
+      { text: `✅ Descarga completada\n\n🎼 Título: ${fileTitle}`, edit: sent.key }
     )
 
-    await m.react("✅")
+    await m.react("🌟")
   } catch (e) {
     console.error(e)
-    m.reply("Error: " + e.message)
-    m.react("❌")
+    m.reply("❌ Error: " + e.message)
+    m.react("💀")
   }
 }
 
 const cleanName = (name) => name.replace(/[^\w\s-_.]/gi, "").substring(0, 50)
 const formatViews = (views) => {
   if (views === undefined || views === null) return "No disponible"
-  if (views >= 1_000_000_000) return `${(views / 1_000_000_000).toFixed(1)}B`
-  if (views >= 1_000_000) return `${(views / 1_000_000).toFixed(1)}M`
-  if (views >= 1_000) return `${(views / 1_000).toFixed(1)}K`
+  if (views >= 1000000000) return `${(views / 1000000000).toFixed(1)}B`
+  if (views >= 1000000) return `${(views / 1000000).toFixed(1)}M`
+  if (views >= 1000) return `${(views / 1000).toFixed(1)}K`
   return views.toString()
 }
 
