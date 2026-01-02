@@ -7,49 +7,50 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
   if (!chat.registered) {
     const thumbBuffer = await (await fetch('https://iili.io/fXp3swb.jpg')).buffer()
 
-    // Bloque estilo mute (imagen pequeña + vCard)
+    // Imagen pequeña arriba (igual que el otro)
     const fkontak = {
-      key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'Halo' },
+      key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'Shadow' },
       message: {
         locationMessage: {
-          name: '📍 Registro denegado por las Sombras 🎄',
+          name: 'Registro requerido',
           jpegThumbnail: thumbBuffer,
           vcard:
-            'BEGIN:VCARD\nVERSION:3.0\nN:;Shadow;;;\nFN:Shadow\nORG:Eminence in Shadow\nTITLE:\nitem1.TEL;waid=584242773183:+58 424 2773183\nitem1.X-ABLabel:Shadow\nX-WA-BIZ-DESCRIPTION:Reino de las Sombras\nX-WA-BIZ-NAME:Shadow\nEND:VCARD'
+            'BEGIN:VCARD\nVERSION:3.0\nN:;Shadow;;;\nFN:Shadow\nORG:Shadow Garden\nitem1.TEL;waid=584242773183:+58 424 2773183\nitem1.X-ABLabel:Shadow\nEND:VCARD'
         }
       },
       participant: '0@s.whatsapp.net'
     }
 
-    // Mensaje tipo catálogo con imagen grande y botón
+    // Mensaje catálogo con imagen grande y botones
     const productMessage = {
       product: {
         productImage: { url: 'https://files.catbox.moe/k45sr6.jpg' },
         productId: '999999999999999',
-        title: `꒰ঌ*˚🎄 ˗ˏˋ REGISTRO ˎˊ˗ 🎁 ꒱`,
-        description: `👋 Hola ${m.pushName || 'usuario'}\n\n🌌 Para usar el comando necesitas registrarte.\n\nUsa: *${usedPrefix}reg nombre.edad*\n\n📌 Ejemplo: *${usedPrefix}reg shadow.18*`,
+        title: 'REGISTRO',
+        description: 'Registro requerido',
         currencyCode: 'USD',
         priceAmount1000: '0',
         retailerId: 1677,
-        url: `https://wa.me/584242773183`, // igual que en mute
+        url: `https://wa.me/584242773183`,
         productImageCount: 1
       },
-      businessOwnerJid: '584242773183@s.whatsapp.net', // sello WhatsApp Business
-      caption: `🎄 Registro requerido`,
-      footer: `🌌 Shadow Bot`,
+      businessOwnerJid: '584242773183@s.whatsapp.net',
+      caption: [
+        `➤ *\`REGISTRO\`*`,
+        `𔓕 Hola ${m.pushName || 'usuario'}`,
+        `𔓕 Para usar el comando necesitas registrarte`,
+        `𔓕 Comando: \`${usedPrefix}reg nombre.edad\``,
+        `𔓕 Ejemplo: \`${usedPrefix}reg shadow.18\``
+      ].join('\n'),
+      footer: '🌌 Shadow Bot',
       interactiveButtons: [
-        {
-          name: 'quick_reply',
-          buttonParamsJson: JSON.stringify({
-            display_text: '📝 Registrarse',
-            id: `${usedPrefix}reg`
-          })
-        }
+        { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '📝 Registrarse', id: `${usedPrefix}reg` }) },
+        { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: '👑 Creador', url: 'https://wa.me/584242773183' }) }
       ],
       mentions: [m.sender],
       contextInfo: {
         externalAdReply: {
-          showAdAttribution: true, // activar sello WhatsApp Business
+          showAdAttribution: true,
           title: 'Shadow • Sistema de Registro',
           body: 'Registro uwu',
           mediaType: 1,
@@ -62,6 +63,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     return await conn.sendMessage(m.chat, productMessage, { quoted: fkontak })
   }
 
+  // --- lógica normal de stickers ---
   let stiker = false;
   try {
     let q = m.quoted ? m.quoted : m;
