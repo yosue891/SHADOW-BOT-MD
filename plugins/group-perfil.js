@@ -2,8 +2,14 @@ import fetch from 'node-fetch'
 
 const imagen1 = 'https://files.catbox.moe/7sc3os.jpg'
 
-var handler = async (m, { conn }) => {
-  let who = m.mentionedJid?.[0] || m.quoted?.sender || m.sender
+var handler = async (m, { conn, usedPrefix }) => {
+  // ✅ Capturamos el JID desde el botón si existe
+  const idBtn = m?.message?.buttonsResponseMessage?.selectedButtonId || ''
+  const fromBtn = idBtn.split(' ')[1]
+  const who = (fromBtn && fromBtn.includes('@s.whatsapp.net'))
+    ? fromBtn
+    : m.mentionedJid?.[0] || m.quoted?.sender || m.sender
+
   let username = await conn.getName(who)
 
   let pp
@@ -25,7 +31,6 @@ var handler = async (m, { conn }) => {
 
   let { registered } = user
 
-  // Frases estilo Shadow navideñas
   const frasesShadow = [
     'Las sombras celebran en silencio, pero su poder nunca se apaga 🎄',
     'El invierno cubre la luz, pero las sombras siguen vigilando ❄️',
@@ -35,22 +40,6 @@ var handler = async (m, { conn }) => {
   ]
   const fraseElegida = frasesShadow[Math.floor(Math.random() * frasesShadow.length)]
 
-  // Animación inicial estilo bot cargando
-  let animacion = `
-〘 *Shadow Bot — Sistema en Carga* 〙🎄
-
-🎅 Preparando archivos secretos...
-❄️ Sincronizando con el Reino Oculto...
-🎁 Activando protocolos navideños...
-
-✨✨✨ 𝙲𝙰𝚁𝙶𝙰 𝙲𝙾𝙼𝙿𝙻𝙴𝚃𝙰 ✨✨✨
-
-*El archivo de las sombras ha sido abierto...*
-`.trim()
-
-  await conn.sendMessage(m.chat, { text: animacion, ...rcanal }, { quoted: m })
-
-  // Texto principal estilo Shadow navideño
   let str = `🎄✨ 『 ＡＲＣＨＩＶＯ ＳＯＭＢＲＡ 』 ✨🎄
 
 🎅 *Portador:* ${username}
@@ -81,20 +70,18 @@ var handler = async (m, { conn }) => {
     m.chat,
     str,
     wm,
-    pp, 
+    pp,
     [
       ['👑 Creadores 💗', '#owner'],
-      ['☘️ Volver al Menú', '/menu']
+      ['☘️ Volver al Menú', `${usedPrefix}menu`]
     ],
     null,
-    [[bot, 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O']],
+    [[bot, 'https://github.com/yosue891/SHADOW-BOT-MD.git']],
     fkontak
   )
 }
 
-handler.help = ['profile']
-handler.register = true
-handler.group = true
+handler.help = ['perfil']
 handler.tags = ['rg']
-handler.command = ['profile', 'perfil']
+handler.command = ['perfil', 'profile']
 export default handler
