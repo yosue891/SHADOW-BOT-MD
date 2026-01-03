@@ -12,7 +12,7 @@ import { promotePairedSocket } from '../subbotManager.js'
 const { generateWAMessageFromContent } = baileys
 const SUBBOT_DIR = 'Sessions/SubBotTemp'
 
-const styleHeader = (text = '') => `✿ 》》${text || 'ShadowJadiBot'}《《 ✿`
+const styleHeader = (text = '') => `✿ 》》${text || 'SerBot'}《《 ✿`
 
 if (!(global.conns instanceof Array)) global.conns = []
 if (!global.SUBBOT_SESSIONS) global.SUBBOT_SESSIONS = new Map()
@@ -175,7 +175,7 @@ async function requestPairingCodeWithRetry(sock, phone, { attempts = 4 } = {}) {
   throw lastErr || new Error('No se pudo generar el código')
 }
 
-export async function ShadowJadiBot({ m, conn, args, command }) {
+export async function meowJadiBot({ m, conn, args, command }) {
   const chatId = getChatId(m)
   if (!chatId) return
 
@@ -286,7 +286,7 @@ export async function ShadowJadiBot({ m, conn, args, command }) {
       try {
         const img = await qrcode.toBuffer(qr, { scale: 8 })
         const caption =
-          `${styleHeader('ShadowJadiBot • Mode QR')}\n\n` +
+          `${styleHeader('SerBot • Mode QR')}\n\n` +
           `⛀ Escanea este QR para vincularte.\n` +
           `> Caduca pronto.`
         await conn.sendMessage(chatId, { image: img, caption }, { quoted: m }).catch(() => {})
@@ -308,9 +308,9 @@ export async function ShadowJadiBot({ m, conn, args, command }) {
             message: {
               interactiveMessage: {
                 body: { text: messageContent },
-                footer: { text: '𝖢𝗈𝗇𝖾𝗑𝗂𝗈𝗇 𝖵𝗂𝖺 𝖢𝗈́𝖹𝗂𝗀𝗈' },
+                footer: { text: '𝖢𝗈𝗇𝖾𝗑𝗂𝗈𝗇 𝖵𝗂𝖺 𝖢𝗈́𝖽𝗂𝗀𝗈' },
                 header: {
-                  title: styleHeader('ShadowJadiBot • Mode Code'),
+                  title: styleHeader('SerBot • Mode Code'),
                   subtitle: 'Vinculación',
                   hasMediaAttachment: false
                 },
@@ -376,7 +376,7 @@ export async function ShadowJadiBot({ m, conn, args, command }) {
             try {
               await handleMessage(sock, msg)
             } catch (e) {
-              console.error('ShadowJadiBot Error:', e)
+              console.error('SubBot Error:', e)
             }
           })().catch(() => {})
         }
@@ -409,7 +409,7 @@ export async function ShadowJadiBot({ m, conn, args, command }) {
           await conn
             .sendMessage(
               chatId,
-              { text: `${styleHeader('Conexión Exitosa')}\n\n> *★* Haz registrado un nuevo ShadowJadiBot con éxito.` },
+              { text: `${styleHeader('Conexión Exitosa')}\n\n> *★* Haz registrado un nuevo Sub-Bot con éxito.` },
               { quoted: m }
             )
             .catch(() => {})
@@ -440,13 +440,12 @@ export async function ShadowJadiBot({ m, conn, args, command }) {
 
             await bindSocketEvents()
             if (isCode && !state.creds.registered) {
-              // reintentar code
               setTimeout(() => maybeRequestPairCode().catch(() => {}), 1200)
             }
             return
           }
 
-          console.log(chalk.red(`❌ ShadowJadiBot cerrado. Código: ${code}`))
+          console.log(chalk.red(`❌ SubBot cerrado. Código: ${code}`))
 
           if (code === baileys.DisconnectReason.loggedOut || String(code) === '401') {
             await hardStopAndDelete(`${styleHeader('Sesión Cerrada')}\n\n⛀ Vuelve a vincularte.`)
@@ -517,7 +516,7 @@ let handler = async (m, { conn, args, command }) => {
     )
   }
 
-  await ShadowJadiBot({ m, conn, args, command })
+  await meowJadiBot({ m, conn, args, command })
 }
 
 handler.help = ['qr', 'code']
