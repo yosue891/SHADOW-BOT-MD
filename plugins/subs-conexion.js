@@ -139,7 +139,7 @@ export async function MichiJadiBot(options) {
       if (isNewLogin) sock.isInit = false
 
       if (mcode && !sock.user && !codeBot && !qr) {
-   
+  
         await new Promise(resolve => setTimeout(resolve, 3000))
         try {
           let secret = await sock.requestPairingCode((m.sender.split`@`[0]))
@@ -223,4 +223,4 @@ async function joinChannels(sock) {
       await sock.newsletterFollow(value).catch(() => {})
     }
   }
-    }
+                                                                                                }
