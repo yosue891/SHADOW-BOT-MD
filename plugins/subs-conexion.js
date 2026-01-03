@@ -5,25 +5,30 @@ import fs from 'fs'
 import path from 'path'
 import pino from 'pino'
 import chalk from 'chalk'
-import { generateWAMessageFromContent } from '@whiskeysockets/baileys'
-import { handleMessage, start as startManager } from '../manager.js'
+import { handleMessage, start as startManager } from './manager.js' // Corregir la ruta de importación
 import { promotePairedSocket } from '../subbotManager.js'
 
+const { generateWAMessageFromContent } = baileys
 const SUBBOT_DIR = 'Sessions/SubBotTemp'
 
 const styleHeader = (text = '') => `✿ 》》${text || 'SerBot'}《《 ✿`
 
+// Variables globales para manejar conexiones y sesiones
 if (!(global.conns instanceof Array)) global.conns = []
 if (!global.SUBBOT_SESSIONS) global.SUBBOT_SESSIONS = new Map()
 if (!global.SUBBOT_LOCKS) global.SUBBOT_LOCKS = new Map()
 
+// Iniciar el manager de conexiones
 if (!global.MANAGER_STARTED) {
   global.MANAGER_STARTED = true
   try {
-    startManager()
-  } catch {}
+    startManager() // Asegúrate de que 'startManager' se ejecute correctamente
+  } catch (err) {
+    console.error('Error al iniciar el manager:', err)
+  }
 }
 
+// Funciones auxiliares
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
 }
@@ -32,8 +37,20 @@ function sanitizeId(jidOrNum = '') {
   return String(jidOrNum || '').replace(/\D/g, '')
 }
 
-async function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms))
+function formatPairCode(code = '') {
+  return String(code || '').match(/.{1,4}/g)?.join('-') || String(code || '')
+}
+
+function normalizePairCodeRaw(code = '') {
+  return String(code || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+}
+
+function getChatId(m = {}) {
+  return m?.chat || m?.key?.remoteJid || ''
+}
+
+function getSenderJid(m = {}) {
+  return m?.sender || m?.key?.participant || m?.participant || m?.key?.remoteJid || m?.chat || ''
 }
 
 function isWsOpen(sock) {
@@ -53,12 +70,114 @@ function pickCode(lastDisconnect) {
   )
 }
 
-// Lógica de vinculación para el sub-bot
+async function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms))
+}
+
+async function withLock(id, fn) {
+  const prev = global.SUBBOT_LOCKS.get(id) || Promise.resolve()
+  let release
+  const next = new Promise((res) => (release = res))
+  global.SUBBOT_LOCKS.set(
+    id,
+    prev
+      .catch(() => {})
+      .then(async () => {
+        try {
+          return await fn()
+        } finally {
+          release()
+        }
+      })
+  )
+  return next
+}
+
+async function waitWsOpen(sock, timeoutMs = 15000) {
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    if (isWsOpen(sock)) return true
+    await sleep(250)
+  }
+  return isWsOpen(sock)
+}
+
+async function waitForPairingReady(sock, timeoutMs = 20000) {
+  return new Promise((resolve, reject) => {
+    let done = false
+
+    const finish = (ok, err) => {
+      if (done) return
+      done = true
+      try {
+        sock?.ev?.off?.('connection.update', onUpdate)
+      } catch {}
+      clearTimeout(t)
+      if (ok) resolve(true)
+      else reject(err || new Error('No listo para pairing'))
+    }
+
+    const onUpdate = (u) => {
+      const { connection, qr } = u || {}
+      if (connection === 'connecting' || !!qr) return finish(true)
+    }
+
+    const t = setTimeout(
+      () => finish(false, new Error('Timeout esperando estado connecting/qr')),
+      timeoutMs
+    )
+
+    sock.ev.on('connection.update', onUpdate)
+  })
+}
+
+async function requestPairingCodeWithRetry(sock, phone, { attempts = 4 } = {}) {
+  const normalizedPhone = sanitizeId(phone)
+  if (!normalizedPhone) throw new Error('Número inválido')
+
+  await sleep(500)
+  if (!(await waitWsOpen(sock, 15000))) throw new Error('Conexión cerrada, intenta de nuevo')
+
+  let lastErr = null
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      if (!sock || !isWsOpen(sock)) throw new Error('Connection Closed')
+      const codeRaw = await sock.requestPairingCode(normalizedPhone)
+      return normalizePairCodeRaw(codeRaw)
+    } catch (e) {
+      lastErr = e
+      const status =
+        e?.output?.statusCode ||
+        e?.output?.status ||
+        e?.statusCode ||
+        e?.status ||
+        null
+
+      const msg = String(e?.message || '').toLowerCase()
+
+      if (String(status) === '428' || msg.includes('connection closed') || msg.includes('closed')) {
+        await sleep(900 * attempt)
+        continue
+      }
+
+      if (String(status) === '429') {
+        throw new Error('Rate limit de WhatsApp. Espera 30-40s y vuelve a intentar.')
+      }
+
+      throw e
+    }
+  }
+
+  throw lastErr || new Error('No se pudo generar el código')
+}
+
+// Generación y envío de código de vinculación
 export async function meowJadiBot({ m, conn, args, command }) {
-  const chatId = m?.chat
+  const chatId = getChatId(m)
   if (!chatId) return
 
-  const senderJid = m?.sender
+  const senderJid = getSenderJid(m)
   const senderNum = sanitizeId((senderJid || '').split('@')[0] || '')
 
   if (!senderNum) {
@@ -86,7 +205,6 @@ export async function meowJadiBot({ m, conn, args, command }) {
     let pairRequested = false
     let lastPairTs = 0
 
-    // Función para crear el socket de vinculación
     function createPairingSocket() {
       const storeLogger = pino({ level: 'silent' })
       const store = baileys.makeInMemoryStore({ logger: storeLogger })
@@ -183,7 +301,6 @@ export async function meowJadiBot({ m, conn, args, command }) {
       }
     }
 
-    // Evento de conexión y manejo del QR
     async function connectionUpdate(update) {
       const { connection, lastDisconnect, qr } = update || {}
       const code = pickCode(lastDisconnect)
@@ -254,6 +371,7 @@ export async function meowJadiBot({ m, conn, args, command }) {
   })
 }
 
+// Manejador de comandos
 let handler = async (m, { conn, args, command }) => {
   const chatId = getChatId(m)
   if (!chatId) return
