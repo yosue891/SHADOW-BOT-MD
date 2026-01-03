@@ -244,7 +244,6 @@ export async function meowJadiBot({ m, conn, args, command }) {
     }
 
     function createPairingSocket() {
-   
       const storeLogger = pino({ level: 'silent' })
       const store = baileys.makeInMemoryStore({ logger: storeLogger })
 
@@ -310,7 +309,7 @@ export async function meowJadiBot({ m, conn, args, command }) {
             message: {
               interactiveMessage: {
                 body: { text: messageContent },
-                footer: { text: '𝖢𝗈𝗇𝖾𝗑𝗂𝗈𝗇 𝖵𝗂𝖺 𝖢𝗈́𝖽𝗂𝗀𝗈' },
+                footer: { text: '𝖢𝗈𝗇𝖾𝗑𝗂𝗈𝗇 𝖵𝗂𝖺 𝖢𝗈́𝖹𝗂𝗀𝗈' },
                 header: {
                   title: styleHeader('SerBot • Mode Code'),
                   subtitle: 'Vinculación',
