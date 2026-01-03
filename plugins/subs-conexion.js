@@ -5,11 +5,10 @@ import fs from 'fs'
 import path from 'path'
 import pino from 'pino'
 import chalk from 'chalk'
-import config from '../config.js'
+import { generateWAMessageFromContent } from '@whiskeysockets/baileys'
 import { handleMessage, start as startManager } from '../manager.js'
 import { promotePairedSocket } from '../subbotManager.js'
 
-const { generateWAMessageFromContent } = baileys
 const SUBBOT_DIR = 'Sessions/SubBotTemp'
 
 const styleHeader = (text = '') => `✿ 》》${text || 'SerBot'}《《 ✿`
@@ -33,27 +32,8 @@ function sanitizeId(jidOrNum = '') {
   return String(jidOrNum || '').replace(/\D/g, '')
 }
 
-function formatPairCode(code = '') {
-  return String(code || '').match(/.{1,4}/g)?.join('-') || String(code || '')
-}
-
-function normalizePairCodeRaw(code = '') {
-  return String(code || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase()
-}
-
-function getChatId(m = {}) {
-  return m?.chat || m?.key?.remoteJid || ''
-}
-
-function getSenderJid(m = {}) {
-  return (
-    m?.sender ||
-    m?.key?.participant ||
-    m?.participant ||
-    m?.key?.remoteJid ||
-    m?.chat ||
-    ''
-  )
+async function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms))
 }
 
 function isWsOpen(sock) {
@@ -73,113 +53,12 @@ function pickCode(lastDisconnect) {
   )
 }
 
-async function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms))
-}
-
-async function withLock(id, fn) {
-  const prev = global.SUBBOT_LOCKS.get(id) || Promise.resolve()
-  let release
-  const next = new Promise((res) => (release = res))
-  global.SUBBOT_LOCKS.set(
-    id,
-    prev
-      .catch(() => {})
-      .then(async () => {
-        try {
-          return await fn()
-        } finally {
-          release()
-        }
-      })
-  )
-  return next
-}
-
-async function waitWsOpen(sock, timeoutMs = 15000) {
-  const start = Date.now()
-  while (Date.now() - start < timeoutMs) {
-    if (isWsOpen(sock)) return true
-    await sleep(250)
-  }
-  return isWsOpen(sock)
-}
-
-async function waitForPairingReady(sock, timeoutMs = 20000) {
-  return new Promise((resolve, reject) => {
-    let done = false
-
-    const finish = (ok, err) => {
-      if (done) return
-      done = true
-      try {
-        sock?.ev?.off?.('connection.update', onUpdate)
-      } catch {}
-      clearTimeout(t)
-      if (ok) resolve(true)
-      else reject(err || new Error('No listo para pairing'))
-    }
-
-    const onUpdate = (u) => {
-      const { connection, qr } = u || {}
-      if (connection === 'connecting' || !!qr) return finish(true)
-    }
-
-    const t = setTimeout(
-      () => finish(false, new Error('Timeout esperando estado connecting/qr')),
-      timeoutMs
-    )
-
-    sock.ev.on('connection.update', onUpdate)
-  })
-}
-
-async function requestPairingCodeWithRetry(sock, phone, { attempts = 4 } = {}) {
-  const normalizedPhone = sanitizeId(phone)
-  if (!normalizedPhone) throw new Error('Número inválido')
-
-  await sleep(500)
-  if (!(await waitWsOpen(sock, 15000))) throw new Error('Conexión cerrada, intenta de nuevo')
-
-  let lastErr = null
-
-  for (let attempt = 1; attempt <= attempts; attempt++) {
-    try {
-      if (!sock || !isWsOpen(sock)) throw new Error('Connection Closed')
-      const codeRaw = await sock.requestPairingCode(normalizedPhone)
-      return normalizePairCodeRaw(codeRaw)
-    } catch (e) {
-      lastErr = e
-      const status =
-        e?.output?.statusCode ||
-        e?.output?.status ||
-        e?.statusCode ||
-        e?.status ||
-        null
-
-      const msg = String(e?.message || '').toLowerCase()
-
-      if (String(status) === '428' || msg.includes('connection closed') || msg.includes('closed')) {
-        await sleep(900 * attempt)
-        continue
-      }
-
-      if (String(status) === '429') {
-        throw new Error('Rate limit de WhatsApp. Espera 30-40s y vuelve a intentar.')
-      }
-
-      throw e
-    }
-  }
-
-  throw lastErr || new Error('No se pudo generar el código')
-}
-
+// Lógica de vinculación para el sub-bot
 export async function meowJadiBot({ m, conn, args, command }) {
-  const chatId = getChatId(m)
+  const chatId = m?.chat
   if (!chatId) return
 
-  const senderJid = getSenderJid(m)
+  const senderJid = m?.sender
   const senderNum = sanitizeId((senderJid || '').split('@')[0] || '')
 
   if (!senderNum) {
@@ -204,44 +83,10 @@ export async function meowJadiBot({ m, conn, args, command }) {
     const msgRetryCache = new NodeCache({ stdTTL: 60, checkperiod: 120 })
 
     let sock = null
-    let stopping = false
     let pairRequested = false
     let lastPairTs = 0
 
-    const destroySock = async () => {
-      if (!sock) return
-      const old = sock
-      sock = null
-      try {
-        old.ev?.removeAllListeners?.()
-      } catch {}
-      try {
-        old.ws?.close?.()
-      } catch {}
-      try {
-        old.end?.()
-      } catch {}
-    }
-
-    const stopNoDelete = async (msgText) => {
-      stopping = true
-      if (msgText) {
-        await conn.sendMessage(chatId, { text: msgText }, { quoted: m }).catch(() => {})
-      }
-      await destroySock().catch(() => {})
-    }
-
-    const hardStopAndDelete = async (msgText) => {
-      stopping = true
-      if (msgText) {
-        await conn.sendMessage(chatId, { text: msgText }, { quoted: m }).catch(() => {})
-      }
-      await destroySock().catch(() => {})
-      try {
-        fs.rmSync(sessionPath, { recursive: true, force: true })
-      } catch {}
-    }
-
+    // Función para crear el socket de vinculación
     function createPairingSocket() {
       const storeLogger = pino({ level: 'silent' })
       const store = baileys.makeInMemoryStore({ logger: storeLogger })
@@ -260,19 +105,9 @@ export async function meowJadiBot({ m, conn, args, command }) {
         browser,
         msgRetryCache,
         markOnlineOnConnect: false,
-
         connectTimeoutMs: 60_000,
         defaultQueryTimeoutMs: 0,
         keepAliveIntervalMs: 25_000,
-
-        getMessage: async (key) => {
-          try {
-            const msg = await store?.loadMessage?.(key?.remoteJid, key?.id)
-            return msg?.message || undefined
-          } catch {
-            return undefined
-          }
-        }
       })
 
       try {
@@ -280,17 +115,6 @@ export async function meowJadiBot({ m, conn, args, command }) {
       } catch {}
 
       return s
-    }
-
-    async function sendQr(qr) {
-      try {
-        const img = await qrcode.toBuffer(qr, { scale: 8 })
-        const caption =
-          `${styleHeader('SerBot • Mode QR')}\n\n` +
-          `⛀ Escanea este QR para vincularte.\n` +
-          `> Caduca pronto.`
-        await conn.sendMessage(chatId, { image: img, caption }, { quoted: m }).catch(() => {})
-      } catch {}
     }
 
     async function sendPairCode(code) {
@@ -337,17 +161,13 @@ export async function meowJadiBot({ m, conn, args, command }) {
     }
 
     async function maybeRequestPairCode() {
-      if (!isCode || pairRequested || state.creds.registered) return
+      if (pairRequested || state.creds.registered) return
       const now = Date.now()
       if (now - lastPairTs < 60_000) return
       lastPairTs = now
       pairRequested = true
 
       try {
-        try {
-          await waitForPairingReady(sock, 20000)
-        } catch {}
-
         const raw = await requestPairingCodeWithRetry(sock, phoneToPair, { attempts: 4 })
         const code = formatPairCode(raw)
 
@@ -363,132 +183,74 @@ export async function meowJadiBot({ m, conn, args, command }) {
       }
     }
 
-    async function bindSocketEvents() {
-      sock.ev.on('creds.update', () => {
-        Promise.resolve(saveCreds()).catch(() => {})
-      })
+    // Evento de conexión y manejo del QR
+    async function connectionUpdate(update) {
+      const { connection, lastDisconnect, qr } = update || {}
+      const code = pickCode(lastDisconnect)
 
-      sock.ev.on('messages.upsert', ({ messages, type }) => {
-        if (type !== 'notify') return
-        for (const msg of messages || []) {
-          if (!msg?.message) continue
-          ;(async () => {
-            try {
-              await handleMessage(sock, msg)
-            } catch (e) {
-              console.error('SubBot Error:', e)
-            }
-          })().catch(() => {})
-        }
-      })
+      if (connection === 'open') {
+        console.log(chalk.greenBright(`[PAIR] open id=${id}`))
 
-      sock.ev.on('connection.update', async (u) => {
-        const { connection, lastDisconnect, qr } = u || {}
-        const code = pickCode(lastDisconnect)
-
-        if (!isCode && qr) {
-          await sendQr(qr)
+        try {
+          promotePairedSocket({
+            socket: sock,
+            id,
+            sessionPath,
+            ownerJid: senderJid,
+            saveCreds
+          })
+          console.log(chalk.cyanBright(`[PAIR] promoted OK id=${id}`))
+        } catch (err) {
+          console.error(chalk.red('[PAIR] fallo promotePairedSocket:'), err)
         }
 
-        if (connection === 'open') {
-          console.log(chalk.greenBright(`[PAIR] open id=${id}`))
+        await conn
+          .sendMessage(
+            chatId,
+            { text: `${styleHeader('Conexión Exitosa')}\n\n> *★* Haz registrado un nuevo Sub-Bot con éxito.` },
+            { quoted: m }
+          )
+          .catch(() => {})
 
+        setTimeout(() => {
           try {
-            promotePairedSocket({
-              socket: sock,
-              id,
-              sessionPath,
-              ownerJid: senderJid,
-              saveCreds
-            })
-            console.log(chalk.cyanBright(`[PAIR] promoted OK id=${id}`))
-          } catch (err) {
-            console.error(chalk.red('[PAIR] fallo promotePairedSocket:'), err)
-          }
+            process.exit(0)
+          } catch {}
+        }, 1200)
 
-          await conn
-            .sendMessage(
-              chatId,
-              { text: `${styleHeader('Conexión Exitosa')}\n\n> *★* Haz registrado un nuevo Sub-Bot con éxito.` },
-              { quoted: m }
-            )
-            .catch(() => {})
+        return
+      }
 
-          setTimeout(() => {
-            try {
-              process.exit(0)
-            } catch {}
-          }, 1200)
+      if (connection === 'close') {
+        if (code === baileys.DisconnectReason.restartRequired || String(code) === '515') {
+          console.log(chalk.yellowBright(`[PAIR] restartRequired -> recreando socket id=${id}`))
+          try {
+            await destroySock()
+          } catch {}
 
-          return
-        }
-
-        if (connection === 'close') {
-          if (stopping) return
-
-          if (code === baileys.DisconnectReason.restartRequired || String(code) === '515') {
-            console.log(chalk.yellowBright(`[PAIR] restartRequired -> recreando socket id=${id}`))
-            try {
-              await destroySock()
-            } catch {}
-
-            sock = createPairingSocket()
-            sock.isSubBot = true
-            sock.subbotId = id
-            sock.subbotOwner = senderJid
-            sock.subbotSessionPath = sessionPath
-
-            await bindSocketEvents()
-            if (isCode && !state.creds.registered) {
-              setTimeout(() => maybeRequestPairCode().catch(() => {}), 1200)
-            }
-            return
-          }
-
-          console.log(chalk.red(`❌ SubBot cerrado. Código: ${code}`))
-
-          if (code === baileys.DisconnectReason.loggedOut || String(code) === '401') {
-            await hardStopAndDelete(`${styleHeader('Sesión Cerrada')}\n\n⛀ Vuelve a vincularte.`)
-            return
-          }
-
-          if (String(code) === '440' || code === baileys.DisconnectReason.connectionReplaced) {
-            await hardStopAndDelete(`${styleHeader('Sesión Reemplazada')}\n\n⛀ Se detectó otra sesión abierta.`)
-            return
-          }
-
-          if (String(code) === '403') {
-            await stopNoDelete(`${styleHeader('Error 403')}\n\n⛀ WhatsApp rechazó la sesión temporalmente.`)
-            return
-          }
-
-          await destroySock().catch(() => {})
-          await sleep(2500)
           sock = createPairingSocket()
           sock.isSubBot = true
           sock.subbotId = id
           sock.subbotOwner = senderJid
           sock.subbotSessionPath = sessionPath
-          await bindSocketEvents()
 
-          if (isCode && !state.creds.registered) {
-            setTimeout(() => maybeRequestPairCode().catch(() => {}), 1200)
-          }
+          await bindSocketEvents()
+          setTimeout(() => maybeRequestPairCode().catch(() => {}), 1200)
         }
-      })
+        return
+      }
+
+      if (qr) {
+        const img = await qrcode.toBuffer(qr, { scale: 8 })
+        const caption = `${styleHeader('SerBot • Mode QR')}\n\n⛀ Escanea este QR para vincularte.\n> Caduca pronto.`
+        await conn.sendMessage(chatId, { image: img, caption }, { quoted: m }).catch(() => {})
+      }
     }
 
     sock = createPairingSocket()
-    sock.isSubBot = true
-    sock.subbotId = id
-    sock.subbotOwner = senderJid
-    sock.subbotSessionPath = sessionPath
+    sock.ev.on('connection.update', connectionUpdate)
 
-    await bindSocketEvents()
-
-    if (isCode && !state.creds.registered) {
-      setTimeout(() => maybeRequestPairCode().catch(() => {}), 1200)
-    }
+    await maybeRequestPairCode()
   })
 }
 
