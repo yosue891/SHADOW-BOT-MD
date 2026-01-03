@@ -1,301 +1,529 @@
-/*⚠ PROHIBIDO EDITAR ⚠
-Este codigo fue modificado, adaptado y mejorado por
-- ReyEndymion >> https://github.com/ReyEndymion
-El codigo de este archivo esta inspirado en el codigo original de:
-- Aiden_NotLogic >> https://github.com/ferhacks
-*El archivo original del MysticBot-MD fue liberado en mayo del 2024 aceptando su liberacion*
-El codigo de este archivo fue parchado en su momento por:
-- BrunoSobrino >> https://github.com/BrunoSobrino
-Contenido adaptado por:
-- GataNina-Li >> https://github.com/GataNina-Li
-- elrebelde21 >> https://github.com/elrebelde21
-*/
-
-const { useMultiFileAuthState, DisconnectReason, makeCacheableSignalKeyStore, fetchLatestBaileysVersion} = (await import("@whiskeysockets/baileys"));
-import qrcode from "qrcode"
-import NodeCache from "node-cache"
-import fs from "fs"
-import path from "path"
+import * as baileys from '@whiskeysockets/baileys'
+import qrcode from 'qrcode'
+import NodeCache from 'node-cache'
+import fs from 'fs'
+import path from 'path'
 import pino from 'pino'
 import chalk from 'chalk'
-import util from 'util' 
-import * as ws from 'ws'
-const { child, spawn, exec } = await import('child_process')
-const { CONNECTING } = ws
-import { makeWASocket } from '../lib/simple.js'
-import { fileURLToPath } from 'url'
-let crm1 = "Y2QgcGx1Z2lucy"
-let crm2 = "A7IG1kNXN1b"
-let crm3 = "SBpbmZvLWRvbmFyLmpz"
-let crm4 = "IF9hdXRvcmVzcG9uZGVyLmpzIGluZm8tYm90Lmpz"
-let drm1 = ""
-let drm2 = ""
-let rtx = "*\n\n✐ Cσɳҽxισɳ SυႦ-Bσƚ Mσԃҽ QR\n\n✰ Con otro celular o en la PC escanea este QR para convertirte en un *Sub-Bot* Temporal.\n\n\`1\` » Haga clic en los tres puntos en la esquina superior derecha\n\n\`2\` » Toque dispositivos vinculados\n\n\`3\` » Escanee este codigo QR para iniciar sesion con el bot\n\n✧ ¡Este código QR expira en 45 segundos!."
+import config from '../config.js'
+import { handleMessage, start as startManager } from '../manager.js'
+import { promotePairedSocket } from '../subbotManager.js'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-const MichiJBOptions = {}
-if (global.conns instanceof Array) console.log()
-else global.conns = []
+const { generateWAMessageFromContent } = baileys
+const SUBBOT_DIR = 'Sessions/SubBotTemp'
 
-let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
-let time = global.db.data.users[m.sender].Subs + 120000
-if (new Date - global.db.data.users[m.sender].Subs < 120000) return conn.reply(m.chat, `${emoji} Debes esperar ${msToTime(time - new Date())} para volver a vincular un *Sub-Bot.*`, m)
+const styleHeader = (text = '') => `✿ 》》${text || 'SerBot'}《《 ✿`
 
-const limiteSubBots = global.subbotlimitt || 20; 
-const subBots = [...new Set([...global.conns.filter((c) => c.user && c.ws.socket && c.ws.socket.readyState !== ws.CLOSED)])]
-const subBotsCount = subBots.length
+if (!(global.conns instanceof Array)) global.conns = []
+if (!global.SUBBOT_SESSIONS) global.SUBBOT_SESSIONS = new Map()
+if (!global.SUBBOT_LOCKS) global.SUBBOT_LOCKS = new Map()
 
-if (subBotsCount >= limiteSubBots) {
-return m.reply(`${emoji2} Se ha alcanzado o superado el límite de *Sub-Bots* activos (${subBotsCount}/${limiteSubBots}).\n\nNo se pueden crear más conexiones hasta que un Sub-Bot se desconecte.`)
+if (!global.MANAGER_STARTED) {
+  global.MANAGER_STARTED = true
+  try {
+    startManager()
+  } catch {}
 }
 
-let who = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.fromMe ? conn.user.jid : m.sender
-let id = `${who.split`@`[0]}`
-let pathMichiJadiBot = path.join(`./${jadi}/`, id)
-if (!fs.existsSync(pathMichiJadiBot)){
-fs.mkdirSync(pathMichiJadiBot, { recursive: true })
+function ensureDir(dir) {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
 }
-MichiJBOptions.pathMichiJadiBot = pathMichiJadiBot
-MichiJBOptions.m = m
-MichiJBOptions.conn = conn
-MichiJBOptions.args = args
-MichiJBOptions.usedPrefix = usedPrefix
-MichiJBOptions.command = command
-MichiJBOptions.fromCommand = true
-MichiJadiBot(MichiJBOptions)
-global.db.data.users[m.sender].Subs = new Date * 1
-} 
+
+function sanitizeId(jidOrNum = '') {
+  return String(jidOrNum || '').replace(/\D/g, '')
+}
+
+function formatPairCode(code = '') {
+  return String(code || '').match(/.{1,4}/g)?.join('-') || String(code || '')
+}
+
+function normalizePairCodeRaw(code = '') {
+  // Evita inválido por guiones/espacios
+  return String(code || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+}
+
+function getChatId(m = {}) {
+  return m?.chat || m?.key?.remoteJid || ''
+}
+
+function getSenderJid(m = {}) {
+  return (
+    m?.sender ||
+    m?.key?.participant ||
+    m?.participant ||
+    m?.key?.remoteJid ||
+    m?.chat ||
+    ''
+  )
+}
+
+function isWsOpen(sock) {
+  const rs1 = sock?.ws?.socket?.readyState
+  const rs2 = sock?.ws?.readyState
+  return rs1 === 1 || rs2 === 1
+}
+
+function pickCode(lastDisconnect) {
+  return (
+    lastDisconnect?.error?.output?.statusCode ||
+    lastDisconnect?.error?.output?.payload?.statusCode ||
+    lastDisconnect?.error?.statusCode ||
+    lastDisconnect?.error?.output?.status ||
+    lastDisconnect?.error?.output?.payload?.status ||
+    null
+  )
+}
+
+async function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms))
+}
+
+async function withLock(id, fn) {
+  const prev = global.SUBBOT_LOCKS.get(id) || Promise.resolve()
+  let release
+  const next = new Promise((res) => (release = res))
+  global.SUBBOT_LOCKS.set(
+    id,
+    prev
+      .catch(() => {})
+      .then(async () => {
+        try {
+          return await fn()
+        } finally {
+          release()
+        }
+      })
+  )
+  return next
+}
+
+async function waitWsOpen(sock, timeoutMs = 15000) {
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    if (isWsOpen(sock)) return true
+    await sleep(250)
+  }
+  return isWsOpen(sock)
+}
+
+async function waitForPairingReady(sock, timeoutMs = 20000) {
+  return new Promise((resolve, reject) => {
+    let done = false
+
+    const finish = (ok, err) => {
+      if (done) return
+      done = true
+      try {
+        sock?.ev?.off?.('connection.update', onUpdate)
+      } catch {}
+      clearTimeout(t)
+      if (ok) resolve(true)
+      else reject(err || new Error('No listo para pairing'))
+    }
+
+    const onUpdate = (u) => {
+      const { connection, qr } = u || {}
+      if (connection === 'connecting' || !!qr) return finish(true)
+    }
+
+    const t = setTimeout(
+      () => finish(false, new Error('Timeout esperando estado connecting/qr')),
+      timeoutMs
+    )
+
+    sock.ev.on('connection.update', onUpdate)
+  })
+}
+
+async function requestPairingCodeWithRetry(sock, phone, { attempts = 4 } = {}) {
+  const normalizedPhone = sanitizeId(phone)
+  if (!normalizedPhone) throw new Error('Número inválido')
+
+  await sleep(500)
+  if (!(await waitWsOpen(sock, 15000))) throw new Error('Conexión cerrada, intenta de nuevo')
+
+  let lastErr = null
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      if (!sock || !isWsOpen(sock)) throw new Error('Connection Closed')
+      const codeRaw = await sock.requestPairingCode(normalizedPhone)
+      return normalizePairCodeRaw(codeRaw)
+    } catch (e) {
+      lastErr = e
+      const status =
+        e?.output?.statusCode ||
+        e?.output?.status ||
+        e?.statusCode ||
+        e?.status ||
+        null
+
+      const msg = String(e?.message || '').toLowerCase()
+
+      if (String(status) === '428' || msg.includes('connection closed') || msg.includes('closed')) {
+        await sleep(900 * attempt)
+        continue
+      }
+
+      if (String(status) === '429') {
+        throw new Error('Rate limit de WhatsApp. Espera 30-40s y vuelve a intentar.')
+      }
+
+      throw e
+    }
+  }
+
+  throw lastErr || new Error('No se pudo generar el código')
+}
+
+export async function meowJadiBot({ m, conn, args, command }) {
+  const chatId = getChatId(m)
+  if (!chatId) return
+
+  const senderJid = getSenderJid(m)
+  const senderNum = sanitizeId((senderJid || '').split('@')[0] || '')
+
+  if (!senderNum) {
+    return conn.sendMessage(
+      chatId,
+      { text: `${styleHeader('Error')}\n\n⛀ No se pudo detectar tu número.` },
+      { quoted: m }
+    )
+  }
+
+  const isCode = command === 'code' || (args || []).includes('--code')
+  const phoneToPair = sanitizeId(args?.[0]) || senderNum
+
+  const id = senderNum
+
+  return withLock(id, async () => {
+    const sessionPath = path.join('./', SUBBOT_DIR, id)
+    ensureDir(sessionPath)
+
+    const { state, saveCreds } = await baileys.useMultiFileAuthState(sessionPath)
+    const { version } = await baileys.fetchLatestBaileysVersion()
+    const msgRetryCache = new NodeCache({ stdTTL: 60, checkperiod: 120 })
+
+    let sock = null
+    let stopping = false
+    let pairRequested = false
+    let lastPairTs = 0
+
+    const destroySock = async () => {
+      if (!sock) return
+      const old = sock
+      sock = null
+      try {
+        old.ev?.removeAllListeners?.()
+      } catch {}
+      try {
+        old.ws?.close?.()
+      } catch {}
+      try {
+        old.end?.()
+      } catch {}
+    }
+
+    const stopNoDelete = async (msgText) => {
+      stopping = true
+      if (msgText) {
+        await conn.sendMessage(chatId, { text: msgText }, { quoted: m }).catch(() => {})
+      }
+      await destroySock().catch(() => {})
+    }
+
+    const hardStopAndDelete = async (msgText) => {
+      stopping = true
+      if (msgText) {
+        await conn.sendMessage(chatId, { text: msgText }, { quoted: m }).catch(() => {})
+      }
+      await destroySock().catch(() => {})
+      try {
+        fs.rmSync(sessionPath, { recursive: true, force: true })
+      } catch {}
+    }
+
+    function createPairingSocket() {
+   
+      const storeLogger = pino({ level: 'silent' })
+      const store = baileys.makeInMemoryStore({ logger: storeLogger })
+
+      const browser =
+        (baileys.Browsers?.windows && baileys.Browsers.windows('Firefox')) || ['Windows', 'Firefox', '1.0.0']
+
+      const s = baileys.makeWASocket({
+        version,
+        printQRInTerminal: false,
+        logger: pino({ level: 'silent' }),
+        auth: {
+          creds: state.creds,
+          keys: baileys.makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' }))
+        },
+        browser,
+        msgRetryCache,
+        markOnlineOnConnect: false,
+
+        connectTimeoutMs: 60_000,
+        defaultQueryTimeoutMs: 0,
+        keepAliveIntervalMs: 25_000,
+
+        getMessage: async (key) => {
+          try {
+            const msg = await store?.loadMessage?.(key?.remoteJid, key?.id)
+            return msg?.message || undefined
+          } catch {
+            return undefined
+          }
+        }
+      })
+
+      try {
+        store.bind(s.ev)
+      } catch {}
+
+      return s
+    }
+
+    async function sendQr(qr) {
+      try {
+        const img = await qrcode.toBuffer(qr, { scale: 8 })
+        const caption =
+          `${styleHeader('SerBot • Mode QR')}\n\n` +
+          `⛀ Escanea este QR para vincularte.\n` +
+          `> Caduca pronto.`
+        await conn.sendMessage(chatId, { image: img, caption }, { quoted: m }).catch(() => {})
+      } catch {}
+    }
+
+    async function sendPairCode(code) {
+      const messageContent =
+        `*❏ Pasos »*\n` +
+        `1 » Toca "Dispositivos vinculados" en tu WhatsApp.\n` +
+        `2 » "Vincular con número de teléfono".\n` +
+        `3 » Pega el código de abajo.\n\n` +
+        `> ¡Cópialo rápido con el botón!`
+
+      const msg = generateWAMessageFromContent(
+        chatId,
+        {
+          viewOnceMessage: {
+            message: {
+              interactiveMessage: {
+                body: { text: messageContent },
+                footer: { text: '𝖢𝗈𝗇𝖾𝗑𝗂𝗈𝗇 𝖵𝗂𝖺 𝖢𝗈́𝖽𝗂𝗀𝗈' },
+                header: {
+                  title: styleHeader('SerBot • Mode Code'),
+                  subtitle: 'Vinculación',
+                  hasMediaAttachment: false
+                },
+                nativeFlowMessage: {
+                  buttons: [
+                    {
+                      name: 'cta_copy',
+                      buttonParamsJson: JSON.stringify({
+                        display_text: '✐ Code',
+                        id: 'copy_code_btn',
+                        copy_code: code
+                      })
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        { quoted: m }
+      )
+
+      await conn.relayMessage(chatId, msg.message, { messageId: msg.key.id }).catch(() => {})
+    }
+
+    async function maybeRequestPairCode() {
+      if (!isCode || pairRequested || state.creds.registered) return
+      const now = Date.now()
+      if (now - lastPairTs < 60_000) return
+      lastPairTs = now
+      pairRequested = true
+
+      try {
+        try {
+          await waitForPairingReady(sock, 20000)
+        } catch {}
+
+        const raw = await requestPairingCodeWithRetry(sock, phoneToPair, { attempts: 4 })
+        const code = formatPairCode(raw)
+
+        await sendPairCode(code)
+        console.log(chalk.greenBright(`[PAIR CODE] ${phoneToPair} => ${code}`))
+      } catch (e) {
+        const msg = String(e?.message || e || '')
+        await conn
+          .sendMessage(chatId, { text: `${styleHeader('Error')}\n\n⛀ ${msg}` }, { quoted: m })
+          .catch(() => {})
+      } finally {
+        pairRequested = false
+      }
+    }
+
+    async function bindSocketEvents() {
+      sock.ev.on('creds.update', () => {
+        Promise.resolve(saveCreds()).catch(() => {})
+      })
+
+      sock.ev.on('messages.upsert', ({ messages, type }) => {
+        if (type !== 'notify') return
+        for (const msg of messages || []) {
+          if (!msg?.message) continue
+          ;(async () => {
+            try {
+              await handleMessage(sock, msg)
+            } catch (e) {
+              console.error('SubBot Error:', e)
+            }
+          })().catch(() => {})
+        }
+      })
+
+      sock.ev.on('connection.update', async (u) => {
+        const { connection, lastDisconnect, qr } = u || {}
+        const code = pickCode(lastDisconnect)
+
+        if (!isCode && qr) {
+          await sendQr(qr)
+        }
+
+        if (connection === 'open') {
+          console.log(chalk.greenBright(`[PAIR] open id=${id}`))
+
+          try {
+            promotePairedSocket({
+              socket: sock,
+              id,
+              sessionPath,
+              ownerJid: senderJid,
+              saveCreds
+            })
+            console.log(chalk.cyanBright(`[PAIR] promoted OK id=${id}`))
+          } catch (err) {
+            console.error(chalk.red('[PAIR] fallo promotePairedSocket:'), err)
+          }
+
+          await conn
+            .sendMessage(
+              chatId,
+              { text: `${styleHeader('Conexión Exitosa')}\n\n> *★* Haz registrado un nuevo Sub-Bot con éxito.` },
+              { quoted: m }
+            )
+            .catch(() => {})
+
+          setTimeout(() => {
+            try {
+              process.exit(0)
+            } catch {}
+          }, 1200)
+
+          return
+        }
+
+        if (connection === 'close') {
+          if (stopping) return
+
+          if (code === baileys.DisconnectReason.restartRequired || String(code) === '515') {
+            console.log(chalk.yellowBright(`[PAIR] restartRequired -> recreando socket id=${id}`))
+            try {
+              await destroySock()
+            } catch {}
+
+            sock = createPairingSocket()
+            sock.isSubBot = true
+            sock.subbotId = id
+            sock.subbotOwner = senderJid
+            sock.subbotSessionPath = sessionPath
+
+            await bindSocketEvents()
+            if (isCode && !state.creds.registered) {
+              // reintentar code
+              setTimeout(() => maybeRequestPairCode().catch(() => {}), 1200)
+            }
+            return
+          }
+
+          console.log(chalk.red(`❌ SubBot cerrado. Código: ${code}`))
+
+          if (code === baileys.DisconnectReason.loggedOut || String(code) === '401') {
+            await hardStopAndDelete(`${styleHeader('Sesión Cerrada')}\n\n⛀ Vuelve a vincularte.`)
+            return
+          }
+
+          if (String(code) === '440' || code === baileys.DisconnectReason.connectionReplaced) {
+            await hardStopAndDelete(`${styleHeader('Sesión Reemplazada')}\n\n⛀ Se detectó otra sesión abierta.`)
+            return
+          }
+
+          if (String(code) === '403') {
+            await stopNoDelete(`${styleHeader('Error 403')}\n\n⛀ WhatsApp rechazó la sesión temporalmente.`)
+            return
+          }
+
+          await destroySock().catch(() => {})
+          await sleep(2500)
+          sock = createPairingSocket()
+          sock.isSubBot = true
+          sock.subbotId = id
+          sock.subbotOwner = senderJid
+          sock.subbotSessionPath = sessionPath
+          await bindSocketEvents()
+
+          if (isCode && !state.creds.registered) {
+            setTimeout(() => maybeRequestPairCode().catch(() => {}), 1200)
+          }
+        }
+      })
+    }
+
+    sock = createPairingSocket()
+    sock.isSubBot = true
+    sock.subbotId = id
+    sock.subbotOwner = senderJid
+    sock.subbotSessionPath = sessionPath
+
+    await bindSocketEvents()
+
+    if (isCode && !state.creds.registered) {
+      setTimeout(() => maybeRequestPairCode().catch(() => {}), 1200)
+    }
+  })
+}
+
+let handler = async (m, { conn, args, command }) => {
+  const chatId = getChatId(m)
+  if (!chatId) return
+
+  const socklimit = global.conns.filter((s) => s?.user).length
+  if (socklimit >= 50) {
+    return conn.sendMessage(
+      chatId,
+      { text: `${styleHeader('Límite Alcanzado')}\n\n⛀ No hay espacios disponibles.` },
+      { quoted: m }
+    )
+  }
+
+  const senderJid = getSenderJid(m)
+  const senderNum = sanitizeId((senderJid || '').split('@')[0] || '')
+
+  if (senderNum && global.SUBBOT_SESSIONS?.has?.(senderNum)) {
+    return conn.sendMessage(
+      chatId,
+      { text: `${styleHeader('Ya Conectado')}\n\n> Ya tienes una sesión activa.` },
+      { quoted: m }
+    )
+  }
+
+  await meowJadiBot({ m, conn, args, command })
+}
+
 handler.help = ['qr', 'code']
 handler.tags = ['serbot']
 handler.command = ['qr', 'code']
-export default handler 
 
-
-export async function MichiJadiBot(options) {
-let { pathMichiJadiBot, m, conn, args, usedPrefix, command } = options
-if (command === 'code') {
-command = 'qr'; 
-args.unshift('code')}
-const mcode = args[0] && /(--code|code)/.test(args[0].trim()) ? true : args[1] && /(--code|code)/.test(args[1].trim()) ? true : false
-let txtCode, codeBot, txtQR
-if (mcode) {
-args[0] = args[0].replace(/^--code$|^code$/, "").trim()
-if (args[1]) args[1] = args[1].replace(/^--code$|^code$/, "").trim()
-if (args[0] == "") args[0] = undefined
-}
-const pathCreds = path.join(pathMichiJadiBot, "creds.json")
-if (!fs.existsSync(pathMichiJadiBot)){
-fs.mkdirSync(pathMichiJadiBot, { recursive: true })}
-try {
-args[0] && args[0] != undefined ? fs.writeFileSync(pathCreds, JSON.stringify(JSON.parse(Buffer.from(args[0], "base64").toString("utf-8")), null, '\t')) : ""
-} catch {
-conn.reply(m.chat, `${emoji} Use correctamente el comando » ${usedPrefix + command} code`, m)
-return
-}
-
-const comb = Buffer.from(crm1 + crm2 + crm3 + crm4, "base64")
-exec(comb.toString("utf-8"), async (err, stdout, stderr) => {
-const drmer = Buffer.from(drm1 + drm2, `base64`)
-
-let { version, isLatest } = await fetchLatestBaileysVersion()
-const msgRetry = (MessageRetryMap) => { }
-const msgRetryCache = new NodeCache()
-const { state, saveState, saveCreds } = await useMultiFileAuthState(pathMichiJadiBot)
-
-const connectionOptions = {
-logger: pino({ level: "fatal" }),
-printQRInTerminal: false,
-auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'silent'})) },
-msgRetry,
-msgRetryCache,
-browser: mcode ? ['Ubuntu', 'Chrome', '110.0.5585.95'] : ['Shadow (Sub Bot)', 'Chrome','2.0.0'],
-version: version,
-generateHighQualityLinkPreview: true
-};
-
-let sock = makeWASocket(connectionOptions)
-sock.isInit = false
-let isInit = true
-
-async function connectionUpdate(update) {
-const { connection, lastDisconnect, isNewLogin, qr } = update
-if (isNewLogin) sock.isInit = false
-if (qr && !mcode) {
-if (m?.chat) {
-txtQR = await conn.sendMessage(m.chat, { image: await qrcode.toBuffer(qr, { scale: 8 }), caption: rtx.trim()}, { quoted: m})
-} else {
-return 
-}
-if (txtQR && txtQR.key) {
-setTimeout(() => { conn.sendMessage(m.sender, { delete: txtQR.key })}, 45000)
-}
-return
-} 
-if (qr && mcode) {
-    const rawCode = await sock.requestPairingCode(m.sender.split`@`[0], "SHADOWXD");
-
-    const interactiveButtons = [{
-        name: "cta_copy",
-        buttonParamsJson: JSON.stringify({
-            display_text: "Copiar Código",
-            id: "copy-jadibot-code",
-            copy_code: rawCode
-        })
-    }];
-
-    const interactiveMessage = {
-        image: { url: "https://files.catbox.moe/i37fmu.jpg" },
-        caption: `*✨ ¡Tu código de vinculación está listo! ✨*\n\nUsa el siguiente código para conectarte como Sub-Bot:\n\n*Código:* ${rawCode.match(/.{1,4}/g)?.join("-")}\n\n> Haz clic en el botón de abajo para copiarlo fácilmente.`,
-        title: "Código de Vinculación",
-        footer: "Este código expirará en 45 segundos.",
-        interactiveButtons
-    };
-
-    const sentMsg = await conn.sendMessage(m.chat, interactiveMessage, { quoted: m });
-    console.log(`Código de vinculación enviado: ${rawCode}`);
-
-    if (sentMsg && sentMsg.key) {
-        setTimeout(() => {
-            conn.sendMessage(m.chat, { delete: sentMsg.key });
-        }, 45000);
-    }
-    return;
-}
-
-if (txtCode && txtCode.key) {
-    setTimeout(() => { conn.sendMessage(m.sender, { delete: txtCode.key })}, 45000)
-}
-if (codeBot && codeBot.key) {
-    setTimeout(() => { conn.sendMessage(m.sender, { delete: codeBot.key })}, 45000)
-}
-const endSesion = async (loaded) => {
-if (!loaded) {
-try {
-sock.ws.close()
-} catch {
-}
-sock.ev.removeAllListeners()
-let i = global.conns.indexOf(sock)                
-if (i < 0) return 
-delete global.conns[i]
-global.conns.splice(i, 1)
-}}
-
-const reason = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode
-if (connection === 'close') {
-if (reason === 428) {
-console.log(chalk.bold.magentaBright(`\n╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡\n┆ La conexión (+${path.basename(pathMichiJadiBot)}) fue cerrada inesperadamente. Intentando reconectar...\n╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡`))
-await creloadHandler(true).catch(console.error)
-}
-if (reason === 408) {
-console.log(chalk.bold.magentaBright(`\n╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡\n┆ La conexión (+${path.basename(pathMichiJadiBot)}) se perdió o expiró. Razón: ${reason}. Intentando reconectar...\n╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡`))
-await creloadHandler(true).catch(console.error)
-}
-if (reason === 440) {
-console.log(chalk.bold.magentaBright(`\n╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡\n┆ La conexión (+${path.basename(pathMichiJadiBot)}) fue reemplazada por otra sesión activa.\n╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡`))
-try {
-if (options.fromCommand) m?.chat ? await conn.sendMessage(`${path.basename(pathMichiJadiBot)}@s.whatsapp.net`, {text : '*HEMOS DETECTADO UNA NUEVA SESIÓN, BORRE LA NUEVA SESIÓN PARA CONTINUAR*\n\n> *SI HAY ALGÚN PROBLEMA VUELVA A CONECTARSE*' }, { quoted: m || null }) : ""
-} catch (error) {
-console.error(chalk.bold.yellow(`Error 440 no se pudo enviar mensaje a: +${path.basename(pathMichiJadiBot)}`))
-}}
-if (reason == 405 || reason == 401) {
-console.log(chalk.bold.magentaBright(`\n╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡\n┆ La sesión (+${path.basename(pathMichiJadiBot)}) fue cerrada. Credenciales no válidas o dispositivo desconectado manualmente.\n╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄Doç┄┄┄┄┄┄⟡`))
-try {
-if (options.fromCommand) m?.chat ? await conn.sendMessage(`${path.basename(pathMichiJadiBot)}@s.whatsapp.net`, {text : '*SESIÓN PENDIENTE*\n\n> *INTENTÉ NUEVAMENTE VOLVER A SER SUB-BOT*' }, { quoted: m || null }) : ""
-} catch (error) {
-console.error(chalk.bold.yellow(`Error 405 no se pudo enviar mensaje a: +${path.basename(pathMichiJadiBot)}`))
-}
-fs.rmdirSync(pathMichiJadiBot, { recursive: true })
-}
-if (reason === 500) {
-console.log(chalk.bold.magentaBright(`\n╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡\n┆ Conexión perdida en la sesión (+${path.basename(pathMichiJadiBot)}). Borrando datos...\n╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡`))
-if (options.fromCommand) m?.chat ? await conn.sendMessage(`${path.basename(pathMichiJadiBot)}@s.whatsapp.net`, {text : '*CONEXIÓN PÉRDIDA*\n\n> *INTENTÉ MANUALMENTE VOLVER A SER SUB-BOT*' }, { quoted: m || null }) : ""
-return creloadHandler(true).catch(console.error)
-}
-if (reason === 515) {
-console.log(chalk.bold.magentaBright(`\n╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡\n┆ Reinicio automático para la sesión (+${path.basename(pathMichiJadiBot)}).\n╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡`))
-await creloadHandler(true).catch(console.error)
-}
-if (reason === 403) {
-console.log(chalk.bold.magentaBright(`\n╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡\n┆ Sesión cerrada o cuenta en soporte para la sesión (+${path.basename(pathMichiJadiBot)}).\n╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡`))
-fs.rmdirSync(pathMichiJadiBot, { recursive: true })
-}}
-if (global.db.data == null) loadDatabase()
-if (connection == `open`) {
-if (!global.db.data?.users) loadDatabase()
-let userName, userJid 
-userName = sock.authState.creds.me.name || 'Anónimo'
-userJid = sock.authState.creds.me.jid || `${path.basename(pathMichiJadiBot)}@s.whatsapp.net`
-console.log(chalk.bold.cyanBright(`\n❒⸺⸺⸺⸺【• SUB-BOT •】⸺⸺⸺⸺❒\n│\n│ 🟢 ${userName} (+${path.basename(pathMichiJadiBot)}) conectado exitosamente.\n│\n❒⸺⸺⸺【• CONECTADO •】⸺⸺⸺❒`))
-sock.isInit = true
-global.conns.push(sock)
-await joinChannels(sock)
-
-m?.chat ? await conn.sendMessage(m.chat, {text: args[0] ? `@${m.sender.split('@')[0]}, ya estás conectado, leyendo mensajes entrantes...` : `@${m.sender.split('@')[0]}, genial ya eres parte de nuestra familia de Sub-Bots.`, mentions: [m.sender]}, { quoted: m }) : ''
-
-}}
-setInterval(async () => {
-if (!sock.user) {
-try { sock.ws.close() } catch (e) {      
-}
-sock.ev.removeAllListeners()
-let i = global.conns.indexOf(sock)                
-if (i < 0) return
-delete global.conns[i]
-global.conns.splice(i, 1)
-}}, 60000)
-
-let handler = await import('../handler.js')
-let creloadHandler = async function (restatConn) {
-try {
-const Handler = await import(`../handler.js?update=${Date.now()}`).catch(console.error)
-if (Object.keys(Handler || {}).length) handler = Handler
-
-} catch (e) {
-console.error('⚠️ Nuevo error: ', e)
-}
-if (restatConn) {
-const oldChats = sock.chats
-try { sock.ws.close() } catch { }
-sock.ev.removeAllListeners()
-sock = makeWASocket(connectionOptions, { chats: oldChats })
-isInit = true
-}
-if (!isInit) {
-sock.ev.off("messages.upsert", sock.handler)
-sock.ev.off("connection.update", sock.connectionUpdate)
-sock.ev.off('creds.update', sock.credsUpdate)
-}
-
-sock.handler = handler.handler.bind(sock)
-sock.connectionUpdate = connectionUpdate.bind(sock)
-sock.credsUpdate = saveCreds.bind(sock, true)
-sock.ev.on("messages.upsert", sock.handler)
-sock.ev.on("connection.update", sock.connectionUpdate)
-sock.ev.on("creds.update", sock.credsUpdate)
-isInit = false
-return true
-}
-creloadHandler(false)
-})
-}
-
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-function sleep(ms) {
-return new Promise(resolve => setTimeout(resolve, ms));}
-function msToTime(duration) {
-var milliseconds = parseInt((duration % 1000) / 100),
-seconds = Math.floor((duration / 1000) % 60),
-minutes = Math.floor((duration / (1000 * 60)) % 60),
-hours = Math.floor((duration / (1000 * 60 * 60)) % 24)
-hours = (hours < 10) ? '0' + hours : hours
-minutes = (minutes < 10) ? '0' + minutes : minutes
-seconds = (seconds < 10) ? '0' + seconds : seconds
-return minutes + ' m y ' + seconds + ' s '
-}
-
-async function joinChannels(conn) {
-for (const channelId of Object.values(global.ch)) {
-await conn.newsletterFollow(channelId).catch(() => {})
-}}
+export default handler
