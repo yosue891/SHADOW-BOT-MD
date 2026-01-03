@@ -12,7 +12,7 @@ import { promotePairedSocket } from '../subbotManager.js'
 const { generateWAMessageFromContent } = baileys
 const SUBBOT_DIR = 'Sessions/SubBotTemp'
 
-const styleHeader = (text = '') => `✿ 》》${text || 'SerBot'}《《 ✿`
+const styleHeader = (text = '') => `✿ 》》${text || 'ShadowJadiBot'}《《 ✿`
 
 if (!(global.conns instanceof Array)) global.conns = []
 if (!global.SUBBOT_SESSIONS) global.SUBBOT_SESSIONS = new Map()
@@ -38,7 +38,6 @@ function formatPairCode(code = '') {
 }
 
 function normalizePairCodeRaw(code = '') {
-  // Evita inválido por guiones/espacios
   return String(code || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase()
 }
 
@@ -176,7 +175,7 @@ async function requestPairingCodeWithRetry(sock, phone, { attempts = 4 } = {}) {
   throw lastErr || new Error('No se pudo generar el código')
 }
 
-export async function meowJadiBot({ m, conn, args, command }) {
+export async function ShadowJadiBot({ m, conn, args, command }) {
   const chatId = getChatId(m)
   if (!chatId) return
 
@@ -287,7 +286,7 @@ export async function meowJadiBot({ m, conn, args, command }) {
       try {
         const img = await qrcode.toBuffer(qr, { scale: 8 })
         const caption =
-          `${styleHeader('SerBot • Mode QR')}\n\n` +
+          `${styleHeader('ShadowJadiBot • Mode QR')}\n\n` +
           `⛀ Escanea este QR para vincularte.\n` +
           `> Caduca pronto.`
         await conn.sendMessage(chatId, { image: img, caption }, { quoted: m }).catch(() => {})
@@ -311,7 +310,7 @@ export async function meowJadiBot({ m, conn, args, command }) {
                 body: { text: messageContent },
                 footer: { text: '𝖢𝗈𝗇𝖾𝗑𝗂𝗈𝗇 𝖵𝗂𝖺 𝖢𝗈́𝖹𝗂𝗀𝗈' },
                 header: {
-                  title: styleHeader('SerBot • Mode Code'),
+                  title: styleHeader('ShadowJadiBot • Mode Code'),
                   subtitle: 'Vinculación',
                   hasMediaAttachment: false
                 },
@@ -377,7 +376,7 @@ export async function meowJadiBot({ m, conn, args, command }) {
             try {
               await handleMessage(sock, msg)
             } catch (e) {
-              console.error('SubBot Error:', e)
+              console.error('ShadowJadiBot Error:', e)
             }
           })().catch(() => {})
         }
@@ -410,7 +409,7 @@ export async function meowJadiBot({ m, conn, args, command }) {
           await conn
             .sendMessage(
               chatId,
-              { text: `${styleHeader('Conexión Exitosa')}\n\n> *★* Haz registrado un nuevo Sub-Bot con éxito.` },
+              { text: `${styleHeader('Conexión Exitosa')}\n\n> *★* Haz registrado un nuevo ShadowJadiBot con éxito.` },
               { quoted: m }
             )
             .catch(() => {})
@@ -447,7 +446,7 @@ export async function meowJadiBot({ m, conn, args, command }) {
             return
           }
 
-          console.log(chalk.red(`❌ SubBot cerrado. Código: ${code}`))
+          console.log(chalk.red(`❌ ShadowJadiBot cerrado. Código: ${code}`))
 
           if (code === baileys.DisconnectReason.loggedOut || String(code) === '401') {
             await hardStopAndDelete(`${styleHeader('Sesión Cerrada')}\n\n⛀ Vuelve a vincularte.`)
@@ -518,7 +517,7 @@ let handler = async (m, { conn, args, command }) => {
     )
   }
 
-  await meowJadiBot({ m, conn, args, command })
+  await ShadowJadiBot({ m, conn, args, command })
 }
 
 handler.help = ['qr', 'code']
