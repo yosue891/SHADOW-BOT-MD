@@ -1,22 +1,16 @@
-/*
-	* Create By Fede Uchiha 
-	* GitHub https://github.com/the-xyzz
-	* Whatsapp: https://whatsapp.com/channel/0029VbBG4i2GE56rSgXsqw2W
-*/
-
 import ws from "ws"
 import axios from "axios"
-import { generateWAMessageContent, generateWAMessageFromContent, proto} from '@whiskeysockets/baileys'
+import { generateWAMessageContent, generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
 
-const handler = async (m, { conn, command, usedPrefix}) => {
+const handler = async (m, { conn, command, usedPrefix }) => {
   try {
     const users = [
       global.conn.user.jid,
-...new Set(
+      ...new Set(
         global.conns
-.filter((conn) => conn.user && conn.ws.socket && conn.ws.socket.readyState!== ws.CLOSED)
-.map((conn) => conn.user.jid)
-)
+          .filter((conn) => conn.user && conn.ws.socket && conn.ws.socket.readyState !== ws.CLOSED)
+          .map((conn) => conn.user.jid)
+      )
     ]
 
     function convertirMsADiasHorasMinutosSegundos(ms) {
@@ -33,84 +27,68 @@ const handler = async (m, { conn, command, usedPrefix}) => {
       if (minRest) resultado += `${minRest}m `
       if (segRest) resultado += `${segRest}s`
       return resultado.trim() || 'menos de 1s'
-}
+    }
 
-    const subBotsActivos = users
-.filter(jid => jid!== global.conn.user.jid)
-.map((botJid, index) => {
-        const v = global.conns.find((conn) => conn.user.jid === botJid)
-        const uptime = v?.uptime? convertirMsADiasHorasMinutosSegundos(Date.now() - v.uptime): "Activo desde ahora"
-        const mention = botJid.replace(/[^0-9]/g, '')
-        const botNumber = botJid.split('@')[0]
-        const botName = v?.user?.name || `Sub-Bot ${index + 1}`
+    const subBotsActivos = users.filter(jid => jid !== global.conn.user.jid)
 
-        return `\`🪴 Shadow Sub-Bots\`  *[ ${index + 1} ]*
+    let cards = []
+    let counter = 1
 
-🌿 Tag:: @${mention}
-🌴 ID:: wa.me/${botNumber}?text=.menu
-🌱 Bot:: ${botName}
-🍄 Uptime:: ${uptime}
-────────────────`
-}).join("\n")
+    for (let botJid of subBotsActivos) {
+      const v = global.conns.find((conn) => conn.user.jid === botJid)
+      const uptime = v?.uptime ? convertirMsADiasHorasMinutosSegundos(Date.now() - v.uptime) : "Activo desde ahora"
+      const mention = botJid.replace(/[^0-9]/g, '')
+      const botNumber = botJid.split('@')[0]
+      const botName = v?.user?.name || `Sub-Bot ${counter}`
 
-    const countSubBotsActivos = users.length - 1
+      const imageBuffer = (await axios.get("https://files.catbox.moe/mwhyfm.jpg", { responseType: 'arraybuffer' })).data
+      const { imageMessage } = await generateWAMessageContent({ image: imageBuffer }, { upload: conn.waUploadToServer })
 
-    const message = `\`🌴 Subbots activos:\` *${countSubBotsActivos}/20*\n\n${subBotsActivos}`
-
-    const mentionList = users.filter(jid => jid!== global.conn.user.jid)
-
-    const imageBuffer = (await axios.get("https://files.catbox.moe/mwhyfm.jpg", { responseType: 'arraybuffer'})).data
-
-    const { imageMessage} = await generateWAMessageContent({ image: imageBuffer}, { upload: conn.waUploadToServer});
-
-    const interactiveButtons = [
-        {
-            name: 'quick_reply',
-            buttonParamsJson: JSON.stringify({
+      cards.push({
+        body: proto.Message.InteractiveMessage.Body.fromObject({ text: `🪴 Sub-Bot ${counter}\n🌱 Nombre: ${botName}\n🍄 Uptime: ${uptime}` }),
+        footer: proto.Message.InteractiveMessage.Footer.fromObject({ text: "✨ Usa el botón para interactuar" }),
+        header: proto.Message.InteractiveMessage.Header.fromObject({ title: `ID: wa.me/${botNumber}?text=.menu`, hasMediaAttachment: true, imageMessage }),
+        nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
+          buttons: [
+            {
+              name: 'quick_reply',
+              buttonParamsJson: JSON.stringify({
                 display_text: "Ser Sub-Bot",
                 id: ".code"
-            })
-        },
-        {
-            name: "cta_url",
-            buttonParamsJson: JSON.stringify({
+              })
+            },
+            {
+              name: "cta_url",
+              buttonParamsJson: JSON.stringify({
                 display_text: "Canal Oficial",
                 url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
-            })
-        }
-    ];
+              })
+            }
+          ]
+        })
+      })
+      counter++
+    }
 
-    const messageParamsJson = JSON.stringify({});
-
-    const interactiveMessage = generateWAMessageFromContent(m.chat, {
+    const messageContent = generateWAMessageFromContent(m.chat, {
       viewOnceMessage: {
         message: {
-          messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2},
+          messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 },
           interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-            body: { text: message.trim()},
-            footer: { text: "¡Usa el botón para ser Sub-Bots!"},
-            header: {
-              hasMediaAttachment: true,
-              imageMessage
-            },
-            nativeFlowMessage: {
-              buttons: interactiveButtons,
-              messageParamsJson
-            },
-            contextInfo: {
-                mentionedJid: mentionList
-            }
+            body: proto.Message.InteractiveMessage.Body.create({ text: `🌴 Subbots activos: ${subBotsActivos.length}/20` }),
+            footer: proto.Message.InteractiveMessage.Footer.create({ text: "Selecciona un Sub-Bot del carrusel 🌿" }),
+            header: proto.Message.InteractiveMessage.Header.create({ hasMediaAttachment: false }),
+            carouselMessage: proto.Message.InteractiveMessage.CarouselMessage.fromObject({ cards })
           })
         }
       }
-    }, { quoted: m});
-    
-    await conn.relayMessage(m.chat, interactiveMessage.message, { messageId: interactiveMessage.key.id});
+    }, { quoted: m })
 
+    await conn.relayMessage(m.chat, messageContent.message, { messageId: messageContent.key.id })
 
-} catch (error) {
-    m.reply(`⚠︎ ¡Ups! Algo falló.\n> Por favor, contacta al administrador si el problema persiste.\n\nDetalle técnico: ${error.message}`)
-}
+  } catch (error) {
+    m.reply(`⚠︎ ¡Ups! Algo falló.\n> Contacta al administrador si el problema persiste.\n\nDetalle técnico: ${error.message}`)
+  }
 }
 
 handler.tags = ["serbot"]
