@@ -183,7 +183,7 @@ if (options.fromCommand) m?.chat ? await conn.sendMessage(`${path.basename(pathM
 } catch (error) {
 console.error(chalk.bold.yellow(`⚠︎ Error 405 no se pudo enviar mensaje a: +${path.basename(pathMichiJadiBot)}`))
 }
-fs.rmdirSync(pathMichiJadiBot, { recursive: true })
+fs.rmSync(pathMichiJadiBot, { recursive: true, force: true })
 }
 if (reason === 500) {
 console.log(chalk.bold.magentaBright(`\n╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡\n┆ Conexión perdida en la sesión (+${path.basename(pathMichiJadiBot)}). Borrando datos...\n╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡`))
@@ -196,7 +196,7 @@ await creloadHandler(true).catch(console.error)
 }
 if (reason === 403) {
 console.log(chalk.bold.magentaBright(`\n╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡\n┆ Sesión cerrada o cuenta en soporte para la sesión (+${path.basename(pathMichiJadiBot)}).\n╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡`))
-fs.rmdirSync(pathMichiJadiBot, { recursive: true })
+fs.rmSync(pathMichiJadiBot, { recursive: true, force: true })
 }}
 if (global.db.data == null) loadDatabase()
 if (connection == `open`) {
@@ -270,4 +270,3 @@ for (const value of Object.values(global.ch)) {
 if (typeof value === 'string' && value.endsWith('@newsletter')) {
 await sock.newsletterFollow(value).catch(() => {})
 }}}
-    
