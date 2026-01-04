@@ -39,7 +39,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
     let uploadedUrl = await uploadImage(img)
 
-    const api = `https://api-adonix.ultraplus.click/canvas/hd?apikey=ShadowkeyBotMD&url=${encodeURIComponent(uploadedUrl)}`
+    const api = `https://api-adonix.ultraplus.click/canvas/hd?apikey=SHADOWBOTMDkey&url=${encodeURIComponent(uploadedUrl)}`
     const res = await fetch(api)
     if (!res.ok) throw new Error(`Error en la API: ${res.statusText}`)
     const data = await res.json()
