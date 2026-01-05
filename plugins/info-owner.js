@@ -1,9 +1,7 @@
 import fetch from 'node-fetch'
 
 let handler = async (m, { conn }) => {
-  await m.react('🎅') // reacción navideña
-
-  // Lista de contactos estilo Shadow Garden
+  await m.react('🎅') 
   let list = [
     {
       displayName: ' Shadow Creator ',
@@ -14,13 +12,12 @@ let handler = async (m, { conn }) => {
   const canalInfo = {
     title: '⚔️🎄 Canal Oficial de SHADOW 🎄⚔️',
     body: 'Sumérgete en las sombras festivas. Únete al canal oficial.',
-    thumbnailUrl: 'https://files.catbox.moe/tpcpmj.jpg',
+    thumbnailUrl: 'https://files.catbox.moe/iq1skp.jpg',
     sourceUrl: 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O',
     mediaType: 1,
     renderLargerThumbnail: true
   }
 
-  // Enviar contacto con preview
   await conn.sendMessage(
     m.chat,
     {
@@ -35,7 +32,6 @@ let handler = async (m, { conn }) => {
     { quoted: m }
   )
 
-  // Mensaje decorado estilo The Eminence in Shadow con toque navideño
   let txt = `┏━━━━━━━━━━━━━━━━━━━┓
 🌑🎄 *I N F O  D E L  C R E A D O R* 🎄🌑
 ┗━━━━━━━━━━━━━━━━━━━┛
@@ -56,7 +52,6 @@ https://wa.me/522483649647?text=.code
 
 🎄✨ *SHADOW-BOT-MD* — El poder no se muestra... se oculta, incluso bajo las luces de Navidad ✨🎄`
 
-  // Enviar mensaje decorado con preview al final
   await conn.sendMessage(
     m.chat,
     {
@@ -71,7 +66,6 @@ https://wa.me/522483649647?text=.code
 
 handler.help = ['owner', 'creador']
 handler.tags = ['info']
-// 👇 Usa array en vez de regex para que el loader lo registre seguro
 handler.command = ['owner', 'creator', 'creador', 'dueño']
 
 export default handler
