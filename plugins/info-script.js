@@ -3,7 +3,6 @@ import fetch from 'node-fetch'
 
 let handler = async (m, { conn }) => {
   try {
-    // Repo fijo de tu bot
     let res = await fetch('https://api.github.com/repos/yosue891/SHADOW-BOT-MD')
     if (!res.ok) throw new Error('Error al obtener datos del repositorio Shadow-BOT-MD')
     let json = await res.json()
@@ -25,8 +24,8 @@ let handler = async (m, { conn }) => {
         externalAdReply: {
           title: "Shadow-BOT-MD",
           body: "El poder oculto en las sombras 🎄",
-          thumbnailUrl: 'https://files.catbox.moe/1iwqmt.jpg',
-          sourceUrl: json.html_url, // link real del repo
+          thumbnailUrl: 'https://files.catbox.moe/owpjte.jpg',
+          sourceUrl: json.html_url, 
           mediaType: 1,
           renderLargerThumbnail: true
         }
