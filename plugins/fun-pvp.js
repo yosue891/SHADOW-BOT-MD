@@ -1,23 +1,32 @@
 let handler = async (m, { conn, command }) => {
   conn.suit = conn.suit ? conn.suit : {}
-  let pp = 'https://files.catbox.moe/6fewjd.jpg' 
+  let pp = 'https://files.catbox.moe/6fewjd.jpg' // Imagen Shadow Garden
 
+  // Crear nueva sala de PVP
   if (command === 'pvp' || command === 'ppt') {
-    if (!m.mentionedJid[0]) return m.reply('☽ Debes mencionar a alguien para iniciar el duelo.')
+    let partnerId = null
+    if (m.mentionedJid && m.mentionedJid.length > 0) {
+      partnerId = m.mentionedJid[0]
+    } else if (m.quoted) {
+      partnerId = m.quoted.sender
+    }
+    if (!partnerId) return m.reply('☽ Debes mencionar o responder a alguien para iniciar el duelo.')
+
     let id = 'suit_' + new Date() * 1
     conn.suit[id] = {
       id,
       p: m.sender,
-      p2: m.mentionedJid[0],
+      p2: partnerId,
       status: 'wait',
       poin: 100,
       poin_lose: 50,
       poin_bot: 20,
       timeout: 60000
     }
+
     conn.sendMessage(m.chat, {
-      text: `☽ 『 Shadow Garden 』 ☽\n\n@${m.sender.split('@')[0]} ha retado a @${m.mentionedJid[0].split('@')[0]} a un duelo de *Piedra, Papel o Tijera*.\n\nResponde con *aceptar* o *rechazar*.`,
-      mentions: [m.sender, m.mentionedJid[0]],
+      text: `☽ 『 Shadow Garden 』 ☽\n\n@${m.sender.split('@')[0]} ha retado a @${partnerId.split('@')[0]} a un duelo de *Piedra, Papel o Tijera*.\n\nResponde con *aceptar* o *rechazar*.`,
+      mentions: [m.sender, partnerId],
       contextInfo: {
         externalAdReply: {
           title: 'Duelo Shadow Garden',
@@ -40,6 +49,7 @@ handler.before = async function (m) {
   let win = ''
   let tie = false
 
+  // Aceptar/Rechazar
   if (
     m.sender == room.p2 &&
     /^(aceptar|rechazar)$/i.test(m.text) &&
@@ -63,6 +73,7 @@ handler.before = async function (m) {
     if (!room.pilih2) this.sendMessage(room.p2, { text: opciones })
   }
 
+  // Elecciones
   let reg = /^(tijera|piedra|papel)$/i
   if (m.sender == room.p && reg.test(m.text) && !room.pilih && !m.isGroup) {
     room.pilih = reg.exec(m.text.toLowerCase())[0]
@@ -111,4 +122,4 @@ export default handler
 
 function random(arr) {
   return arr[Math.floor(Math.random() * arr.length)]
-  }
+      }
