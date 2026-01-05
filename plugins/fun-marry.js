@@ -13,30 +13,8 @@ function clearProposalTimer(jid) {
   }
 }
 
-const handler = async (m, { conn, args, usedPrefix, command }) => {
+const marryHandler = async (m, { conn, usedPrefix, command }) => {
   const userId = m.sender
-
-  // ⚡ Detectar botones
-  const selected = m?.message?.buttonsResponseMessage?.selectedButtonId || m.selectedButtonId
-  if (selected) {
-    const [cmd, proposerId] = selected.split('|')
-    if (cmd === `${usedPrefix}aceptar`) {
-      command = 'aceptar'
-      args = [proposerId]
-    } else if (cmd === `${usedPrefix}rechazar`) {
-      command = 'rechazar'
-      args = [proposerId]
-    }
-  }
-
-  // 💔 DIVORCIO
-  if (['divorce', 'divorciarse'].includes(command)) {
-    if (!marriages[userId]) return conn.reply(m.chat, `💔 No estás casado...`, m)
-    const ex = marriages[userId]
-    delete marriages[userId]
-    delete marriages[ex]
-    return conn.reply(m.chat, `💔 Divorcio realizado.\n${tag(userId)} y ${tag(ex)} ya no están casados.`, m, { mentions: [userId, ex] })
-  }
 
   // 💍 PROPUESTA
   if (['marry', 'casarse'].includes(command)) {
@@ -52,8 +30,8 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
       text: `💌 Propuesta enviada a ${tag(partnerId)}\n⏳ Tienes 49 segundos para responder.`,
       mentions: [partnerId],
       buttons: [
-        { buttonId: `${usedPrefix}aceptar|${userId}`, buttonText: { displayText: '✅ Aceptar' }, type: 1 },
-        { buttonId: `${usedPrefix}rechazar|${userId}`, buttonText: { displayText: '❌ Rechazar' }, type: 1 }
+        { buttonId: `aceptar|${userId}`, buttonText: { displayText: '✅ Aceptar' }, type: 1 },
+        { buttonId: `rechazar|${userId}`, buttonText: { displayText: '❌ Rechazar' }, type: 1 }
       ],
       headerType: 1
     }, { quoted: m })
@@ -69,31 +47,19 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
     return
   }
 
-  // ✅ ACEPTAR
-  if (command === 'aceptar') {
-    const proposer = args[0] ? args[0] : null
-    if (!proposer || proposals[proposer] !== userId) return conn.reply(m.chat, '⚠️ No tienes una propuesta pendiente de esa persona.', m)
-
-    marriages[userId] = proposer
-    marriages[proposer] = userId
-    delete proposals[proposer]
-    clearProposalTimer(proposer)
-
-    return conn.reply(m.chat, `💒 『☽』 Las sombras han sellado el pacto.\n${tag(userId)} y ${tag(proposer)} ahora están oficialmente casados.`, m, { mentions: [userId, proposer] })
-  }
-
-  // ❌ RECHAZAR
-  if (command === 'rechazar') {
-    const proposer = args[0] ? args[0] : null
-    if (!proposer || proposals[proposer] !== userId) return conn.reply(m.chat, '⚠️ No tienes una propuesta pendiente de esa persona.', m)
-
-    delete proposals[proposer]
-    clearProposalTimer(proposer)
-
-    return conn.reply(m.chat, `💔 『☽』 ${tag(userId)} ha rechazado la propuesta de ${tag(proposer)}.`, m, { mentions: [userId, proposer] })
+  // 💔 DIVORCIO
+  if (['divorce', 'divorciarse'].includes(command)) {
+    if (!marriages[userId]) return conn.reply(m.chat, `💔 No estás casado...`, m)
+    const ex = marriages[userId]
+    delete marriages[userId]
+    delete marriages[ex]
+    return conn.reply(m.chat, `💔 Divorcio realizado.\n${tag(userId)} y ${tag(ex)} ya no están casados.`, m, { mentions: [userId, ex] })
   }
 }
 
-handler.command = ['marry', 'casarse', 'divorce', 'divorciarse', 'aceptar', 'rechazar']
-handler.group = true
-export default handler
+marryHandler.command = ['marry', 'casarse', 'divorce', 'divorciarse']
+marryHandler.group = true
+export default marryHandler
+
+// Exportamos también las estructuras para que otro handler las use
+export { proposals, proposalTimers, marriages, clearProposalTimer, tag }
