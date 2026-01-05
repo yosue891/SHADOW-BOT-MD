@@ -1,3 +1,4 @@
+
 let marriages = {}
 
 function tag(jid) {
@@ -13,10 +14,15 @@ const handler = async (m, { conn, usedPrefix, command }) => {
     delete marriages[userId]
     delete marriages[ex]
     return conn.sendMessage(m.chat, { text: `💔 Divorcio realizado.\n${tag(userId)} y ${tag(ex)} ya no están casados.`, mentions: [userId, ex], ...rcanal }, { quoted: m })
-  }
-
+    
   if (['marry', 'casarse'].includes(command)) {
-    const partnerId = m.mentionedJid?.[0] || m.quoted?.sender
+    let partnerId = null
+    if (m.mentionedJid && m.mentionedJid.length > 0) {
+      partnerId = m.mentionedJid[0]
+    } else if (m.quoted) {
+      partnerId = m.quoted.sender
+    }
+
     if (!partnerId) return conn.sendMessage(m.chat, { text: '💍 Menciona o responde al mensaje de la persona para casarte.', ...rcanal }, { quoted: m })
     if (partnerId === userId) return conn.sendMessage(m.chat, { text: '💔 No puedes casarte contigo mismo.', ...rcanal }, { quoted: m })
 
