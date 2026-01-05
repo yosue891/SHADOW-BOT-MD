@@ -5,7 +5,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
   const chat = global.db.data.users[m.sender] || {}
   if (!chat.registered) {
-    const thumbBuffer = await (await fetch('https://files.catbox.moe/n3bg2n.jpg')).buffer()
+    const thumbBuffer = await (await fetch('https://iili.io/fXp3swb.jpg')).buffer()
 
     const fkontak = {
       key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'Shadow' },
@@ -23,7 +23,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     // Mensaje catálogo con imagen grande y botones
     const productMessage = {
       product: {
-        productImage: { url: 'https://files.catbox.moe/k45sr6.jpg' },
+        productImage: { url: 'https://files.catbox.moe/n3bg2n.jpg' },
         productId: '999999999999999',
         title: 'REGISTRO',
         description: 'Registro requerido',
