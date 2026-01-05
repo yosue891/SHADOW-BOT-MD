@@ -1,38 +1,30 @@
-import { proposals, proposalTimers, marriages, clearProposalTimer, tag } from './marry.js'
+import { proposals, marriages, clearProposalTimer, tag } from './marry.js'
 
-const responseHandler = async (m, { conn, args, command }) => {
+const responseHandler = async (m, { conn }) => {
   const userId = m.sender
+  const selected = m?.message?.buttonsResponseMessage?.selectedButtonId
+  if (!selected) return
 
-  // ⚡ Detectar botones
-  const selected = m?.message?.buttonsResponseMessage?.selectedButtonId || m.selectedButtonId
-  if (selected) {
-    const [cmd, proposerId] = selected.split('|')
-    command = cmd
-    args = [proposerId]
+  const [cmd, proposerId] = selected.split('|')
+
+  if (cmd === 'aceptar') {
+    if (!proposerId || proposals[proposerId] !== userId) {
+      return conn.reply(m.chat, '⚠️ No tienes una propuesta pendiente de esa persona.', m)
+    }
+    marriages[userId] = proposerId
+    marriages[proposerId] = userId
+    delete proposals[proposerId]
+    clearProposalTimer(proposerId)
+    return conn.reply(m.chat, `💒 『☽』 Las sombras han sellado el pacto.\n${tag(userId)} y ${tag(proposerId)} ahora están oficialmente casados.`, m, { mentions: [userId, proposerId] })
   }
 
-  // ✅ ACEPTAR
-  if (command === 'aceptar') {
-    const proposer = args[0]
-    if (!proposer || proposals[proposer] !== userId) return conn.reply(m.chat, '⚠️ No tienes una propuesta pendiente de esa persona.', m)
-
-    marriages[userId] = proposer
-    marriages[proposer] = userId
-    delete proposals[proposer]
-    clearProposalTimer(proposer)
-
-    return conn.reply(m.chat, `💒 『☽』 Las sombras han sellado el pacto.\n${tag(userId)} y ${tag(proposer)} ahora están oficialmente casados.`, m, { mentions: [userId, proposer] })
-  }
-
-  // ❌ RECHAZAR
-  if (command === 'rechazar') {
-    const proposer = args[0]
-    if (!proposer || proposals[proposer] !== userId) return conn.reply(m.chat, '⚠️ No tienes una propuesta pendiente de esa persona.', m)
-
-    delete proposals[proposer]
-    clearProposalTimer(proposer)
-
-    return conn.reply(m.chat, `💔 『☽』 ${tag(userId)} ha rechazado la propuesta de ${tag(proposer)}.`, m, { mentions: [userId, proposer] })
+  if (cmd === 'rechazar') {
+    if (!proposerId || proposals[proposerId] !== userId) {
+      return conn.reply(m.chat, '⚠️ No tienes una propuesta pendiente de esa persona.', m)
+    }
+    delete proposals[proposerId]
+    clearProposalTimer(proposerId)
+    return conn.reply(m.chat, `💔 『☽』 ${tag(userId)} ha rechazado la propuesta de ${tag(proposerId)}.`, m, { mentions: [userId, proposerId] })
   }
 }
 
