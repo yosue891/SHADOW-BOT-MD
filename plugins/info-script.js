@@ -26,7 +26,7 @@ let handler = async (m, { conn }) => {
           title: "Shadow-BOT-MD",
           body: "El poder oculto en las sombras",
           thumbnailUrl: 'https://files.catbox.moe/owpjte.jpg',
-          sourceUrl: json.html_url, 
+          sourceUrl: json.html_url,
           mediaType: 1,
           renderLargerThumbnail: true
         }
