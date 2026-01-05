@@ -69,7 +69,7 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
     const msg = `🎶 *Shadow — Descarga en curso*
 
 ✨ *Título:* ${title}
-🌌 Preparando tu ${type === "mp3" ? "audio espera un poco..." : "video festivo"}...`
+🌌 Preparando tu ${type === "mp3" ? "audio espera un poco..." : "video"}...`
 
     let sent
     if (thumbnail) {
@@ -139,7 +139,7 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
         text: `🎶 *Shadow — Operación completada*
 
 ✨ *Título:* ${fileTitle}
-🌌 Entregado con magia navideña.`,
+🌌 Entregada completa uwu.`,
         edit: sent.key
       }
     )
