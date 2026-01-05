@@ -14,7 +14,7 @@ export async function before(m, { conn, participants, groupMetadata}) {
   let user = global.db.data.users[who];
   let userName = user? user.name: await conn.getName(who);
 
-  const thumbnail = await (await fetch('https://files.catbox.moe/u3o64i.jpg')).buffer();
+  const thumbnail = await (await fetch('https://files.catbox.moe/zcj6zf.jpg')).buffer();
   const canalOficial = 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O';
 
   if (chat.welcome && m.messageStubType === 27) {
