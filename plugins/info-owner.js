@@ -1,7 +1,7 @@
 import fetch from 'node-fetch'
 
 let handler = async (m, { conn }) => {
-  await m.react('🎅') 
+  await m.react('👑') 
   let list = [
     {
       displayName: ' Shadow Creator ',
@@ -10,8 +10,8 @@ let handler = async (m, { conn }) => {
   ]
 
   const canalInfo = {
-    title: '⚔️🎄 Canal Oficial de SHADOW 🎄⚔️',
-    body: 'Sumérgete en las sombras festivas. Únete al canal oficial.',
+    title: '⚔️ Canal Oficial de SHADOW ⚔️',
+    body: 'Sumérgete en las sombras. Únete al canal oficial.',
     thumbnailUrl: 'https://files.catbox.moe/iq1skp.jpg',
     sourceUrl: 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O',
     mediaType: 1,
@@ -33,32 +33,27 @@ let handler = async (m, { conn }) => {
   )
 
   let txt = `┏━━━━━━━━━━━━━━━━━━━┓
-🌑🎄 *I N F O  D E L  C R E A D O R* 🎄🌑
+🌑⚔️ *I N F O  D E L  C R E A D O R* ⚔️🌑
 ┗━━━━━━━━━━━━━━━━━━━┛
 
 > ⚔️ 𝗦𝗛𝗔𝗗𝗢𝗪 𝗠𝗔𝗦𝗧𝗘𝗥 ⚔️  
-> 😉 El estratega oculto tras las líneas del código
+> 🌌 El estratega oculto tras las líneas del código
 
 📡 𝗖𝗔𝗡𝗔𝗟 𝗢𝗙𝗜𝗖𝗜𝗔𝗟:  
 https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
 
 📱 𝗖𝗢𝗡𝗧𝗔𝗖𝗧𝗢𝗦 𝗗𝗘 𝗟𝗔 𝗢𝗥𝗚𝗔𝗡𝗜𝗭𝗔𝗖𝗜𝗢́𝗡:  
-👑 Creador Principal 🎅: +58 424-2773183 (Yosue)  
-❄️ Segundo creador 🎁: +504 9373-2693 (ado)  
-🎁 tercer Creador 🎄: +54 9 11-2491-8653 (Fede)
+👑 Creador Principal: +58 424-2773183 (Yosue)  
+⚔️ Segundo creador: +504 9373-2693 (ado)  
+🕯️ Tercer Creador: +54 9 11-2491-8653 (Fede)
 
-🧬 𝗖𝗢𝗗𝗘 𝗗𝗘 𝗔𝗖𝗖𝗘𝗦𝗢:  
-https://wa.me/522483649647?text=.code
-
-🎄✨ *SHADOW-BOT-MD* — El poder no se muestra... se oculta, incluso bajo las luces de Navidad ✨🎄`
+✦ *SHADOW-BOT-MD* — El poder no se muestra... se oculta en las sombras ✦`
 
   await conn.sendMessage(
     m.chat,
     {
       text: txt,
-      contextInfo: {
-        externalAdReply: canalInfo
-      }
+      ...rcanal
     },
     { quoted: m }
   )
