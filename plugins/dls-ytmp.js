@@ -2,11 +2,11 @@ import yts from "yt-search"
 import fetch from "node-fetch"
 
 const handler = async (m, { conn, text, command }) => {
-  if (!text) return m.reply(`🎄 *Shadow invocando*
+  if (!text) return m.reply(`💫 *Shadow invocando*
 
-✨ Pronuncia el nombre del video o entrega el enlace de YouTube.`)
+🎶 Pronuncia el nombre del video o entrega el enlace de YouTube.`)
 
-  await m.react("❄️")
+  await m.react("🕘")
 
   try {
     let url = text
@@ -19,9 +19,9 @@ const handler = async (m, { conn, text, command }) => {
     if (!text.startsWith("https://")) {
       const res = await yts(text)
       if (!res?.videos?.length) {
-        return m.reply(`🎄 *Shadow buscando*
+        return m.reply(`🔍 *Shadow buscando*
 
-🎅 Nada fue encontrado…`)
+❌ Nada fue encontrado…`)
       }
 
       const video = res.videos[0]
@@ -41,7 +41,7 @@ const handler = async (m, { conn, text, command }) => {
     } else if (isVideo) {
       await downloadMedia(conn, m, url, title, thumbnail, "mp4")
     } else {
-      await m.reply(`🎄 *Shadow — Análisis navideño*
+      await m.reply(`🔍 *Shadow — Análisis*
 
 ✨ *Título:* ${title}
 🔔 *Canal:* ${authorName}
@@ -55,7 +55,7 @@ Comandos disponibles:
     }
 
   } catch (error) {
-    await m.reply(`🎄 *Shadow — Error en la operación*
+    await m.reply(`❌ *Shadow — Error en la operación*
 
 ❌ ${error.message}`)
     await m.react("⚠️")
@@ -66,10 +66,10 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
   try {
     const cleanTitle = cleanName(title) + (type === "mp3" ? ".mp3" : ".mp4")
 
-    const msg = `🎄 *Shadow — Descarga en curso*
+    const msg = `🎶 *Shadow — Descarga en curso*
 
 ✨ *Título:* ${title}
-🎁 Preparando tu ${type === "mp3" ? "audio navideño" : "video festivo"}...`
+🌌 Preparando tu ${type === "mp3" ? "audio espera un poco..." : "video festivo"}...`
 
     let sent
     if (thumbnail) {
@@ -101,7 +101,6 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
     const fileTitle = data.data.title || title
 
     if (type === "mp3") {
-      // Audio normal con externalAdReply
       await conn.sendMessage(
         m.chat,
         {
@@ -137,10 +136,10 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
     await conn.sendMessage(
       m.chat,
       {
-        text: `🎄 *Shadow — Operación completada*
+        text: `🎶 *Shadow — Operación completada*
 
 ✨ *Título:* ${fileTitle}
-🎁 Entregado con magia navideña.`,
+🌌 Entregado con magia navideña.`,
         edit: sent.key
       }
     )
@@ -148,7 +147,7 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
     await m.react("✅")
 
   } catch (error) {
-    await m.reply(`🎄 *Shadow — Falla en la entrega*
+    await m.reply(`❌ *Shadow — Falla en la entrega*
 
 ❌ ${error.message}`)
     await m.react("❌")
