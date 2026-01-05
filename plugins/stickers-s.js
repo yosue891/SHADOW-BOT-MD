@@ -7,7 +7,6 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
   if (!chat.registered) {
     const thumbBuffer = await (await fetch('https://iili.io/fXp3swb.jpg')).buffer()
 
-    // Imagen pequeña arriba (igual que el otro)
     const fkontak = {
       key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'Shadow' },
       message: {
@@ -54,7 +53,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
           title: 'Shadow • Sistema de Registro',
           body: 'Registro uwu',
           mediaType: 1,
-          thumbnailUrl: 'https://files.catbox.moe/k45sr6.jpg',
+          thumbnailUrl: 'https://files.catbox.moe/n3bg2n.jpg',
           sourceUrl: 'https://wa.me/584242773183'
         }
       }
