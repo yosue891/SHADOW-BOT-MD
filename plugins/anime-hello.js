@@ -1,7 +1,5 @@
-import fs from 'fs';
-import path from 'path';
-
-let handler = async (m, { conn, usedPrefix }) => {
+let handler = async (m, { conn }) => {
+  // Detectar usuario objetivo
   let who = (m.mentionedJid && m.mentionedJid.length > 0)
     ? m.mentionedJid[0]
     : (m.quoted ? m.quoted.sender : m.sender);
@@ -9,8 +7,10 @@ let handler = async (m, { conn, usedPrefix }) => {
   const name = await conn.getName(who).catch(() => who.split('@')[0]);
   const name2 = await conn.getName(m.sender).catch(() => m.sender.split('@')[0]);
 
-  if (typeof m.react === 'function') m.react('👋');
+  // Reacción al mensaje
+  await conn.sendMessage(m.chat, { react: { text: '👋', key: m.key } });
 
+  // Texto del saludo
   let str;
   if (m.mentionedJid && m.mentionedJid.length > 0) {
     str = `\`${name2}\` *hola* \`${name || who}\` *¿cómo estás?*`;
@@ -21,13 +21,14 @@ let handler = async (m, { conn, usedPrefix }) => {
   }
 
   if (m.isGroup) {
+    // Lista de videos nuevos
     const videos = [
       'https://files.catbox.moe/2akfd1.mp4',
       'https://files.catbox.moe/95gidx.mp4',
       'https://files.catbox.moe/f31dxs.mp4',
       'https://files.catbox.moe/ia2xt1.mp4',
       'https://files.catbox.moe/5p0m2e.mp4',
-      'https://files.catbox.moe/2akfd1.mp4', // duplicada en tu lista, la mantenemos
+      'https://files.catbox.moe/2akfd1.mp4',
       'https://files.catbox.moe/u1ljt8.mp4',
       'https://files.catbox.moe/d9z71j.mp4',
       'https://files.catbox.moe/ng6lk2.mp4',
