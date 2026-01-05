@@ -13,11 +13,11 @@ let handler = async (m, {conn, command}) => {
     participant: '0@s.whatsapp.net'
   }
 
-  let str = `🎄💙 𝘽𝙄𝙀𝙉𝙑𝙀𝙉𝙄𝘿𝙊(𝘼) 𝘼 𝙇𝘼𝙎 𝘾𝙐𝙀𝙉𝙏𝘼𝙎 𝙊𝙁𝙄𝘾𝙄𝘼𝙇𝙀𝙎 🎄
+  let str = `🌑⚔️ 𝘽𝙄𝙀𝙉𝙑𝙀𝙉𝙄𝘿𝙊(𝘼) 𝘼 𝙇𝘼𝙎 𝘾𝙐𝙀𝙉𝙏𝘼𝙎 𝙊𝙁𝙄𝘾𝙄𝘼𝙇𝙀𝙎 ⚔️🌑
 💜 𝙒𝙀𝙇𝘾𝙊𝙈𝙀 𝙏𝙊 𝙏𝙃𝙀 𝙊𝙁𝙁𝙄𝘾𝙄𝘼𝙇 𝘼𝘾𝘾𝙊𝙐𝙉𝙏𝙎
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 💖 𝙎𝙝𝙖𝙙𝙤𝙬-𝘽𝙊𝙏-𝙈𝘿 ⚔️✨
-El poder oculto entre luces navideñas UwU
+『☽』 El poder oculto se revela solo en las sombras...
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 ✅ *GITHUB OFICIAL*
 https://github.com/yosue891
@@ -31,10 +31,10 @@ https://whatsapp.com/channel/0029VbBIgz1HrDZg92ISUl2M
 ✅ *COMUNIDAD OFICIAL*
 https://chat.whatsapp.com/ETHW7aP7kOICrR2RBrfE6N
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-👑 Creador Principal 🎅: +58 424-2773183 (Yosue)
-🎁 Segundo Creador ❄️: +504 9373-2693 (Ado)
+👑 Creador Principal: +58 424-2773183 (Yosue)
+⚔️ Segundo Creador: +504 9373-2693 (Ado)
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-🎄✨ *Shadow-BOT-MD* — La sombra también celebra la Navidad UwU ✨🎄`
+🌌✨ *Shadow-BOT-MD* — El jardín sombrío nunca duerme ✨🌌`
 
   await conn.sendButton(
     m.chat,
