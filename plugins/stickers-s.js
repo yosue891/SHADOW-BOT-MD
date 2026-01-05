@@ -62,7 +62,6 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     return await conn.sendMessage(m.chat, productMessage, { quoted: fkontak })
   }
 
-  // --- lógica normal de stickers ---
   let stiker = false;
   try {
     let q = m.quoted ? m.quoted : m;
@@ -118,7 +117,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
               body: `🌌aqui tienes tu sticker uwu🌌`, 
               mediaType: 2, 
               sourceUrl: 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O', 
-              thumbnailUrl: 'https://files.catbox.moe/1ric0g.jpg' 
+              thumbnailUrl: 'https://files.catbox.moe/sc3pei.jpg' 
             }
           }
         }, 
