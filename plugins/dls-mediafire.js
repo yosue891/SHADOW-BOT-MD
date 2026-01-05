@@ -1,86 +1,31 @@
-import axios from 'axios';
+import fetch from 'node-fetch'
+import { lookup } from 'mime-types'
 
-function isValidMediafireUrl(url) {
-  try {
-    const parsed = new URL(url);
-    const hostOk = parsed.hostname.includes('mediafire.com');
-    const pathOk = parsed.pathname.includes('/file/');
-    const queryOk = parsed.search.length > 1;
-    return hostOk && (pathOk || queryOk);
-  } catch {
-    return false;
-  }
-}
+let handler = async (m, { conn, text, usedPrefix }) => {
+if (!text) return conn.reply(m.chat, '❀ Te faltó el enlace de Mediafire.', m)
+if (!/^https:\/\/www\.mediafire\.com\//i.test(text)) return conn.reply(m.chat, 'ꕥ Enlace inválido.', m)
+try {
+await m.react('🕒')
+const res = await fetch(`${global.APIs.delirius.url}/download/mediafire?url=${encodeURIComponent(text)}`)
+const json = await res.json()
+const data = json.data
+if (!json.status || !data?.filename || !data?.link) { throw 'ꕥ No se pudo obtener el archivo desde Delirius.' }
+const filename = data.filename
+const filesize = data.size || 'desconocido'
+const mimetype = data.mime || lookup(data.extension?.toLowerCase()) || 'application/octet-stream'
+const dl_url = data.link.includes('u=') ? decodeURIComponent(data.link.split('u=')[1]) : data.link
+const caption = `乂 MEDIAFIRE - DESCARGA 乂\n\n✩ Nombre » ${filename}\n✩ Peso » ${filesize}\n✩ MimeType » ${mimetype}\n✩ Enlace » ${text}`
+await conn.sendMessage(m.chat, { document: { url: dl_url }, fileName: filename, mimetype, caption }, { quoted: m })
+await m.react('✔️')
+} catch (e) {
+await m.react('✖️')
+return conn.reply(m.chat, `⚠︎ Se ha producido un problema.\n> Usa *${usedPrefix}report* para informarlo.\n\n${e.message}`, m)
+}}
 
-let handler = async (m, { conn, args, usedPrefix, command }) => {
-  try {
-    if (!args[0]) {
-      return m.reply(
-        `> ✦ Ingresa un enlace de un archivo de mediafire o un titulo.`
-      );
-    }
+handler.command = ['mf', 'mediafire']
+handler.help = ['mediafire']
+handler.tags = ['descargas']
+handler.group = true
+handler.premium = true
 
-    const input = args.join(' ');
-    const isValidUrl = isValidMediafireUrl(input);
-
-
-    let mediafireUrl = input;
-
-    if (!isValidUrl) {
-      const searchRes = await axios.get(`https://api.stellarwa.xyz/search/mediafire?query=${encodeURIComponent(input)}&apikey=Diamond`);
-      const searchData = searchRes.data;
-
-      if (!searchData.status || !searchData.results?.length) {
-        return m.reply('✰ No se encontraron resultados para tu búsqueda.');
-      }
-
-      const result = searchData.results[Math.floor(Math.random() * searchData.results.length)];
-      mediafireUrl = result.url;
-    }
-
-    const response = await axios.get(`https://api.stellarwa.xyz/dow/mediafire?url=${mediafireUrl}&apikey=Diamond`);
-    const data = response.data;
-
-    if (!data.status || !data.data) {
-      return m.reply('☁️ No se pudo procesar el enlace.');
-    }
-
-    const { title, peso, fecha, tipo, dl } = data.data;
-
-    const info = `❐ *_Información_*\n\n` +
-      `> ꕤ *Nombre:* ${title}\n` +
-      `> ⌗ *Peso:* ${peso}\n` +
-      `> ✎ *Fecha:* ${fecha}\n` +
-      `> ☄︎ *Tipo:* ${tipo}\n\n` +
-      `> 〄 *Enlace directo:* ${dl}`;
-
-    await conn.sendMessage(m.chat, { text: info }, { quoted: m });
-
-    if (!/GB|gb/.test(peso)) {
-      await conn.sendMessage(
-        m.chat,
-        {
-          document: { url: dl },
-          mimetype: tipo,
-          fileName: title,
-        },
-        { quoted: m }
-      );
-    } else {
-      await conn.sendMessage(m.chat, {
-        text: `✧ *Hubo un error, el archivo supera el límite permitido para el envio.*`
-      }, { quoted: m });
-    }
-
-  } catch (error) {
-    console.error(error);
-    m.reply(`✿ *Error:* ${error.message}`);
-  }
-};
-
-handler.help = ['mediafire'];
-handler.tags = ['descargas'];
-handler.command = ['mediafire', 'mf'];
-
-export default handler;
-                           
+export default handler
