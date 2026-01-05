@@ -78,7 +78,7 @@ var handler = async (m, { conn, args, usedPrefix, command }) => {
                   name: 'cta_copy',
                   buttonParamsJson: JSON.stringify({
                     display_text: 'Copiar',
-                    copy_code: 'I LOVE yosue Shadow-Bot uwu'
+                    copy_code: '*I LOVE yosue Shadow-Bot uwu*'
                   })
                 },
                 {
