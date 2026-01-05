@@ -16,7 +16,7 @@ const handler = async (m, { conn, usedPrefix, command }) => {
 
   // 💍 PROPUESTA
   if (command === 'marry' || command === 'casarse') {
-    if (!mentioned) return conn.reply(m.chat, `💍 Menciona a alguien para proponer matrimonio.`, m);
+    if (!mentioned) return conn.reply(m.chat, `💍 Menciona a alguien tocando su nombre para proponer matrimonio.`, m);
     const partnerId = mentioned;
     if (partnerId === userId) return conn.reply(m.chat, '💔 No puedes casarte contigo mismo.', m);
     if (marriages[userId] || marriages[partnerId]) return conn.reply(m.chat, '⚠️ Uno de los dos ya está casado.', m);
@@ -24,7 +24,7 @@ const handler = async (m, { conn, usedPrefix, command }) => {
     proposals[userId] = partnerId;
 
     await conn.sendMessage(m.chat, {
-      text: `💌 Propuesta enviada a @${partnerId.split('@')[0]}\n⏳ Tienes 49 segundos para responder.`,
+      text: `💌 *Propuesta enviada a @${partnerId.split('@')[0]}*\n⏳ Tienes 49 segundos para responder.`,
       mentions: [partnerId],
       buttons: [
         { buttonId: `${usedPrefix}aceptar ${userId}`, buttonText: { displayText: '✅ Aceptar' }, type: 1 },
@@ -36,7 +36,7 @@ const handler = async (m, { conn, usedPrefix, command }) => {
     setTimeout(() => {
       if (proposals[userId] === partnerId) {
         delete proposals[userId];
-        conn.reply(m.chat, `⌛ El matrimonio fue cancelado...\nLas sombras se burlan de tu soledad, @${userId.split('@')[0]}.`, null, { mentions: [userId] });
+        conn.reply(m.chat, `⌛ El matrimonio fue cancelado...\n『☽』 Las sombras se burlan de tu soledad, @${userId.split('@')[0]}.`, null, { mentions: [userId] });
       }
     }, 49 * 1000);
   }
@@ -51,7 +51,7 @@ const handler = async (m, { conn, usedPrefix, command }) => {
     delete proposals[proposer];
     delete proposals[userId];
 
-    return conn.reply(m.chat, `💒 ¡Felicitaciones!\n@${userId.split('@')[0]} y @${proposer.split('@')[0]} ahora están oficialmente casados.`, m, { mentions: [userId, proposer] });
+    return conn.reply(m.chat, `💒 『☽』 Las sombras han unido sus destinos.\n@${userId.split('@')[0]} y @${proposer.split('@')[0]} ahora están oficialmente casados.`, m, { mentions: [userId, proposer] });
   }
 
   // ❌ RECHAZAR
@@ -60,7 +60,7 @@ const handler = async (m, { conn, usedPrefix, command }) => {
     if (!proposer || proposals[proposer] !== userId) return conn.reply(m.chat, '⚠️ No tienes ninguna propuesta pendiente de esa persona.', m);
 
     delete proposals[proposer];
-    return conn.reply(m.chat, `💔 @${userId.split('@')[0]} ha rechazado la propuesta de @${proposer.split('@')[0]}.`, m, { mentions: [userId, proposer] });
+    return conn.reply(m.chat, `💔 『☽』 @${userId.split('@')[0]} ha rechazado la propuesta de @${proposer.split('@')[0]}.`, m, { mentions: [userId, proposer] });
   }
 };
 
