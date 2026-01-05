@@ -54,16 +54,7 @@ let handler = async (m, { conn }) => {
         video: { url: video },
         gifPlayback: true,
         caption,
-        mentions,
-        contextInfo: {
-          externalAdReply: {
-            title: 'Shadow Garden',
-            body: 'Un saludo desde las sombras…',
-            thumbnailUrl: 'https://files.catbox.moe/6fewjd.jpg',
-            mediaType: 1,
-            renderLargerThumbnail: true
-          }
-        }
+        mentions
       },
       { quoted: m }
     )
