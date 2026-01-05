@@ -8,31 +8,31 @@ const handler = async (m, { conn, usedPrefix, command }) => {
   const userId = m.sender
 
   if (['divorce', 'divorciarse'].includes(command)) {
-    if (!marriages[userId]) return conn.reply(m.chat, '💔 No estás casado...', m)
+    if (!marriages[userId]) return conn.sendMessage(m.chat, { text: '💔 No estás casado...', ...rcanal }, { quoted: m })
     const ex = marriages[userId]
     delete marriages[userId]
     delete marriages[ex]
-    return conn.reply(m.chat, `💔 Divorcio realizado.\n${tag(userId)} y ${tag(ex)} ya no están casados.`, m, { mentions: [userId, ex] })
+    return conn.sendMessage(m.chat, { text: `💔 Divorcio realizado.\n${tag(userId)} y ${tag(ex)} ya no están casados.`, mentions: [userId, ex], ...rcanal }, { quoted: m })
   }
 
   if (['marry', 'casarse'].includes(command)) {
     const partnerId = m.mentionedJid?.[0] || m.quoted?.sender
-    if (!partnerId) return conn.reply(m.chat, '💍 Menciona o responde al mensaje de la persona para casarte.', m)
-    if (partnerId === userId) return conn.reply(m.chat, '💔 No puedes casarte contigo mismo.', m)
+    if (!partnerId) return conn.sendMessage(m.chat, { text: '💍 Menciona o responde al mensaje de la persona para casarte.', ...rcanal }, { quoted: m })
+    if (partnerId === userId) return conn.sendMessage(m.chat, { text: '💔 No puedes casarte contigo mismo.', ...rcanal }, { quoted: m })
 
     if (marriages[userId]) {
       const esposo = marriages[userId]
-      return conn.reply(m.chat, `:0 estás intentando serle fiel a tu esposo/a ${tag(esposo)}.`, m, { mentions: [userId, esposo] })
+      return conn.sendMessage(m.chat, { text: `:0 estás intentando serle fiel a tu esposo/a ${tag(esposo)}.`, mentions: [userId, esposo], ...rcanal }, { quoted: m })
     }
     if (marriages[partnerId]) {
       const esposo = marriages[partnerId]
-      return conn.reply(m.chat, `⚠️ ${tag(partnerId)} ya está casado con ${tag(esposo)}.`, m, { mentions: [partnerId, esposo] })
+      return conn.sendMessage(m.chat, { text: `⚠️ ${tag(partnerId)} ya está casado con ${tag(esposo)}.`, mentions: [partnerId, esposo], ...rcanal }, { quoted: m })
     }
 
     marriages[userId] = partnerId
     marriages[partnerId] = userId
 
-    return conn.reply(m.chat, `💒 『☽』 Las sombras han sellado el pacto.\n${tag(userId)} y ${tag(partnerId)} ahora están oficialmente casados.`, m, { mentions: [userId, partnerId] })
+    return conn.sendMessage(m.chat, { text: `💒 『☽』 Las sombras han sellado el pacto.\n${tag(userId)} y ${tag(partnerId)} ahora están oficialmente casados.`, mentions: [userId, partnerId], ...rcanal }, { quoted: m })
   }
 }
 
