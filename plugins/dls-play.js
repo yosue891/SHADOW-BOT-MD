@@ -2,9 +2,9 @@ import yts from "yt-search"
 import fetch from "node-fetch"
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
-  if (!text) return m.reply("🎄 Ingresa el nombre del video o un enlace de YouTube.")
+  if (!text) return m.reply("🎶 Ingresa el nombre del video de YouTube.")
 
-  await m.react("❄️")
+  await m.react("🕘")
 
   try {
     let url = text
@@ -31,7 +31,6 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     const res3 = await fetch("https://files.catbox.moe/wfd0ze.jpg")
     const thumb3 = Buffer.from(await res3.arrayBuffer())
 
-    // Imagen pequeña arriba (quoted)
     const fkontak = {
       key: { fromMe: false, participant: "0@s.whatsapp.net" },
       message: {
@@ -43,7 +42,6 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       }
     }
 
-    // Nuevo estilo del caption con otra tipografía y adornos
     const caption = `
 ✧━───『 𝙸𝚗𝚏𝚘 𝚍𝚎𝚕 𝚅𝚒𝚍𝚎𝚘 』───━✧
 
@@ -142,7 +140,7 @@ const downloadMedia = async (conn, m, url, type) => {
       { text: `✅ Descarga completada\n\n🎼 Título: ${fileTitle}`, edit: sent.key }
     )
 
-    await m.react("🌟")
+    await m.react("✅")
   } catch (e) {
     console.error(e)
     m.reply("❌ Error: " + e.message)
