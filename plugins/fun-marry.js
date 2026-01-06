@@ -1,4 +1,3 @@
-
 let marriages = {}
 
 function tag(jid) {
