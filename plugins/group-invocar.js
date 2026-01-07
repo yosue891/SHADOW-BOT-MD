@@ -5,7 +5,7 @@ let handler = async (m, { conn, text }) => {
     const chatId = m.chat
     const isGroup = chatId.endsWith('@g.us')
 
-    await conn.sendMessage(chatId, { react: { text: '🎄', key: m.key } })
+    await conn.sendMessage(chatId, { react: { text: '🌑', key: m.key } })
 
     if (!isGroup) {
       await conn.sendMessage(chatId, {
@@ -24,7 +24,7 @@ let handler = async (m, { conn, text }) => {
 
     let texto = 
 `┏━━━━━━━━━━━━━━━━━━━┓
-🎅 *Invocación Navideña de las Sombras* 🎅
+⚔️ *Invocación Sombría* ⚔️
 ┗━━━━━━━━━━━━━━━━━━━┛
 
 ✐ Grupo: *${metadata.subject}*
@@ -36,14 +36,17 @@ let handler = async (m, { conn, text }) => {
     texto += participants.map(p => `» @${p.id.split('@')[0]}`).join('\n')
 
     const vs = "1.0.0"
-    texto += `\n\n❄️ Versión: *${vs}*`
-    texto += `\n✨ "Las sombras celebran bajo la nieve... ¿Quién más desea ser invocado en esta noche eterna?" ✨`
+    texto += `\n\n🌌 Versión: *${vs}*`
+    texto += `\n✨ 『☽』 *Las sombras invocan a todos los presentes en este jardín eterno...* ✨`
 
-    // 👇 Aquí enviamos imagen + caption con menciones
     await conn.sendMessage(chatId, {
-      image: { url: 'https://files.catbox.moe/qjxuoj.jpg' }, // tu imagen personalizada
+      image: { url: 'https://files.catbox.moe/qjxuoj.jpg' }, 
       caption: texto,
-      mentions: mentionIds
+      mentions: mentionIds,
+      forwardedNewsletterMessageInfo: {
+        newsletterJid: "120363403739366547@newsletter",
+        newsletterName: "Shadow Garden Oficial"
+      }
     }, { quoted: m })
 
   } catch (error) {
@@ -57,7 +60,6 @@ let handler = async (m, { conn, text }) => {
 
 handler.help = ['invocar']
 handler.tags = ['grupo']
-// 👇 Usa array en vez de regex
 handler.command = ['tagall', 'invocar', 'todos']
 handler.group = true
 handler.admin = true
