@@ -36,7 +36,7 @@ let handler = async (m, { conn, text }) => {
     caption += `\n\n❒ Menciones:\n`
     caption += participants.map(p => `» @${p.id.split('@')[0]}`).join('\n')
 
-    const vs = "1.0.0"
+    const vs = "^1.3.2"
     caption += `\n\n🌌 Versión: *${vs}*`
     caption += `\n『☽』 En el jardín sombrío, todos responden al llamado de las sombras.`
 
