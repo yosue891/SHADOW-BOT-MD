@@ -1,18 +1,23 @@
 const { generateWAMessageFromContent, proto } = (await import('@whiskeysockets/baileys')).default
 
-var handler = async (m, { conn, text}) => {
+var handler = async (m, { conn, text }) => {
 
-conn.reply(m.chat, `🎄 Buscando un piropo navideño con Shadow, espere un momento...`, m)
+  conn.reply(m.chat, `☽ Buscando un piropo con Shadow Garden, espera un momento...`, m)
 
-conn.reply(m.chat, `*┏━͜͡-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡❄️-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡❄️-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡❄️-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡━┓*\n\n❥ *"${pickRandom(global.piropo)}"* 🎅✨\n\n*┗━͜͡-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡❄️-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡❄️-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡❄️-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡━┛*`, m)
+  conn.reply(
+    m.chat,
+    `*┏━͜͡-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡☽-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡☽-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡☽-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡━┓*\n\n❥ *"${pickRandom(global.piropo)}"* ✦\n\n*┗━͜͡-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡☽-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡☽-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡☽-͜͡-͜͡-͜͡-͜͡-͜͡-͜͡━┛*`,
+    m
+  )
 
 }
+
 handler.help = ['piropo']
 handler.tags = ['fun']
 handler.command = ['piropo']
 handler.fail = null
 handler.exp = 0
-handler.group = true;
+handler.group = true
 handler.register = true
 
 export default handler
