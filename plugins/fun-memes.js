@@ -2,7 +2,6 @@ import axios from 'axios';
 
 let handler = async (m, { command, conn }) => {
   try {
-    
     const res = await axios.get('https://meme-api.com/gimme/memesESP');
     const memeUrl = res.data.url;
 
@@ -21,12 +20,10 @@ let handler = async (m, { command, conn }) => {
       participant: '0@s.whatsapp.net'
     };
 
-    let caption = `╔══ 🎄 ✦ 🎁 ✦ 🎄 ══╗
-   *S H A D O W - M E M E S*
-╚══ 🎄 ✦ 🎁 ✦ 🎄 ══╝
+    let caption = `☽ 『 Shadow Garden Memes 』 ☽
 
-🧠 Aquí tienes un meme en español invocado desde las sombras festivas...
-✨ Que la risa ilumine tu noche navideña.`;
+🧠 Aquí tienes un meme en español invocado desde las sombras...
+✦ Que la risa ilumine tu noche oscura.`;
 
     await conn.sendButton(
       m.chat,
@@ -34,8 +31,8 @@ let handler = async (m, { command, conn }) => {
       wm,
       memeUrl,
       [
-        ['🎁 Siguiente meme 🔁', '.meme'],
-        ['☘️ Volver al Menú', '/menu']
+        ['☽ Siguiente meme ☽', '.meme'],
+        ['☽ Volver al Menú ☽', '/menu']
       ],
       null,
       [[bot, 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O']],
@@ -46,7 +43,7 @@ let handler = async (m, { command, conn }) => {
 
   } catch (e) {
     await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } });
-    m.reply('⚠️ Las sombras navideñas no pudieron encontrar un meme en español...');
+    m.reply('⚠️ Las sombras no pudieron encontrar un meme en español...');
     console.error(e);
   }
 };
