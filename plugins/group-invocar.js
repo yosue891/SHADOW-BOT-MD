@@ -40,11 +40,11 @@ let handler = async (m, { conn, text }) => {
     caption += `\n\n🌌 Versión: *${vs}*`
     caption += `\n『☽』 En el jardín sombrío, todos responden al llamado de las sombras.`
 
-    const thumbnail = await (await fetch('https://files.catbox.moe/qjxuoj.jpg')).buffer()
+    const thumbnail = await (await fetch('https://files.catbox.moe/4bvpl0.jpg')).buffer()
     const canalOficial = 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O'
 
     await conn.sendMessage(chatId, {
-      image: { url: 'https://files.catbox.moe/qjxuoj.jpg' },
+      image: { url: 'https://files.catbox.moe/4bvpl0.jpg' },
       caption,
       mentions: mentionIds,
       contextInfo: {
