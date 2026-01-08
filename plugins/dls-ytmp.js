@@ -86,10 +86,9 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
       )
     }
 
-    // Aquí cambiamos la API y la clave
     const apiUrl = type === "mp3"
-      ? `https://sylphy.xyz/download/ytmp3?url=${encodeURIComponent(url)}&api_key=api_cjBXTw6hsKtotix1vx686UqbkByWKm09_1767826107206_53yrws9uk`
-      : `https://sylphy.xyz/download/ytmp4?url=${encodeURIComponent(url)}&q=&api_key=api_cjBXTw6hsKtotix1vx686UqbkByWKm09_1767826107206_53yrws9uk`
+      ? `https://api-adonix.ultraplus.click/download/ytaudio?url=${encodeURIComponent(url)}&apikey=SHADOWBOTMDkey`
+      : `https://api-adonix.ultraplus.click/download/ytvideo?url=${encodeURIComponent(url)}&apikey=SHADOWBOTMDkey`
 
     const response = await fetch(apiUrl)
     const data = await response.json()
@@ -161,4 +160,4 @@ handler.command = handler.help = ["ytmp3", "playvid", "ytv", "ytmp4", "play2", "
 handler.tags = ["descargas"]
 handler.register = true
 
-export default handler
+export default handler            
