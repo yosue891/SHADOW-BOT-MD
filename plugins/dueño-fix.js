@@ -18,7 +18,7 @@ var handler = async (m, { conn, text, isMods }) => {
         contextInfo: {
           externalAdReply: {
             showAdAttribution: true,
-            title: 'Shadow • Update System',
+            title: 'Shadow • Update SHADOW-BOT-MD',
             body: 'Actualización del bot',
             mediaType: 1,
             thumbnailUrl: 'https://files.catbox.moe/88hj9j.jpg',
