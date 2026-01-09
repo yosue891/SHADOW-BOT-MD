@@ -1,8 +1,6 @@
 import fs from 'fs';
 
-// 🌌🎄 Inicio versión Shadow Garden con toque navideño
 const handler = (m) => {
-  // ✨ Las sombras vigilan incluso en navidad...
   return m;
 };
 
@@ -11,17 +9,16 @@ handler.all = async function(m) {
     const chat = global.db.data.chats[m.chat];
     if (chat.isBaneed) return;
 
-    const text = m.text.toLowerCase(); // simplifica las comparaciones
+    const text = m.text.toLowerCase(); 
 
-    // Mapeo de palabras clave y respuestas
     const respuestas = {
-        "bot": `🌌🎄 ¡Has invocado al Shadow-Bot en esta fría navidad!\n\n👑 Soy Asta, guardián de las sombras.\n✰ Usa *!menu* para descubrir los rituales ocultos.`,
+        "bot": `🌌 ¡Has invocado al Shadow-Bot!\n\n👑 Soy Asta, guardián de las sombras.\n✰ Usa *!menu* para descubrir los rituales ocultos.`,
         "sexo": "❄️ Las sombras susurran... *pervertido* 🫣",
         "teta": "🔥 La nieve se derrite... *qué caliente eres* 🥵",
         "tetas": "🔥 La nieve se derrite... *qué caliente eres* 🥵",
         "bug": "👻 Las sombras ríen... *tu mamá we* 😹",
         "pene": "🌌 En silencio... *comes* 😹",
-        "hola": "🎄 ¡Saludos desde el Shadow Garden! 😎",
+        "hola": "👋 ¡Saludos desde el Shadow Garden! 😎",
         "adios": "🌙 Las sombras se despiden... 👋",
         "amor": "💖 Bajo la nieve, el amor florece ❤️",
         "odio": "❄️ Respira... incluso las sombras se calman 😅",
@@ -60,7 +57,6 @@ handler.all = async function(m) {
         "perezoso": "😴 Las sombras esperan..."
     };
 
-    // Buscar coincidencias
     for (let key in respuestas) {
         const regex = new RegExp(`^${key}$`, "i");
         if (regex.test(m.text)) {
