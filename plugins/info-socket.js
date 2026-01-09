@@ -1,5 +1,4 @@
 import os from 'os';
-import fetch from 'node-fetch';
 
 function rTime(seconds) {
   seconds = Number(seconds);
@@ -25,12 +24,12 @@ export default {
       const botname = botSettings.namebot || 'Ai Surus';
       const botname2 = botSettings.namebot2 || 'Surus';
       const monedas = botSettings.currency || 'BitCoins';
-      const banner = botSettings.banner;
-      const prefijo = botSettings.prefijo;
-      const owner = botSettings.owner;
-      const canalId = botSettings.id;
-      const canalName = botSettings.nameid;
-      const link = botSettings.link;
+      const banner = botSettings.banner || null;
+      const prefijo = botSettings.prefijo || '.';
+      const owner = botSettings.owner || '';
+      const canalId = botSettings.id || '';
+      const canalName = botSettings.nameid || '';
+      const link = botSettings.link || '';
 
       let desar = 'Oculto';
       if (owner &&!isNaN(owner.replace(/@s\.whatsapp\.net$/, ''))) {
@@ -58,42 +57,33 @@ export default {
       const isOficialBot = botId === client.user.id.split(':')[0] + "@s.whatsapp.net";
       const botType = isOficialBot? 'Principal/Owner': 'Sub Bot';
 
-      const message = `💜 Información del bot ${botname2}!
+      const ownerTag = owner &&!isNaN(owner.replace(/@s\.whatsapp\.net$/, ''))
+? '@' + owner.split('@')[0]
+: owner || 'Oculto por privacidad';
 
-> Nombre Corto › ${botname2}
-> Nombre Largo › ${botname}
-> Moneda › ${monedas}
-> Prefijo › ${prefijo}
+      const message = `💜 *Información del bot ${botname2}*
 
-> Tipo › ${botType}
-> Plataforma › ${platform}
-> NodeJS › ${nodeVersion}
-> Activo desde › ${formattedUptimeDate}
-> Sistema Activo › ${sistemaUptime}
-> ${desar === 'Hombre'? 'Dueño': desar === 'Mujer'? 'Dueña': 'Dueño(a)'} › ${owner? (!isNaN(owner.replace(/@s\.whatsapp\.net$/, ''))? '@' + owner.split('@')[0]: owner): "Oculto por privacidad"}
+> *Nombre Corto:* ${botname2}
+> *Nombre Largo:* ${botname}
+> *Moneda:* ${monedas}
+> *Prefijo:* ${prefijo}
 
-> Enlace › ${link}`.trim();
+> *Tipo:* ${botType}
+> *Plataforma:* ${platform}
+> *NodeJS:* ${nodeVersion}
+> *Activo desde:* ${formattedUptimeDate}
+> *Sistema Activo:* ${sistemaUptime}
+> *${desar === 'Hombre'? 'Dueño': desar === 'Mujer'? 'Dueña': 'Dueño(a)'}:* ${ownerTag}
+
+> *Enlace:* ${link || 'No disponible'}`.trim();
 
       await client.sendMessage(m.chat, {
-        document: await (await fetch(banner)).buffer(),
-        fileName: '^5.0.0 | Latest ☪️',
-        mimetype: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        fileLength: '0',
-        pageCount: '1',
-        caption: message,
+        text: message,
         contextInfo: {
-          mentionedJid: [owner, m.sender],
-          forwardingScore: 0,
-          isForwarded: true,
-          forwardedNewsletterMessageInfo: {
-            newsletterJid: canalId,
-            serverMessageId: null,
-            newsletterName: canalName
-},
+          mentionedJid: [owner, m.sender].filter(Boolean),
           externalAdReply: {
             title: botname,
             body: `${botname2}. 𝘞𝘪𝘵𝘩 𝘓𝘰𝘷𝘦 𝘉𝘺 shadow`,
-            showAdAttribution: false,
             thumbnailUrl: banner,
             mediaType: 1,
             renderLargerThumbnail: true,
