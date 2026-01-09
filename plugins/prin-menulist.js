@@ -1,7 +1,7 @@
 import fs, { promises as fsp } from 'fs'
 import { fileURLToPath } from 'url'
 import path, { dirname, join } from 'path'
-import * as Jimp from 'jimp'
+import Jimp from 'jimp'
 import { xpRange } from '../lib/levelling.js'
 
 const __filename = fileURLToPath(import.meta.url)
