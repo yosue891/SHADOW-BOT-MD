@@ -8,7 +8,7 @@ let handler = async (m, { conn}) => {
   try {
     const botname = 'Shadow-BOT-MD';
     const botname2 = 'shadow';
-    const monedas = 'BitCoins';
+    const monedas = 'Pesos';
     const banner = 'https://files.catbox.moe/7mpqeg.jpg';
     const prefijos = './#!';
     const canalId = '120363403739366547@newsletter';
