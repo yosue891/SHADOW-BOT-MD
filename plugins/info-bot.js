@@ -23,7 +23,6 @@ handler.all = async function(m) {
         "amor": "💖 Bajo la nieve, el amor florece ❤️",
         "odio": "❄️ Respira... incluso las sombras se calman 😅",
         "jaja": "😂 Las sombras también ríen contigo",
-        "xd": "😆 El eco sombrío responde",
         "gato": "🐱 En la oscuridad, los gatos reinan",
         "perro": "🐶 Fiel guardián de las sombras",
         "pizza": "🍕 Ritual festivo: ¡Pizza time!",
