@@ -12,18 +12,11 @@ let handler = async (m, { conn, usedPrefix, command}) => {
     const botname = botSettings.namebot || 'Ai Surus';
     const botname2 = botSettings.namebot2 || 'Surus';
     const monedas = botSettings.currency || 'BitCoins';
-    const banner = botSettings.banner || null;
+    const banner = botSettings.banner || 'https://files.catbox.moe/7mpqeg.jpg'; // URL fija
     const prefijo = botSettings.prefijo || usedPrefix;
-    const owner = botSettings.owner || '';
-    const canalId = botSettings.id || '';
-    const canalName = botSettings.nameid || '';
-    const link = botSettings.link || '';
-
-    let desar = 'Oculto';
-    if (owner &&!isNaN(owner.replace(/@s\.whatsapp\.net$/, ''))) {
-      const userData = global.db.data.users[owner];
-      desar = userData?.genre || 'Oculto';
-}
+    const canalId = botSettings.id || '120363403739366547@newsletter';
+    const canalName = botSettings.nameid || 'SHADOW-BOT';
+    const link = botSettings.link || 'https://github.com/yosue891/SHADOW-BOT-MD.git';
 
     const platform = os.type();
     const now = new Date();
@@ -42,12 +35,8 @@ let handler = async (m, { conn, usedPrefix, command}) => {
       minute: '2-digit'
 }).replace(/^./, m => m.toUpperCase());
 
-    const isOficialBot = botId === conn.user.id.split(':')[0] + "@s.whatsapp.net";
-    const botType = isOficialBot? 'Principal/Owner': 'Sub Bot';
-
-    const ownerTag = owner &&!isNaN(owner.replace(/@s\.whatsapp\.net$/, ''))
-? '@' + owner.split('@')[0]
-: owner || 'Oculto por privacidad';
+    const botType = 'Principal/Owner';
+    const duenos = 'yosue, ado y Fede';
 
     const message = `💜 *Información del bot ${botname2}*
 
@@ -61,15 +50,22 @@ let handler = async (m, { conn, usedPrefix, command}) => {
 > *NodeJS:* ${nodeVersion}
 > *Activo desde:* ${formattedUptimeDate}
 > *Sistema Activo:* ${sistemaUptime}
-> *${desar === 'Hombre'? 'Dueño': desar === 'Mujer'? 'Dueña': 'Dueño(a)'}:* ${ownerTag}
+> *Dueño(a):* ${duenos}
 
-> *Enlace:* ${link || 'No disponible'}`.trim();
+> *Repositorio:* ${link}`.trim();
 
     const content = generateWAMessageFromContent(m.chat, {
       extendedTextMessage: {
         text: message,
         contextInfo: {
-          mentionedJid: [owner, m.sender].filter(Boolean),
+          mentionedJid: [m.sender],
+          forwardingScore: 0,
+          isForwarded: true,
+          forwardedNewsletterMessageInfo: {
+            newsletterJid: canalId,
+            serverMessageId: null,
+            newsletterName: canalName
+},
           externalAdReply: {
             title: botname,
             body: `${botname2}. 𝘞𝘪𝘵𝘩 𝘓𝘰𝘷𝘦 𝘉𝘺 shadow`,
