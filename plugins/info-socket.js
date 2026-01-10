@@ -4,19 +4,16 @@ const {
   proto
 } = (await import("@whiskeysockets/baileys"))["default"];
 
-let handler = async (m, { conn, usedPrefix, command}) => {
+let handler = async (m, { conn}) => {
   try {
-    const botId = conn.user.id.split(':')[0] + "@s.whatsapp.net";
-    const botSettings = global.db.data.settings[botId] || {};
-
-    const botname = botSettings.namebot || 'Ai Surus';
-    const botname2 = botSettings.namebot2 || 'Surus';
-    const monedas = botSettings.currency || 'BitCoins';
-    const banner = botSettings.banner || 'https://files.catbox.moe/7mpqeg.jpg'; // URL fija
-    const prefijo = botSettings.prefijo || usedPrefix;
-    const canalId = botSettings.id || '120363403739366547@newsletter';
-    const canalName = botSettings.nameid || 'SHADOW-BOT';
-    const link = botSettings.link || 'https://github.com/yosue891/SHADOW-BOT-MD.git';
+    const botname = 'Shadow-BOT-MD';
+    const botname2 = 'shadow';
+    const monedas = 'BitCoins';
+    const banner = 'https://files.catbox.moe/7mpqeg.jpg';
+    const prefijos = './#!';
+    const canalId = '120363403739366547@newsletter';
+    const canalName = 'SHADOW-BOT';
+    const link = 'https://github.com/yosue891/SHADOW-BOT-MD.git';
 
     const platform = os.type();
     const now = new Date();
@@ -43,7 +40,7 @@ let handler = async (m, { conn, usedPrefix, command}) => {
 > *Nombre Corto:* ${botname2}
 > *Nombre Largo:* ${botname}
 > *Moneda:* ${monedas}
-> *Prefijo:* ${prefijo}
+> *Prefijos:* ${prefijos}
 
 > *Tipo:* ${botType}
 > *Plataforma:* ${platform}
@@ -54,31 +51,33 @@ let handler = async (m, { conn, usedPrefix, command}) => {
 
 > *Repositorio:* ${link}`.trim();
 
-    const content = generateWAMessageFromContent(m.chat, {
-      extendedTextMessage: {
-        text: message,
-        contextInfo: {
-          mentionedJid: [m.sender],
-          forwardingScore: 0,
-          isForwarded: true,
-          forwardedNewsletterMessageInfo: {
-            newsletterJid: canalId,
-            serverMessageId: null,
-            newsletterName: canalName
+    await conn.sendMessage(m.chat, {
+      document: Buffer.alloc(1),
+      fileName: 'Shadow-BOT-MD',
+      mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      fileLength: '0',
+      pageCount: '1',
+      caption: message,
+      contextInfo: {
+        mentionedJid: [m.sender],
+        forwardingScore: 0,
+        isForwarded: true,
+        forwardedNewsletterMessageInfo: {
+          newsletterJid: canalId,
+          serverMessageId: null,
+          newsletterName: canalName
 },
-          externalAdReply: {
-            title: botname,
-            body: `${botname2}. 𝘞𝘪𝘵𝘩 𝘓𝘰𝘷𝘦 𝘉𝘺 shadow`,
-            thumbnailUrl: banner,
-            mediaType: 1,
-            renderLargerThumbnail: true,
-            sourceUrl: link
-}
+        externalAdReply: {
+          title: 'shadow-bot',
+          body: `${botname2}. 𝘞𝘪𝘵𝘩 𝘓𝘰𝘷𝘦 𝘉𝘺 yosue`,
+          thumbnailUrl: banner,
+          mediaType: 1,
+          renderLargerThumbnail: true,
+          sourceUrl: link
 }
 }
 }, { quoted: m});
 
-    await conn.relayMessage(m.chat, content.message, { messageId: content.key.id});
 } catch (e) {
     console.error(e);
     return conn.reply(m.chat, `⛔ *Error al invocar la información del bot...*`, m);
