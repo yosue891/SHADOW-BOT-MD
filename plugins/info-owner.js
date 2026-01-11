@@ -17,7 +17,7 @@ let handler = async (m, { conn }) => {
   const numbers = [
     { num: '584242773183', name: '👑 Creador Principal (Yosue)', note: 'Shadow Master, mente detrás del reino.' },
     { num: '50493732693',  name: '⚔️ Segundo Creador (ado)',   note: 'Estratega de las Sombras.' },
-    { num: '5491124918653', name: '🕯️ Tercer Creador (Fede)',  note: 'Arquitecto del código oculto.' }
+    { num: '5491124918653', name: '🌌 Tercer Creador (Fede)',  note: 'Arquitecto del código oculto.' }
   ]
 
   const generateVCard = ({ number, name, org, email, region, website, note }) => {
