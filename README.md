@@ -1,7 +1,7 @@
 🌑 SHADOW-BOT-MD — README OFICIAL
 
 <h1 align="center">
-  <img src="https://files.catbox.moe/if3fr7.mp4" width="270px" /><br>
+  <img src="https://files.catbox.moe/tep16z.jpg" width="270px" /><br>
   <strong>SHADOW-BOT-MD</strong>
 </h1
   
@@ -16,7 +16,7 @@
     <img src="https://img.shields.io/badge/CREADOR-YOSUE-1E90FF?style=for-the-badge">
   </p>
 
-  <img src="https://files.catbox.moe/tpcpmj.jpg" alt="Shadow Preview" width="350">
+  <img src="https://files.catbox.moe/qc17p7.jpg" alt="Shadow Preview" width="350">
 </div>
 
 > [!WARNING]
@@ -196,6 +196,7 @@ npm start
 🖤 Gracias por apoyar SHADOW-BOT-MD
 
 Tu estrella ⭐ y tu fork ayudan a que este proyecto siga creciendo.
+
 
 
 
