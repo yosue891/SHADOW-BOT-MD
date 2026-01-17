@@ -1,13 +1,17 @@
 🌑 SHADOW-BOT-MD — README OFICIAL
 
 <div align="center">
-  <img src="https://files.catbox.moe/deo9r9.jpg" alt="Shadow Banner" width="100%">
+  <img src="https://files.catbox.moe/91q106.jpg" alt="Banner SHADOW-BOT-MD" width="100%">
 </div>
 
 <div align="center">
   <br>
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=2000&pause=900&color=1E90FF&center=true&vCenter=true&width=650&lines=BIENVENIDO+A+SHADOW-BOT-MD;CREADO+POR+YOSUE;EL+BOT+MAS+MISTERIOSO+Y+ELEGANTE;AUTOMATIZACIÓN+EN+LAS+SOMBRAS;GRACIAS+POR+VISITAR+EL+REPOSITORIO" alt="Typing SVG">
+  <picture>
+    <source srcset="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=2000&pause=900&color=1E90FF&center=true&vCenter=true&width=650&lines=BIENVENIDO+A+SHADOW-BOT-MD;CREADO+POR+YOSUE;EL+BOT+MAS+MISTERIOSO+Y+ELEGANTE;AUTOMATIZACIÓN+EN+LAS+SOMBRAS;GRACIAS+POR+VISITAR+EL+REPOSITORIO" type="image/svg+xml">
+    <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=2000&pause=900&color=1E90FF&center=true&vCenter=true&width=650&lines=BIENVENIDO+A+SHADOW-BOT-MD;CREADO+POR+YOSUE;EL+BOT+MAS+MISTERIOSO+Y+ELEGANTE;AUTOMATIZACIÓN+EN+LAS+SOMBRAS;GRACIAS+POR+VISITAR+EL+REPOSITORIO" alt="Typing SVG">
+  </picture>
   <br><br>
+</div>
 
   <p align="center">
     <img src="https://img.shields.io/github/stars/yosue891/SHADOW-BOT-MD?style=for-the-badge&color=1E90FF&logo=github">
@@ -195,3 +199,4 @@ npm start
 🖤 Gracias por apoyar SHADOW-BOT-MD
 
 Tu estrella ⭐ y tu fork ayudan a que este proyecto siga creciendo.
+
