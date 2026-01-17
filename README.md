@@ -6,9 +6,10 @@
 
 <div align="center">
   <br>
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&pause=900&color=1E90FF&center=true&vCenter=true&width=600&lines=BIENVENIDO+A+SHADOW-BOT-MD;CREADO+POR+YOSUE;EL+BOT+MAS+MISTERIOSO+Y+ELEGANTE;AUTOMATIZACIÓN+EN+LAS+SOMBRAS;GRACIAS+POR+VISITAR+EL+REPOSITORIO" alt="Typing SVG">
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=2000&pause=900&color=1E90FF&center=true&vCenter=true&width=650&lines=BIENVENIDO+A+SHADOW-BOT-MD;CREADO+POR+YOSUE;EL+BOT+MAS+MISTERIOSO+Y+ELEGANTE;AUTOMATIZACIÓN+EN+LAS+SOMBRAS;GRACIAS+POR+VISITAR+EL+REPOSITORIO" alt="Typing SVG">
   <br><br>
-
+</div>
+  
   <p align="center">
     <img src="https://img.shields.io/github/stars/yosue891/SHADOW-BOT-MD?style=for-the-badge&color=1E90FF&logo=github">
     <img src="https://img.shields.io/github/followers/yosue891?style=for-the-badge&color=blue">
@@ -188,4 +189,5 @@ npm start
 🖤 Gracias por apoyar SHADOW-BOT-MD
 
 Tu estrella ⭐ y tu fork ayudan a que este proyecto siga creciendo.
+
 
