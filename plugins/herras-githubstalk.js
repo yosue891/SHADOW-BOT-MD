@@ -39,7 +39,17 @@ let handler = async (m, { conn, args }) => {
       m.chat,
       {
         image: { url: d.profile_pic },
-        caption
+        caption,
+        contextInfo: {
+          externalAdReply: {
+            title: "Shadow Garden — Canal Oficial",
+            body: "Explora las sombras",
+            mediaType: 1,
+            renderLargerThumbnail: true,
+            thumbnailUrl: d.profile_pic,
+            sourceUrl: `https://whatsapp.com/channel/${global.rcanal}`
+          }
+        }
       },
       { quoted: m }
     )
@@ -54,5 +64,6 @@ handler.help = ['githubstalk', 'ghstalk', 'github']
 handler.tags = ['tools']
 handler.command = ['githubstalk', 'ghstalk', 'github']
 handler.group = false
+handler.premium = false
 
 export default handler
