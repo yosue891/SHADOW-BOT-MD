@@ -6,7 +6,7 @@
 </div>
 <div align="center">
   <br>
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=1E90FF&lines=BIENVENIDO+AL+REPOSITORIO;SHADOW-BOT-MD;GRACIAS+POR+VISITAR+EL+REPOSITORIO;CREADO+CON+❤️+POR+YOSUE;¡EL+BOT+MAS+MISTERIOSO!;🌑✨"alt="Typing SVG">
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=1E90FF&lines=BIENVENIDO+AL+REPOSITORIO;SHADOW-BOT-MD;GRACIAS+POR+VISITAR+EL+REPOSITORIO;CREADO+CON+%E2%9D%A4%EF%B8%8F+POR+YOSUE;%C2%A1EL+BOT+MAS+MISTERIOSO!;%F0%9F%8C%91%E2%9C%A8"alt="Typing SVG">
   <br><br>
 
   <p align="center">
@@ -195,6 +195,7 @@ npm start
 🖤 Gracias por apoyar SHADOW-BOT-MD
 
 Tu estrella ⭐ y tu fork ayudan a que este proyecto siga creciendo.
+
 
 
 
