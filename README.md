@@ -2,13 +2,12 @@
 
 <div align="center">
   <img src="https://files.catbox.moe/deo9r9.jpg" alt="Banner SHADOW-BOT-MD" width="100%">
+  
 </div>
-
 <div align="center">
   <br>
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=E91E63&center=true&vCenter=true&width=650&lines=BIENVENIDO+A+SHADOW-BOT-MD;CREADO+POR+YOSUE;EL+BOT+MAS+MISTERIOSO+Y+ELEGANTE;AUTOMATIZACIÓN+EN+LAS+SOMBRAS;GRACIAS+POR+VISITAR+EL+REPOSITORIO" alt="Typing SVG">
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=E91E63&lines=BIENVENIDO+AL+REPOSITORIO;RUBY+HOSHINO+BOT;GRACIAS+POR+VISITAR+EL+REPOSITORIO;CREADO+CON+%E2%9D%A4%EF%B8%8F+POR+DIONEIBI;%C2%A1LA+BOT+MAS+LINDA;%F0%9F%92%96"alt="Typing SVG">
   <br><br>
-</div>
 
   <p align="center">
     <img src="https://img.shields.io/github/stars/yosue891/SHADOW-BOT-MD?style=for-the-badge&color=1E90FF&logo=github">
@@ -196,6 +195,7 @@ npm start
 🖤 Gracias por apoyar SHADOW-BOT-MD
 
 Tu estrella ⭐ y tu fork ayudan a que este proyecto siga creciendo.
+
 
 
 
