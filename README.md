@@ -123,7 +123,7 @@ apt update && apt upgrade && pkg install -y git nodejs ffmpeg imagemagick yarn
 ```
 
 ```bash
-git clone https://github.com/David-Chian/Megumin-Bot-MD && cd Megumin-Bot-MD
+git clone https://github.com/yosue891/SHADOW-BOT-MD.git && cd SHADOW-BOT-MD 
 ```
 
 ```bash
@@ -144,14 +144,14 @@ npm start
 
 > Si aparece (Y/I/N/O/D/Z) [default=N] ? use la letra "y" + "ENTER" para continuar con la instalación
 
-### **💣 Activar en caso de detenerse en termux**
+*_👑 Activar en caso de detenerse en termux_*
 
 > Si después de instalar el bot en Termux se detiene (pantalla en blanco, pérdida de conexión a Internet, reinicio del dispositivo), sigue estos pasos:
 
 Abre Termux y navega al directorio del bot:
    
    ```bash
-    cd Megumin-Bot-MD
+    cd SHADOW-BOT-MD 
    ```
 
 Inicia el bot nuevamente:
@@ -165,7 +165,7 @@ Inicia el bot nuevamente:
 
 ---
 
-🥀 Colaboradores
+💫 Colaboradores
 
 <p align="center">
 <a href="https://github.com/ado926">
@@ -184,7 +184,7 @@ Inicia el bot nuevamente:
 
 ---
 
-🌌 Creador de SHADOW-BOT-MD
+👑 Creador de SHADOW-BOT-MD
 
 <div align="center">
   <a href="https://github.com/yosue891">
@@ -198,6 +198,7 @@ Inicia el bot nuevamente:
 🖤 Gracias por apoyar SHADOW-BOT-MD
 
 Tu estrella ⭐ y tu fork ayudan a que este proyecto siga creciendo.
+
 
 
 
