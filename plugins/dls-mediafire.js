@@ -8,7 +8,7 @@ if (!/^https:\/\/www\.mediafire\.com\//i.test(text)) return conn.reply(m.chat, '
 try {
 await m.react('🕒')
 
-// API NUEVA
+
 const apiURL = `https://api-adonix.ultraplus.click/download/mediafire?apikey=SHADOWBOTMDKEY&url=${encodeURIComponent(text)}`
 
 const res = await fetch(apiURL)
