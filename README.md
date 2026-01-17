@@ -8,8 +8,7 @@
   <br>
   <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=2000&pause=900&color=1E90FF&center=true&vCenter=true&width=650&lines=BIENVENIDO+A+SHADOW-BOT-MD;CREADO+POR+YOSUE;EL+BOT+MAS+MISTERIOSO+Y+ELEGANTE;AUTOMATIZACIÓN+EN+LAS+SOMBRAS;GRACIAS+POR+VISITAR+EL+REPOSITORIO" alt="Typing SVG">
   <br><br>
-</div>
-  
+
   <p align="center">
     <img src="https://img.shields.io/github/stars/yosue891/SHADOW-BOT-MD?style=for-the-badge&color=1E90FF&logo=github">
     <img src="https://img.shields.io/github/followers/yosue891?style=for-the-badge&color=blue">
@@ -19,7 +18,6 @@
   <img src="https://files.catbox.moe/tpcpmj.jpg" alt="Shadow Preview" width="350">
 </div>
 
-
 > [!WARNING]
 > AVISO IMPORTANTE  
 > SHADOW-BOT-MD no está afiliado a WhatsApp Inc.  
@@ -27,6 +25,7 @@
 > El creador no se hace responsable por bloqueos o mal uso.  
 > Úsalo bajo tu propio criterio y responsabilidad.
 
+---
 
 ❀ Información General
 
@@ -42,16 +41,16 @@
   SHADOW-BOT-MD está en constante evolución. Si encuentras errores, avisa al creador Yosue para mejorarlo.
 
   ✿ Funciones destacadas:
-  - [✔️] audio con mensajes de bienvenida y despedida personalizados 
+  - [✔️] Audio con mensajes de bienvenida y despedida personalizados 
   - [✔️] Protección de grupo: antilink 
   - [✔️] SubBots multiusuario  
   - [✔️] Juegos divertidos 
-  - [✔️] Chatbot estilo IA (simi,gemini,copilot,venice)  
+  - [✔️] Chatbot estilo IA (simi, gemini, copilot, venice)  
   - [✔️] Sistema de economía con tienda  
   - [✔️] Menú con botones
   - [✔️] Herramientas para admins  
-  - [✔️] Convertir imagenes en stickers
-  - [✔️] Descargas de YouTube,TikTok, Pinterest y más  
+  - [✔️] Convertir imágenes en stickers
+  - [✔️] Descargas de YouTube, TikTok, Pinterest y más  
   - [✔️] Comandos +18 (activables)  
   - [✔️] Comandos con botones interactivos  
 
@@ -74,31 +73,33 @@
   - .welcome on/off  
   - .antilink on/off  
   - .kick @user  
-  - .fantasmas
+  - .fantasmas  
   - .invocar  
 
   ✦ IA y Chatbot  
-  - .simi
-  - .gemini
-  - .copilot
-  - .venice
+  - .simi  
+  - .gemini  
+  - .copilot  
+  - .venice  
 
   ✦ Economía y RPG  
   - .reg / .perfil  
   - .trabajar / .aventura  
-  - .work / .crime
+  - .work / .crime  
 
   ✦ Stickers y Media  
   - .sticker  
-  - .toimg 
+  - .toimg  
   - .robar  
 
   ✦ Propietario  
-  - .dsowner 
-  - .fix
+  - .dsowner  
+  - .fix  
   - .bcgc / .addowner  
+
 </details>
 
+---
 
 ✨ Instala Termux Solo Toca La Imagen
 
@@ -113,6 +114,7 @@
   <summary><b> ✎ Haz clic para ver los comandos </b></summary>
 
 🌑 Instalación por Termux
+
 > Copia y pega los comandos uno por uno:
 
 `bash
@@ -145,6 +147,7 @@ npm start
 
 > Si aparece (Y/I/N/O/D/Z) [default=N], escribe y y presiona ENTER.
 
+---
 
 🌑 Activar en caso de detenerse en Termux
 
@@ -157,6 +160,7 @@ npm start
 
 </details>
 
+---
 
 🥀 Colaboradores
 
@@ -175,6 +179,7 @@ npm start
 </a>
 </p>
 
+---
 
 🌌 Creador de SHADOW-BOT-MD
 
@@ -185,9 +190,8 @@ npm start
   <h3>✨ Yosue — El Arquitecto de las Sombras ✨</h3>
 </div>
 
+---
 
 🖤 Gracias por apoyar SHADOW-BOT-MD
 
 Tu estrella ⭐ y tu fork ayudan a que este proyecto siga creciendo.
-
-
