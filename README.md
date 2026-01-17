@@ -6,10 +6,7 @@
 
 <div align="center">
   <br>
-  <picture>
-    <source srcset="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=2000&pause=900&color=1E90FF&center=true&vCenter=true&width=650&lines=BIENVENIDO+A+SHADOW-BOT-MD;CREADO+POR+YOSUE;EL+BOT+MAS+MISTERIOSO+Y+ELEGANTE;AUTOMATIZACIÓN+EN+LAS+SOMBRAS;GRACIAS+POR+VISITAR+EL+REPOSITORIO" type="image/svg+xml">
-    <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=2000&pause=900&color=1E90FF&center=true&vCenter=true&width=650&lines=BIENVENIDO+A+SHADOW-BOT-MD;CREADO+POR+YOSUE;EL+BOT+MAS+MISTERIOSO+Y+ELEGANTE;AUTOMATIZACIÓN+EN+LAS+SOMBRAS;GRACIAS+POR+VISITAR+EL+REPOSITORIO" alt="Typing SVG">
-  </picture>
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=E91E63&center=true&vCenter=true&width=650&lines=BIENVENIDO+A+SHADOW-BOT-MD;CREADO+POR+YOSUE;EL+BOT+MAS+MISTERIOSO+Y+ELEGANTE;AUTOMATIZACIÓN+EN+LAS+SOMBRAS;GRACIAS+POR+VISITAR+EL+REPOSITORIO" alt="Typing SVG">
   <br><br>
 </div>
 
@@ -199,5 +196,6 @@ npm start
 🖤 Gracias por apoyar SHADOW-BOT-MD
 
 Tu estrella ⭐ y tu fork ayudan a que este proyecto siga creciendo.
+
 
 
