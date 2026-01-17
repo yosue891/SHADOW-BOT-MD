@@ -1,5 +1,18 @@
 import fetch from 'node-fetch'
-import uploadImage from '../../lib/uploadImage.js'
+import FormData from 'form-data'
+
+async function uploadShadow(buffer) {
+  const form = new FormData()
+  form.append('file', buffer, 'image.jpg')
+
+  const res = await fetch('https://api.imgbb.com/1/upload?key=3a8c9e3e7c1b6c1f0c8b7d9e2f1a4b5c', {
+    method: 'POST',
+    body: form
+  })
+
+  const json = await res.json()
+  return json?.data?.url || null
+}
 
 let handler = async (m, { conn }) => {
   try {
@@ -20,7 +33,7 @@ Solo acepto JPG o PNG para refinar en las sombras.`)
 Tu imagen está siendo mejorada uwu`)
 
     const media = await q.download()
-    const link = await uploadImage(media)
+    const link = await uploadShadow(media)
 
     if (!link) {
       return m.reply('🩸 *Algo perturbó el ritual...*  
@@ -33,6 +46,10 @@ No pude subir la imagen.')
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
     const buffer = await res.buffer()
+
+    if (buffer.length < 5000) {
+      throw new Error("La API devolvió un archivo inválido")
+    }
 
     const caption =
 `🌑 𖤐 𝙎𝙃𝘼𝘿𝙊𝙒 𝙂𝘼𝙍𝘿𝙀𝙉 — 𝙃𝘿 𝙐𝙋𝙎𝘾𝘼𝙇𝙀𝙍 𖤐
