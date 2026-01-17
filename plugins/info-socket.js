@@ -1,87 +1,104 @@
-import fetch from 'node-fetch'
+import os from 'os';
+const {
+  generateWAMessageFromContent,
+  proto
+} = (await import("@whiskeysockets/baileys"))["default"];
 
-let handler = async (m, { conn, args }) => {
-  const user = args[0]
-
-  if (!user) {
-    return m.reply('🍎 Ingresa el nombre de usuario de *GitHub* que deseas analizar.')
-  }
-
+let handler = async (m, { conn}) => {
   try {
-    const apiUrl = `https://api-killua.vercel.app/api/tools/githubstalk?user=${encodeURIComponent(user)}`
-    const res = await fetch(apiUrl)
-    const json = await res.json()
+    const botname = 'Shadow-BOT-MD';
+    const botname2 = 'shadow';
+    const monedas = 'Pesos';
+    const banner = 'https://files.catbox.moe/7mpqeg.jpg';
+    const prefijos = './#!';
+    const canalId = '120363403739366547@newsletter';
+    const canalName = 'SHADOW-BOT';
+    const link = 'https://github.com/yosue891/SHADOW-BOT-MD.git';
 
-    if (!json.success || !json.data) {
-      return m.reply(`🥥 No se encontró información para el usuario: *${user}*`)
-    }
+    const platform = os.type();
+    const now = new Date();
+    const colombianTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Bogota'}));
+    const nodeVersion = process.version;
+    const sistemaUptime = rTime(os.uptime());
 
-    await m.reply('🌫️ Consultando en las sombras...')
+    const uptime = process.uptime();
+    const uptimeDate = new Date(colombianTime.getTime() - uptime * 1000);
+    const formattedUptimeDate = uptimeDate.toLocaleString('es-ES', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+}).replace(/^./, m => m.toUpperCase());
 
-    const d = json.data
+    const botType = 'Principal/Owner';
+    const duenos = 'yosue, ado y Fede';
 
-    const caption =
-`🌑 𖤐 𝙎𝙃𝘼𝘿𝙊𝙒 𝙂𝘼𝙍𝘿𝙀𝙉 — 𝙂𝙄𝙏𝙃𝙐𝘽 𝙎𝙏𝘼𝙇𝙆𝙀𝙍 𖤐
+    const message = `💜 Información del bot ${botname2}
 
-🍧 Usuario › ${d.username}
-🌴 Nombre › ${d.nickname || 'Sin nombre'}
-🍓 Bio › ${d.bio || 'Sin biografía'}
-🍒 Repos Públicos › ${d.public_repo}
-🍎 Seguidores › ${d.followers}
-🍦 Siguiendo › ${d.following}
-🍍 Ubicación › ${d.location || 'No disponible'}
-🥥 Blog › ${d.blog || 'No disponible'}
-🌳 Creado › ${new Date(d.created_at).toLocaleDateString()}
+> Nombre Corto: ${botname2}
+> Nombre Largo: ${botname}
+> Moneda: ${monedas}
+> Prefijos: ${prefijos}
 
-🔗 Perfil › ${d.url}`.trim()
+> Tipo: ${botType}
+> Plataforma: ${platform}
+> NodeJS: ${nodeVersion}
+> Activo desde: ${formattedUptimeDate}
+> Sistema Activo: ${sistemaUptime}
+> Dueño(a): ${duenos}
 
-    await conn.sendMessage(
-      m.chat,
-      {
-        document: Buffer.alloc(1),
-        fileName: 'Shadow-BOT-MD',
-        mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        fileLength: '0',
-        pageCount: '1',
+> Repositorio: ${link}`.trim();
 
-        caption,
-        image: { url: d.profile_pic },
+    await conn.sendMessage(m.chat, {
+      document: Buffer.alloc(1),
+      fileName: 'Shadow-BOT-MD',
+      mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      fileLength: '0',
+      pageCount: '1',
+      caption: message,
+      contextInfo: {
+        mentionedJid: [m.sender],
+        forwardingScore: 0,
+        isForwarded: true,
+        forwardedNewsletterMessageInfo: {
+          newsletterJid: canalId,
+          serverMessageId: null,
+          newsletterName: canalName
+},
+        externalAdReply: {
+          title: 'shadow-bot',
+          body: ${botname2}. 𝘞𝘪𝘵𝘩 𝘓𝘰𝘷𝘦 𝘉𝘺 yosue,
+          thumbnailUrl: banner,
+          mediaType: 1,
+          renderLargerThumbnail: true,
+          sourceUrl: link
+}
+}
+}, { quoted: m});
 
-        contextInfo: {
-          mentionedJid: [m.sender],
+} catch (e) {
+    console.error(e);
+    return conn.reply(m.chat, ⛔ Error al invocar la información del bot..., m);
+}
+};
 
-          forwardingScore: 0,
-          isForwarded: true,
-
-          forwardedNewsletterMessageInfo: {
-            newsletterJid: '120363403739366547@newsletter',
-            serverMessageId: null,
-            newsletterName: 'SHADOW-BOT'
-          },
-
-          externalAdReply: {
-            title: 'Shadow-BOT',
-            body: '𝘞𝘪𝘵𝘩 𝘓𝘰𝘷𝘦 𝘉𝘺 Yosue',
-            thumbnailUrl: d.profile_pic,
-            mediaType: 1,
-            renderLargerThumbnail: false,
-            sourceUrl: 'https://github.com/yosue891/SHADOW-BOT-MD.git'
-          }
-        }
-      },
-      { quoted: m }
-    )
-
-  } catch (e) {
-    console.error(e)
-    await m.reply('🕷️ Las sombras no pudieron obtener la información de GitHub.')
-  }
+function rTime(seconds) {
+  seconds = Number(seconds);
+  const d = Math.floor(seconds / (3600 * 24));
+  const h = Math.floor((seconds % (3600 * 24)) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  const dDisplay = d> 0? d + (d === 1? " día, ": " días, "): "";
+  const hDisplay = h> 0? h + (h === 1? " hora, ": " horas, "): "";
+  const mDisplay = m> 0? m + (m === 1? " minuto, ": " minutos, "): "";
+  const sDisplay = s> 0? s + (s === 1? " segundo": " segundos"): "";
+  return dDisplay + hDisplay + mDisplay + sDisplay;
 }
 
-handler.help = ['githubstalk', 'ghstalk', 'github']
-handler.tags = ['tools']
-handler.command = ['githubstalk', 'ghstalk', 'github']
-handler.group = false
-handler.premium = false
+handler.help = ["info", "infobot", "infosocket"];
+handler.tags = ["info"];
+handler.command = ["info", "infobot", "infosocket"];
 
-export default handler
+export default handler;
