@@ -1,6 +1,2 @@
-★∻∹⋰⋰ ☆∻∹⋰⋰ ★∻∹⋰⋰ ☆∻∹⋰⋰
-❄️🎅✨🎁✨🎅❄️
-      𝙎𝙃𝘼𝘿𝙊𝙒-𝘽𝙊𝙏-𝙈𝘿
-✨ 𝙀𝙣 𝙡𝙖 𝙉𝙖𝙫𝙞𝙙𝙖𝙙, 𝙡𝙖 𝙨𝙤𝙢𝙗𝙧𝙖 𝙩𝙖𝙢𝙗𝙞𝙚́𝙣 𝙗𝙧𝙞𝙡𝙡𝙖... 𝙪𝙬𝙪 ✨
-❄️🎅✨🎄✨🎅❄️
-★∻∹⋰⋰ ☆∻∹⋰⋰ ★∻∹⋰⋰ ☆∻∹⋰⋰
+<h3>bienvenid@ al plungins de SHADOW-BOT-MD</h3>
+<img align="right" alt="Coding" width="300" src="https://cdn.dribbble.com/users/1277312/screenshots/14733298/media/39b1045e593737587dd60e42c8422d1f.gif">
