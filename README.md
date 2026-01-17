@@ -102,7 +102,7 @@
 ✨ Instala Termux Solo Toca La Imagen
 
 <a href="https://www.mediafire.com/file/llugt4zgj7g3n3u/com.termux_1020.apk/file">
-  <p align="center"><img src="https://files.catbox.moe/deo9r9.jpg" height="125px"></p>
+  <p align="center"><img src="https://files.catbox.moe/4n97ps.jpg" height="125px"></p>
 </a>
 
 <details>
@@ -188,3 +188,4 @@ npm start
 🖤 Gracias por apoyar SHADOW-BOT-MD
 
 Tu estrella ⭐ y tu fork ayudan a que este proyecto siga creciendo.
+
