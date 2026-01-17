@@ -6,7 +6,7 @@
 </div>
 <div align="center">
   <br>
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=E91E63&lines=BIENVENIDO+AL+REPOSITORIO;RUBY+HOSHINO+BOT;GRACIAS+POR+VISITAR+EL+REPOSITORIO;CREADO+CON+%E2%9D%A4%EF%B8%8F+POR+DIONEIBI;%C2%A1LA+BOT+MAS+LINDA;%F0%9F%92%96"alt="Typing SVG">
+  <img src=""alt="Typing SVG">
   <br><br>
 
   <p align="center">
@@ -195,6 +195,7 @@ npm start
 🖤 Gracias por apoyar SHADOW-BOT-MD
 
 Tu estrella ⭐ y tu fork ayudan a que este proyecto siga creciendo.
+
 
 
 
