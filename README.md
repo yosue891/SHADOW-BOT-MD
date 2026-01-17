@@ -168,8 +168,8 @@ Inicia el bot nuevamente:
 💫 Colaboradores
 
 <p align="center">
-<a href="https://github.com/ado926">
-  <img src="https://github.com/ado926.png" width="80" height="80" style="border-radius:50%">
+<a href="https://github.com/ado21">
+  <img src="https://github.com/ado21.png" width="80" height="80" style="border-radius:50%">
 </a>
 <a href="https://github.com/GianPoolS">
   <img src="https://github.com/GianPoolS.png" width="80" height="80" style="border-radius:50%">
@@ -198,6 +198,7 @@ Inicia el bot nuevamente:
 🖤 Gracias por apoyar SHADOW-BOT-MD
 
 Tu estrella ⭐ y tu fork ayudan a que este proyecto siga creciendo.
+
 
 
 
