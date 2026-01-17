@@ -114,52 +114,62 @@
 <details> 
   <summary><b> ✎ Haz clic para ver los comandos </b></summary>
 
-🌑 Instalación por Termux
+### **`💣 Instalación por termux`**
 
-> Copia y pega los comandos uno por uno:
+<details>
+ <summary><b>:paperclip: 🖤 Comandos</b></summary>
 
-`bash
+<img src="https://files.catbox.moe/uut7ke.jpg" alt="MeguminBot" style="width: 100%; height: auto; max-width: 500px;">
+
+> Nota: Copie y pegue los comandos en termux uno por uno.
+```bash
 termux-setup-storage
-`
+```
 
-`bash
+```bash
 apt update && apt upgrade && pkg install -y git nodejs ffmpeg imagemagick yarn
-`
+```
 
-`bash
-git clone https://github.com/yosue891/SHADOW-BOT-MD && cd SHADOW-BOT-MD
-`
+```bash
+git clone https://github.com/David-Chian/Megumin-Bot-MD && cd Megumin-Bot-MD
+```
 
-`bash
+```bash
 yarn install
-`
+```
 
-`bash
+```bash
 npm install
-`
+```
 
-`bash
+```bash
 npm update
-`
+```
 
-`bash
+```bash
 npm start
-`
+```
 
-> Si aparece (Y/I/N/O/D/Z) [default=N], escribe y y presiona ENTER.
+> Si aparece (Y/I/N/O/D/Z) [default=N] ? use la letra "y" + "ENTER" para continuar con la instalación
 
----
+### **💣 Activar en caso de detenerse en termux**
 
-🌑 Activar en caso de detenerse en Termux
+> Si después de instalar el bot en Termux se detiene (pantalla en blanco, pérdida de conexión a Internet, reinicio del dispositivo), sigue estos pasos:
 
-`bash
-cd SHADOW-BOT-MD
-npm start
-`
+Abre Termux y navega al directorio del bot:
+   
+   ```bash
+    cd Megumin-Bot-MD
+   ```
+
+Inicia el bot nuevamente:
+  
+   ```bash
+    npm start
+   ```
 
 </details>
 
-</details>
 
 ---
 
@@ -196,6 +206,7 @@ npm start
 🖤 Gracias por apoyar SHADOW-BOT-MD
 
 Tu estrella ⭐ y tu fork ayudan a que este proyecto siga creciendo.
+
 
 
 
