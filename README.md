@@ -108,18 +108,10 @@
   <p align="center"><img src="https://files.catbox.moe/4n97ps.jpg" height="125px"></p>
 </a>
 
-<details>
-  <summary><b> 💾 Comandos de instalación y demás info ☕</b></summary>
-
 <details> 
   <summary><b> ✎ Haz clic para ver los comandos </b></summary>
 
-### **`💣 Instalación por termux`**
-
-<details>
- <summary><b>:paperclip: 🖤 Comandos</b></summary>
-
-<img src="https://files.catbox.moe/uut7ke.jpg" alt="MeguminBot" style="width: 100%; height: auto; max-width: 500px;">
+*_instalasion por termux_*
 
 > Nota: Copie y pegue los comandos en termux uno por uno.
 ```bash
@@ -206,6 +198,7 @@ Inicia el bot nuevamente:
 🖤 Gracias por apoyar SHADOW-BOT-MD
 
 Tu estrella ⭐ y tu fork ayudan a que este proyecto siga creciendo.
+
 
 
 
