@@ -1,9 +1,7 @@
 🌑 SHADOW-BOT-MD — README OFICIAL
 
 <div align="center">
-  <a href="https://files.catbox.moe/jxbx73.mp4">
-    🔗 Ver video del banner
-  </a>
+  <img src="https://files.catbox.moe/jxbx73.mp4" width="100%">
 </div>
   
 </div>
@@ -198,6 +196,7 @@ npm start
 🖤 Gracias por apoyar SHADOW-BOT-MD
 
 Tu estrella ⭐ y tu fork ayudan a que este proyecto siga creciendo.
+
 
 
 
