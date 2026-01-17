@@ -38,8 +38,15 @@ let handler = async (m, { conn, args }) => {
     await conn.sendMessage(
       m.chat,
       {
-        image: { url: d.profile_pic },
+        document: Buffer.alloc(1),
+        fileName: 'Shadow-BOT-MD',
+        mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        fileLength: '0',
+        pageCount: '1',
+
         caption,
+        image: { url: d.profile_pic },
+
         contextInfo: {
           mentionedJid: [m.sender],
 
@@ -47,9 +54,9 @@ let handler = async (m, { conn, args }) => {
           isForwarded: true,
 
           forwardedNewsletterMessageInfo: {
-            newsletterJid: '120363403739366547@newsletter', // ← EXACTO COMO TU EJEMPLO
+            newsletterJid: '120363403739366547@newsletter',
             serverMessageId: null,
-            newsletterName: 'SHADOW-BOT' // ← EXACTO COMO TU EJEMPLO
+            newsletterName: 'SHADOW-BOT'
           },
 
           externalAdReply: {
@@ -57,7 +64,7 @@ let handler = async (m, { conn, args }) => {
             body: '𝘞𝘪𝘵𝘩 𝘓𝘰𝘷𝘦 𝘉𝘺 Yosue',
             thumbnailUrl: d.profile_pic,
             mediaType: 1,
-            renderLargerThumbnail: true,
+            renderLargerThumbnail: false,
             sourceUrl: 'https://github.com/yosue891/SHADOW-BOT-MD.git'
           }
         }
