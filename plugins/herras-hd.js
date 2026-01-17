@@ -1,73 +1,64 @@
 import fetch from 'node-fetch'
-import FormData from 'form-data'
+import uploadImage from '../../lib/uploadImage.js'
 
-async function uploadImage(buffer) {
-  const form = new FormData()
-  form.append('fileToUpload', buffer, 'image.jpg')
-  form.append('reqtype', 'fileupload')
-
-  const res = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: form })
-  if (!res.ok) throw new Error('Error al subir la imagen')
-  return await res.text()
-}
-
-let handler = async (m, { conn, usedPrefix, command }) => {
+let handler = async (m, { conn }) => {
   try {
-    await m.react('⏳')
-
-    let q = m.quoted ? m.quoted : m
-    let mime = (q.msg || q).mimetype || q.mediaType || ''
+    const q = m.quoted || m
+    const mime = q.mimetype || q.msg?.mimetype || ''
 
     if (!mime) {
-      return conn.sendMessage(m.chat, {
-        text: `❇️ Por favor, envía una imagen o responde a una imagen usando *${usedPrefix + command}*`
-      }, { quoted: m })
+      return m.reply(`🌑✨ *En las sombras no puedo mejorar nada...*  
+Envía o responde a una *imagen* para invocar el poder del Shadow Garden.`)
     }
 
-    if (!/image\/(jpe?g|png|webp)/.test(mime)) {
-      return conn.sendMessage(m.chat, {
-        text: `⚠️ El formato (${mime}) no es compatible, usa JPG, PNG o WEBP.`
-      }, { quoted: m })
+    if (!/image\/(jpe?g|png)/.test(mime)) {
+      return m.reply(`🕸️ *Formato prohibido detectado.*  
+Solo acepto JPG o PNG para refinar en las sombras.`)
     }
 
-    await conn.sendMessage(m.chat, {
-      text: `⏳ Mejorando tu imagen, espera...`
-    }, { quoted: m })
+    await m.reply(`🌫️ *Invocando el poder del Shadow Garden...*  
+Tu imagen está siendo mejorada uwu`)
 
-    let img = await q.download?.()
-    if (!img) throw new Error('No pude descargar la imagen.')
+    const media = await q.download()
+    const link = await uploadImage(media)
 
-    let uploadedUrl = await uploadImage(img)
+    if (!link) {
+      return m.reply('🩸 *Algo perturbó el ritual...*  
+No pude subir la imagen.')
+    }
 
-    const api = `https://api-adonix.ultraplus.click/canvas/hd?apikey=SHADOWKEYBOTMD&url=${encodeURIComponent(uploadedUrl)}`
-    const res = await fetch(api)
-    if (!res.ok) throw new Error(`Error en la API: ${res.statusText}`)
-    const data = await res.json()
+    const apiUrl = `https://api-killua.vercel.app/api/tools/hd?imgurl=${encodeURIComponent(link)}`
+    const res = await fetch(apiUrl)
 
-    if (!data.status || !data.url) throw new Error('No se pudo mejorar la imagen.')
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
-    const improvedRes = await fetch(data.url)
-    const buffer = await improvedRes.buffer()
+    const buffer = await res.buffer()
 
-    await conn.sendMessage(m.chat, {
-      image: buffer,
-      caption: '✅ *Imagen mejorada con éxito*'
-    }, { quoted: m })
+    const caption =
+`🌑 𖤐 𝙎𝙃𝘼𝘿𝙊𝙒 𝙂𝘼𝙍𝘿𝙀𝙉 — 𝙃𝘿 𝙐𝙋𝙎𝘾𝘼𝙇𝙀𝙍 𖤐
 
-    await m.react('✅')
+🜸 *Estado ›* Refinada en las sombras  
+🜲 *Proceso ›* IA del Shadow Garden  
+🜵 *Solicitado por ›* ${m.pushName || 'Un miembro anónimo'}  
+🜹 *Canal ›* ${global.rcanal || 'No definido uwu'}`.trim()
 
-  } catch (e) {
-    console.error(e)
-    await m.react('✖️')
-    await conn.sendMessage(m.chat, {
-      text: '❌ Error al mejorar la imagen, inténtalo más tarde.',
-      ...global.rcanal
-    }, { quoted: m })
+    await conn.sendMessage(
+      m.chat,
+      { image: buffer, caption },
+      { quoted: m }
+    )
+
+  } catch (err) {
+    console.error('[HD Error]', err)
+    await m.reply(`🕷️ *El ritual falló...*  
+No pude mejorar tu imagen.`)
   }
 }
 
-handler.help = ['hd']
+handler.help = ['hd', 'upscale', 'remini']
 handler.tags = ['tools']
-handler.command = ['remini', 'hd', 'enhance']
+handler.command = ['hd', 'upscale', 'remini']
+handler.group = false
+handler.premium = false
 
 export default handler
