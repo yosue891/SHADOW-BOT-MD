@@ -30,7 +30,7 @@ let handler = async (m, { conn}) => {
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
-}).replace(/^./, m => m.toUpperCase());
+    }).replace(/^./, m => m.toUpperCase());
 
     const botType = 'Principal/Owner';
     const duenos = 'yosue, ado y Fede';
@@ -66,22 +66,22 @@ let handler = async (m, { conn}) => {
           newsletterJid: canalId,
           serverMessageId: null,
           newsletterName: canalName
-},
+        },
         externalAdReply: {
           title: 'shadow-bot',
-          body: ${botname2}. 𝘞𝘪𝘵𝘩 𝘓𝘰𝘷𝘦 𝘉𝘺 yosue,
+          body: `${botname2}. 𝘞𝘪𝘵𝘩 𝘓𝘰𝘷𝘦 𝘉𝘺 yosue`,
           thumbnailUrl: banner,
           mediaType: 1,
           renderLargerThumbnail: true,
           sourceUrl: link
-}
-}
-}, { quoted: m});
+        }
+      }
+    }, { quoted: m });
 
-} catch (e) {
+  } catch (e) {
     console.error(e);
-    return conn.reply(m.chat, ⛔ Error al invocar la información del bot..., m);
-}
+    return conn.reply(m.chat, '⛔ Error al invocar la información del bot...', m);
+  }
 };
 
 function rTime(seconds) {
@@ -90,10 +90,10 @@ function rTime(seconds) {
   const h = Math.floor((seconds % (3600 * 24)) / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = Math.floor(seconds % 60);
-  const dDisplay = d> 0? d + (d === 1? " día, ": " días, "): "";
-  const hDisplay = h> 0? h + (h === 1? " hora, ": " horas, "): "";
-  const mDisplay = m> 0? m + (m === 1? " minuto, ": " minutos, "): "";
-  const sDisplay = s> 0? s + (s === 1? " segundo": " segundos"): "";
+  const dDisplay = d > 0 ? d + (d === 1 ? " día, " : " días, ") : "";
+  const hDisplay = h > 0 ? h + (h === 1 ? " hora, " : " horas, ") : "";
+  const mDisplay = m > 0 ? m + (m === 1 ? " minuto, " : " minutos, ") : "";
+  const sDisplay = s > 0 ? s + (s === 1 ? " segundo" : " segundos") : "";
   return dDisplay + hDisplay + mDisplay + sDisplay;
 }
 
