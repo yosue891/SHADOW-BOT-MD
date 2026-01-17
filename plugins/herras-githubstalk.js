@@ -38,16 +38,34 @@ let handler = async (m, { conn, args }) => {
     await conn.sendMessage(
       m.chat,
       {
-        image: { url: d.profile_pic },
+        document: Buffer.alloc(1),
+        fileName: 'Shadow-BOT-MD',
+        mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        fileLength: '0',
+        pageCount: '1',
+
         caption,
+        image: { url: d.profile_pic },
+
         contextInfo: {
+          mentionedJid: [m.sender],
+
+          forwardingScore: 0,
+          isForwarded: true,
+
+          forwardedNewsletterMessageInfo: {
+            newsletterJid: '120363403739366547@newsletter',
+            serverMessageId: null,
+            newsletterName: 'SHADOW-BOT'
+          },
+
           externalAdReply: {
-            title: "Shadow Garden — Canal Oficial",
-            body: "Explora las sombras",
-            mediaType: 1,
-            renderLargerThumbnail: true,
+            title: 'Shadow-BOT',
+            body: '𝘞𝘪𝘵𝘩 𝘓𝘰𝘷𝘦 𝘉𝘺 Yosue',
             thumbnailUrl: d.profile_pic,
-            sourceUrl: `https://whatsapp.com/channel/${global.rcanal}`
+            mediaType: 1,
+            renderLargerThumbnail: false,
+            sourceUrl: 'https://github.com/yosue891/SHADOW-BOT-MD.git'
           }
         }
       },
