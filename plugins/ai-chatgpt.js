@@ -7,12 +7,21 @@ let handler = async (m, { command, text, conn }) => {
 
   try {
     const endpoint = `https://mayapi.ooguy.com/ai-chatgpt?apikey=may-de618680Y&q=${encodeURIComponent(text)}`
-    const res = await fetch(endpoint)
+    const res = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 ShadowBot',
+        'Accept': 'application/json'
+      }
+    })
+
     const json = await res.json()
 
     const replyText = json.result || json.response || json.text || json.message || null
 
-    if (!replyText) throw new Error('La API no devolvió respuesta válida.')
+    if (!replyText || typeof replyText !== 'string') {
+      throw new Error('La API no devolvió respuesta válida.')
+    }
 
     const fkontak = {
       key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'ShadowGPT' },
