@@ -3,14 +3,16 @@ import fetch from 'node-fetch'
 let handler = async (m, { command, text, conn }) => {
   if (!text) return m.reply(`🌑 Ejemplo:\n.${command} ¿Qué es Node.js?`)
 
-  await m.react('🧠')
+  await m.react('🕒')
 
   try {
     const endpoint = `https://mayapi.ooguy.com/ai-chatgpt?apikey=may-de618680Y&q=${encodeURIComponent(text)}`
     const res = await fetch(endpoint)
     const json = await res.json()
 
-    if (!json.result) throw new Error('No se recibió respuesta válida.')
+    const replyText = json.result || json.response || json.text || json.message || null
+
+    if (!replyText) throw new Error('La API no devolvió respuesta válida.')
 
     const fkontak = {
       key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'ShadowGPT' },
@@ -26,7 +28,7 @@ let handler = async (m, { command, text, conn }) => {
     }
 
     await conn.sendMessage(m.chat, {
-      text: json.result.trim()
+      text: replyText.trim()
     }, { quoted: fkontak })
 
     await m.react('✅')
