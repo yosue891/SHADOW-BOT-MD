@@ -4,7 +4,7 @@ let handler = async (m, { conn, command, text, usedPrefix }) => {
   if (!text) {
     return conn.reply(
       m.chat,
-      `🌑⚔️ Ingresa el nombre o enlace para invocar música desde *Spotify*.\n\n` + 
+      `🌕⚔️ Ingresa el nombre o enlace para invocar música desde *Spotify*.\n\n` + 
       `Ejemplo:\n> *${usedPrefix + command}* shape of you\n> *${usedPrefix + command}* https://open.spotify.com/track/123456789`,
       m
     )
@@ -15,24 +15,21 @@ let handler = async (m, { conn, command, text, usedPrefix }) => {
   try {
     let spotifyURL = text
 
-    // Detectar si NO es un enlace → hacer búsqueda
+    // Si no es enlace, buscar por nombre
     if (!text.includes('open.spotify.com')) {
-      const searchAPI = `https://api-adonix.ultraplus.click/search/spotify?apikey=SHADOWBOTMDKEY&query=${encodeURIComponent(text)}`
-      const searchRes = await fetch(searchAPI)
-      const searchJson = await searchRes.json()
+      const search = await fetch(`https://api-adonix.ultraplus.click/search/spotify?apikey=SHADOWBOTMDKEY&query=${encodeURIComponent(text)}`)
+      const searchJson = await search.json()
 
-      if (!searchJson.success || !searchJson.results || searchJson.results.length === 0) {
+      if (!searchJson.success || !searchJson.results || !searchJson.results[0]) {
         await m.react('❌')
         return conn.reply(m.chat, '🕸️ No encontré ninguna canción con ese nombre.', m)
       }
 
-      // Tomar el primer resultado
       spotifyURL = searchJson.results[0].url
     }
 
     // Descargar música
-    const downloadAPI = `https://api-adonix.ultraplus.click/download/spotify?apikey=SHADOWBOTMDKEY&url=${encodeURIComponent(spotifyURL)}`
-    const response = await fetch(downloadAPI)
+    const response = await fetch(`https://api-adonix.ultraplus.click/download/spotify?apikey=SHADOWBOTMDKEY&url=${encodeURIComponent(spotifyURL)}`)
     const result = await response.json()
 
     if (result.success) {
