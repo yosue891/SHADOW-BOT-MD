@@ -6,10 +6,11 @@ let handler = async (m, { command, text, conn }) => {
   await m.react('🕒')
 
   try {
-    const endpoint = `https://api-adonix.ultraplus.click/ai/chatgptfree?apikey=SHADOWBOTMDKEY&question=${encodeURIComponent(text)}&model=gpt-3.5`
+    const endpoint = `https://api-adonix.ultraplus.click/ai/chatgptfree?question=${encodeURIComponent(text)}&model=gpt-3.5`
     const res = await fetch(endpoint, {
       method: 'GET',
       headers: {
+        'Authorization': 'Bearer SHADOWBOTMDKEY',
         'User-Agent': 'Mozilla/5.0 ShadowBot',
         'Accept': 'application/json'
       }
@@ -22,23 +23,7 @@ let handler = async (m, { command, text, conn }) => {
       throw new Error(`Respuesta inesperada de la API: ${JSON.stringify(json)}`)
     }
 
-    const fkontak = {
-      key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'ChatGPT' },
-      message: {
-        locationMessage: {
-          name: '🧠 ChatGPT',
-          jpegThumbnail: await (await fetch('https://files.catbox.moe/dfcy2b.jpg')).buffer(),
-          vcard:
-            'BEGIN:VCARD\nVERSION:3.0\nN:;ChatGPT;;;\nFN:ChatGPT\nORG:OpenAI\nTITLE:\nitem1.TEL;waid=19709001746:+1 (970) 900-1746\nitem1.X-ABLabel:IA\nX-WA-BIZ-DESCRIPTION:Respuestas refinadas desde las sombras\nX-WA-BIZ-NAME:ChatGPT\nEND:VCARD'
-        }
-      },
-      participant: '0@s.whatsapp.net'
-    }
-
-    await conn.sendMessage(m.chat, {
-      text: replyText.trim()
-    }, { quoted: fkontak })
-
+    await conn.sendMessage(m.chat, { text: replyText.trim() }, { quoted: m })
     await m.react('✅')
   } catch (e) {
     await m.react('❌')
