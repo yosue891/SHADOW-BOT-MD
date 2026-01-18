@@ -16,10 +16,12 @@ let handler = async (m, { command, text, conn }) => {
     })
 
     const json = await res.json()
-    const replyText = json.result || json.response || json.text || json.message || null
+
+    // Captura flexible de la respuesta
+    const replyText = json.result || json.answer || json.response || json.text || json.message || null
 
     if (!replyText || typeof replyText !== 'string') {
-      throw new Error('La API no devolvió respuesta válida.')
+      throw new Error(`Respuesta inesperada de la API: ${JSON.stringify(json)}`)
     }
 
     const fkontak = {
