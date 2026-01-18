@@ -16,7 +16,6 @@ let handler = async (m, { command, text, conn }) => {
     })
 
     const json = await res.json()
-
     const replyText = json.result || json.response || json.text || json.message || null
 
     if (!replyText || typeof replyText !== 'string') {
@@ -24,13 +23,13 @@ let handler = async (m, { command, text, conn }) => {
     }
 
     const fkontak = {
-      key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'ShadowGPT' },
+      key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'ChatGPT' },
       message: {
         locationMessage: {
-          name: '🧠 Shadow-GPT',
+          name: '🧠 ChatGPT',
           jpegThumbnail: await (await fetch('https://files.catbox.moe/dfcy2b.jpg')).buffer(),
           vcard:
-            'BEGIN:VCARD\nVERSION:3.0\nN:;ShadowGPT;;;\nFN:ShadowGPT\nORG:Shadow Garden\nTITLE:\nitem1.TEL;waid=19709001746:+1 (970) 900-1746\nitem1.X-ABLabel:IA\nX-WA-BIZ-DESCRIPTION:Respuestas refinadas desde las sombras\nX-WA-BIZ-NAME:ShadowGPT\nEND:VCARD'
+            'BEGIN:VCARD\nVERSION:3.0\nN:;ChatGPT;;;\nFN:ChatGPT\nORG:OpenAI\nTITLE:\nitem1.TEL;waid=19709001746:+1 (970) 900-1746\nitem1.X-ABLabel:IA\nX-WA-BIZ-DESCRIPTION:Respuestas refinadas desde las sombras\nX-WA-BIZ-NAME:ChatGPT\nEND:VCARD'
         }
       },
       participant: '0@s.whatsapp.net'
@@ -47,8 +46,8 @@ let handler = async (m, { command, text, conn }) => {
   }
 }
 
-handler.help = ['shadowgpt']
+handler.help = ['chatgpt']
 handler.tags = ['ia']
-handler.command = ['shadowgpt']
+handler.command = ['chatgpt']
 
 export default handler
