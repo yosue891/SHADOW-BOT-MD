@@ -5,7 +5,7 @@ let handler = async (m, { conn, command, text, usedPrefix }) => {
     return conn.reply(
       m.chat,
       `🌑⚔️ Ingresa el nombre o enlace para invocar música desde *Spotify*.\n\n` + 
-      `Ejemplo:\n> *${usedPrefix + command}* https://open.spotify.com/track/123456789`,
+      `Ejemplo:\n> *${usedPrefix + command}* shape of you\n> *${usedPrefix + command}* https://open.spotify.com/track/123456789`,
       m
     )
   }
@@ -13,7 +13,26 @@ let handler = async (m, { conn, command, text, usedPrefix }) => {
   await m.react('🕓')
 
   try {
-    const response = await fetch(`https://api-adonix.ultraplus.click/download/spotify?apikey=SHADOWBOTMDKEY&url=${encodeURIComponent(text)}`)
+    let spotifyURL = text
+
+    // Detectar si NO es un enlace → hacer búsqueda
+    if (!text.includes('open.spotify.com')) {
+      const searchAPI = `https://api-adonix.ultraplus.click/search/spotify?apikey=SHADOWBOTMDKEY&query=${encodeURIComponent(text)}`
+      const searchRes = await fetch(searchAPI)
+      const searchJson = await searchRes.json()
+
+      if (!searchJson.success || !searchJson.results || searchJson.results.length === 0) {
+        await m.react('❌')
+        return conn.reply(m.chat, '🕸️ No encontré ninguna canción con ese nombre.', m)
+      }
+
+      // Tomar el primer resultado
+      spotifyURL = searchJson.results[0].url
+    }
+
+    // Descargar música
+    const downloadAPI = `https://api-adonix.ultraplus.click/download/spotify?apikey=SHADOWBOTMDKEY&url=${encodeURIComponent(spotifyURL)}`
+    const response = await fetch(downloadAPI)
     const result = await response.json()
 
     if (result.success) {
@@ -25,24 +44,17 @@ let handler = async (m, { conn, command, text, usedPrefix }) => {
       await m.react('✅')
     } else {
       await m.react('❌')
-      conn.reply(
-        m.chat,
-        '🕸️ No se pudo obtener la música desde las sombras.',
-        m
-      )
+      conn.reply(m.chat, '🕸️ No se pudo obtener la música desde las sombras.', m)
     }
+
   } catch (error) {
     console.error(error)
     await m.react('❌')
-    conn.reply(
-      m.chat,
-      '🕷️ El ritual falló... no pude procesar tu solicitud.',
-      m
-    )
+    conn.reply(m.chat, '🕷️ El ritual falló... no pude procesar tu solicitud.', m)
   }
 }
 
-handler.help = ['spotify *<url>*']
+handler.help = ['spotify *<nombre|url>*']
 handler.tags = ['descargas']
 handler.command = /^(spotify|spdl)$/i
 handler.register = true
