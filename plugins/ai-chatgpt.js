@@ -6,7 +6,7 @@ let handler = async (m, { command, text, conn }) => {
   await m.react('🕒')
 
   try {
-    const endpoint = `https://mayapi.ooguy.com/ai-chatgpt?apikey=may-de618680Y&q=${encodeURIComponent(text)}`
+    const endpoint = `https://mayapi.ooguy.com/ai-chatgpt?apikey=may-de618680&q=${encodeURIComponent(text)}`
     const res = await fetch(endpoint, {
       method: 'GET',
       headers: {
@@ -16,8 +16,6 @@ let handler = async (m, { command, text, conn }) => {
     })
 
     const json = await res.json()
-
-    // Captura flexible de la respuesta
     const replyText = json.result || json.answer || json.response || json.text || json.message || null
 
     if (!replyText || typeof replyText !== 'string') {
