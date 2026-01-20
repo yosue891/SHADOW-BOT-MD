@@ -3,11 +3,10 @@ import fetch from 'node-fetch';
 const newsletterJid  = '120363403739366547@newsletter';
 const newsletterName = '👑 SHADOW-BOT-MD uwu👑 ';
 
-// 🔑 Variables definidas
 const packname = '👑 SHADOW-BOT-MD 👑';
 const dev = 'Creado por Yosue';
-const redes = 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O'; // tu canal
-const icons = 'https://files.catbox.moe/1ric0g.jpg'; // tu imagen
+const redes = 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O';
+const icons = 'https://files.catbox.moe/6bgv7s.jpg';
 
 let handler = async (m, { conn, usedPrefix, command }) => {
   try {
@@ -23,8 +22,8 @@ let handler = async (m, { conn, usedPrefix, command }) => {
       externalAdReply: {
         title: packname,
         body: dev,
-        thumbnailUrl: icons, // imagen miniatura
-        sourceUrl: redes,    // canal
+        thumbnailUrl: icons,
+        sourceUrl: redes,
         mediaType: 1,
         renderLargerThumbnail: true
       },
