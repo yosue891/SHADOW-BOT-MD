@@ -2,17 +2,18 @@ import fetch from "node-fetch";
 import crypto from "crypto";
 import { FormData, Blob } from "formdata-node";
 import { fileTypeFromBuffer } from "file-type";
+import baileys from '@whiskeysockets/baileys'
+const { generateWAMessageFromContent, generateWAMessageContent, proto } = baileys
 
 let handler = async (m, { conn }) => {
   const emoji = '⚠️';
   const rwait = '⏳';
   const done = '✅';
   const error = '❌';
-  const dev = '👑 Shadow-BOT-MD 🎄❄️';
 
   let q = m.quoted ? m.quoted : m;
   let mime = (q.msg || q).mimetype || '';
-  if (!mime) return conn.reply(m.chat, `${emoji} 🌌 *Las sombras requieren un archivo válido (imagen, video, etc.).*`, m);
+  if (!mime) return conn.reply(m.chat, `${emoji} *Debes responder a un archivo válido (imagen, video, etc.).*`, m);
 
   await m.react(rwait);
 
@@ -20,51 +21,89 @@ let handler = async (m, { conn }) => {
     let media = await q.download();
     if (!media || !Buffer.isBuffer(media)) {
       await m.react(error);
-      return conn.reply(m.chat, `${emoji} ❄️ *Las sombras no pudieron descargar el archivo.*`, m);
+      return conn.reply(m.chat, `${emoji} *No se pudo descargar el archivo.*`, m);
     }
 
     let isImage = /image\/(png|jpe?g|gif)/.test(mime);
     let isVideo = /video\/mp4/.test(mime);
     let link = await catbox(media);
 
-    let txt = `╔══✦🌌🎄✦══╗
-   𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 ❄️
+    let txt = `╔══✦🌑✦══╗
+   𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍
    𝐂𝐀𝐓𝐁𝐎𝐗 𝐔𝐏𝐋𝐎𝐀𝐃𝐄𝐑
-╚══✦🌌🎄✦══╝
+╚══✦🌑✦══╝
 
-📂 *Enlace*: ${link}
-📏 *Tamaño*: ${formatBytes(media.length)}
-⏳ *Expiración*: ${isImage || isVideo ? 'No expira' : 'Desconocido'}
-
-✨ *Invocado por:* ${dev}
+📂 *Enlace:* ${link}
+📏 *Tamaño:* ${formatBytes(media.length)}
+⏳ *Expiración:* ${isImage || isVideo ? 'No expira' : 'Desconocido'}
 `;
 
-    // Enviar como imagen o video según el tipo
-    if (isImage) {
-      await conn.sendMessage(m.chat, {
-        image: media,
-        caption: txt
-      }, { quoted: m });
-    } else if (isVideo) {
-      await conn.sendMessage(m.chat, {
-        video: media,
-        caption: txt
-      }, { quoted: m });
-    } else {
-      // fallback: si no es imagen ni video, lo manda como documento
-      await conn.sendMessage(m.chat, {
-        document: media,
-        mimetype: mime,
-        fileName: `archivo.${mime.split('/')[1] || 'bin'}`,
-        caption: txt
-      }, { quoted: m });
-    }
+    const mediaMsg = await generateWAMessageContent(
+      isImage
+        ? { image: media, caption: txt }
+        : isVideo
+        ? { video: media, caption: txt }
+        : {
+            document: media,
+            mimetype: mime,
+            fileName: `archivo.${mime.split('/')[1] || 'bin'}`,
+            caption: txt
+          },
+      { upload: conn.waUploadToServer }
+    );
 
+    const msg = generateWAMessageFromContent(
+      m.chat,
+      {
+        viewOnceMessage: {
+          message: {
+            interactiveMessage: proto.Message.InteractiveMessage.fromObject({
+              body: { text: txt },
+              footer: { text: 'Shadow Garden • Catbox Uploader' },
+              header: {
+                hasMediaAttachment: true,
+                ...(isImage
+                  ? { imageMessage: mediaMsg.imageMessage }
+                  : isVideo
+                  ? { videoMessage: mediaMsg.videoMessage }
+                  : { documentMessage: mediaMsg.documentMessage })
+              },
+              nativeFlowMessage: {
+                buttons: [
+                  {
+                    name: 'cta_copy',
+                    buttonParamsJson: JSON.stringify({
+                      display_text: 'Copiar enlace',
+                      copy_code: link
+                    })
+                  },
+                  {
+                    name: 'cta_url',
+                    buttonParamsJson: JSON.stringify({
+                      display_text: 'Abrir enlace',
+                      url: link,
+                      merchant_url: link
+                    })
+                  }
+                ]
+              },
+              contextInfo: {
+                mentionedJid: [m.sender],
+                isForwarded: false
+              }
+            })
+          }
+        }
+      },
+      { quoted: m }
+    );
+
+    await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id });
     await m.react(done);
+
   } catch (err) {
-    console.error('Error completo:', err);
     await m.react(error);
-    conn.reply(m.chat, `${emoji} 🌌❄️ *Error al subir el archivo:*\n${err.message}`, m);
+    conn.reply(m.chat, `${emoji} *Error al subir el archivo:*\n${err.message}`, m);
   }
 };
 
@@ -96,11 +135,10 @@ async function catbox(content) {
     method: "POST",
     body: formData,
     headers: {
-      "User-Agent":
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36",
-    },
+      "User-Agent": "Mozilla/5.0"
+    }
   });
 
   if (!response.ok) throw new Error(`Error en Catbox: ${response.statusText}`);
   return await response.text();
-}
+  }
