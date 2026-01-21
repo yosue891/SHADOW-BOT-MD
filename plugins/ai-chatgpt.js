@@ -40,8 +40,8 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'ChatGPT' },
             message: {
                 locationMessage: {
-                    name: '🤖 ChatGPT • Inteligencia Avanzada',
-                    jpegThumbnail: await (await fetch('https://files.catbox.moe/2nlsxs.jpg')).buffer(),
+                    name: 'ChatGPT • Premiun 👑',
+                    jpegThumbnail: await (await fetch('https://files.catbox.moe/s2ajod.jpg')).buffer(),
                     vcard:
                         'BEGIN:VCARD\n' +
                         'VERSION:3.0\n' +
