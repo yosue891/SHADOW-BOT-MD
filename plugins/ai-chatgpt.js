@@ -25,19 +25,45 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         let username = m.pushName || "amigo"
         let systemPrompt = `
         Eres un asistente inteligente y útil en WhatsApp.
-        Tu nombre: ShadowGPT.
+        Tu nombre: ChatGPT.
         El usuario que te habla se llama: ${username}.
         Responde en español, de forma clara, amable y directa.
         `.trim()
 
         let apiUrl = `https://text.pollinations.ai/${encodeURIComponent(text)}?model=openai&system=${encodeURIComponent(systemPrompt)}`
-
         let req = await fetch(apiUrl)
         let response = await req.text()
 
         if (!response) throw new Error('No se pudo obtener respuesta del servidor.')
 
-        await conn.sendMessage(m.chat, { text: response }, { quoted: m })
+        const fkontak = {
+            key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'ChatGPT' },
+            message: {
+                locationMessage: {
+                    name: '🤖 ChatGPT • Inteligencia Avanzada',
+                    jpegThumbnail: await (await fetch('https://files.catbox.moe/2nlsxs.jpg')).buffer(),
+                    vcard:
+                        'BEGIN:VCARD\n' +
+                        'VERSION:3.0\n' +
+                        'N:;ChatGPT;;;\n' +
+                        'FN:ChatGPT\n' +
+                        'ORG:OpenAI\n' +
+                        'TITLE:Asistente IA\n' +
+                        'item1.TEL;waid=00000000000:+0 000 000 0000\n' +
+                        'item1.X-ABLabel:IA\n' +
+                        'X-WA-BIZ-DESCRIPTION:Respuestas rápidas, claras y precisas.\n' +
+                        'X-WA-BIZ-NAME:ChatGPT\n' +
+                        'END:VCARD'
+                }
+            },
+            participant: '0@s.whatsapp.net'
+        }
+
+        await conn.sendMessage(
+            m.chat,
+            { text: response.trim() },
+            { quoted: fkontak }
+        )
 
         try {
             await conn.sendMessage(m.chat, { react: { text: '✅', key: m.key } })
