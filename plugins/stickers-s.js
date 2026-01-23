@@ -2,15 +2,12 @@ import fetch from 'node-fetch'
 import { exec } from 'child_process'
 import fs from 'fs'
 import util from 'util'
-import baileys from '@whiskeysockets/baileys'
 import { downloadContentFromMessage } from '@whiskeysockets/baileys'
 
-const { generateWAMessageFromContent, proto } = baileys
 const execAsync = util.promisify(exec)
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
   const chat = global.db.data.users[m.sender] || {}
-
   if (!chat.registered) {
     const thumbBuffer = await (await fetch('https://iili.io/fXp3swb.jpg')).buffer()
 
@@ -27,64 +24,48 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
       participant: '0@s.whatsapp.net'
     }
 
-    const msg = generateWAMessageFromContent(m.chat, {
-      productMessage: {
-        product: {
-          productImage: { url: 'https://files.catbox.moe/n3bg2n.jpg' },
-          productId: '999999999999999',
-          title: 'REGISTRO',
-          description: 'Registro requerido',
-          currencyCode: 'USD',
-          priceAmount1000: '0',
-          retailerId: 1677,
-          url: `https://wa.me/584242773183`,
-          productImageCount: 1
-        },
-        businessOwnerJid: '584242773183@s.whatsapp.net',
-        caption:
-          `➤ *\`REGISTRO\`*\n` +
-          `𔓕 Hola ${m.pushName || 'usuario'}\n` +
-          `𔓕 Para usar el comando necesitas registrarte\n` +
-          `𔓕 Comando: \`${usedPrefix}reg nombre.edad\`\n` +
-          `𔓕 Ejemplo: \`${usedPrefix}reg shadow.18\``,
-        footer: '🌌 Shadow Bot',
-        contextInfo: {
-          externalAdReply: {
-            showAdAttribution: true,
-            title: 'Shadow • Sistema de Registro',
-            body: 'Registro uwu',
-            mediaType: 1,
-            thumbnailUrl: 'https://files.catbox.moe/n3bg2n.jpg',
-            sourceUrl: 'https://wa.me/584242773183'
-          }
-        },
-        interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-          nativeFlowMessage: {
-            buttons: [
-              {
-                name: 'quick_reply',
-                buttonParamsJson: JSON.stringify({
-                  display_text: '📝 Registrarse',
-                  id: `${usedPrefix}reg`
-                })
-              },
-              {
-                name: 'cta_url',
-                buttonParamsJson: JSON.stringify({
-                  display_text: '👑 Creador',
-                  url: 'https://wa.me/584242773183'
-                })
-              }
-            ]
-          }
-        })
+    const productMessage = {
+      product: {
+        productImage: { url: 'https://files.catbox.moe/n3bg2n.jpg' },
+        productId: '999999999999999',
+        title: 'REGISTRO',
+        description: 'Registro requerido',
+        currencyCode: 'USD',
+        priceAmount1000: '0',
+        retailerId: 1677,
+        url: `https://wa.me/584242773183`,
+        productImageCount: 1
+      },
+      businessOwnerJid: '584242773183@s.whatsapp.net',
+      caption: [
+        `➤ *\`REGISTRO\`*`,
+        `𔓕 Hola ${m.pushName || 'usuario'}`,
+        `𔓕 Para usar el comando necesitas registrarte`,
+        `𔓕 Comando: \`${usedPrefix}reg nombre.edad\``,
+        `𔓕 Ejemplo: \`${usedPrefix}reg shadow.18\``
+      ].join('\n'),
+      footer: '🌌 Shadow Bot',
+      interactiveButtons: [
+        { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '📝 Registrarse', id: `${usedPrefix}reg` }) },
+        { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: '👑 Creador', url: 'https://wa.me/584242773183' }) }
+      ],
+      mentions: [m.sender],
+      contextInfo: {
+        externalAdReply: {
+          showAdAttribution: true,
+          title: 'Shadow • Sistema de Registro',
+          body: 'Registro uwu',
+          mediaType: 1,
+          thumbnailUrl: 'https://files.catbox.moe/n3bg2n.jpg',
+          sourceUrl: 'https://wa.me/584242773183'
+        }
       }
-    }, { quoted: fkontak })
+    }
 
-    await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
-    return
+    return await conn.sendMessage(m.chat, productMessage, { quoted: fkontak })
   }
 
+  // --- NUEVA LÓGICA DE STICKER ---
   const from = m?.chat || m?.key?.remoteJid
   if (!from) return
 
@@ -132,10 +113,10 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     )
   }
 
-  const msgMedia = isImage ? imageMessage : videoMessage
+  const msg = isImage ? imageMessage : videoMessage
   const dlType = isImage ? 'image' : 'video'
 
-  const stream = await downloadContentFromMessage(msgMedia, dlType)
+  const stream = await downloadContentFromMessage(msg, dlType)
 
   let buffer = Buffer.from([])
   for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk])
