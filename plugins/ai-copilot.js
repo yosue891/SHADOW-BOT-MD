@@ -19,7 +19,7 @@ class Copilot {
             'sec-ch-ua-mobile': '?1',
             'sec-ch-ua-platform': '"Android"',
             'accept-language': 'es-ES,es;q=0.9',
-            'cookie': '' // ← AQUI VAN TUS COOKIES REALES
+            'cookie': '' 
         }
     }
 
