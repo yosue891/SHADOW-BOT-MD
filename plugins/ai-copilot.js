@@ -1,8 +1,10 @@
+// créditos a WILKER OFC
+// github https://github.com/WILKER-OFC
+
 import WebSocket from 'ws'
 import axios from 'axios'
 import { v4 as uuidv4 } from 'uuid'
 import FormData from 'form-data'
-import fetch from 'node-fetch'
 
 class Copilot {
     constructor() {
@@ -73,7 +75,7 @@ class Copilot {
     }
 }
 
-let handler = async (m, { command, text, conn }) => {
+let handler = async (m, { command, text }) => {
     try {
         if (!text) return m.reply(`*Ejemplo :* .${command} ¿Qué es Nodejs?`)
         let copilot = new Copilot()
@@ -93,33 +95,14 @@ let handler = async (m, { command, text, conn }) => {
             break
         }
         let res = await copilot.chat(text, { model })
-
-        // Mensaje con efecto WhatsApp Business
-        const fkontak = {
-            key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'Halo' },
-            message: {
-                locationMessage: {
-                    name: '🧠 Copilot *pro*',
-                    jpegThumbnail: await (await fetch('https://files.catbox.moe/dfcy2b.jpg')).buffer(),
-                    vcard:
-                        'BEGIN:VCARD\nVERSION:3.0\nN:;Copilot;;;\nFN:Copilot\nORG:Microsoft\nTITLE:\nitem1.TEL;waid=19709001746:+1 (970) 900-1746\nitem1.X-ABLabel:IA\nX-WA-BIZ-DESCRIPTION:Respuestas sombrías con estilo navideño\nX-WA-BIZ-NAME:Copilot\nEND:VCARD'
-                }
-            },
-            participant: '0@s.whatsapp.net'
-        }
-
-        await conn.sendMessage(m.chat, {
-            text: res.text.trim()
-        }, { quoted: fkontak })
-
+        await m.reply(res.text.trim())
     } catch (e) {
         m.reply(e.message)
     }
 }
 
-handler.help = ['copilot', 'copilot-think', 'gpt-5']
-handler.command = ['copilot', 'copilot-think', 'gpt-5']
+handler.help = ['copilot']
+handler.command = ['copilot']
 handler.tags = ['ia']
 
 export default handler
-                           
