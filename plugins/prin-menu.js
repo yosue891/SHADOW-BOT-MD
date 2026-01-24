@@ -24,7 +24,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     let uptimeStr = `${hours}h ${minutes}m ${seconds}s`;
 
     let botNameToShow = global.botname || "Shadow ✦";
-    let bannerUrl = global.michipg || "https://n.uguu.se/ZZHiiljb.jpg";
+    let bannerUrl = global.michipg || "https://files.catbox.moe/z9hhof.mp4";
     let videoUrl = "https://raw.githubusercontent.com/UploadsAdonix/archivos/main/1763142155838-e70c63.mp4";
     const senderBotNumber = conn.user.jid.split('@')[0];
     const configPath = path.join('./Sessions/SubBot', senderBotNumber, 'config.json');
