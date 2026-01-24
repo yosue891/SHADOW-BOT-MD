@@ -10,8 +10,6 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
   const chat = global.db.data.users[m.sender] || {}
 
-  // REGISTRO ELIMINADO — NO SE TOCÓ NADA MÁS
-
   const from = m?.chat || m?.key?.remoteJid
   if (!from) return
 
