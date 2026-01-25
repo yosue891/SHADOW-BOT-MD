@@ -7,7 +7,7 @@ import { generateWAMessageFromContent, getDevice } from '@whiskeysockets/baileys
 import uploadImgur from '../lib/imgurUpload.js'
 
 const GITHUB_HARDCODED_REPO = 'UploadsAdonix/archivos'
-const STYLED_THUMBNAIL = 'https://files.catbox.moe/d9xdym.jpg'
+const STYLED_THUMBNAIL = 'https://files.catbox.moe/kcpa4c.jpg'
 const STYLED_SOURCE_URL = 'https://api-adonix.ultraplus.click'
 
 const DOCUMENT_TEMPLATE = {
