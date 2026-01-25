@@ -80,7 +80,7 @@ let handler = async (_0x56f8da, {
       return _0x56f8da.reply("ꕥ Los comandos de *Gacha* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con el comando:\n» *" + _0x4685c3 + "gacha on*");
     }
     if (!_0x30f3ca.length) {
-      return _0x56f8da.reply("❀ Por favor, proporciona el nombre de un personaje.\n> Ejemplo » *" + (_0x4685c3 + _0x477397) + " Yuki Suou*");
+      return _0x56f8da.reply("Por favor, proporciona el nombre de un personaje.\n> Ejemplo » *" + (_0x4685c3 + _0x477397) + " Yuki Suou*");
     }
     const _0x5c3f47 = await loadCharacters();
     const _0x52683c = flattenCharacters(_0x5c3f47);
