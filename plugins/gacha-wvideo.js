@@ -67,24 +67,14 @@ async function buscarImagenDelirius(_0x239c2e) {
   }
   return [];
 }
-const verifi = async () => {
-  try {
-    const _0x1be777 = await _0x2c0dd7.readFile('./package.json', "utf-8");
-    const _0x30a32c = JSON.parse(_0x1be777);
-    return _0x30a32c.repository?.['url'] === "git+https://github.com/meado-learner/Michi-WaMD.git";
-  } catch {
-    return false;
-  }
-};
+
 let handler = async (_0x56f8da, {
   conn: _0x26ac7c,
   args: _0x30f3ca,
   usedPrefix: _0x4685c3,
   command: _0x477397
 }) => {
-  if (!(await verifi())) {
-    return _0x26ac7c.reply(_0x56f8da.chat, "❀ El comando *<" + _0x477397 + ">* solo está disponible para Michi.", _0x56f8da);
-  }
+
   try {
     if (!global.db.data.chats?.[_0x56f8da.chat]?.["gacha"] && _0x56f8da.isGroup) {
       return _0x56f8da.reply("ꕥ Los comandos de *Gacha* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con el comando:\n» *" + _0x4685c3 + "gacha on*");
@@ -201,3 +191,4 @@ handler.tags = ["gacha"];
 handler.command = ['charinfo', 'winfo', "waifuinfo", "charimage", "waifuimage", "cimage", 'wimage', "charvideo", "waifuvideo", "cvideo", "wvideo"];
 handler.group = true;
 export default handler;
+        
