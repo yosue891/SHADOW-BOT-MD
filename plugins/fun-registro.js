@@ -15,25 +15,25 @@ let handler = async (m, { conn, usedPrefix }) => {
     }
   }
 
-  const product = {
-    productImage: { url: "https://files.catbox.moe/n3bg2n.jpg" },
-    productId: "999999999999999",
-    title: "REGISTRO",
-    description: "Registro requerido",
-    currencyCode: "USD",
-    priceAmount1000: 0,
-    retailerId: 1677,
-    url: "https://wa.me/584242773183",
-    productImageCount: 1
-  }
-
+  // 🔥 ENVÍA EL PRODUCTO PRIMERO
   await conn.sendMessage(m.chat, {
     productMessage: {
-      product,
+      product: {
+        productImage: { url: "https://files.catbox.moe/n3bg2n.jpg" },
+        productId: "999999999999999",
+        title: "REGISTRO",
+        description: "Registro requerido",
+        currencyCode: "USD",
+        priceAmount1000: 0,
+        retailerId: 1677,
+        url: "https://wa.me/584242773183",
+        productImageCount: 1
+      },
       businessOwnerJid: "584242773183@s.whatsapp.net"
     }
   }, { quoted: fkontak })
 
+  // 🔥 ENVÍA EL TEXTO CON BOTONES DESPUÉS
   await conn.sendMessage(m.chat, {
     text: `
 ╭─「 *Registro Requerido* 」
