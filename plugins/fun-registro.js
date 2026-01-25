@@ -29,17 +29,31 @@ let handler = async (m, { conn, usedPrefix }) => {
       productImageCount: 1
     },
     businessOwnerJid: '584242773183@s.whatsapp.net',
-    caption: [
-      `➤ *\`REGISTRO\`*`,
-      `𔓕 Hola ${m.pushName || 'usuario'}`,
-      `𔓕 Para usar el bot necesitas registrarte`,
-      `𔓕 Comando: \`${usedPrefix}reg nombre.edad\``,
-      `𔓕 Ejemplo: \`${usedPrefix}reg shadow.18\``
-    ].join('\n'),
+    caption: `
+╭─「 *Registro Requerido* 」
+│
+│𔓕 Hola *${m.pushName || 'usuario'}*
+│𔓕 Para usar el bot necesitas registrarte
+│𔓕 Comando: \`${usedPrefix}reg nombre.edad\`
+│𔓕 Ejemplo: \`${usedPrefix}reg shadow.18\`
+│
+╰─「 *Shadow Garden* 」`.trim(),
     footer: '🌌 Shadow Bot',
     interactiveButtons: [
-      { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '📝 Registrarse', id: `${usedPrefix}reg` }) },
-      { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: '👑 Creador', url: 'https://wa.me/584242773183' }) }
+      {
+        name: 'quick_reply',
+        buttonParamsJson: JSON.stringify({
+          display_text: '📝 Registrarse',
+          id: `${usedPrefix}reg`
+        })
+      },
+      {
+        name: 'cta_url',
+        buttonParamsJson: JSON.stringify({
+          display_text: '👑 Creador',
+          url: 'https://wa.me/584242773183'
+        })
+      }
     ],
     mentions: [m.sender],
     contextInfo: {
