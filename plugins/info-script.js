@@ -20,32 +20,33 @@ let handler = async (m, { conn }) => {
     txt += `『☽』 *En las sombras, el poder se oculta tras la calma...*\n\n`
     txt += `👑  *Creador*: Yosue`
 
-    // Estilo WhatsApp Business (bloque superior)
-    const thumbBuffer = await (await fetch('https://files.catbox.moe/owpjte.jpg')).buffer()
+    // 🔥 Imagen pequeña estilo WhatsApp Business
+    const thumbBuffer = await (await fetch('https://i.postimg.cc/rFfVL8Ps/image.jpg')).buffer()
+
     const fkontak = {
       key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'ShadowScript' },
       message: {
         locationMessage: {
-          name: '🌑 Shadow-BOT-MD',
+          name: '📜 script', // ← Texto que pediste
           jpegThumbnail: thumbBuffer,
           vcard:
             'BEGIN:VCARD\n' +
             'VERSION:3.0\n' +
-            'N:;Shadow-BOT-MD;;;\n' +
-            'FN:Shadow-BOT-MD\n' +
+            'N:;script;;;\n' +
+            'FN:script\n' +
             'ORG:Shadow Garden\n' +
             'TITLE:\n' +
             'item1.TEL;waid=5804242773183:+58 0424-2773183\n' +
             'item1.X-ABLabel:Creador\n' +
             'X-WA-BIZ-DESCRIPTION:Repositorio oficial del Reino de las Sombras\n' +
-            'X-WA-BIZ-NAME:Shadow-BOT-MD\n' +
+            'X-WA-BIZ-NAME:script\n' +
             'END:VCARD'
         }
       },
       participant: '0@s.whatsapp.net'
     }
 
-    // Imagen para el header del interactiveMessage
+    // 🔥 Imagen grande del header del menú
     const media = await generateWAMessageContent(
       { image: { url: 'https://files.catbox.moe/owpjte.jpg' } },
       { upload: conn.waUploadToServer }
@@ -85,7 +86,7 @@ let handler = async (m, { conn }) => {
               externalAdReply: {
                 title: 'Shadow-BOT-MD',
                 body: 'El poder oculto en las sombras',
-                thumbnailUrl: 'https://i.postimg.cc/rFfVL8Ps/image.jpg',
+                thumbnailUrl: 'https://files.catbox.moe/owpjte.jpg',
                 sourceUrl: json.html_url,
                 mediaType: 1,
                 renderLargerThumbnail: true
