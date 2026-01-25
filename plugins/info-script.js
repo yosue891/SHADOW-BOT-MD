@@ -1,5 +1,7 @@
 import moment from 'moment-timezone'
 import fetch from 'node-fetch'
+import baileys from '@whiskeysockets/baileys'
+const { generateWAMessageFromContent, proto } = baileys
 
 let handler = async (m, { conn }) => {
   try {
@@ -18,36 +20,51 @@ let handler = async (m, { conn }) => {
     txt += `『☽』 *En las sombras, el poder se oculta tras la calma...*\n\n`
     txt += `👑  *Creador*: Yosue`
 
-    await conn.sendMessage(m.chat, {
-      text: txt,
-      footer: 'Shadow-BOT-MD',
-      templateButtons: [
-        {
-          index: 1,
-          urlButton: {
-            displayText: '📦 Repositorio del Bot',
-            url: json.html_url
-          }
-        },
-        {
-          index: 2,
-          urlButton: {
-            displayText: '📞 Reportar un problema',
-            url: 'https://wa.me/5804242773183'
-          }
-        }
-      ],
-      contextInfo: {
-        externalAdReply: {
-          title: "Shadow-BOT-MD",
-          body: "El poder oculto en las sombras",
-          thumbnailUrl: 'https://files.catbox.moe/owpjte.jpg',
-          sourceUrl: json.html_url,
-          mediaType: 1,
-          renderLargerThumbnail: true
+    const msg = generateWAMessageFromContent(m.chat, {
+      viewOnceMessage: {
+        message: {
+          interactiveMessage: proto.Message.InteractiveMessage.fromObject({
+            body: { text: txt },
+            footer: { text: 'Shadow-BOT-MD' },
+            header: {
+              hasMediaAttachment: false
+            },
+            nativeFlowMessage: {
+              buttons: [
+                {
+                  name: 'cta_url',
+                  buttonParamsJson: JSON.stringify({
+                    display_text: '📦 Repositorio del Bot',
+                    url: json.html_url
+                  })
+                },
+                {
+                  name: 'cta_url',
+                  buttonParamsJson: JSON.stringify({
+                    display_text: '📞 Reportar un problema',
+                    url: 'https://wa.me/5804242773183'
+                  })
+                }
+              ],
+              messageParamsJson: ''
+            },
+            contextInfo: {
+              mentionedJid: [m.sender],
+              externalAdReply: {
+                title: 'Shadow-BOT-MD',
+                body: 'El poder oculto en las sombras',
+                thumbnailUrl: 'https://files.catbox.moe/owpjte.jpg',
+                sourceUrl: json.html_url,
+                mediaType: 1,
+                renderLargerThumbnail: true
+              }
+            }
+          })
         }
       }
     }, { quoted: m })
+
+    await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
 
   } catch {
     await conn.reply(m.chat, `🌑⚔️ ¡Gomen! Ocurrió un error al acceder al dominio de las sombras.`, m)
