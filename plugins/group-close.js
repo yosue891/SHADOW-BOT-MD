@@ -8,7 +8,7 @@ let handler = async (m, { conn, command }) => {
 
   // Imagen para cada acción
   const imgClose = 'https://files.catbox.moe/nnnyne.jpg'
-  const imgOpen  = 'https://files.catbox.moe/9q6qmg.jpg'
+  const imgOpen  = 'https://files.catbox.moe/guofgb.jpg'
 
   // Seleccionar imagen según acción
   const selectedImage = action === 'open' ? imgOpen : imgClose
