@@ -1,7 +1,6 @@
 import fetch from "node-fetch"
 
 let handler = async (m, { conn, usedPrefix }) => {
-
   const thumb = await (await fetch("https://iili.io/fXp3swb.jpg")).buffer()
 
   const fkontak = {
@@ -16,32 +15,27 @@ let handler = async (m, { conn, usedPrefix }) => {
     }
   }
 
-  const productMessage = {
+  const product = {
+    productImage: { url: "https://files.catbox.moe/n3bg2n.jpg" },
+    productId: "999999999999999",
+    title: "REGISTRO",
+    description: "Registro requerido",
+    currencyCode: "USD",
+    priceAmount1000: 0,
+    retailerId: 1677,
+    url: "https://wa.me/584242773183",
+    productImageCount: 1
+  }
+
+  await conn.sendMessage(m.chat, {
     productMessage: {
-      product: {
-        productImage: { url: "https://files.catbox.moe/n3bg2n.jpg" },
-        productId: "999999999999999",
-        title: "REGISTRO",
-        description: "Registro requerido",
-        currencyCode: "USD",
-        priceAmount1000: 0,
-        retailerId: 1677,
-        url: "https://wa.me/584242773183",
-        productImageCount: 1
-      },
-      businessOwnerJid: "584242773183@s.whatsapp.net",
-      contextInfo: {
-        externalAdReply: {
-          title: "Shadow • Sistema de Registro",
-          body: "Registro uwu",
-          thumbnailUrl: "https://files.catbox.moe/n3bg2n.jpg",
-          sourceUrl: "https://wa.me/584242773183",
-          mediaType: 1,
-          showAdAttribution: true
-        }
-      }
-    },
-    caption: `
+      product,
+      businessOwnerJid: "584242773183@s.whatsapp.net"
+    }
+  }, { quoted: fkontak })
+
+  await conn.sendMessage(m.chat, {
+    text: `
 ╭─「 *Registro Requerido* 」
 │
 │𔓕 Hola *${m.pushName || "usuario"}*
@@ -63,10 +57,18 @@ let handler = async (m, { conn, usedPrefix }) => {
         buttonText: { displayText: "👑 Creador" },
         type: 1
       }
-    ]
-  }
-
-  await conn.sendMessage(m.chat, productMessage, { quoted: fkontak })
+    ],
+    contextInfo: {
+      externalAdReply: {
+        title: "Shadow • Sistema de Registro",
+        body: "Registro uwu",
+        thumbnailUrl: "https://files.catbox.moe/n3bg2n.jpg",
+        sourceUrl: "https://wa.me/584242773183",
+        mediaType: 1,
+        showAdAttribution: true
+      }
+    }
+  }, { quoted: fkontak })
 }
 
 handler.command = ["registro", "regmenu", "reginfo"]
