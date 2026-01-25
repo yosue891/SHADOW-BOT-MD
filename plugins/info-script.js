@@ -29,6 +29,26 @@ let handler = async (m, { conn }) => {
           sourceUrl: json.html_url,
           mediaType: 1,
           renderLargerThumbnail: true
+        },
+        mentionedJid: [m.sender],
+        nativeFlowMessage: {
+          buttons: [
+            {
+              name: "cta_url",
+              buttonParamsJson: JSON.stringify({
+                display_text: "📦 Repositorio del Bot",
+                url: json.html_url
+              })
+            },
+            {
+              name: "cta_url",
+              buttonParamsJson: JSON.stringify({
+                display_text: "📞 Reportar un problema",
+                url: "https://wa.me/5804242773183"
+              })
+            }
+          ],
+          messageParamsJson: ""
         }
       }
     }, { quoted: m })
