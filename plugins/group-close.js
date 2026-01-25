@@ -6,8 +6,15 @@ let handler = async (m, { conn, command }) => {
   let chatId = m.chat
   let action = command.toLowerCase()
 
-  // Imagen pequeña estilo WhatsApp Business
-  const thumb = await (await fetch('https://files.catbox.moe/nnnyne.jpg')).buffer()
+  // Imagen para cada acción
+  const imgClose = 'https://files.catbox.moe/nnnyne.jpg'
+  const imgOpen  = 'https://files.catbox.moe/gupsqm.jpg'
+
+  // Seleccionar imagen según acción
+  const selectedImage = action === 'open' ? imgOpen : imgClose
+
+  // Cargar miniatura estilo WhatsApp Business
+  const thumb = await (await fetch(selectedImage)).buffer()
 
   const businessHeader = {
     key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'ShadowGroup' },
