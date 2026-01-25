@@ -1,9 +1,9 @@
 import yts from "yt-search"
 import fetch from "node-fetch"
 import baileys from "@whiskeysockets/baileys"
-const { generateWAMessageFromContent, proto } = baileys
+const { generateWAMessageFromContent, proto, prepareWAMessageMedia } = baileys
 
-let handler = async (m, { conn, text, usedPrefix }) => {
+let handler = async (m, { conn, text }) => {
   if (!text) return m.reply(`🌑✦ Ingresa una búsqueda de YouTube.`)
 
   try {
@@ -13,15 +13,17 @@ let handler = async (m, { conn, text, usedPrefix }) => {
     const videos = results.all.filter(v => v.type === "video")
     if (!videos.length) throw new Error("No se encontraron resultados.")
 
+    const first = videos[0]
+
     // Imagen pequeña estilo WhatsApp Business
-    const thumb = await (await fetch("https://i.postimg.cc/rFfVL8Ps/image.jpg")).buffer()
+    const smallThumb = await (await fetch("https://i.postimg.cc/rFfVL8Ps/image.jpg")).buffer()
 
     const businessHeader = {
       key: { participants: "0@s.whatsapp.net", fromMe: false, id: "ShadowYT" },
       message: {
         locationMessage: {
           name: "🔍 YouTube Search",
-          jpegThumbnail: thumb,
+          jpegThumbnail: smallThumb,
           vcard:
             "BEGIN:VCARD\n" +
             "VERSION:3.0\n" +
@@ -39,7 +41,19 @@ let handler = async (m, { conn, text, usedPrefix }) => {
       participant: "0@s.whatsapp.net"
     }
 
-    // Construcción del catálogo simple (solo títulos)
+    // Imagen grande del primer video
+    const bigThumb = await prepareWAMessageMedia(
+      { image: { url: first.thumbnail } },
+      { upload: conn.waUploadToServer }
+    )
+
+    // Paso 1: enviar imagen preview con texto
+    await conn.sendMessage(m.chat, {
+      image: { url: first.thumbnail },
+      caption: `🌑✦ Resultados para: *${text}*\n\n🜸 *${first.title}*\n⏱ ${first.timestamp} • 👁️ ${first.views.toLocaleString()}\n🔗 ${first.url}`
+    }, { quoted: businessHeader })
+
+    // Paso 2: catálogo nativo con los demás resultados
     const rows = videos.slice(0, 20).map(v => ({
       title: v.title,
       description: `Canal: ${v.author.name}`,
@@ -55,10 +69,11 @@ let handler = async (m, { conn, text, usedPrefix }) => {
     ]
 
     const interactive = proto.Message.InteractiveMessage.fromObject({
-      body: { text: `🌑✦ Resultados para: *${text}*` },
+      body: { text: `🌑✦ Selecciona un video para reproducir:` },
       footer: { text: "Shadow Garden — YouTube Search" },
       header: {
-        hasMediaAttachment: false
+        hasMediaAttachment: true,
+        imageMessage: bigThumb.imageMessage
       },
       nativeFlowMessage: {
         buttons: [
@@ -92,9 +107,5 @@ let handler = async (m, { conn, text, usedPrefix }) => {
   }
 }
 
-handler.help = ["ytsearch"]
-handler.tags = ["buscadores"]
 handler.command = ["ytbuscar", "ytsearch", "yts"]
-handler.group = true
-
 export default handler
