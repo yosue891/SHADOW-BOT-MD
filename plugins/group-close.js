@@ -1,19 +1,15 @@
 import fetch from 'node-fetch'
 
 let handler = async (m, { conn, command }) => {
-  if (!m.isGroup) return m.reply('🌌⚠️ *Este comando solo puede usarse en grupos.*')
+  if (!m.isGroup) return m.reply('🌑⚠️ *Este comando solo puede usarse en grupos.*')
 
   let chatId = m.chat
   let action = command.toLowerCase()
 
-  // Imagen para cada acción
   const imgClose = 'https://files.catbox.moe/nnnyne.jpg'
   const imgOpen  = 'https://files.catbox.moe/guofgb.jpg'
 
-  // Seleccionar imagen según acción
   const selectedImage = action === 'open' ? imgOpen : imgClose
-
-  // Cargar miniatura estilo WhatsApp Business
   const thumb = await (await fetch(selectedImage)).buffer()
 
   const businessHeader = {
@@ -41,17 +37,15 @@ let handler = async (m, { conn, command }) => {
 
   if (action === 'close') {
     await conn.groupSettingUpdate(chatId, 'announcement')
-
     await conn.sendMessage(chatId, {
-      text: '🎄🌌 *El Shadow Garden ha sellado el grupo...*\n❄️ Solo los administradores pueden hablar ahora.'
+      text: '🌑⚔️ *El Shadow Garden ha sellado el grupo...*\n🕷️ Solo los administradores pueden hablar ahora.'
     }, { quoted: businessHeader })
   }
 
   if (action === 'open') {
     await conn.groupSettingUpdate(chatId, 'not_announcement')
-
     await conn.sendMessage(chatId, {
-      text: '🎅✨ *El Shadow Garden ha liberado el grupo...*\n🌌 Todos los miembros pueden hablar bajo la nieve.'
+      text: '🌑✨ *El Shadow Garden ha liberado el grupo...*\n⚔️ Las voces vuelven a resonar en la oscuridad.'
     }, { quoted: businessHeader })
   }
 }
