@@ -16,7 +16,8 @@ let handler = async (m, { conn, text }) => {
 
     const first = videos[0]
 
-    const smallThumb = await (await fetch(first.thumbnail)).buffer()
+    // 🔥 Imagen pequeña fija estilo WhatsApp Business
+    const smallThumb = await (await fetch("https://i.postimg.cc/rFfVL8Ps/image.jpg")).buffer()
 
     const businessHeader = {
       key: {
