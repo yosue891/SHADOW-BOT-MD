@@ -109,7 +109,7 @@ const downloadMedia = async (conn, m, url, type) => {
       const audioBuffer = await fetchBuffer(fileUrl)
       await conn.sendMessage(
         m.chat,
-        { audio: audioBuffer, mimetype: "audio/mpeg", fileName: fileTitle + ".mp3" },
+        { audio: data.data.url, mimetype: "audio/mpeg", fileName: fileTitle + ".mp3", ptt: true },
         { quoted: m }
       )
     } else {
