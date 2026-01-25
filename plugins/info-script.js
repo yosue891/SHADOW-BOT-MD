@@ -1,7 +1,7 @@
 import moment from 'moment-timezone'
 import fetch from 'node-fetch'
 import baileys from '@whiskeysockets/baileys'
-const { generateWAMessageFromContent, proto } = baileys
+const { generateWAMessageFromContent, generateWAMessageContent, proto } = baileys
 
 let handler = async (m, { conn }) => {
   try {
@@ -20,6 +20,12 @@ let handler = async (m, { conn }) => {
     txt += `『☽』 *En las sombras, el poder se oculta tras la calma...*\n\n`
     txt += `👑  *Creador*: Yosue`
 
+    // Cargar imagen para el header
+    const media = await generateWAMessageContent(
+      { image: { url: 'https://files.catbox.moe/owpjte.jpg' } },
+      { upload: conn.waUploadToServer }
+    )
+
     const msg = generateWAMessageFromContent(m.chat, {
       viewOnceMessage: {
         message: {
@@ -27,7 +33,8 @@ let handler = async (m, { conn }) => {
             body: { text: txt },
             footer: { text: 'Shadow-BOT-MD' },
             header: {
-              hasMediaAttachment: false
+              hasMediaAttachment: true,
+              imageMessage: media.imageMessage
             },
             nativeFlowMessage: {
               buttons: [
@@ -66,8 +73,8 @@ let handler = async (m, { conn }) => {
 
     await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
 
-  } catch {
-    await conn.reply(m.chat, `🌑⚔️ ¡Gomen! Ocurrió un error al acceder al dominio de las sombras.`, m)
+  } catch (e) {
+    await conn.reply(m.chat, `🌑⚔️ Error en el dominio de las sombras:\n${e}`, m)
   }
 }
 
