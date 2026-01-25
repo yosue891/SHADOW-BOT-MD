@@ -21,7 +21,7 @@ var handler = async (m, { conn, text, isMods }) => {
             title: 'Shadow • Update SHADOW-BOT-MD',
             body: 'Actualización del bot',
             mediaType: 1,
-            thumbnailUrl: 'https://files.catbox.moe/88hj9j.jpg',
+            thumbnailUrl: 'https://files.catbox.moe/t6bwzk.jpg',
             sourceUrl: 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O'
           }
         }
@@ -88,7 +88,7 @@ var handler = async (m, { conn, text, isMods }) => {
               title: 'Shadow • Update Error',
               body: 'Error inesperado',
               mediaType: 1,
-              thumbnailUrl: 'https://files.catbox.moe/k45sr6.jpg',
+              thumbnailUrl: 'https://files.catbox.moe/t6bwzk.jpg',
               sourceUrl: 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O'
             }
           }
