@@ -30,7 +30,7 @@ let handler = async (m, { conn }) => {
           mediaType: 1,
           renderLargerThumbnail: true
         },
-        
+        // 🔥🔥🔥 BOTONES AÑADIDOS AQUÍ 🔥🔥🔥
         mentionedJid: [m.sender],
         nativeFlowMessage: {
           buttons: [
