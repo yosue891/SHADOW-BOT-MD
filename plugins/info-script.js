@@ -20,7 +20,23 @@ let handler = async (m, { conn }) => {
 
     await conn.sendMessage(m.chat, {
       text: txt,
-      ...rcanal,
+      footer: 'Shadow-BOT-MD',
+      templateButtons: [
+        {
+          index: 1,
+          urlButton: {
+            displayText: '📦 Repositorio del Bot',
+            url: json.html_url
+          }
+        },
+        {
+          index: 2,
+          urlButton: {
+            displayText: '📞 Reportar un problema',
+            url: 'https://wa.me/5804242773183'
+          }
+        }
+      ],
       contextInfo: {
         externalAdReply: {
           title: "Shadow-BOT-MD",
@@ -29,27 +45,6 @@ let handler = async (m, { conn }) => {
           sourceUrl: json.html_url,
           mediaType: 1,
           renderLargerThumbnail: true
-        },
-        // 🔥🔥🔥 BOTONES AÑADIDOS AQUÍ 🔥🔥🔥
-        mentionedJid: [m.sender],
-        nativeFlowMessage: {
-          buttons: [
-            {
-              name: "cta_url",
-              buttonParamsJson: JSON.stringify({
-                display_text: "📦 Repositorio del Bot",
-                url: json.html_url
-              })
-            },
-            {
-              name: "cta_url",
-              buttonParamsJson: JSON.stringify({
-                display_text: "📞 Reportar un problema",
-                url: "https://wa.me/5804242773183"
-              })
-            }
-          ],
-          messageParamsJson: ""
         }
       }
     }, { quoted: m })
