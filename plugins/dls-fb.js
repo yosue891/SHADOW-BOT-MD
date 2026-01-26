@@ -2,64 +2,67 @@ import fetch from 'node-fetch'
 import baileys from '@whiskeysockets/baileys'
 const { generateWAMessageFromContent, generateWAMessageContent, proto } = baileys
 
-// FUNCIÓN UNIVERSAL PARA EXTRAER VIDEOS
-async function extraerVideos(json) {
-  let urls = []
-
-  if (json?.resultado?.respuesta?.datos?.length) {
-    urls = json.resultado.respuesta.datos.map(v => v.url)
-  }
-
-  if (!urls.length && json?.data?.length) {
-    urls = json.data.map(v => v.url || v.download_url)
-  }
-
-  if (!urls.length && Array.isArray(json?.result)) {
-    urls = json.result.map(v => v.url || v.download_url)
-  }
-
-  if (!urls.length && json?.url) {
-    urls = [json.url]
-  }
-
-  if (!urls.length && json?.media?.length) {
-    urls = json.media.map(v => v.url)
-  }
-
-  return urls
-}
-
 const handler = async (m, { args, conn, usedPrefix, command }) => {
   try {
-    if (!args[0]) {
-      return conn.reply(m.chat, '「✦」Debes entregar un portal válido de Facebook.', m)
+
+    const mensajes = {
+      instagram: '「✦」Por favor, proporciona un enlace válido de Instagram.',
+      ig: '「✦」Por favor, proporciona un enlace válido de Instagram.',
+      facebook: '「✦」Por favor, proporciona un enlace válido de Facebook.',
+      fb: '「✦」Por favor, proporciona un enlace válido de Facebook.'
+    };
+
+    if (!args[0]) return conn.reply(m.chat, mensajes[command] || '「✦」Por favor, proporciona un enlace válido.', m);
+
+    let data = [];
+    await m.react('🕒');
+
+    // API 1 — Vreden (solo para Instagram)
+    if (command === 'instagram' || command === 'ig') {
+      try {
+        const api = `${global.APIs.vreden.url}/api/igdownload?url=${encodeURIComponent(args[0])}`;
+        const res = await fetch(api);
+        const json = await res.json();
+        if (json.resultado?.respuesta?.datos?.length) {
+          data = json.resultado.respuesta.datos.map(v => v.url);
+        }
+      } catch {}
     }
 
-    await m.react('🕒')
-
-    let data = []
-
-    // API — Delirius
-    try {
-      const api = `${global.APIs.delirius.url}/download/facebook?url=${encodeURIComponent(args[0])}`
-      const res = await fetch(api)
-      const json = await res.json()
-      data = await extraerVideos(json)
-    } catch {}
-
+    // API 2 — Delirius (Instagram y Facebook)
     if (!data.length) {
-      return conn.reply(m.chat, '「✦」Las sombras no pudieron extraer el contenido.', m)
+      try {
+        const api =
+          command === 'facebook' || command === 'fb'
+            ? `${global.APIs.delirius.url}/download/facebook?url=${encodeURIComponent(args[0])}`
+            : `${global.APIs.delirius.url}/download/instagram?url=${encodeURIComponent(args[0])}`;
+
+        const res = await fetch(api);
+        const json = await res.json();
+        if (json.status && json.data?.length) {
+          data = json.data.map(v => v.url);
+        }
+      } catch {}
     }
 
-    const videoURL = data[0] // SOLO EL PRIMER VIDEO
+    if (!data.length) return conn.reply(m.chat, `No se pudo obtener el contenido del enlace.`, m);
+
+    // SOLO EL PRIMER VIDEO
+    const mediaURL = data[0];
+
+    // MINIATURA SEGÚN COMANDO
+    const thumb =
+      command === 'facebook' || command === 'fb'
+        ? 'https://files.catbox.moe/31u6f5.jpg'
+        : 'https://files.catbox.moe/g1i1pl.jpg';
 
     // HEADER WHATSAPP BUSINESS
     const header = {
-      key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'ShadowHeaderFB' },
+      key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'ShadowHeader' },
       message: {
         locationMessage: {
-          name: '𝙁𝘼𝘾𝙀𝘽𝙊𝙊𝙆 🜸',
-          jpegThumbnail: await (await fetch('https://files.catbox.moe/31u6f5.jpg')).buffer(),
+          name: command.includes('fb') ? '𝙁𝘼𝘾𝙀𝘽𝙊𝙊𝙆 🜸' : '𝙄𝙉𝙎𝙏𝘼𝙂𝙍𝘼𝙈 🜸',
+          jpegThumbnail: await (await fetch(thumb)).buffer(),
           vcard:
             'BEGIN:VCARD\n' +
             'VERSION:3.0\n' +
@@ -74,60 +77,75 @@ const handler = async (m, { args, conn, usedPrefix, command }) => {
             'END:VCARD'
         }
       }
-    }
+    };
 
     // PREPARAR VIDEO
-    const media = await generateWAMessageContent({
-      video: { url: videoURL },
-      caption: 'TRANSMISIÓN COMPLETADA — ARCHIVO EXTRAÍDO DEL PORTAL'
-    }, { upload: conn.waUploadToServer })
+    const media = await generateWAMessageContent(
+      {
+        video: { url: mediaURL },
+        caption: '> ✩ Archivo extraído del portal.'
+      },
+      { upload: conn.waUploadToServer }
+    );
 
     // BOTONES + MENSAJE INTERACTIVO
-    const msg = generateWAMessageFromContent(m.chat, {
-      viewOnceMessage: {
-        message: {
-          interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-            body: { text: 'ARCHIVO EXTRAÍDO DEL PORTAL DE FACEBOOK\n\n> El Reino Digital ha respondido.' },
-            footer: { text: '⚔️ Shadow Garden' },
-            header: {
-              hasMediaAttachment: true,
-              videoMessage: media.videoMessage
-            },
-            nativeFlowMessage: {
-              buttons: [
-                {
-                  name: 'cta_copy',
-                  buttonParamsJson: JSON.stringify({
-                    display_text: 'Copiar',
-                    copy_code: '*Shadow Garden te observa...*'
-                  })
-                },
-                {
-                  name: 'cta_url',
-                  buttonParamsJson: JSON.stringify({
-                    display_text: 'Abrir Facebook',
-                    url: args[0],
-                    merchant_url: args[0]
-                  })
-                }
-              ]
-            }
-          })
+    const msg = generateWAMessageFromContent(
+      m.chat,
+      {
+        viewOnceMessage: {
+          message: {
+            interactiveMessage: proto.Message.InteractiveMessage.fromObject({
+              body: {
+                text:
+                  (command.includes('fb')
+                    ? 'ARCHIVO EXTRAÍDO DEL PORTAL DE FACEBOOK'
+                    : 'ARCHIVO EXTRAÍDO DEL PORTAL DE INSTAGRAM') +
+                  '\n\n> El Reino Digital ha respondido.'
+              },
+              footer: { text: '⚔️ Shadow Garden' },
+              header: {
+                hasMediaAttachment: true,
+                videoMessage: media.videoMessage
+              },
+              nativeFlowMessage: {
+                buttons: [
+                  {
+                    name: 'cta_copy',
+                    buttonParamsJson: JSON.stringify({
+                      display_text: 'Copiar',
+                      copy_code: '*Shadow Garden te observa...*'
+                    })
+                  },
+                  {
+                    name: 'cta_url',
+                    buttonParamsJson: JSON.stringify({
+                      display_text: command.includes('fb') ? 'Abrir Facebook' : 'Abrir Instagram',
+                      url: args[0],
+                      merchant_url: args[0]
+                    })
+                  }
+                ]
+              }
+            })
+          }
         }
-      }
-    }, { quoted: header })
+      },
+      { quoted: header }
+    );
 
-    await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
-    await m.react('✔️')
+    await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id });
+    await m.react('✔️');
 
-  } catch (e) {
-    await m.react('✖️')
-    conn.reply(m.chat, `「✦」Error inesperado.\nDetalles: ${e.message}`, m)
+  } catch (error) {
+    await m.react('✖️');
+    await m.reply(
+      `Ocurrió un error inesperado.\nUsa *${usedPrefix}report* para informarlo.\n\nDetalles: ${error.message}`
+    );
   }
-}
+};
 
-handler.command = ['facebook', 'fb']
-handler.tags = ['descargas']
-handler.help = ['facebook', 'fb']
+handler.command = ['instagram', 'ig', 'facebook', 'fb'];
+handler.tags = ['descargas'];
+handler.help = ['instagram', 'ig', 'facebook', 'fb'];
 
-export default handler
+export default handler;
