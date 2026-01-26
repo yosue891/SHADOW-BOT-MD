@@ -2,6 +2,33 @@ import fetch from 'node-fetch'
 import baileys from '@whiskeysockets/baileys'
 const { generateWAMessageFromContent, generateWAMessageContent, proto } = baileys
 
+// FUNCIÓN UNIVERSAL PARA EXTRAER VIDEOS
+async function extraerVideos(json) {
+  let urls = []
+
+  if (json?.resultado?.respuesta?.datos?.length) {
+    urls = json.resultado.respuesta.datos.map(v => v.url)
+  }
+
+  if (!urls.length && json?.data?.length) {
+    urls = json.data.map(v => v.url || v.download_url)
+  }
+
+  if (!urls.length && Array.isArray(json?.result)) {
+    urls = json.result.map(v => v.url || v.download_url)
+  }
+
+  if (!urls.length && json?.url) {
+    urls = [json.url]
+  }
+
+  if (!urls.length && json?.media?.length) {
+    urls = json.media.map(v => v.url)
+  }
+
+  return urls
+}
+
 const handler = async (m, { args, conn, usedPrefix, command }) => {
   try {
     if (!args[0]) {
@@ -17,9 +44,7 @@ const handler = async (m, { args, conn, usedPrefix, command }) => {
       const api = `${global.APIs.delirius.url}/download/facebook?url=${encodeURIComponent(args[0])}`
       const res = await fetch(api)
       const json = await res.json()
-      if (json.status && json.data?.length) {
-        data = json.data.map(v => v.url)
-      }
+      data = await extraerVideos(json)
     } catch {}
 
     if (!data.length) {
