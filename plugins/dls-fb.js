@@ -4,7 +4,6 @@ const { generateWAMessageFromContent, generateWAMessageContent, proto } = bailey
 
 const handler = async (m, { args, conn, usedPrefix, command }) => {
   try {
-
     const mensajes = {
       instagram: '「✦」Por favor, proporciona un enlace válido de Instagram.',
       ig: '「✦」Por favor, proporciona un enlace válido de Instagram.',
@@ -12,31 +11,26 @@ const handler = async (m, { args, conn, usedPrefix, command }) => {
       fb: '「✦」Por favor, proporciona un enlace válido de Facebook.'
     };
 
-    if (!args[0]) return conn.reply(m.chat, mensajes[command] || '「✦」Por favor, proporciona un enlace válido.', m);
+    if (!args[0]) 
+      return conn.reply(m.chat, mensajes[command] || '「✦」Por favor, proporciona un enlace válido.', m);
 
     let data = [];
     await m.react('🕒');
 
-    // API 1 — Vreden (solo para Instagram)
-    if (command === 'instagram' || command === 'ig') {
-      try {
-        const api = `${global.APIs.vreden.url}/api/igdownload?url=${encodeURIComponent(args[0])}`;
-        const res = await fetch(api);
-        const json = await res.json();
-        if (json.resultado?.respuesta?.datos?.length) {
-          data = json.resultado.respuesta.datos.map(v => v.url);
-        }
-      } catch {}
-    }
+    // API 1
+    try {
+      const api = `${global.APIs.vreden.url}/api/igdownload?url=${encodeURIComponent(args[0])}`;
+      const res = await fetch(api);
+      const json = await res.json();
+      if (json.resultado?.respuesta?.datos?.length) {
+        data = json.resultado.respuesta.datos.map(v => v.url);
+      }
+    } catch {}
 
-    // API 2 — Delirius (Instagram y Facebook)
+    // API 2 fallback
     if (!data.length) {
       try {
-        const api =
-          command === 'facebook' || command === 'fb'
-            ? `${global.APIs.delirius.url}/download/facebook?url=${encodeURIComponent(args[0])}`
-            : `${global.APIs.delirius.url}/download/instagram?url=${encodeURIComponent(args[0])}`;
-
+        const api = `${global.APIs.delirius.url}/download/instagram?url=${encodeURIComponent(args[0])}`;
         const res = await fetch(api);
         const json = await res.json();
         if (json.status && json.data?.length) {
@@ -45,24 +39,16 @@ const handler = async (m, { args, conn, usedPrefix, command }) => {
       } catch {}
     }
 
-    if (!data.length) return conn.reply(m.chat, `No se pudo obtener el contenido del enlace.`, m);
+    if (!data.length) 
+      return conn.reply(m.chat, `No se pudo obtener el contenido del enlace.`, m);
 
-    // SOLO EL PRIMER VIDEO
-    const mediaURL = data[0];
-
-    // MINIATURA SEGÚN COMANDO
-    const thumb =
-      command === 'facebook' || command === 'fb'
-        ? 'https://files.catbox.moe/31u6f5.jpg'
-        : 'https://files.catbox.moe/g1i1pl.jpg';
-
-    // HEADER WHATSAPP BUSINESS
-    const header = {
-      key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'ShadowHeader' },
+    // Miniatura estilo WhatsApp Business
+    const businessHeader = {
+      key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'BizHeader' },
       message: {
         locationMessage: {
-          name: command.includes('fb') ? '𝙁𝘼𝘾𝙀𝘽𝙊𝙊𝙆 🜸' : '𝙄𝙉𝙎𝙏𝘼𝙂𝙍𝘼𝙈 🜸',
-          jpegThumbnail: await (await fetch(thumb)).buffer(),
+          name: '𝙄𝙉𝙎𝙏𝘼𝙂𝙍𝘼𝙈 / 𝙁𝘼𝘾𝙀𝘽𝙊𝙊𝙆 📸',
+          jpegThumbnail: await (await fetch('https://files.catbox.moe/dsgmid.jpg')).buffer(),
           vcard:
             'BEGIN:VCARD\n' +
             'VERSION:3.0\n' +
@@ -72,75 +58,66 @@ const handler = async (m, { args, conn, usedPrefix, command }) => {
             'TITLE:\n' +
             'item1.TEL;waid=5804242773183:+58 0424-2773183\n' +
             'item1.X-ABLabel:Shadow\n' +
-            'X-WA-BIZ-DESCRIPTION:Archivo invocado desde el Reino de las Sombras\n' +
+            'X-WA-BIZ-DESCRIPTION:Descarga invocada desde el Reino de las Sombras\n' +
             'X-WA-BIZ-NAME:Shadow Garden\n' +
             'END:VCARD'
         }
-      }
+      },
+      participant: '0@s.whatsapp.net'
     };
 
-    // PREPARAR VIDEO
-    const media = await generateWAMessageContent(
-      {
-        video: { url: mediaURL },
-        caption: '> ✩ Archivo extraído del portal.'
-      },
-      { upload: conn.waUploadToServer }
-    );
+    // Solo enviamos el primer archivo con estilo Business
+    const mediaURL = data[0];
 
-    // BOTONES + MENSAJE INTERACTIVO
-    const msg = generateWAMessageFromContent(
-      m.chat,
-      {
-        viewOnceMessage: {
-          message: {
-            interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-              body: {
-                text:
-                  (command.includes('fb')
-                    ? 'ARCHIVO EXTRAÍDO DEL PORTAL DE FACEBOOK'
-                    : 'ARCHIVO EXTRAÍDO DEL PORTAL DE INSTAGRAM') +
-                  '\n\n> El Reino Digital ha respondido.'
-              },
-              footer: { text: '⚔️ Shadow Garden' },
-              header: {
-                hasMediaAttachment: true,
-                videoMessage: media.videoMessage
-              },
-              nativeFlowMessage: {
-                buttons: [
-                  {
-                    name: 'cta_copy',
-                    buttonParamsJson: JSON.stringify({
-                      display_text: 'Copiar',
-                      copy_code: '*Shadow Garden te observa...*'
-                    })
-                  },
-                  {
-                    name: 'cta_url',
-                    buttonParamsJson: JSON.stringify({
-                      display_text: command.includes('fb') ? 'Abrir Facebook' : 'Abrir Instagram',
-                      url: args[0],
-                      merchant_url: args[0]
-                    })
-                  }
-                ]
-              }
-            })
-          }
+    const media = await generateWAMessageContent({
+      video: { url: mediaURL },
+      caption: `ARCHIVO EXTRAÍDO DEL REINO DIGITAL\n\n> Enlace: ${args[0]}`
+    }, { upload: conn.waUploadToServer });
+
+    const msg = generateWAMessageFromContent(m.chat, {
+      viewOnceMessage: {
+        message: {
+          interactiveMessage: proto.Message.InteractiveMessage.fromObject({
+            body: { text: `✨ Archivo extraído correctamente\n\n> Enlace procesado:\n${args[0]}` },
+            footer: { text: '⚔️ Shadow Garden' },
+            header: {
+              hasMediaAttachment: true,
+              videoMessage: media.videoMessage
+            },
+            nativeFlowMessage: {
+              buttons: [
+                {
+                  name: 'cta_copy',
+                  buttonParamsJson: JSON.stringify({
+                    display_text: 'Copiar enlace',
+                    copy_code: args[0]
+                  })
+                },
+                {
+                  name: 'cta_url',
+                  buttonParamsJson: JSON.stringify({
+                    display_text: 'Abrir enlace',
+                    url: args[0],
+                    merchant_url: args[0]
+                  })
+                }
+              ]
+            },
+            contextInfo: {
+              mentionedJid: [m.sender],
+              isForwarded: false
+            }
+          })
         }
-      },
-      { quoted: header }
-    );
+      }
+    }, { quoted: businessHeader });
 
     await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id });
     await m.react('✔️');
 
   } catch (error) {
     await m.react('✖️');
-    await m.reply(
-      `Ocurrió un error inesperado.\nUsa *${usedPrefix}report* para informarlo.\n\nDetalles: ${error.message}`
-    );
+    await m.reply(`Ocurrió un error inesperado.\nUsa *${usedPrefix}report* para informarlo.\n\nDetalles: ${error.message}`);
   }
 };
 
