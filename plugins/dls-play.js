@@ -94,8 +94,8 @@ const downloadMedia = async (conn, m, url, type) => {
 
     // 🔥 TU API ADONIX ORIGINAL
     const apiUrl = type === "mp3"
-      ? `https://api-adonix.ultraplus.click/download/ytaudio?url=${encodeURIComponent(url)}&apikey=SHADOWKEYBOTMD`
-      : `https://api-adonix.ultraplus.click/download/ytvideo?url=${encodeURIComponent(url)}&apikey=SHADOWKEYBOTMD`
+      ? `https://api-adonix.ultraplus.click/download/ytaudio?url=${encodeURIComponent(url)}&apikey=f3539b817c6ef9c623b589ff44ef35fb0027a2d80899e64b`
+      : `https://api-adonix.ultraplus.click/download/ytvideo?url=${encodeURIComponent(url)}&apikey=f3539b817c6ef9c623b589ff44ef35fb0027a2d80899e64b`
 
     const r = await fetch(apiUrl)
     const data = await r.json()
