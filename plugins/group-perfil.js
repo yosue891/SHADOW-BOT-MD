@@ -25,7 +25,6 @@ var handler = async (m, { conn }) => {
 
   let { registered } = user
 
-  // Frases estilo Shadow Garden
   const frasesShadow = [
     'Las sombras vigilan en silencio, su poder nunca se apaga.',
     'El reino oculto observa más allá de la luz.',
@@ -34,8 +33,7 @@ var handler = async (m, { conn }) => {
     'El archivo oculto revela la fuerza del jardín sombrío.'
   ]
   const fraseElegida = frasesShadow[Math.floor(Math.random() * frasesShadow.length)]
-
-  // Animación inicial estilo Shadow Garden
+  
   let animacion = `
 〘 *Shadow Bot — Sistema en Carga* 〙
 
@@ -50,7 +48,6 @@ var handler = async (m, { conn }) => {
 
   await conn.sendMessage(m.chat, { text: animacion, ...rcanal }, { quoted: m })
 
-  // Texto principal estilo Shadow Garden
   let str = `⚔️ 『 ＡＲＣＨＩＶＯ ＳＯＭＢＲＡ 』 ⚔️
 
 🕯 *Portador:* ${username}
