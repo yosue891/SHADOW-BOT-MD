@@ -26,7 +26,6 @@ let handler = async function (m, { conn, text, usedPrefix, command }) {
   let [_, name, __, age] = text.match(SelloMistico)
   age = parseInt(age)
 
-  // Validaciones de edad
   if (age > 60) {
     return m.reply("『☽』 Acaso eres un viejo? XD\n\nNo puedes registrarte con más de 60 años.")
   }
@@ -64,7 +63,7 @@ let handler = async function (m, { conn, text, usedPrefix, command }) {
     caption: certificadoPacto,
     buttons: [
       { buttonId: `${usedPrefix}menu`, buttonText: { displayText: '🌌 Volver al Menú' }, type: 1 },
-      { buttonId: `${usedPrefix}profile ${m.sender}`, buttonText: { displayText: 'Ver Perfil' }, type: 1 }
+      { buttonId: `${usedPrefix}profile ${m.sender}`, buttonText: { displayText: 'Perfil del bot ❓' }, type: 1 }
     ],
     headerType: 4,
     contextInfo: {
