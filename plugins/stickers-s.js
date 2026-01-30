@@ -65,7 +65,6 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     return await conn.sendMessage(m.chat, productMessage, { quoted: fkontak })
   }
 
-  // --- NUEVA LÓGICA DE STICKER ---
   const from = m?.chat || m?.key?.remoteJid
   if (!from) return
 
@@ -107,7 +106,17 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         text:
           '「✦」Responde a una *imagen* o *video* para crear el sticker.\n' +
           `> ✐ Ejemplo » *${usedPrefix + command} circle*\n` +
-          `> ✐ Lista » *${usedPrefix + command} list*`
+          `> ✐ Lista » *${usedPrefix + command} list*`,
+        contextInfo: {
+          externalAdReply: {
+            title: "WhatsApp business estado",
+            body: "Contacto meta ia",
+            thumbnailUrl: "https://files.catbox.moe/3z7wet.jpg", 
+            mediaType: 1,
+            renderLargerThumbnail: false,
+            sourceUrl: null
+          }
+        }
       },
       { quoted: m }
     )
