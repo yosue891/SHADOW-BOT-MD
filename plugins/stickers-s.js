@@ -109,9 +109,9 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
           `> ✐ Lista » *${usedPrefix + command} list*`,
         contextInfo: {
           externalAdReply: {
-            title: "WhatsApp business estado",
-            body: "Contacto meta ia",
-            thumbnailUrl: "https://files.catbox.moe/3z7wet.jpg", 
+            title: "skistker estilo Shadow-BOT-MD",
+            body: "uwu",
+            thumbnailUrl: "https://files.catbox.moe/zxjxhd.jpg", 
             mediaType: 1,
             renderLargerThumbnail: false,
             sourceUrl: null
