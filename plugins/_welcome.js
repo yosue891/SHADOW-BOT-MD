@@ -4,7 +4,7 @@ export async function before(m, { conn, participants, groupMetadata}) {
   if (!m.messageStubType ||!m.isGroup) return true;
 
   let vn = 'https://files.catbox.moe/9fyuwb.m4a';
-  let vn2 = 'https://files.catbox.moe/w6td9c.m4a';
+  let vn2 = 'https://files.catbox.moe/ntn4k1.m4a';
   let chat = global.db.data.chats[m.chat];
   const getMentionedJid = () => {
     return m.messageStubParameters.map(param => `${param}@s.whatsapp.net`);
