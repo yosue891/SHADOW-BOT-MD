@@ -1,10 +1,17 @@
+import fetch from 'node-fetch'
+
 const handler = async (m, { conn, text }) => {
   const user = global.db.data.users[m.sender]
 
   user.afk = +new Date
   user.afkReason = text || ''
 
-  const thumb = await (await fetch("https://files.catbox.moe/e6br3k.jpg")).buffer()
+  let thumb = null
+  try {
+    thumb = await (await fetch("https://files.catbox.moe/e6br3k.jpg")).buffer()
+  } catch {
+    thumb = null
+  }
 
   const shadow_xyz = {
     key: {
@@ -16,10 +23,12 @@ const handler = async (m, { conn, text }) => {
     message: {
       productMessage: {
         product: {
-          productImage: {
-            mimetype: "image/jpeg",
-            jpegThumbnail: thumb
-          },
+          productImage: thumb
+            ? {
+                mimetype: "image/jpeg",
+                jpegThumbnail: thumb
+              }
+            : undefined,
           title: "WhatsApp Business • Estado",
           description: "Shadow System",
           currencyCode: "USD",
