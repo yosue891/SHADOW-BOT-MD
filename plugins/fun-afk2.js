@@ -8,36 +8,33 @@ const handler = async (m, { conn, text }) => {
 
   const shadow_xyz = {
     key: {
+      remoteJid: "status@broadcast",
       fromMe: false,
-      participant: "0@s.whatsapp.net",
-      remoteJid: "status@broadcast"
+      id: "ShadowCatalog",
+      participant: "0@s.whatsapp.net"
     },
     message: {
-      viewOnceMessage: {
-        message: {
-          productMessage: {
-            product: {
-              productImage: {
-                mimetype: "image/jpeg",
-                jpegThumbnail: thumb
-              },
-              title: "WhatsApp Business • Estado",
-              description: "Shadow System",
-              currencyCode: "USD",
-              priceAmount1000: 5000,
-              retailerId: "ShadowCore",
-              productImageCount: 1
-            },
-            businessOwnerJid: "584242773183@s.whatsapp.net"
-          }
-        }
+      productMessage: {
+        product: {
+          productImage: {
+            mimetype: "image/jpeg",
+            jpegThumbnail: thumb
+          },
+          title: "WhatsApp Business • Estado",
+          description: "Shadow System",
+          currencyCode: "USD",
+          priceAmount1000: 5000,
+          retailerId: "ShadowCore",
+          productImageCount: 1
+        },
+        businessOwnerJid: "51900922660@s.whatsapp.net"
       }
     }
   }
 
   await conn.sendMessage(
     m.chat,
-    { 
+    {
       text: `🌌 *Discípulo de las Sombras* 🎄\nHas entrado en estado AFK.\n○ Motivo » *${text || 'sin especificar'}*`
     },
     { quoted: shadow_xyz }
