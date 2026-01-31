@@ -67,8 +67,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     if (!profilePic) profilePic = "https://i.ibb.co/3NfYh9k/default-avatar.png"
 
     let botNameToShow = global.botname || meName
-    let bannerUrl = global.michipg || "https://files.catbox.moe/k45sr6.jpg"
-
+    let bannerUrl = global.michipg || "https://files.catbox.moe/6bgv7s.jpg"
     const channelUrl = "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
     const botType = (conn.user?.jid || "") === (global.conn?.user?.jid || "") ? "Principal" : "Sub-Bot"
 
