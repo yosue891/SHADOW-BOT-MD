@@ -82,7 +82,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     let uptimeStr = `${hours}h ${minutes}m ${seconds}s`;
 
     let botNameToShow = global.botname || "Shadow ✦";
-    let videoUrl = "https://files.catbox.moe/1qkv4y.mp4";
+    let videoUrl = "https://files.catbox.moe/9jnatu.mp4";
 
     const tz = "America/Tegucigalpa";
     const now = moment.tz(tz);
