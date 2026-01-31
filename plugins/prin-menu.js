@@ -110,7 +110,8 @@ https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
 ✦ *Forjado por Yosue — Guardián del Reino Oscuro* ✦`;
 
     await conn.sendMessage(m.chat, {
-      image: { url: "https://files.catbox.moe/9jnatu.mp4" }, // WhatsApp lo convierte en miniatura
+      video: { url: "https://files.catbox.moe/9jnatu.mp4" },
+      gifPlayback: true,
       caption: txt,
       footer: "✦ Shadow Garden ✦",
       buttons: [
