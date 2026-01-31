@@ -7,7 +7,6 @@ const { prepareWAMessageMedia, generateWAMessageFromContent } = (await import("@
 let handler = async (m, { conn, usedPrefix }) => {
   try {
 
-    // SISTEMA DE REGISTRO SHADOW GARDEN
     const chat = global.db.data.users[m.sender] || {}
     if (!chat.registered) {
       const thumbBuffer = await (await fetch('https://iili.io/fXp3swb.jpg')).buffer()
@@ -66,7 +65,6 @@ let handler = async (m, { conn, usedPrefix }) => {
       return await conn.sendMessage(m.chat, productMessage, { quoted: fkontak })
     }
 
-    // MENÚ SHADOW GARDEN
     let menu = {};
     for (let plugin of Object.values(global.plugins)) {
       if (!plugin || !plugin.help) continue;
@@ -84,7 +82,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     let uptimeStr = `${hours}h ${minutes}m ${seconds}s`;
 
     let botNameToShow = global.botname || "Shadow ✦";
-    let videoUrl = "https://files.catbox.moe/z9hhof.mp4";
+    let videoUrl = "https://files.catbox.moe/1qkv4y.mp4";
 
     const tz = "America/Tegucigalpa";
     const now = moment.tz(tz);
