@@ -27,7 +27,7 @@ export async function before(m, { conn }) {
           title: "WhatsApp Business • Estado",
           description: "Shadow team",
           currencyCode: "USD",
-          priceAmount1000: 0000,
+          priceAmount1000: 000,
           retailerId: "ShadowCore",
           productImageCount: 1
         },
