@@ -8,7 +8,7 @@ export async function before(m, { conn }) {
   user.afk = user.afk || -1
   user.afkReason = user.afkReason || ''
 
-  const thumb = await (await fetch("https://files.catbox.moe/e6br3k.jpg")).buffer()
+  const thumb = await (await fetch("https://i.postimg.cc/rFfVL8Ps/image.jpg")).buffer()
 
   const shadow_xyz = {
     key: {
