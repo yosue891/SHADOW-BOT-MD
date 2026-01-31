@@ -28,7 +28,7 @@ const handler = async (m, { conn, text }) => {
               retailerId: "ShadowCore",
               productImageCount: 1
             },
-            businessOwnerJid: "51900922660@s.whatsapp.net"
+            businessOwnerJid: "584242773183@s.whatsapp.net"
           }
         }
       }
