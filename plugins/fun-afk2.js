@@ -8,7 +8,7 @@ const handler = async (m, { conn, text }) => {
 
   let thumb = null
   try {
-    thumb = await (await fetch("https://files.catbox.moe/e6br3k.jpg")).buffer()
+    thumb = await (await fetch("https://i.postimg.cc/rFfVL8Ps/image.jpg")).buffer()
   } catch {
     thumb = null
   }
@@ -30,13 +30,13 @@ const handler = async (m, { conn, text }) => {
               }
             : undefined,
           title: "WhatsApp Business • Estado",
-          description: "Shadow System",
+          description: "Shadow team",
           currencyCode: "USD",
           priceAmount1000: 5000,
           retailerId: "ShadowCore",
           productImageCount: 1
         },
-        businessOwnerJid: "51900922660@s.whatsapp.net"
+        businessOwnerJid: "584242773183@s.whatsapp.net"
       }
     }
   }
