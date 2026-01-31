@@ -1,14 +1,42 @@
 const handler = async (m, { conn, text }) => {
   const user = global.db.data.users[m.sender]
 
-  // Marca al usuario como AFK
   user.afk = +new Date
   user.afkReason = text || ''
 
-  await conn.reply(
+  const thumb = await (await fetch("https://files.catbox.moe/e6br3k.jpg")).buffer()
+
+  const shadow_xyz = {
+    key: {
+      fromMe: false,
+      participant: "0@s.whatsapp.net",
+      remoteJid: "status@broadcast"
+    },
+    message: {
+      productMessage: {
+        product: {
+          productImage: {
+            mimetype: "image/jpeg",
+            jpegThumbnail: thumb
+          },
+          title: "WhatsApp Business • Estado",
+          description: "Shadow System",
+          currencyCode: "USD",
+          priceAmount1000: 5000,
+          retailerId: "ShadowCore",
+          productImageCount: 1
+        },
+        businessOwnerJid: "0@s.whatsapp.net"
+      }
+    }
+  }
+
+  await conn.sendMessage(
     m.chat,
-    `🌌 *Discípulo de las Sombras* 🎄\nHas entrado en estado AFK.\n○ Motivo » *${text || 'sin especificar'}*`,
-    m
+    { 
+      text: `🌌 *Discípulo de las Sombras* 🎄\nHas entrado en estado AFK.\n○ Motivo » *${text || 'sin especificar'}*`
+    },
+    { quoted: shadow_xyz }
   )
 }
 
