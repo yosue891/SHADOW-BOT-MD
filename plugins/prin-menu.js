@@ -2,7 +2,7 @@ import moment from "moment-timezone";
 import fs from "fs";
 import path from "path";
 import fetch from "node-fetch";
-const { prepareWAMessageMedia, generateWAMessageFromContent } = (await import("@whiskeysockets/baileys")).default;
+const { prepareWAMessageMedia } = (await import("@whiskeysockets/baileys")).default;
 
 let handler = async (m, { conn, usedPrefix }) => {
   try {
@@ -32,33 +32,21 @@ let handler = async (m, { conn, usedPrefix }) => {
           currencyCode: 'USD',
           priceAmount1000: '0',
           retailerId: 1677,
-          url: `https://wa.me/584242773183`,
+          url: "https://wa.me/584242773183",
           productImageCount: 1
         },
         businessOwnerJid: '584242773183@s.whatsapp.net',
-        caption: [
-          `➤ *\`REGISTRO\`*`,
-          `𔓕 Hola ${m.pushName || 'usuario'}`,
-          `𔓕 Para usar el comando necesitas registrarte`,
-          `𔓕 Comando: \`${usedPrefix}reg nombre.edad\``,
-          `𔓕 Ejemplo: \`${usedPrefix}reg shadow.18\``
-        ].join('\n'),
+        caption:
+`➤ *REGISTRO*
+𔓕 Hola ${m.pushName || 'usuario'}
+𔓕 Para usar el comando necesitas registrarte
+𔓕 Comando: *${usedPrefix}reg nombre.edad*
+𔓕 Ejemplo: *${usedPrefix}reg shadow.18*`,
         footer: '🌌 Shadow Bot',
-        interactiveButtons: [
-          { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '📝 Registrarse', id: `${usedPrefix}reg` }) },
-          { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: '👑 Creador', url: 'https://wa.me/584242773183' }) }
-        ],
-        mentions: [m.sender],
-        contextInfo: {
-          externalAdReply: {
-            showAdAttribution: true,
-            title: 'Shadow • Sistema de Registro',
-            body: 'Registro uwu',
-            mediaType: 1,
-            thumbnailUrl: 'https://files.catbox.moe/n3bg2n.jpg',
-            sourceUrl: 'https://wa.me/584242773183'
-          }
-        }
+        templateButtons: [
+          { index: 1, quickReplyButton: { displayText: '📝 Registrarse', id: `${usedPrefix}reg` } },
+          { index: 2, urlButton: { displayText: '👑 Creador', url: 'https://wa.me/584242773183' } }
+        ]
       }
 
       return await conn.sendMessage(m.chat, productMessage, { quoted: fkontak })
@@ -81,19 +69,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     let uptimeStr = `${hours}h ${minutes}m ${seconds}s`;
 
     let botNameToShow = global.botname || "Shadow ✦";
-    let bannerUrl = global.michipg || "https://files.catbox.moe/1qkv4y.mp4";
     let videoUrl = "https://files.catbox.moe/1qkv4y.mp4";
-    const senderBotNumber = conn.user.jid.split('@')[0];
-    const configPath = path.join('./Sessions/SubBot', senderBotNumber, 'config.json');
-
-    if (fs.existsSync(configPath)) {
-      try {
-        const subBotConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-        if (subBotConfig.name) botNameToShow = subBotConfig.name;
-        if (subBotConfig.banner) bannerUrl = subBotConfig.banner;
-        if (subBotConfig.video) videoUrl = subBotConfig.video;
-      } catch (e) {}
-    }
 
     const tz = "America/Tegucigalpa";
     const now = moment.tz(tz);
@@ -102,17 +78,20 @@ let handler = async (m, { conn, usedPrefix }) => {
 
     let intro = 
 `┏━━━━━━━━━━━━━━━━━━━┓
-🌑 *Las sombras te reconocen, ${m.pushName}* 🌑
-🕷️ Bienvenido al Reino Oscuro de Shadow Garden 🕷️
+🌑 Las sombras te reconocen, ${m.pushName}
+🕷️ Bienvenido al Reino Oscuro de Shadow Garden
 ┗━━━━━━━━━━━━━━━━━━━┛\n`;
 
     let txt = intro +
-      `✦ *Canal Oficial del Reino Oscuro:*\nhttps://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O\n\n` +
-      `🜸 Yo soy *${botNameToShow}*, la Voz que Susurra desde el Abismo ${(conn.user.jid == global.conn.user.jid ? '(Principal 🅥)' : '(Sub-Bot 🅑)')}\n` +
-      `🗡️ *Hora:* ${timeStr}\n` +
-      `🌑 *Fecha:* ${dateStr}\n` +
-      `✦ *Energía Activa:* ${uptimeStr}\n\n` +
-      `🕷️ *Invocaciones disponibles:*`;
+`✦ Canal Oficial:
+https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
+
+🜸 Yo soy ${botNameToShow}
+🗡️ Hora: ${timeStr}
+🌑 Fecha: ${dateStr}
+✦ Energía Activa: ${uptimeStr}
+
+🕷️ Invocaciones disponibles:\n`;
 
     const emojis = ['✦', '🜸', '🗡️', '🌑', '🕷️'];
     let emojiIndex = 0;
@@ -128,53 +107,37 @@ let handler = async (m, { conn, usedPrefix }) => {
       }
     }
 
-    txt += `\n\n✦ *Forjado por Yosue — Guardián del Reino Oscuro* ✦`;
+    txt += `\n✦ Forjado por Yosue — Guardián del Reino Oscuro ✦`;
 
     await conn.sendMessage(m.chat, { react: { text: '🌑', key: m.key } });
 
-    let mediaMessage = null;
-    try {
-      mediaMessage = await prepareWAMessageMedia(
-        { video: { url: videoUrl }, gifPlayback: true },
-        { upload: conn.waUploadToServer }
-      );
-    } catch (e) {}
+    let mediaMessage = await prepareWAMessageMedia(
+      { video: { url: videoUrl }, gifPlayback: true },
+      { upload: conn.waUploadToServer }
+    );
 
-    const msg = generateWAMessageFromContent(m.chat, {
-      viewOnceMessage: {
-        message: {
-          interactiveMessage: {
-            body: { text: txt },
-            footer: { text: "✦ Menú del Reino Oscuro ✦" },
-            header: {
-              hasMediaAttachment: !!mediaMessage,
-              videoMessage: mediaMessage ? mediaMessage.videoMessage : null
-            },
-            nativeFlowMessage: {
-              buttons: [
-                {
-                  name: "cta_url",
-                  buttonParamsJson: JSON.stringify({
-                    display_text: "🌑 Canal del Reino",
-                    url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
-                  })
-                }
-              ],
-              messageParamsJson: ""
-            },
-            contextInfo: {
-              mentionedJid: [m.sender],
-              isForwarded: true,
-              forwardingScore: 9999999
+    await conn.sendMessage(
+      m.chat,
+      {
+        video: mediaMessage.videoMessage,
+        gifPlayback: true,
+        caption: txt,
+        footer: "✦ Menú del Reino Oscuro ✦",
+        templateButtons: [
+          {
+            index: 1,
+            urlButton: {
+              displayText: "🌑 Canal del Reino",
+              url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
             }
           }
-        }
-      }
-    }, { quoted: m });
-
-    await conn.relayMessage(m.chat, msg.message, {});
+        ]
+      },
+      { quoted: m }
+    );
 
   } catch (e) {
+    console.log(e)
     conn.reply(m.chat, "🌑 Un eco oscuro ha perturbado el flujo…", m);
   }
 };
