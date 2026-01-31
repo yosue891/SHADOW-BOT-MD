@@ -1,12 +1,11 @@
 import moment from "moment-timezone";
 import fs from "fs";
-import path from "path";
 import fetch from "node-fetch";
-const { prepareWAMessageMedia, generateWAMessageFromContent } = (await import("@whiskeysockets/baileys")).default;
 
 let handler = async (m, { conn, usedPrefix }) => {
   try {
 
+    // SISTEMA DE REGISTRO SHADOW GARDEN
     const chat = global.db.data.users[m.sender] || {}
     if (!chat.registered) {
       const thumbBuffer = await (await fetch('https://iili.io/fXp3swb.jpg')).buffer()
@@ -25,18 +24,7 @@ let handler = async (m, { conn, usedPrefix }) => {
       }
 
       const productMessage = {
-        product: {
-          productImage: { url: 'https://files.catbox.moe/n3bg2n.jpg' },
-          productId: '999999999999999',
-          title: 'REGISTRO',
-          description: 'Registro requerido',
-          currencyCode: 'USD',
-          priceAmount1000: '0',
-          retailerId: 1677,
-          url: `https://wa.me/584242773183`,
-          productImageCount: 1
-        },
-        businessOwnerJid: '584242773183@s.whatsapp.net',
+        image: { url: 'https://files.catbox.moe/n3bg2n.jpg' },
         caption: [
           `➤ *\`REGISTRO\`*`,
           `𔓕 Hola ${m.pushName || 'usuario'}`,
@@ -45,26 +33,18 @@ let handler = async (m, { conn, usedPrefix }) => {
           `𔓕 Ejemplo: \`${usedPrefix}reg shadow.18\``
         ].join('\n'),
         footer: '🌌 Shadow Bot',
-        interactiveButtons: [
-          { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '📝 Registrarse', id: `${usedPrefix}reg` }) },
-          { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: '👑 Creador', url: 'https://wa.me/584242773183' }) }
+        buttons: [
+          { buttonId: `${usedPrefix}reg`, buttonText: { displayText: '📝 Registrarse' }, type: 1 },
+          { buttonId: `${usedPrefix}owner`, buttonText: { displayText: '👑 Creador' }, type: 1 }
         ],
-        mentions: [m.sender],
-        contextInfo: {
-          externalAdReply: {
-            showAdAttribution: true,
-            title: 'Shadow • Sistema de Registro',
-            body: 'Registro uwu',
-            mediaType: 1,
-            thumbnailUrl: 'https://files.catbox.moe/n3bg2n.jpg',
-            sourceUrl: 'https://wa.me/584242773183'
-          }
-        }
+        headerType: 4,
+        mentions: [m.sender]
       }
 
       return await conn.sendMessage(m.chat, productMessage, { quoted: fkontak })
     }
 
+    // GENERAR MENÚ
     let menu = {};
     for (let plugin of Object.values(global.plugins)) {
       if (!plugin || !plugin.help) continue;
@@ -81,87 +61,64 @@ let handler = async (m, { conn, usedPrefix }) => {
     let seconds = Math.floor(uptimeSec % 60);
     let uptimeStr = `${hours}h ${minutes}m ${seconds}s`;
 
-    let botNameToShow = global.botname || "Shadow ✦";
-    let videoUrl = "https://files.catbox.moe/9jnatu.mp4";
-
     const tz = "America/Tegucigalpa";
     const now = moment.tz(tz);
     const timeStr = now.format("HH:mm:ss");
     const dateStr = now.format("DD/MM/YYYY");
 
-    let intro = 
+    let botNameToShow = global.botname || "Shadow ✦";
+
+    let intro =
 `┏━━━━━━━━━━━━━━━━━━━┓
 🌑 *Las sombras te reconocen, ${m.pushName}* 🌑
 🕷️ Bienvenido al Reino Oscuro de Shadow Garden 🕷️
-┗━━━━━━━━━━━━━━━━━━━┛\n`;
+┗━━━━━━━━━━━━━━━━━━━┛`;
 
-    let txt = intro +
-      `✦ *Canal Oficial del Reino Oscuro:*\nhttps://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O\n\n` +
-      `🜸 Yo soy *${botNameToShow}*\n` +
-      `🗡️ *Hora:* ${timeStr}\n` +
-      `🌑 *Fecha:* ${dateStr}\n` +
-      `✦ *Energía Activa:* ${uptimeStr}\n\n` +
-      `🕷️ *Invocaciones disponibles:*`;
+    let txt = intro + `
+
+✦ *Canal Oficial del Reino Oscuro:*
+https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
+
+🜸 Yo soy *${botNameToShow}*
+🗡️ *Hora:* ${timeStr}
+🌑 *Fecha:* ${dateStr}
+✦ *Energía Activa:* ${uptimeStr}
+
+🕷️ *Invocaciones disponibles:*`;
 
     const emojis = ['✦', '🜸', '🗡️', '🌑', '🕷️'];
     let emojiIndex = 0;
 
     for (let tag in menu) {
-      txt += `\n━━━━━━━━━━━━━━━━━━━━━━\n🜸 ${tag.toUpperCase()} 🜸\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+      txt += `
+
+━━━━━━━━━━━━━━━━━━━━━━
+🜸 ${tag.toUpperCase()} 🜸
+━━━━━━━━━━━━━━━━━━━━━━`;
+
       for (let plugin of menu[tag]) {
         for (let cmd of plugin.help) {
           let emoji = emojis[emojiIndex % emojis.length];
-          txt += `${emoji} ${usedPrefix + cmd}\n`;
+          txt += `\n${emoji} ${usedPrefix + cmd}`;
           emojiIndex++;
         }
       }
     }
 
-    txt += `\n\n✦ *Forjado por Yosue — Guardián del Reino Oscuro* ✦`;
+    txt += `
 
-    await conn.sendMessage(m.chat, { react: { text: '🌑', key: m.key } });
+✦ *Forjado por Yosue — Guardián del Reino Oscuro* ✦`;
 
-    let mediaMessage = null;
-    try {
-      mediaMessage = await prepareWAMessageMedia(
-        { video: { url: videoUrl }, gifPlayback: true },
-        { upload: conn.waUploadToServer }
-      );
-    } catch (e) {}
-
-    const msg = generateWAMessageFromContent(m.chat, {
-      viewOnceMessage: {
-        message: {
-          interactiveMessage: {
-            body: { text: txt },
-            footer: { text: "✦ Menú del Reino Oscuro ✦" },
-            header: {
-              hasMediaAttachment: !!mediaMessage,
-              videoMessage: mediaMessage ? mediaMessage.videoMessage : null
-            },
-            nativeFlowMessage: {
-              buttons: [
-                {
-                  name: "cta_url",
-                  buttonParamsJson: JSON.stringify({
-                    display_text: "🌑 Canal del Reino",
-                    url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
-                  })
-                }
-              ],
-              messageParamsJson: ""
-            },
-            contextInfo: {
-              mentionedJid: [m.sender],
-              isForwarded: true,
-              forwardingScore: 9999999
-            }
-          }
-        }
-      }
-    }, { quoted: m });
-
-    await conn.relayMessage(m.chat, msg.message, {});
+    await conn.sendMessage(m.chat, {
+      image: { url: "https://files.catbox.moe/9jnatu.mp4" }, // WhatsApp lo convierte en miniatura
+      caption: txt,
+      footer: "✦ Shadow Garden ✦",
+      buttons: [
+        { buttonId: `${usedPrefix}owner`, buttonText: { displayText: "👑 Creador" }, type: 1 },
+        { buttonId: `${usedPrefix}ping`, buttonText: { displayText: "⚡ Estado" }, type: 1 }
+      ],
+      headerType: 4
+    }, { quoted: m })
 
   } catch (e) {
     conn.reply(m.chat, "🌑 Un eco oscuro ha perturbado el flujo…", m);
