@@ -115,7 +115,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     ].join("\n")
 
     const thumbBuffer = await getBufferFromUrl(bannerUrl).catch(async () =>
-      await getBufferFromUrl("https://files.catbox.moe/k45sr6.jpg")
+      await getBufferFromUrl("https://files.catbox.moe/6bgv7s.jpg")
     )
 
     if (!isRegistered) {
