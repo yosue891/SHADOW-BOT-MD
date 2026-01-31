@@ -32,7 +32,7 @@ const handler = async (m, { conn, text }) => {
           title: "WhatsApp Business • Estado",
           description: "Shadow team",
           currencyCode: "USD",
-          priceAmount1000: 5000,
+          priceAmount1000: 0000,
           retailerId: "ShadowCore",
           productImageCount: 1
         },
