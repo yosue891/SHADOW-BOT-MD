@@ -25,13 +25,13 @@ export async function before(m, { conn }) {
             jpegThumbnail: thumb
           },
           title: "WhatsApp Business • Estado",
-          description: "Shadow System",
+          description: "Shadow team",
           currencyCode: "USD",
           priceAmount1000: 5000,
           retailerId: "ShadowCore",
           productImageCount: 1
         },
-        businessOwnerJid: "51900922660@s.whatsapp.net"
+        businessOwnerJid: "584242773183@s.whatsapp.net"
       }
     }
   }
