@@ -3,6 +3,15 @@ import fetch from 'node-fetch'
 let handler = async (m, { conn, command }) => {
   if (!m.isGroup) return m.reply('🌑⚠️ *Este comando solo puede usarse en grupos.*')
 
+  const groupMetadata = await conn.groupMetadata(m.chat)
+  const admins = groupMetadata.participants
+    .filter(p => p.admin === 'admin' || p.admin === 'superadmin')
+    .map(p => p.id)
+
+  if (!admins.includes(m.sender)) {
+    return m.reply('🌑⚠️ *Solo los administradores del grupo pueden usar este comando.*')
+  }
+
   let chatId = m.chat
   let action = command.toLowerCase()
 
