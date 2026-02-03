@@ -6,33 +6,62 @@ const { prepareWAMessageMedia, generateWAMessageFromContent } = (await import("@
 
 let handler = async (m, { conn, usedPrefix }) => {
   try {
-    const isRegistered = global.db.data.users[m.sender]?.registered;
-    if (!isRegistered) {
-      return conn.sendMessage(
-        m.chat,
-        {
-          text:
-            `┏━━━━━━━━━━━━━━━━━━┓\n🎄 *ACCESO DENEGADO* 🎄\n┗━━━━━━━━━━━━━━━━━━┛\n\n` +
-            `🎅 Lo siento, viajero de las sombras...\n` +
-            `✨ Para acceder al menú navideño debes estar registrado.\n\n` +
-            `🔐 Usa *${usedPrefix}reg shadow.18* para unirte al Reino.\n` +
-            `🎁 ¡Las sombras te esperan!`,
-          buttons: [
-            {
-              buttonId: `${usedPrefix}reg shadow.18`,
-              buttonText: { displayText: '✅ Reg Shadow.18' },
-              type: 1,
-            },
-          ],
-          headerType: 6,
+    const chat = global.db.data.users[m.sender] || {};
+    if (!chat.registered) {
+      const thumbBuffer = await (await fetch('https://iili.io/fXp3swb.jpg')).buffer();
+
+      const fkontak = {
+        key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'Shadow' },
+        message: {
+          locationMessage: {
+            name: 'Registro requerido',
+            jpegThumbnail: thumbBuffer,
+            vcard:
+              'BEGIN:VCARD\nVERSION:3.0\nN:;Shadow;;;\nFN:Shadow\nORG:Shadow Garden\nitem1.TEL;waid=584242773183:+58 424 2773183\nitem1.X-ABLabel:Shadow\nEND:VCARD'
+          }
         },
-        {
-          quoted: {
-            key: { fromMe: false, participant: "0@s.whatsapp.net" },
-            message: { conversation: "Mensaje reenviado" },
-          },
+        participant: '0@s.whatsapp.net'
+      };
+
+      const productMessage = {
+        product: {
+          productImage: { url: 'https://files.catbox.moe/n3bg2n.jpg' },
+          productId: '999999999999999',
+          title: 'REGISTRO',
+          description: 'Registro requerido',
+          currencyCode: 'USD',
+          priceAmount1000: '0',
+          retailerId: 1677,
+          url: `https://wa.me/584242773183`,
+          productImageCount: 1
+        },
+        businessOwnerJid: '584242773183@s.whatsapp.net',
+        caption: [
+          `➤ *\`REGISTRO\`*`,
+          `𔓕 Hola ${m.pushName || 'usuario'}`,
+          `𔓕 Para usar el menú necesitas registrarte`,
+          `𔓕 Comando: \`${usedPrefix}reg nombre.edad\``,
+          `𔓕 Ejemplo: \`${usedPrefix}reg shadow.18\``
+        ].join('\n'),
+        footer: '🌌 Shadow Bot',
+        interactiveButtons: [
+          { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '📝 Registrarse', id: `${usedPrefix}reg` }) },
+          { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: '👑 Creador', url: 'https://wa.me/584242773183' }) }
+        ],
+        mentions: [m.sender],
+        contextInfo: {
+          externalAdReply: {
+            showAdAttribution: true,
+            title: 'Shadow • Sistema de Registro',
+            body: 'Registro uwu',
+            mediaType: 1,
+            thumbnailUrl: 'https://files.catbox.moe/n3bg2n.jpg',
+            sourceUrl: 'https://wa.me/584242773183'
+          }
         }
-      );
+      };
+
+      return await conn.sendMessage(m.chat, productMessage, { quoted: fkontak });
     }
 
     let menu = {};
@@ -51,9 +80,10 @@ let handler = async (m, { conn, usedPrefix }) => {
     let seconds = Math.floor(uptimeSec % 60);
     let uptimeStr = `${hours}h ${minutes}m ${seconds}s`;
 
-    let botNameToShow = global.botname || "Shadow 🎄";
+    let botNameToShow = global.botname || "Shadow";
     let bannerUrl = global.michipg || "https://n.uguu.se/ZZHiiljb.jpg";
     let videoUrl = "https://files.catbox.moe/2gczk3.mp4";
+
     const senderBotNumber = conn.user.jid.split('@')[0];
     const configPath = path.join('./Sessions/SubBot', senderBotNumber, 'config.json');
 
@@ -68,34 +98,30 @@ let handler = async (m, { conn, usedPrefix }) => {
 
     const tz = "America/Tegucigalpa";
     const now = moment.tz(tz);
-    const hour = now.hour();
     const timeStr = now.format("HH:mm:ss");
     const dateStr = now.format("DD/MM/YYYY");
 
-    let saludo = "🎅 ¡Feliz Navidad!";
-    if (hour >= 12 && hour < 18) saludo = "🎁 ¡Feliz tarde navideña!";
-    else if (hour >= 18 || hour < 5) saludo = "🌙 ¡Feliz noche navideña!";
+    let saludo = "Bienvenido al Reino de las Sombras";
 
     let intro = 
 `┏━━━━━━━━━━━━━━━━━━━┓
-🎄 *${saludo}* 🎄
-✨ Bienvenido al Reino de las Sombras festivas ✨
-❄️ Que las luces iluminen tu camino y las sombras te protejan ❄️
+🌑 *${saludo}* 🌑
+✨ El poder de las sombras responde a tu llamado ✨
 ┗━━━━━━━━━━━━━━━━━━━┛\n`;
 
     let txt = intro +
-      `🌐 *Canal Navideño de Shadow:*\nhttps://whatsapp.com/channel/0029Vb7GXFc9cDDW4i1gJY1m\n\n` +
-      `🎅 Soy *${botNameToShow}*, el ser en las sombras ${(conn.user.jid == global.conn.user.jid ? '(Principal 🅥)' : '(Sub-Bot 🅑)')}\n` +
+      `🌐 *Canal Oficial de Shadow:*\nhttps://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O\n\n` +
+      `👤 Soy *${botNameToShow}* ${(conn.user.jid == global.conn.user.jid ? '(Principal 🅥)' : '(Sub-Bot 🅑)')}\n` +
       `🕒 *Hora:* ${timeStr}\n` +
       `📅 *Fecha:* ${dateStr}\n` +
       `⚙️ *Actividad:* ${uptimeStr}\n\n` +
-      `❄️ *Comandos mágicos:*`;
+      `⚔️ *Comandos disponibles:*`;
 
-    const emojis = ['🎄', '🎁', '✨', '⛄', '🔔', '🎶'];
+    const emojis = ['⚡', '🔥', '🌑', '🜁', '🜂', '🜄', '🜁'];
     let emojiIndex = 0;
 
     for (let tag in menu) {
-      txt += `\n━━━━━━━━━━━━━━━━━━━━━━\n🎅 ${tag.toUpperCase()} 🎅\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+      txt += `\n🔹 ${tag.toUpperCase()} 🔹\n`;
       for (let plugin of menu[tag]) {
         for (let cmd of plugin.help) {
           let emoji = emojis[emojiIndex % emojis.length];
@@ -105,9 +131,9 @@ let handler = async (m, { conn, usedPrefix }) => {
       }
     }
 
-    txt += `\n\n🎄✨ *Creado por Yosue uwu* ✨🎄`;
+    txt += `\n\n🌑✨ *Creado por Yosue* ✨🌑`;
 
-    await conn.sendMessage(m.chat, { react: { text: '🎅', key: m.key } });
+    await conn.sendMessage(m.chat, { react: { text: '⚡', key: m.key } });
 
     let mediaMessage = null;
     try {
@@ -122,7 +148,7 @@ let handler = async (m, { conn, usedPrefix }) => {
         message: {
           interactiveMessage: {
             body: { text: txt },
-            footer: { text: "🎄 Menú Navideño 🎄" },
+            footer: { text: "Shadow Menu" },
             header: {
               hasMediaAttachment: !!mediaMessage,
               videoMessage: mediaMessage ? mediaMessage.videoMessage : null
@@ -133,7 +159,7 @@ let handler = async (m, { conn, usedPrefix }) => {
                   name: "cta_url",
                   buttonParamsJson: JSON.stringify({
                     display_text: "🌐 Canal de Shadow",
-                    url: "https://whatsapp.com/channel/0029Vb7GXFc9cDDW4i1gJY1m"
+                    url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
                   })
                 }
               ],
@@ -152,10 +178,9 @@ let handler = async (m, { conn, usedPrefix }) => {
     await conn.relayMessage(m.chat, msg.message, {});
 
   } catch (e) {
-    conn.reply(m.chat, "👻 Error en las sombras navideñas...", m);
+    conn.reply(m.chat, "⚠️ Error en el menú...", m);
   }
 };
 
 handler.command = ['help', 'menu'];
 export default handler;
-          
