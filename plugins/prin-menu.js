@@ -53,7 +53,7 @@ let handler = async (m, { conn, usedPrefix }) => {
 
     let botNameToShow = global.botname || "Shadow 🎄";
     let bannerUrl = global.michipg || "https://n.uguu.se/ZZHiiljb.jpg";
-    let videoUrl = "https://raw.githubusercontent.com/UploadsAdonix/archivos/main/1763142155838-e70c63.mp4";
+    let videoUrl = "https://files.catbox.moe/2gczk3.mp4";
     const senderBotNumber = conn.user.jid.split('@')[0];
     const configPath = path.join('./Sessions/SubBot', senderBotNumber, 'config.json');
 
