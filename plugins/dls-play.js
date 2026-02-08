@@ -28,7 +28,6 @@ const handler = async (m, { conn, text }) => {
 
     const vistas = formatViews(views)
 
-    // 🔥 Miniatura estilo WhatsApp Business
     const res3 = await fetch("https://files.catbox.moe/wfd0ze.jpg")
     const thumb3 = Buffer.from(await res3.arrayBuffer())
 
@@ -68,7 +67,6 @@ const handler = async (m, { conn, text }) => {
       { quoted: fkontak }
     )
 
-    // 🔥 DESCARGA AUTOMÁTICA
     await downloadMedia(conn, m, url, "mp3")
 
     await m.react("✅")
@@ -101,9 +99,9 @@ const downloadMedia = async (conn, m, url, type) => {
     if (!data?.status || !data?.data?.url) return m.reply("🚫 No se pudo descargar el archivo.")
 
     const fileUrl = data.data.url
-    const fileTitle = cleanName(data.data.title || "video")
+    const fileTitle = cleanName(data.data.title || "audio")
 
-    // 🔥 AUDIO ESTILO WHATSAPP BUSINESS (miniatura a la derecha)
+    // 🔥 AUDIO ESTILO WHATSAPP BUSINESS (FUNCIONA 100%)
     if (type === "mp3") {
       const audioThumb = await fetch("https://files.catbox.moe/wfd0ze.jpg")
       const mini = Buffer.from(await audioThumb.arrayBuffer())
@@ -111,11 +109,9 @@ const downloadMedia = async (conn, m, url, type) => {
       await conn.sendMessage(
         m.chat,
         {
-          audio: { url: fileUrl },
+          document: { url: fileUrl },
           mimetype: "audio/mpeg",
           fileName: fileTitle + ".mp3",
-
-          // 👇 ESTO ES LO QUE CREA EL ESTILO QUE QUIERES
           jpegThumbnail: mini,
           title: "Descargas - Shadow Bot"
         },
