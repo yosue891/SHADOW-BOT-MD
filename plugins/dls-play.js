@@ -19,17 +19,18 @@ const handler = async (m, { conn, text }) => {
       if (!res?.videos?.length) return m.reply("🚫 No encontré nada.")
       const video = res.videos[0]
       title = video.title
-      authorName = video.author?.name || "Desconocido"
-      durationTimestamp = video.timestamp || "Desconocida"
-      views = video.views || 0
+      authorName = video.author?.name
+      durationTimestamp = video.timestamp
+      views = video.views
       url = video.url
       thumbnail = video.thumbnail
     }
 
     const vistas = formatViews(views)
 
-    // 🔥 Preview estilo WhatsApp Business
-    const thumbBiz = await fetchBuffer(thumbnail)
+    // 🔥 IMAGEN PEQUEÑA FIJA (WhatsApp Business)
+    const res3 = await fetch("https://files.catbox.moe/wfd0ze.jpg")
+    const thumb3 = Buffer.from(await res3.arrayBuffer())
 
     const fkontak = {
       key: {
@@ -39,8 +40,8 @@ const handler = async (m, { conn, text }) => {
       },
       message: {
         locationMessage: {
-          name: `🎵 ${title}`,
-          jpegThumbnail: thumbBiz
+          name: `『 ${title} 』`,
+          jpegThumbnail: thumb3
         }
       }
     }
@@ -58,11 +59,13 @@ const handler = async (m, { conn, text }) => {
 ⚡ 𝑷𝒐𝒘𝒆𝒓𝒆𝒅 𝒃𝒚 𝒀𝒐𝒔𝒖𝒆 ⚡
 `
 
-    // 📌 Mensaje con imagen + info
+    const thumb = (await conn.getFile(thumbnail)).data
+
+    // 🖼️ Imagen grande + info (cita preview business)
     await conn.sendMessage(
       m.chat,
       {
-        image: thumbBiz,
+        image: thumb,
         caption,
         footer: "⚡ Shadow — Descargas rápidas ⚡",
         headerType: 4
@@ -70,24 +73,19 @@ const handler = async (m, { conn, text }) => {
       { quoted: fkontak }
     )
 
-    // 🔥 Descarga automática del audio
+    // 🔥 DESCARGA AUTOMÁTICA (audio citará el preview)
     await downloadMedia(conn, m, url, fkontak)
 
     await m.react("✅")
   } catch (e) {
-    console.error(e)
     m.reply("❌ Error: " + e.message)
-    await m.react("⚠️")
+    m.react("⚠️")
   }
 }
 
-// =====================
-// FUNCIONES
-// =====================
-
 const fetchBuffer = async (url) => {
-  const res = await fetch(url)
-  return await res.buffer()
+  const response = await fetch(url)
+  return await response.buffer()
 }
 
 const downloadMedia = async (conn, m, url, quotedMsg) => {
@@ -103,12 +101,12 @@ const downloadMedia = async (conn, m, url, quotedMsg) => {
     const data = await r.json()
 
     if (!data?.status || !data?.data?.url)
-      return m.reply("🚫 No se pudo descargar el audio.")
+      return m.reply("🚫 No se pudo descargar el archivo.")
 
     const fileUrl = data.data.url
     const fileTitle = cleanName(data.data.title || "audio")
 
-    // 🎧 Envío del audio SIN PTT y citando preview
+    // 🎧 AUDIO SIN PTT + CITA PREVIEW BUSINESS
     await conn.sendMessage(
       m.chat,
       {
@@ -122,10 +120,7 @@ const downloadMedia = async (conn, m, url, quotedMsg) => {
 
     await conn.sendMessage(
       m.chat,
-      {
-        text: `✅ Descarga completada\n\n🎼 Título: ${fileTitle}`,
-        edit: sent.key
-      }
+      { text: `✅ Descarga completada\n\n🎼 Título: ${fileTitle}`, edit: sent.key }
     )
 
     await m.react("✅")
@@ -140,7 +135,7 @@ const cleanName = (name) =>
   name.replace(/[^\w\s-_.]/gi, "").substring(0, 50)
 
 const formatViews = (views) => {
-  if (!views) return "No disponible"
+  if (views === undefined || views === null) return "No disponible"
   if (views >= 1e9) return `${(views / 1e9).toFixed(1)}B`
   if (views >= 1e6) return `${(views / 1e6).toFixed(1)}M`
   if (views >= 1e3) return `${(views / 1e3).toFixed(1)}K`
