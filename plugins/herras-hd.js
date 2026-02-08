@@ -16,6 +16,10 @@ global.wa = {
   generateWAMessageContent
 }
 
+// =====================
+// UTILIDADES
+// =====================
+
 function unwrapMessage(m) {
   let n = m
   while (
@@ -39,6 +43,42 @@ function ensureWA(wa, conn) {
   if (global.wa?.downloadContentFromMessage) return global.wa
   return null
 }
+
+// =====================
+// TARJETA META AI
+// =====================
+
+const sendMetaAICard = async (conn, chatId) => {
+  const metaImg = await (await fetch("https://files.catbox.moe/wfd0ze.jpg")).buffer()
+
+  const vcard = `
+BEGIN:VCARD
+VERSION:3.0
+N:AI;Meta;;;
+FN:Meta AI
+ORG:Meta AI
+TITLE:AI · Estado
+PHOTO;ENCODING=b;TYPE=JPEG:${metaImg.toString("base64")}
+END:VCARD
+`.trim()
+
+  await conn.sendMessage(chatId, {
+    contacts: {
+      displayName: "Meta AI",
+      contacts: [
+        {
+          vcard,
+          verifiedName: "Meta AI",
+          businessOwnerJid: "meta@business.whatsapp.com"
+        }
+      ]
+    }
+  })
+}
+
+// =====================
+// HANDLER
+// =====================
 
 const handler = async (msg, { conn, command, wa, usedPrefix }) => {
   const chatId = msg.key.remoteJid
@@ -83,21 +123,12 @@ const handler = async (msg, { conn, command, wa, usedPrefix }) => {
 
     await conn.sendMessage(
       chatId,
-      {
-        text: "Mejorando la calidad de la imagen... espera un momento 🧪"
-      },
+      { text: "🧠 Meta AI está mejorando tu imagen..." },
       { quoted: msg }
     )
 
     const WA = ensureWA(wa, conn)
-    if (!WA) {
-      await conn.sendMessage(chatId, { react: { text: "❌", key: msg.key } })
-      return conn.sendMessage(
-        chatId,
-        { text: "Error interno: no se encontró el módulo de descarga." },
-        { quoted: msg }
-      )
-    }
+    if (!WA) throw new Error("Módulo WA no disponible")
 
     const stream = await WA.downloadContentFromMessage(quoted.imageMessage, "image")
     const buffer = []
@@ -125,18 +156,19 @@ const handler = async (msg, { conn, command, wa, usedPrefix }) => {
     })
 
     const json = await res.json()
-
-    if (!json?.result_url || !json.result_url.startsWith("http")) {
-      throw new Error("No se pudo obtener la imagen mejorada desde Pixelcut.")
-    }
+    if (!json?.result_url) throw new Error("Pixelcut no respondió")
 
     const resultBuffer = await (await fetch(json.result_url)).buffer()
 
+    // 🧠 ENVÍA TARJETA META AI
+    await sendMetaAICard(conn, chatId)
+
+    // 🖼️ IMAGEN HD FINAL
     await conn.sendMessage(
       chatId,
       {
         image: resultBuffer,
-        caption: ""
+        caption: "✨ Imagen mejorada por Meta AI"
       },
       { quoted: msg }
     )
@@ -146,16 +178,14 @@ const handler = async (msg, { conn, command, wa, usedPrefix }) => {
     await conn.sendMessage(chatId, { react: { text: "❌", key: msg.key } })
     await conn.sendMessage(
       chatId,
-      {
-        text: `Falló la mejora de imagen:\n${err.message}`
-      },
+      { text: `❌ Error:\n${err.message}` },
       { quoted: msg }
     )
   }
 }
 
-handler.help = ["𝖧𝖽"]
-handler.tags = ["𝖬𝖤𝖳𝖠 𝖨𝖠"]
+handler.help = ["hd"]
+handler.tags = ["META IA"]
 handler.command = ["hd"]
 
 export default handler
