@@ -28,7 +28,7 @@ const handler = async (m, { conn, text }) => {
 
     const vistas = formatViews(views)
 
-    // 🔥 Imagen pequeña estilo WhatsApp Business (CAMBIADO A SHADOW BOT)
+    // 🔥 Miniatura estilo WhatsApp Business
     const res3 = await fetch("https://files.catbox.moe/wfd0ze.jpg")
     const thumb3 = Buffer.from(await res3.arrayBuffer())
 
@@ -103,7 +103,7 @@ const downloadMedia = async (conn, m, url, type) => {
     const fileUrl = data.data.url
     const fileTitle = cleanName(data.data.title || "video")
 
-    // 🔥 AUDIO CON MINIATURA A LA DERECHA (SIN ptt)
+    // 🔥 AUDIO ESTILO WHATSAPP BUSINESS (miniatura a la derecha)
     if (type === "mp3") {
       const audioThumb = await fetch("https://files.catbox.moe/wfd0ze.jpg")
       const mini = Buffer.from(await audioThumb.arrayBuffer())
@@ -114,15 +114,10 @@ const downloadMedia = async (conn, m, url, type) => {
           audio: { url: fileUrl },
           mimetype: "audio/mpeg",
           fileName: fileTitle + ".mp3",
-          contextInfo: {
-            externalAdReply: {
-              title: fileTitle,
-              body: "Shadow Bot — Audio",
-              thumbnail: mini,
-              mediaType: 1,
-              renderLargerThumbnail: false
-            }
-          }
+
+          // 👇 ESTO ES LO QUE CREA EL ESTILO QUE QUIERES
+          jpegThumbnail: mini,
+          title: "Descargas - Shadow Bot"
         },
         { quoted: m }
       )
