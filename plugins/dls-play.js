@@ -28,7 +28,6 @@ const handler = async (m, { conn, text }) => {
 
     const vistas = formatViews(views)
 
-    // 🔥 IMAGEN PEQUEÑA FIJA (WhatsApp Business)
     const res3 = await fetch("https://files.catbox.moe/wfd0ze.jpg")
     const thumb3 = Buffer.from(await res3.arrayBuffer())
 
@@ -61,7 +60,6 @@ const handler = async (m, { conn, text }) => {
 
     const thumb = (await conn.getFile(thumbnail)).data
 
-    // 🖼️ Imagen grande + info (cita preview business)
     await conn.sendMessage(
       m.chat,
       {
@@ -73,7 +71,6 @@ const handler = async (m, { conn, text }) => {
       { quoted: fkontak }
     )
 
-    // 🔥 DESCARGA AUTOMÁTICA (audio citará el preview)
     await downloadMedia(conn, m, url, fkontak)
 
     await m.react("✅")
@@ -106,7 +103,6 @@ const downloadMedia = async (conn, m, url, quotedMsg) => {
     const fileUrl = data.data.url
     const fileTitle = cleanName(data.data.title || "audio")
 
-    // 🎧 AUDIO SIN PTT + CITA PREVIEW BUSINESS
     await conn.sendMessage(
       m.chat,
       {
