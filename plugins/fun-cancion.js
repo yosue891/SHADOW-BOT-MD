@@ -9,7 +9,6 @@ const handler = async (m, { conn, usedPrefix }) => {
   const datas = global
   const idioma = datas.db?.data?.users?.[m.sender]?.language || global.defaultLenguaje
 
-  // Carga segura de idioma (previene crash si falta archivo)
   let _translate
   try {
     _translate = JSON.parse(fs.readFileSync(`./src/languages/${idioma}.json`))
@@ -30,11 +29,11 @@ const handler = async (m, { conn, usedPrefix }) => {
 
   const caption = `
 ┏━━━━━━━━━━━━━━━━━━━┓
-🎄 *REINO DE LAS SOMBRAS NAVIDEÑAS* 🎄
+🌑 *REINO DE LAS SOMBRAS* 🌑
 ┗━━━━━━━━━━━━━━━━━━━┛
 
 🎵 *ADIVINA EL TÍTULO DE LA CANCIÓN* 🎵
-🌑 Las sombras susurran entre villancicos y melodías ocultas...
+Las sombras susurran melodías ocultas...
 
 ⏰ Tiempo límite: ${(timeout / 1000).toFixed(0)} segundos
 💡 Usa *${usedPrefix || '.'}pista* para invocar una pista de las sombras
@@ -42,7 +41,7 @@ const handler = async (m, { conn, usedPrefix }) => {
 
 > Responde a este mensaje para que tu destino sea detectado.
 
-✨ Escucha la canción... deja que la oscuridad y la navidad guíen tu respuesta ✨
+✨ Escucha la canción... deja que la oscuridad guíe tu respuesta ✨
 `.trim()
 
   conn.tebaklagu[id] = [
@@ -51,7 +50,7 @@ const handler = async (m, { conn, usedPrefix }) => {
     poin,
     setTimeout(() => {
       if (conn.tebaklagu[id]) {
-        conn.reply(m.chat, `⏰ El tiempo se desvaneció entre las sombras...\n\n🎵 La respuesta era: *${json.jawaban}* 🎄`, conn.tebaklagu[id][0])
+        conn.reply(m.chat, `⏰ El tiempo se desvaneció entre las sombras...\n\n🎵 La respuesta era: *${json.jawaban}*`, conn.tebaklagu[id][0])
         delete conn.tebaklagu[id]
       }
     }, timeout),
@@ -65,10 +64,8 @@ const handler = async (m, { conn, usedPrefix }) => {
   if (!aa) return conn.sendFile(m.chat, json.link_song, 'shadow-song.mp3', '', m)
 }
 
-// Ayuda y registro del comando
 handler.help = ['cancion', 'canción']
 handler.tags = ['game']
-// Usa array para máxima compatibilidad con loaders
 handler.command = ['cancion', 'canción']
 
 export default handler
@@ -87,4 +84,4 @@ async function fetchJson(url, options) {
   } catch (err) {
     return []
   }
-}
+                              }
