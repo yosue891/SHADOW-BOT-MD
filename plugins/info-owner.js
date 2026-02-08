@@ -16,8 +16,7 @@ let handler = async (m, { conn }) => {
 
   const numbers = [
     { num: '584242773183', name: '👑 Creador Principal (Yosue)', note: 'Shadow Master, mente detrás del reino.' },
-    { num: '50493732693',  name: '⚔️ Segundo Creador (ado)',   note: 'Estratega de las Sombras.' },
-    { num: '5491124918653', name: '🌌 Tercer Creador (Fede)',  note: 'Arquitecto del código oculto.' }
+    { num: '50493732693',  name: '⚔️ Segundo Creador (ado)',   note: 'Estratega de las Sombras.' }
   ]
 
   const generateVCard = ({ number, name, org, email, region, website, note }) => {
@@ -38,7 +37,6 @@ NOTE:${clean(note)}
 END:VCARD`.trim()
   }
 
-  // Generar la lista de contactos
   const contactList = numbers.map(c => ({
     displayName: c.name,
     vcard: generateVCard({
@@ -75,8 +73,7 @@ https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
 
 📱 𝗖𝗢𝗡𝗧𝗔𝗖𝗧𝗢𝗦 𝗗𝗘 𝗟𝗔 𝗢𝗥𝗚𝗔𝗡𝗜𝗭𝗔𝗖𝗜𝗢́𝗡:  
 👑 Creador Principal: +58 424-2773183 (Yosue)  
-⚔️ Segundo creador: +504 9373-2693 (ado)  
-🕯️ Tercer Creador: +54 9 11-2491-8653 (Fede)
+⚔️ Segundo creador: +504 9373-2693 (ado)
 
 ✦ *SHADOW-BOT-MD* — El poder no se muestra... se oculta en las sombras ✦`
 
