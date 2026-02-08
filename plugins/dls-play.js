@@ -19,24 +19,28 @@ const handler = async (m, { conn, text }) => {
       if (!res?.videos?.length) return m.reply("🚫 No encontré nada.")
       const video = res.videos[0]
       title = video.title
-      authorName = video.author?.name
-      durationTimestamp = video.timestamp
-      views = video.views
+      authorName = video.author?.name || "Desconocido"
+      durationTimestamp = video.timestamp || "Desconocida"
+      views = video.views || 0
       url = video.url
       thumbnail = video.thumbnail
     }
 
     const vistas = formatViews(views)
 
-    const res3 = await fetch("https://files.catbox.moe/wfd0ze.jpg")
-    const thumb3 = Buffer.from(await res3.arrayBuffer())
+    // 🔥 Preview estilo WhatsApp Business
+    const thumbBiz = await fetchBuffer(thumbnail)
 
     const fkontak = {
-      key: { fromMe: false, participant: "0@s.whatsapp.net" },
+      key: {
+        fromMe: false,
+        participant: "0@s.whatsapp.net",
+        remoteJid: "status@broadcast"
+      },
       message: {
         locationMessage: {
-          name: `『 ${title} 』`,
-          jpegThumbnail: thumb3
+          name: `🎵 ${title}`,
+          jpegThumbnail: thumbBiz
         }
       }
     }
@@ -54,12 +58,11 @@ const handler = async (m, { conn, text }) => {
 ⚡ 𝑷𝒐𝒘𝒆𝒓𝒆𝒅 𝒃𝒚 𝒀𝒐𝒔𝒖𝒆 ⚡
 `
 
-    const thumb = (await conn.getFile(thumbnail)).data
-
+    // 📌 Mensaje con imagen + info
     await conn.sendMessage(
       m.chat,
       {
-        image: thumb,
+        image: thumbBiz,
         caption,
         footer: "⚡ Shadow — Descargas rápidas ⚡",
         headerType: 4
@@ -67,67 +70,62 @@ const handler = async (m, { conn, text }) => {
       { quoted: fkontak }
     )
 
-    await downloadMedia(conn, m, url, "mp3")
+    // 🔥 Descarga automática del audio
+    await downloadMedia(conn, m, url, fkontak)
 
     await m.react("✅")
   } catch (e) {
+    console.error(e)
     m.reply("❌ Error: " + e.message)
-    m.react("⚠️")
+    await m.react("⚠️")
   }
 }
 
+// =====================
+// FUNCIONES
+// =====================
+
 const fetchBuffer = async (url) => {
-  const response = await fetch(url)
-  return await response.buffer()
+  const res = await fetch(url)
+  return await res.buffer()
 }
 
-const downloadMedia = async (conn, m, url, type) => {
+const downloadMedia = async (conn, m, url, quotedMsg) => {
   try {
-    const msg = type === "mp3"
-      ? "🎵 Descargando audio..."
-      : "🎬 Descargando video..."
+    const sent = await conn.sendMessage(
+      m.chat,
+      { text: "🎵 Descargando audio..." },
+      { quoted: m }
+    )
 
-    const sent = await conn.sendMessage(m.chat, { text: msg }, { quoted: m })
-
-    const apiUrl = type === "mp3"
-      ? `https://api-adonix.ultraplus.click/download/ytaudio?url=${encodeURIComponent(url)}&apikey=SHADOWBOTKEYMD`
-      : `https://api-adonix.ultraplus.click/download/ytvideo?url=${encodeURIComponent(url)}&apikey=SHADOWBOTKEYMD`
-
+    const apiUrl = `https://api-adonix.ultraplus.click/download/ytaudio?url=${encodeURIComponent(url)}&apikey=SHADOWBOTKEYMD`
     const r = await fetch(apiUrl)
     const data = await r.json()
 
-    if (!data?.status || !data?.data?.url) return m.reply("🚫 No se pudo descargar el archivo.")
+    if (!data?.status || !data?.data?.url)
+      return m.reply("🚫 No se pudo descargar el audio.")
 
     const fileUrl = data.data.url
     const fileTitle = cleanName(data.data.title || "audio")
 
-    // 🔥 AUDIO ESTILO WHATSAPP BUSINESS (FUNCIONA 100%)
-    if (type === "mp3") {
-      const audioThumb = await fetch("https://files.catbox.moe/wfd0ze.jpg")
-      const mini = Buffer.from(await audioThumb.arrayBuffer())
-
-      await conn.sendMessage(
-        m.chat,
-        {
-          document: { url: fileUrl },
-          mimetype: "audio/mpeg",
-          fileName: fileTitle + ".mp3",
-          jpegThumbnail: mini,
-          title: "Descargas - Shadow Bot"
-        },
-        { quoted: m }
-      )
-    } else {
-      await conn.sendMessage(
-        m.chat,
-        { video: { url: fileUrl }, mimetype: "video/mp4", fileName: fileTitle + ".mp4" },
-        { quoted: m }
-      )
-    }
+    // 🎧 Envío del audio SIN PTT y citando preview
+    await conn.sendMessage(
+      m.chat,
+      {
+        audio: { url: fileUrl },
+        mimetype: "audio/mpeg",
+        fileName: fileTitle + ".mp3",
+        ptt: false
+      },
+      { quoted: quotedMsg }
+    )
 
     await conn.sendMessage(
       m.chat,
-      { text: `✅ Descarga completada\n\n🎼 Título: ${fileTitle}`, edit: sent.key }
+      {
+        text: `✅ Descarga completada\n\n🎼 Título: ${fileTitle}`,
+        edit: sent.key
+      }
     )
 
     await m.react("✅")
@@ -138,13 +136,14 @@ const downloadMedia = async (conn, m, url, type) => {
   }
 }
 
-const cleanName = (name) => name.replace(/[^\w\s-_.]/gi, "").substring(0, 50)
+const cleanName = (name) =>
+  name.replace(/[^\w\s-_.]/gi, "").substring(0, 50)
 
 const formatViews = (views) => {
-  if (views === undefined || views === null) return "No disponible"
-  if (views >= 1000000000) return `${(views / 1000000000).toFixed(1)}B`
-  if (views >= 1000000) return `${(views / 1000000).toFixed(1)}M`
-  if (views >= 1000) return `${(views / 1000).toFixed(1)}K`
+  if (!views) return "No disponible"
+  if (views >= 1e9) return `${(views / 1e9).toFixed(1)}B`
+  if (views >= 1e6) return `${(views / 1e6).toFixed(1)}M`
+  if (views >= 1e3) return `${(views / 1e3).toFixed(1)}K`
   return views.toString()
 }
 
