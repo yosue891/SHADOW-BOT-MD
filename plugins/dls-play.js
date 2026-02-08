@@ -28,7 +28,7 @@ const handler = async (m, { conn, text }) => {
 
     const vistas = formatViews(views)
 
-    // 🔥 Imagen pequeña estilo WhatsApp Business
+    // 🔥 Imagen pequeña estilo WhatsApp Business (CAMBIADO A SHADOW BOT)
     const res3 = await fetch("https://files.catbox.moe/wfd0ze.jpg")
     const thumb3 = Buffer.from(await res3.arrayBuffer())
 
@@ -91,7 +91,6 @@ const downloadMedia = async (conn, m, url, type) => {
 
     const sent = await conn.sendMessage(m.chat, { text: msg }, { quoted: m })
 
-    // 🔥 API Adonix con template string correcto
     const apiUrl = type === "mp3"
       ? `https://api-adonix.ultraplus.click/download/ytaudio?url=${encodeURIComponent(url)}&apikey=SHADOWBOTKEYMD`
       : `https://api-adonix.ultraplus.click/download/ytvideo?url=${encodeURIComponent(url)}&apikey=SHADOWBOTKEYMD`
@@ -104,11 +103,27 @@ const downloadMedia = async (conn, m, url, type) => {
     const fileUrl = data.data.url
     const fileTitle = cleanName(data.data.title || "video")
 
+    // 🔥 AUDIO CON MINIATURA A LA DERECHA (SIN ptt)
     if (type === "mp3") {
-      const audioBuffer = await fetchBuffer(fileUrl)
+      const audioThumb = await fetch("https://files.catbox.moe/wfd0ze.jpg")
+      const mini = Buffer.from(await audioThumb.arrayBuffer())
+
       await conn.sendMessage(
         m.chat,
-        { audio: { url: fileUrl }, mimetype: "audio/mpeg", fileName: fileTitle + ".mp3", ptt: true },
+        {
+          audio: { url: fileUrl },
+          mimetype: "audio/mpeg",
+          fileName: fileTitle + ".mp3",
+          contextInfo: {
+            externalAdReply: {
+              title: fileTitle,
+              body: "Shadow Bot — Audio",
+              thumbnail: mini,
+              mediaType: 1,
+              renderLargerThumbnail: false
+            }
+          }
+        },
         { quoted: m }
       )
     } else {
