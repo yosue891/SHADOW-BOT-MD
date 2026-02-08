@@ -133,7 +133,7 @@ let handler = async (m, { conn, usedPrefix }) => {
 
     txt += `\n\n🌑✨ *Creado por Yosue* ✨🌑`;
 
-    await conn.sendMessage(m.chat, { react: { text: '⚡', key: m.key } });
+    await conn.sendMessage(m.chat, { react: { text: '👻', key: m.key } });
 
     let mediaMessage = null;
     try {
