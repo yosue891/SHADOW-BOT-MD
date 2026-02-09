@@ -4,11 +4,13 @@ let handler = async (m, { conn, command }) => {
   if (!m.isGroup) return m.reply('🌑⚠️ *Este comando solo puede usarse en grupos.*')
 
   const groupMetadata = await conn.groupMetadata(m.chat)
-  const admins = groupMetadata.participants
-    .filter(p => p.admin === 'admin' || p.admin === 'superadmin')
-    .map(p => p.id)
 
-  if (!admins.includes(m.sender)) {
+  const isAdmin = groupMetadata.participants.some(p =>
+    (p.admin === 'admin' || p.admin === 'superadmin') &&
+    p.id.split(':')[0] + '@s.whatsapp.net' === m.sender
+  )
+
+  if (!isAdmin) {
     return m.reply('🌑⚠️ *Solo los administradores del grupo pueden usar este comando.*')
   }
 
@@ -66,4 +68,3 @@ handler.group = true
 handler.botAdmin = true
 
 export default handler
-            
