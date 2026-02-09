@@ -1,16 +1,9 @@
 import fetch from 'node-fetch'
 
-let handler = async (m, { conn, command }) => {
+let handler = async (m, { conn, command, isAdmin, isGroupAdmins }) => {
   if (!m.isGroup) return m.reply('🌑⚠️ *Este comando solo puede usarse en grupos.*')
 
-  const groupMetadata = await conn.groupMetadata(m.chat)
-
-  const isAdmin = groupMetadata.participants.some(p =>
-    (p.admin === 'admin' || p.admin === 'superadmin') &&
-    p.id.split(':')[0] + '@s.whatsapp.net' === m.sender
-  )
-
-  if (!isAdmin) {
+  if (!(isAdmin || isGroupAdmins)) {
     return m.reply('🌑⚠️ *Solo los administradores del grupo pueden usar este comando.*')
   }
 
@@ -66,5 +59,6 @@ handler.tags = ['group']
 handler.command = ['close', 'open']
 handler.group = true
 handler.botAdmin = true
+handler.admin = true
 
 export default handler
