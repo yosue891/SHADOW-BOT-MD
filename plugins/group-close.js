@@ -7,12 +7,14 @@ let handler = async (m, { conn, command }) => {
 
   const groupMetadata = await conn.groupMetadata(m.chat)
 
-  // 🔥 NORMALIZAMOS LOS ADMINS CORRECTAMENTE
+  // 🔑 FUNCIÓN PARA NORMALIZAR JID
+  const normalize = jid => jid.split('@')[0]
+
   const admins = groupMetadata.participants
     .filter(p => p.admin)
-    .map(p => p.id)
+    .map(p => normalize(p.id))
 
-  const sender = m.sender
+  const sender = normalize(m.sender)
 
   if (!admins.includes(sender)) {
     return m.reply('🌑⚠️ *Solo los administradores del grupo pueden usar este comando.*')
@@ -27,7 +29,6 @@ let handler = async (m, { conn, command }) => {
   const selectedImage = action === 'open' ? imgOpen : imgClose
   const thumb = await (await fetch(selectedImage)).buffer()
 
-  // 🧠 HEADER ESTILO BUSINESS / META
   const businessHeader = {
     key: {
       participants: '0@s.whatsapp.net',
