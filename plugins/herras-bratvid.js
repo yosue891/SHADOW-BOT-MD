@@ -23,11 +23,10 @@ const videoBuffer = await fetchStickerVideo(text)
 const tmp = `./tmp-${Date.now()}.mp4`
 fs.writeFileSync(tmp, videoBuffer)
 
-await conn.sendMessage(
-  m.chat,
-  { sticker: { url: tmp }, packname: texto1, author: texto2 },
-  { quoted: m }
-)
+await conn.sendVideoAsSticker(m.chat, tmp, m, {
+  packname: texto1,
+  author: texto2
+})
 
 fs.unlinkSync(tmp)
 await m.react('✔️')
