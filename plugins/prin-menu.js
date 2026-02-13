@@ -1,69 +1,12 @@
 import moment from "moment-timezone";
 import fs from "fs";
-import path from "path";
 import fetch from "node-fetch";
 const { prepareWAMessageMedia, generateWAMessageFromContent } = (await import("@whiskeysockets/baileys")).default;
 
 let handler = async (m, { conn, usedPrefix }) => {
   try {
     const chat = global.db.data.users[m.sender] || {};
-    
-    // SISTEMA DE REGISTRO
-    if (!chat.registered) {
-      const thumb = await (await fetch('https://iili.io/fXp3swb.jpg')).buffer();
-
-      const fkontak = {
-        key: { fromMe: false, id: 'Shadow', participant: '0@s.whatsapp.net' },
-        message: {
-          contactMessage: {
-            displayName: "Shadow",
-            vcard: `BEGIN:VCARD\nVERSION:3.0\nN:Shadow;;;\nFN:Shadow\nORG:Shadow Garden\nTEL;waid=584242773183:+58 424 2773183\nEND:VCARD`,
-            jpegThumbnail: thumb
-          }
-        }
-      };
-
-      const msg = {
-        interactiveMessage: {
-          header: {
-            title: "REGISTRO REQUERIDO",
-            subtitle: "Shadow Garden",
-            hasMediaAttachment: true,
-            imageMessage: {
-              url: "https://files.catbox.moe/n3bg2n.jpg"
-            }
-          },
-          body: {
-            text: `➤ *\`REGISTRO\`*\n\nHola ${m.pushName || 'usuario'}\nPara usar el menú necesitas registrarte.\n\nComando:\n\`${usedPrefix}reg nombre.edad\`\nEjemplo:\n\`${usedPrefix}reg shadow.18\``
-          },
-          footer: { text: "🌌 Shadow Bot" },
-          nativeFlowMessage: {
-            buttons: [
-              {
-                name: "quick_reply",
-                buttonParamsJson: JSON.stringify({
-                  display_text: "📝 Registrarse",
-                  id: `${usedPrefix}reg`
-                })
-              },
-              {
-                name: "cta_url",
-                buttonParamsJson: JSON.stringify({
-                  display_text: "👑 Creador",
-                  url: "https://wa.me/584242773183"
-                })
-              }
-            ]
-          },
-          contextInfo: {
-            isForwarded: true,
-            forwardingScore: 9999999
-          }
-        }
-      };
-
-      return conn.sendMessage(m.chat, msg, { quoted: fkontak });
-    }
+    if (!chat.registered) return; // NO TOCAMOS EL REGISTRO
 
     // GENERAR MENÚ
     let menu = {};
@@ -93,7 +36,6 @@ let handler = async (m, { conn, usedPrefix }) => {
 ✨ El poder de las sombras responde a tu llamado ✨
 ┗━━━━━━━━━━━━━━━━━━━┛
 
-👤 *Bot:* Shadow
 🕒 *Hora:* ${hora}
 📅 *Fecha:* ${fecha}
 ⚙️ *Actividad:* ${h}h ${mnt}m ${s}s
@@ -129,20 +71,22 @@ let handler = async (m, { conn, usedPrefix }) => {
         },
         body: { text: texto },
         footer: { text: "Shadow Menu" },
-        nativeFlowMessage: {
-          buttons: [
-            {
-              name: "cta_url",
-              buttonParamsJson: JSON.stringify({
-                display_text: "🌐 Canal de Shadow",
-                url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
-              })
-            }
-          ]
-        },
+
+        nativeFlowMessage: { buttons: [] },
+
         contextInfo: {
           isForwarded: true,
-          forwardingScore: 9999999
+          forwardingScore: 9999999,
+
+          externalAdReply: {
+            showAdAttribution: true,
+            title: "Shadow • Canal Oficial",
+            body: "Únete al canal",
+            mediaType: 1,
+            renderLargerThumbnail: true,
+            thumbnailUrl: "https://files.catbox.moe/n3bg2n.jpg",
+            sourceUrl: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
+          }
         }
       }
     }, { quoted: m });
