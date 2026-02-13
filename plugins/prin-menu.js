@@ -4,7 +4,6 @@ const { prepareWAMessageMedia, generateWAMessageFromContent, proto } = (await im
 let handler = async (m, { conn, usedPrefix }) => {
     const delay = ms => new Promise(res => setTimeout(res, ms))
 
-    // --- CONFIGURACIÓN DE TAGS Y MENÚ (Lógica Original) ---
     let tags = {
         'info': 'ᴍᴇɴᴜ ɪɴғᴏ',
         'anime': 'ᴍᴇɴᴜ ᴀɴɪᴍᴇ',
@@ -83,9 +82,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     let finalMenu = infoUser + '\n\n' + menu.join('\n\n') + '\n' + after
     let imagen = 'https://files.catbox.moe/h8lydl.jpg'
 
-    // --- PREPARACIÓN DEL MENSAJE ESTILO "HACK" ---
 
-    // Preparamos la imagen
     let media = await prepareWAMessageMedia(
         { image: { url: imagen } },
         { upload: conn.waUploadToServer }
