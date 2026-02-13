@@ -63,7 +63,7 @@ let handler = async function (m, { conn, text, usedPrefix, command }) {
     caption: certificadoPacto,
     buttons: [
       { buttonId: `${usedPrefix}menu`, buttonText: { displayText: '🌌 Volver al Menú' }, type: 1 },
-      { buttonId: `${usedPrefix}profile ${m.sender}`, buttonText: { displayText: 'Perfil del bot ❓' }, type: 1 }
+      { buttonId: `${usedPrefix}profile ${m.sender}`, buttonText: { displayText: 'Perfil del grupo xd' }, type: 1 }
     ],
     headerType: 4,
     contextInfo: {
