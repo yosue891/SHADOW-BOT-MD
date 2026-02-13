@@ -96,9 +96,9 @@ ${usedPrefix + command}`
     }
 
     try {
-        await m.react('🌑'); 
+        await m.react('🌑');
 
-        const buffer = await q.download?.();
+        const buffer = await conn.downloadMediaMessage(q);
         if (!buffer) return m.reply('❌ *Las Sombras no pudieron obtener la imagen.*');
 
         const ft = await fileTypeFromBuffer(buffer);
