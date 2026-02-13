@@ -38,7 +38,7 @@ export default handler
 async function luminsesi(q, username, logic) {
   try {
     const response = await axios.get(
-      `https://api-adonix.ultraplus.click/ai/geminiact?apikey=SHADOWKEYBOTMD&text=${encodeURIComponent(q)}&role=${encodeURIComponent(logic)}`
+      `https://api-adonix.ultraplus.click/ai/gemini?apikey=SHADOWBOTKEYMD&text=${encodeURIComponent(q)}&role=${encodeURIComponent(logic)}`
     )
     return response.data.message
   } catch (error) {
@@ -52,9 +52,8 @@ import axios from 'axios'
 let handler = async (m, { conn, usedPrefix, command, text }) => {
   const username = `${conn.getName(m.sender)}`
   const sender = m.sender
-  const isOwner = sender.includes('584242773183') // Detecta si el número es el del creador Yosue
+  const isOwner = sender.includes('584242773183') 
 
-  // Prompt base adaptado según el usuario
   const basePrompt = `
 Tu nombre es Simi, una inteligencia artificial con actitud. Eres sarcástico, directo y no tienes filtros, pero sabes cuándo ser respetuoso y cuándo atacar.
 
@@ -93,11 +92,10 @@ handler.register = true
 handler.command = ['simi']
 export default handler
 
-// Función para interactuar con la IA usando prompts
 async function luminsesi(q, username, logic) {
   try {
     const response = await axios.get(
-      `https://api-adonix.ultraplus.click/ai/geminiact?apikey=SHADOWKEYBOTMD&text=${encodeURIComponent(q)}&role=${encodeURIComponent(logic)}`
+      `https://api-adonix.ultraplus.click/ai/gemini?apikey=SHADOWBOTKEYMD&text=${encodeURIComponent(q)}&role=${encodeURIComponent(logic)}`
     )
     return response.data.message
   } catch (error) {
