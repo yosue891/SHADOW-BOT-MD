@@ -1,5 +1,6 @@
 import fetch from 'node-fetch'
 import fs from 'fs'
+import { exec } from 'child_process'
 
 const fetchJson = (url, options) =>
   new Promise((resolve, reject) => {
@@ -8,6 +9,18 @@ const fetchJson = (url, options) =>
       .then(json => resolve(json))
       .catch(err => reject(err))
   })
+
+const convertToWebp = (input, output) => {
+  return new Promise((resolve, reject) => {
+    exec(
+      `ffmpeg -i ${input} -vf "scale=512:512:force_original_aspect_ratio=decrease" -vcodec libwebp -lossless 1 -qscale 1 -preset picture -loop 0 -an -vsync 0 ${output}`,
+      (err) => {
+        if (err) reject(err)
+        else resolve()
+      }
+    )
+  })
+}
 
 var handler = async (m, { conn, usedPrefix, command, text }) => {
 try {
@@ -29,16 +42,22 @@ if (!res.results || res.results.length === 0)
   return conn.reply(m.chat, `《✧》 No existe una combinación para esos emojis.`, m)
 
 for (let result of res.results) {
-  const tmp = `./tmp-${Date.now()}.webp`
+  const png = `./tmp-${Date.now()}.png`
+  const webp = `./tmp-${Date.now()}.webp`
+
   const buffer = await (await fetch(result.url)).arrayBuffer()
-  fs.writeFileSync(tmp, Buffer.from(buffer))
+  fs.writeFileSync(png, Buffer.from(buffer))
 
-  await conn.sendImageAsSticker(m.chat, tmp, m, {
-    packname: texto1,
-    author: texto2
-  })
+  await convertToWebp(png, webp)
 
-  fs.unlinkSync(tmp)
+  await conn.sendMessage(
+    m.chat,
+    { sticker: fs.readFileSync(webp), packname: texto1, author: texto2 },
+    { quoted: m }
+  )
+
+  fs.unlinkSync(png)
+  fs.unlinkSync(webp)
 }
 
 await m.react('✔️')
