@@ -6,7 +6,7 @@ const { prepareWAMessageMedia, generateWAMessageFromContent } = (await import("@
 let handler = async (m, { conn, usedPrefix }) => {
   try {
     const chat = global.db.data.users[m.sender] || {};
-    if (!chat.registered) return; // NO TOCAMOS EL REGISTRO
+    if (!chat.registered) return; // NO TOCAR EL REGISTRO
 
     // GENERAR MENÚ
     let menu = {};
