@@ -31,8 +31,8 @@ let handler = async (m, { conn, usedPrefix }) => {
 
   let user = global.db.data.users[m.sender]
   let nombre = await conn.getName(m.sender)
-  let premium = user.premium ? '✅ Sí' : '❌ No'
-  let limite = user.limit || 0
+  let premium = user?.premium ? '✅ Sí' : '❌ No'
+  let limite = user?.limit || 0
   let totalreg = Object.keys(global.db.data.users).length
   let groupsCount = Object.values(conn.chats).filter(v => v.id.endsWith('@g.us')).length
   let muptime = clockString(process.uptime())
@@ -62,19 +62,18 @@ let handler = async (m, { conn, usedPrefix }) => {
 *ꜱɪ ᴇɴᴄᴜᴇɴᴛʀᴀꜱ ᴀʟɢᴜ́ɴ ᴇʀʀᴏʀ, ᴘᴏʀ ꜰᴀᴠᴏʀ ᴄᴏɴᴛᴀᴄᴛᴀ ᴀʟ ᴏᴡɴᴇʀ.*
 `.trim()
 
-  let commands = Object.values(global.plugins).filter(v => v.help && v.tags).map(v => {
-    return {
-      help: Array.isArray(v.help) ? v.help : [v.help],
-      tags: Array.isArray(v.tags) ? v.tags : [v.tags]
-    }
-  })
+  let commands = Object.values(global.plugins).filter(v => v.help && v.tags).map(v => ({
+    help: Array.isArray(v.help) ? v.help : [v.help],
+    tags: Array.isArray(v.tags) ? v.tags : [v.tags]
+  }))
 
   let menu = []
   for (let tag in tags) {
     let comandos = commands
-      .filter(command => command.tags.includes(tag))
-      .map(command => command.help.map(cmd => body.replace(/%cmd/g, usedPrefix + cmd)).join('\n'))
+      .filter(cmd => cmd.tags.includes(tag))
+      .map(cmd => cmd.help.map(c => body.replace(/%cmd/g, usedPrefix + c)).join('\n'))
       .join('\n')
+
     if (comandos) {
       menu.push(header.replace(/%category/g, tags[tag]) + '\n' + comandos + '\n' + footer)
     }
@@ -84,9 +83,16 @@ let handler = async (m, { conn, usedPrefix }) => {
   let imagen = 'https://files.catbox.moe/3z7wet.jpg'
 
   let vcard = `BEGIN:VCARD\nVERSION:3.0\nN:;Itachi;;;\nFN:Itachi\nitem1.TEL;waid=13135550002:+1 (313) 555-0002\nitem1.X-ABLabel:Celular\nEND:VCARD`
-  let qkontak = { key: { fromMe: false, participant: "0@s.whatsapp.net", remoteJid: "status@broadcast" }, message: { contactMessage: { displayName: "H A Y A B U S A - B O T", vcard: vcard } } }
 
-  let media = await prepareWAMessageMedia({ image: { url: imagen } }, { upload: conn.waUploadToServer })
+  let qkontak = {
+    key: { fromMe: false, participant: "0@s.whatsapp.net", remoteJid: "status@broadcast" },
+    message: { contactMessage: { displayName: "H A Y A B U S A - B O T", vcard } }
+  }
+
+  let media = await prepareWAMessageMedia(
+    { image: { url: imagen } },
+    { upload: conn.waUploadToServer }
+  )
 
   const msg = generateWAMessageFromContent(m.chat, {
     viewOnceMessage: {
@@ -99,56 +105,58 @@ let handler = async (m, { conn, usedPrefix }) => {
             imageMessage: media.imageMessage
           },
           nativeFlowMessage: {
-  buttons: [
-    {
-      name: "cta_url",
-      buttonParamsJson: JSON.stringify({
-        display_text: "🍃 Canal Oficial",
-        url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O/"
-      })
-    },
-    {
-      name: "cta_url",
-      buttonParamsJson: JSON.stringify({
-        display_text: "📸 Instagram",
-        url: "https://www.instagram.com/its_ga3b?igsh=MTEwNGI0YjNqamV3dA=="
-      })
-    },
-    {
-      name: "cta_url",
-      buttonParamsJson: JSON.stringify({
-        display_text: "🎵 TikTok",
-        url: "https://www.tiktok.com/@gab_zz32?_r=1&_t=ZS-93NFDkvQqV2"
-      })
-    },
-    {
-      name: "quick_reply",
-      buttonParamsJson: JSON.stringify({
-        display_text: "💻 Code",
-        id: `${usedPrefix}code`
-      })
-    },
-    {
-      name: "quick_reply",
-      buttonParamsJson: JSON.stringify({
-        display_text: "🚀 Ping",
-        id: `${usedPrefix}ping`
-      })
-    },
-    {
-      })
-        display_text: "💻 qr",
-        id: `${usedPrefix}qr`
-    },
-    {
-      name: "quick_reply",
-      buttonParamsJson: JSON.stringify({
-        display_text: "👤 Owner",
-        id: `${usedPrefix}owner`
-      })
-    }
-  ]
-},
+            buttons: [
+              {
+                name: "cta_url",
+                buttonParamsJson: JSON.stringify({
+                  display_text: "🍃 Canal Oficial",
+                  url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O/"
+                })
+              },
+              {
+                name: "cta_url",
+                buttonParamsJson: JSON.stringify({
+                  display_text: "📸 Instagram",
+                  url: "https://www.instagram.com/its_ga3b"
+                })
+              },
+              {
+                name: "cta_url",
+                buttonParamsJson: JSON.stringify({
+                  display_text: "🎵 TikTok",
+                  url: "https://www.tiktok.com/@gab_zz32"
+                })
+              },
+              {
+                name: "quick_reply",
+                buttonParamsJson: JSON.stringify({
+                  display_text: "💻 Code",
+                  id: `${usedPrefix}code`
+                })
+              },
+              {
+                name: "quick_reply",
+                buttonParamsJson: JSON.stringify({
+                  display_text: "🚀 Ping",
+                  id: `${usedPrefix}ping`
+                })
+              },
+              {
+                name: "quick_reply",
+                buttonParamsJson: JSON.stringify({
+                  display_text: "💻 QR",
+                  id: `${usedPrefix}qr`
+                })
+              },
+              {
+                name: "quick_reply",
+                buttonParamsJson: JSON.stringify({
+                  display_text: "👤 Owner",
+                  id: `${usedPrefix}owner`
+                })
+              }
+            ]
+          },
           contextInfo: {
             mentionedJid: [m.sender],
             isForwarded: true,
