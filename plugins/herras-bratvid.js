@@ -1,10 +1,23 @@
 import axios from 'axios'
 import fs from 'fs'
+import { exec } from 'child_process'
 
 const fetchStickerVideo = async (text) => {
   const response = await axios.get(`https://skyzxu-brat.hf.space/brat-animated`, { params: { text }, responseType: 'arraybuffer' })
   if (!response.data) throw new Error('Error al obtener el video de la API.')
   return response.data
+}
+
+const convertToWebp = (input, output) => {
+  return new Promise((resolve, reject) => {
+    exec(
+      `ffmpeg -i ${input} -vf "scale=512:512:force_original_aspect_ratio=decrease,fps=15" -loop 0 -an -vsync 0 -s 512x512 ${output}`,
+      (err) => {
+        if (err) reject(err)
+        else resolve()
+      }
+    )
+  })
 }
 
 var handler = async (m, { conn, usedPrefix, command, text }) => {
@@ -20,15 +33,21 @@ let texto1 = user.metadatos || `Sʜᴀᴅᴏᴡ Gᴀʀᴅᴇɴ ⚜`
 let texto2 = user.metadatos2 || `@${name}`
 
 const videoBuffer = await fetchStickerVideo(text)
-const tmp = `./tmp-${Date.now()}.mp4`
-fs.writeFileSync(tmp, videoBuffer)
+const mp4 = `./tmp-${Date.now()}.mp4`
+const webp = `./tmp-${Date.now()}.webp`
 
-await conn.sendVideoAsSticker(m.chat, tmp, m, {
-  packname: texto1,
-  author: texto2
-})
+fs.writeFileSync(mp4, videoBuffer)
 
-fs.unlinkSync(tmp)
+await convertToWebp(mp4, webp)
+
+await conn.sendMessage(
+  m.chat,
+  { sticker: fs.readFileSync(webp), packname: texto1, author: texto2 },
+  { quoted: m }
+)
+
+fs.unlinkSync(mp4)
+fs.unlinkSync(webp)
 await m.react('✔️')
 
 } catch (e) {
