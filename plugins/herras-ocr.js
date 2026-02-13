@@ -56,9 +56,11 @@ class ITTCracker {
         }
 
         this._jwt = data.result.token
+
         const payload = JSON.parse(
             Buffer.from(this._jwt.split('.')[1], 'base64url').toString()
         )
+
         this._jwtExpiry = payload.exp
         return this._jwt
     }
@@ -94,19 +96,35 @@ class ITTCracker {
     }
 }
 
-let handler = async (m, { usedPrefix, command }) => {
+let handler = async (m, { usedPrefix, command, conn }) => {
     const q = m.quoted ? m.quoted : m
     const mime = (q.msg || q).mimetype || q.mediaType || ''
 
     if (!/image\/(png|jpe?g|gif|bmp|webp)/.test(mime)) {
-        return m.reply(`⚠️ Responde a una imagen con ${usedPrefix + command}`)
+        return m.reply(
+`⚠️ *Discípulo de las Sombras…*
+Responde a una imagen para extraer el texto oculto.
+
+Ejemplo:
+${usedPrefix + command}`
+        )
     }
 
     try {
         await m.react('⏳')
 
-        const buffer = await q.download?.()
-        if (!buffer) return m.reply('❌ Error descargando imagen.')
+        // 🔥 Descarga compatible con cualquier base
+        let buffer
+
+        if (typeof q.download === 'function') {
+            buffer = await q.download()
+        } else if (typeof conn?.downloadMediaMessage === 'function') {
+            buffer = await conn.downloadMediaMessage(q)
+        }
+
+        if (!buffer) {
+            return m.reply('❌ *Las Sombras no pudieron obtener la imagen.*')
+        }
 
         const ft = await fileTypeFromBuffer(buffer)
         const ext = ft?.ext || 'png'
@@ -116,15 +134,23 @@ let handler = async (m, { usedPrefix, command }) => {
         const text = await cracker.ocrBase64(base64, ext)
 
         if (!text.trim()) {
-            return m.reply('⚠️ No se detectó texto.')
+            return m.reply('⚠️ *Ni siquiera las Sombras encontraron texto en esta imagen.*')
         }
 
-        await m.reply(`📝 *Texto extraído:*\n\n${text.trim()}`)
+        await m.reply(
+`🌑 *Shadow Extraction Complete…*
+
+📝 *Texto Revelado por las Sombras:*
+${text.trim()}
+
+⚔️ *Shadow Garden siempre observa…*`
+        )
+
         await m.react('✅')
 
     } catch (e) {
         console.error(e)
-        m.reply(`❌ Error OCR: ${e.message}`)
+        m.reply(`❌ *Un error ha perturbado las Sombras:* ${e.message}`)
     }
 }
 
