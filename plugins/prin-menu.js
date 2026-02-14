@@ -1,200 +1,155 @@
-import fs from 'fs'
-const { prepareWAMessageMedia, generateWAMessageFromContent, proto } = (await import("@whiskeysockets/baileys")).default;
+import moment from "moment-timezone";
+import fs from "fs";
+import path from "path";
+import fetch from "node-fetch";
+const { prepareWAMessageMedia, generateWAMessageFromContent } = (await import("@whiskeysockets/baileys")).default;
 
 let handler = async (m, { conn, usedPrefix }) => {
-    const delay = ms => new Promise(res => setTimeout(res, ms))
+  try {
 
-    let tags = {
-        'info': 'ᴍᴇɴᴜ ɪɴғᴏ',
-        'anime': 'ᴍᴇɴᴜ ᴀɴɪᴍᴇ',
-        'buscador': 'ᴍᴇɴᴜ ʙᴜsᴄᴀᴅᴏʀ',
-        'downloader': 'ᴍᴇɴᴜ ᴅᴏᴡɴʟᴏᴀᴅᴇʀ',
-        'fun': 'ᴍᴇɴᴜ ғᴜɴ',
-        'grupo': 'ᴍᴇɴᴜ ɢʀᴜᴘᴏ',
-        'ai': 'ᴍᴇɴᴜ ᴀɪ',
-        'game': 'ᴍᴇɴᴜ ɢᴀᴍᴇ',
-        'serbot': 'ᴍᴇɴᴜ ᴊᴀᴅɪʙᴏᴛ',
-        'main': 'ᴍᴇɴᴜ ᴍᴀɪɴ',
-        'nable': 'ᴍᴇɴᴜ ᴏɴ / ᴏғғ',
-        'nsfw': 'ᴍᴇɴᴜ ɴsғᴡ',
-        'owner': 'ᴍᴇɴᴜ ᴏᴡɴᴇʀ',
-        'sticker': 'ᴍᴇɴᴜ sᴛɪᴄᴋᴇʀ',
-        'tools': 'ᴍᴇɴᴜ ᴛᴏᴏʟs',
-        'gacha': 'MENU GACHA',
-        'rpg': 'MENU RPG'
+    let menu = {};
+    for (let plugin of Object.values(global.plugins)) {
+      if (!plugin || !plugin.help) continue;
+      let taglist = plugin.tags || [];
+      for (let tag of taglist) {
+        if (!menu[tag]) menu[tag] = [];
+        menu[tag].push(plugin);
+      }
     }
 
-    let header = '– %category'
-    let body = '│  ◦ %cmd'
-    let footer = '└––'
-    let after = '🪴 ღSHADOW-BOT-MD༻๖ۣۜ◥ὦɧ◤'
+    let uptimeSec = process.uptime();
+    let hours = Math.floor(uptimeSec / 3600);
+    let minutes = Math.floor((uptimeSec % 3600) / 60);
+    let seconds = Math.floor(uptimeSec % 60);
+    let uptimeStr = `${hours}h ${minutes}m ${seconds}s`;
 
-    let user = global.db.data.users[m.sender]
-    let nombre = await conn.getName(m.sender)
-    let registrado = user?.registered ? '✅ Sí' : '❌ No'
-    let limite = user?.limit || 0
-    let totalreg = Object.keys(global.db.data.users).length
-    let groupsCount = Object.values(conn.chats).filter(v => v.id.endsWith('@g.us')).length
-    let muptime = clockString(process.uptime())
+    let botNameToShow = global.botname || "SHADOW";
+    let videoUrl = "https://files.catbox.moe/johk6u.mp4"; 
+    
+    const senderBotNumber = conn.user.jid.split('@')[0];
+    const configPath = path.join('./Sessions/SubBot', senderBotNumber, 'config.json');
 
-    function clockString(seconds) {
-        let h = Math.floor(seconds / 3600)
-        let m = Math.floor(seconds % 3600 / 60)
-        let s = Math.floor(seconds % 60)
-        return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':')
+    if (fs.existsSync(configPath)) {
+      try {
+        const subBotConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        if (subBotConfig.name) botNameToShow = subBotConfig.name;
+        if (subBotConfig.video) videoUrl = subBotConfig.video;
+      } catch (e) {}
     }
 
-    let infoUser = `
-ʜᴏʟᴀ, ${nombre}
-ꜱᴏʏ 🪴 ღSHADOW-BOT-MD༻๖ۣۜ◥ὦɧ◤🪴, ʟɪꜱᴛᴏ ᴘᴀʀᴀ ᴀʏᴜᴅᴀʀᴛᴇ
+    const tz = "America/Tegucigalpa";
+    const now = moment.tz(tz);
+    const timeStr = now.format("HH:mm:ss");
 
-乂 ɪɴꜰᴏ ᴅᴇʟ ᴜꜱᴜᴀʀɪᴏ
-┌  ◦ ᴇꜱᴛᴀᴅᴏ: ᴜꜱᴜᴀʀɪᴏ
-│  ◦ ʀᴇɢɪꜱᴛʀᴀᴅᴏ: ${registrado}
-└  ◦ ʟíᴍɪᴛᴇ: ${limite}
+    const tagUser = '@' + m.sender.split('@')[0];
+    const line = "━━━━━━━━━━━━━━━━━━━━━━";
 
-乂 ɪɴꜰᴏ ᴅᴇʟ ʙᴏᴛ
-┌  ◦ ɢʀᴜᴘᴏꜱ: ${groupsCount}
-│  ◦ ᴛɪᴇᴍᴘᴏ ᴀᴄᴛɪᴠᴏ: ${muptime}
-│  ◦ ᴜsᴜᴀʀɪᴏs: ${totalreg}
-└  ◦ ᴘʟᴀᴛᴀꜰᴏʀᴍᴀ: ʟɪɴᴜx
+    let txt =
+`
+╔══════════════════════╗
+        𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍
+╚══════════════════════╝
 
-ꜱɪ ᴇɴᴄᴜᴇɴᴛʀᴀꜱ ᴀʟɢᴜ́ɴ ᴇʀʀᴏʀ, ᴘᴏʀ ꜰᴀᴠᴏʀ ᴄᴏɴᴛᴀᴄᴛᴀ ᴀʟ ᴏᴡɴᴇʀ.
-`.trim()
+Bienvenido, ${tagUser}
+Has accedido al núcleo oculto.
 
-    let commands = Object.values(global.plugins).filter(v => v.help && v.tags).map(v => ({
-        help: Array.isArray(v.help) ? v.help : [v.help],
-        tags: Array.isArray(v.tags) ? v.tags : [v.tags]
-    }))
+${line}
 
-    let menu = []
-    for (let tag in tags) {
-        let comandos = commands
-            .filter(cmd => cmd.tags.includes(tag))
-            .map(cmd => cmd.help.map(c => body.replace(/%cmd/g, usedPrefix + c)).join('\n'))
-            .join('\n')
+▸ INFORMACIÓN DEL SISTEMA
+• Identidad: ${botNameToShow}
+• Tiempo activo: ${uptimeStr}
+• Hora actual: ${timeStr}
 
-        if (comandos) {
-            menu.push(header.replace(/%category/g, tags[tag]) + '\n' + comandos + '\n' + footer)
-        }
+${line}
+
+▸ MÓDULOS DISPONIBLES
+`;
+
+    for (let tag in menu) {
+        txt += `\n◆ ${tag.toUpperCase()}\n`;
+        
+        let commands = menu[tag].map(plugin => {
+            const cmdList = Array.isArray(plugin.help) ? plugin.help : [plugin.help];
+            return cmdList.map(cmd => `   ◦ ${usedPrefix}${cmd}`).join('\n');
+        }).join('\n');
+        
+        txt += `${commands}\n`;
     }
 
-    let finalMenu = infoUser + '\n\n' + menu.join('\n\n') + '\n' + after
-    let imagen = 'https://files.catbox.moe/h8lydl.jpg'
+    txt += `
+${line}
+“El poder verdadero opera en las sombras.”
+`;
 
-    let media = await prepareWAMessageMedia(
-        { image: { url: imagen } },
+    await conn.sendMessage(m.chat, { react: { text: '🌑', key: m.key } });
+
+    let mediaMessage = await prepareWAMessageMedia(
+        { video: { url: videoUrl }, gifPlayback: true },
         { upload: conn.waUploadToServer }
-    )
+    );
 
     const msg = generateWAMessageFromContent(m.chat, {
-        viewOnceMessage: {
-            message: {
-                interactiveMessage: {
-                    header: {
-                        hasMediaAttachment: true,
-                        imageMessage: media.imageMessage 
-                    },
-                    body: { text: finalMenu },
-                    footer: { text: "🪴 .ღSHADOW-BOT-MD༻๖ۣۜ◥ὦɧ◤🪴" },
-                    nativeFlowMessage: {
-                        buttons: [
-                            {
-                                name: "single_select",
-                                buttonParamsJson: JSON.stringify({
-                                    title: "Select Menu",
-                                    sections: [
-                                        {
-                                            title: "SHADOW-BOT MD",
-                                            highlight_label: "POPULAR",
-                                            rows: [
-                                                { header: "Menú", title: "Menú Completo", description: "Ver todos los comandos", id: `${usedPrefix}allmenu` },
-                                                { header: "Info", title: "Estado del Bot", description: "Ver estado y velocidad", id: `${usedPrefix}ping` },
-                                                { header: "Owner", title: "Creador", description: "Contacto del creador", id: `${usedPrefix}owner` },
-                                                { header: "Auto", title: "Registro", description: "Registro automático", id: `${usedPrefix}reg` }
-                                            ]
-                                        }
-                                    ]
-                                })
-                            },
-                            {
-                                name: "cta_copy",
-                                buttonParamsJson: JSON.stringify({
-                                    display_text: "Copiar Código",
-                                    id: "123456789",
-                                    copy_code: "SHADOW BOT MD - SCRIPT"
-                                })
-                            },
-                            {
-                                name: "cta_url",
-                                buttonParamsJson: JSON.stringify({
-                                    display_text: "Canal de WhatsApp",
-                                    url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O",
-                                    merchant_url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
-                                })
-                            },
-                            {
-                                name: "galaxy_message",
-                                buttonParamsJson: JSON.stringify({
-                                    mode: "published",
-                                    flow_message_version: "3",
-                                    flow_token: "1:1307913409923914:293680f87029f5a13d1ec5e35e718af3",
-                                    flow_id: "1307913409923914",
-                                    flow_cta: "ACCEDE A BOT AI",
-                                    flow_action: "navigate",
-                                    flow_action_payload: {
-                                        screen: "QUESTION_ONE",
-                                        params: { user_id: "123456789", referral: "campaign_xyz" }
-                                    },
-                                    flow_metadata: {
-                                        flow_json_version: "201",
-                                        data_api_protocol: "v2",
-                                        flow_name: "Lead Qualification [en]",
-                                        data_api_version: "v2",
-                                        categories: ["Lead Generation", "Sales"]
-                                    }
-                                })
-                            }
-                        ],
-                        messageParamsJson: JSON.stringify({
-                            limited_time_offer: {
-                                text: "꩜ 𝗠𝗲𝗻𝘂 𝗟𝗶𝘀𝘁",
-                                url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O",
-                                copy_code: "SHADOW-BOT-MD",
-                                expiration_time: 1754613436864329
-                            },
-                            bottom_sheet: {
-                                in_thread_buttons_limit: 2,
-                                divider_indices: [1, 2, 3],
-                                list_title: "Select Menu",
-                                button_title: "⊱✿ ᴍᴇɴᴜ ʟɪsᴛ ✿⊰"
-                            },
-                            tap_target_configuration: {
-                                title: "▸ SHADOW ◂",
-                                description: "Menú Principal",
-                                canonical_url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O",
-                                domain: "https://whatsapp.com",
-                                button_index: 0
-                            }
-                        })
-                    },
-                    contextInfo: {
-                        mentionedJid: [m.sender],
-                        isForwarded: true,
-                        forwardingScore: 999
-                    }
+      viewOnceMessage: {
+        message: {
+          interactiveMessage: {
+            header: {
+              hasMediaAttachment: true,
+              videoMessage: mediaMessage.videoMessage
+            },
+            body: { text: txt },
+            footer: { text: "SHADOW-BOT-MD" },
+            nativeFlowMessage: {
+              buttons: [
+                {
+                  name: "single_select",
+                  buttonParamsJson: JSON.stringify({
+                    title: "Shadow Interface",
+                    sections: [
+                      {
+                        title: "Shadow Garden",
+                        rows: [
+                          { title: "Menú Completo", description: "Acceder a todos los comandos", id: `${usedPrefix}allmenu` },
+                          { title: "Estado del Sistema", description: "Ver rendimiento del bot", id: `${usedPrefix}ping` },
+                          { title: "Fundador", description: "Información del creador", id: `${usedPrefix}owner` }
+                        ]
+                      }
+                    ]
+                  })
+                },
+                {
+                  name: "cta_copy",
+                  buttonParamsJson: JSON.stringify({
+                    display_text: "Copiar Identidad",
+                    id: "shadow_core",
+                    copy_code: "I AM ATOMIC"
+                  })
+                },
+                {
+                  name: "cta_url",
+                  buttonParamsJson: JSON.stringify({
+                    display_text: "Canal Oficial",
+                    url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
+                  })
                 }
+              ]
+            },
+            contextInfo: {
+              mentionedJid: [m.sender],
+              isForwarded: true,
+              forwardingScore: 9999999
             }
+          }
         }
-    }, { quoted: m })
+      }
+    }, { quoted: m });
 
-    await conn.relayMessage(m.chat, msg.message, {})
-    await delay(400)
-}
+    await conn.relayMessage(m.chat, msg.message, {});
 
-handler.help = ['menu']
-handler.tags = ['main']
-handler.command = ['menu', 'help', 'menú', 'allmenu', 'menucompleto']
-handler.register = true
+  } catch (e) {
+    console.error(e);
+    conn.reply(m.chat, "El núcleo ha fallado temporalmente...", m);
+  }
+};
 
-export default handler
+handler.command = ['menu', 'help'];
+export default handler;
