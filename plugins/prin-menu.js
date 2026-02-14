@@ -24,68 +24,53 @@ let handler = async (m, { conn, usedPrefix }) => {
     let uptimeStr = `${hours}h ${minutes}m ${seconds}s`;
 
     let botNameToShow = global.botname || "SHADOW";
-    let videoUrl = "https://files.catbox.moe/johk6u.mp4"; 
-    
-    const senderBotNumber = conn.user.jid.split('@')[0];
-    const configPath = path.join('./Sessions/SubBot', senderBotNumber, 'config.json');
+    let videoUrl = "https://files.catbox.moe/johk6u.mp4";
 
-    if (fs.existsSync(configPath)) {
-      try {
-        const subBotConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-        if (subBotConfig.name) botNameToShow = subBotConfig.name;
-        if (subBotConfig.video) videoUrl = subBotConfig.video;
-      } catch (e) {}
-    }
-
-    const tz = "America/Tegucigalpa";
-    const now = moment.tz(tz);
+    const now = moment().tz("America/Tegucigalpa");
     const timeStr = now.format("HH:mm:ss");
 
     const tagUser = '@' + m.sender.split('@')[0];
     const line = "━━━━━━━━━━━━━━━━━━━━━━";
 
-    let txt =
-`
+    let txt = `
 ╔══════════════════════╗
         𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍
 ╚══════════════════════╝
 
 Bienvenido, ${tagUser}
-Has accedido al núcleo oculto.
+Has ingresado al dominio oculto.
 
 ${line}
 
-▸ INFORMACIÓN DEL SISTEMA
+▸ SISTEMA
 • Identidad: ${botNameToShow}
 • Tiempo activo: ${uptimeStr}
 • Hora actual: ${timeStr}
 
 ${line}
 
-▸ MÓDULOS DISPONIBLES
+▸ MÓDULOS
 `;
 
     for (let tag in menu) {
         txt += `\n◆ ${tag.toUpperCase()}\n`;
-        
         let commands = menu[tag].map(plugin => {
             const cmdList = Array.isArray(plugin.help) ? plugin.help : [plugin.help];
             return cmdList.map(cmd => `   ◦ ${usedPrefix}${cmd}`).join('\n');
         }).join('\n');
-        
         txt += `${commands}\n`;
     }
 
     txt += `
 ${line}
-“El poder verdadero opera en las sombras.”
+"I AM ATOMIC."
 `;
 
     await conn.sendMessage(m.chat, { react: { text: '🌑', key: m.key } });
 
     let mediaMessage = await prepareWAMessageMedia(
-        { video: { url: videoUrl }, gifPlayback: true },
-        { upload: conn.waUploadToServer }
+      { video: { url: videoUrl }, gifPlayback: true },
+      { upload: conn.waUploadToServer }
     );
 
     const msg = generateWAMessageFromContent(m.chat, {
@@ -107,10 +92,11 @@ ${line}
                     sections: [
                       {
                         title: "Shadow Garden",
+                        highlight_label: "ELITE",
                         rows: [
-                          { title: "Menú Completo", description: "Acceder a todos los comandos", id: `${usedPrefix}allmenu` },
-                          { title: "Estado del Sistema", description: "Ver rendimiento del bot", id: `${usedPrefix}ping` },
-                          { title: "Fundador", description: "Información del creador", id: `${usedPrefix}owner` }
+                          { title: "Menú Completo", description: "Ver todos los comandos", id: `${usedPrefix}allmenu` },
+                          { title: "Estado del Sistema", description: "Velocidad y rendimiento", id: `${usedPrefix}ping` },
+                          { title: "Fundador", description: "Contacto del creador", id: `${usedPrefix}owner` }
                         ]
                       }
                     ]
@@ -131,12 +117,33 @@ ${line}
                     url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
                   })
                 }
-              ]
+              ],
+              messageParamsJson: JSON.stringify({
+                limited_time_offer: {
+                  text: "Shadow Menu List",
+                  url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O",
+                  copy_code: "SHADOW-BOT-MD",
+                  expiration_time: 1754613436864329
+                },
+                bottom_sheet: {
+                  in_thread_buttons_limit: 2,
+                  divider_indices: [1, 2],
+                  list_title: "Shadow Interface",
+                  button_title: "Open Shadow Menu"
+                },
+                tap_target_configuration: {
+                  title: "▸ SHADOW ◂",
+                  description: "Menú Principal",
+                  canonical_url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O",
+                  domain: "https://whatsapp.com",
+                  button_index: 0
+                }
+              })
             },
             contextInfo: {
               mentionedJid: [m.sender],
               isForwarded: true,
-              forwardingScore: 9999999
+              forwardingScore: 999999
             }
           }
         }
@@ -147,9 +154,9 @@ ${line}
 
   } catch (e) {
     console.error(e);
-    conn.reply(m.chat, "El núcleo ha fallado temporalmente...", m);
+    conn.reply(m.chat, "El núcleo de Shadow ha fallado...", m);
   }
 };
 
-handler.command = ['menu', 'help'];
+handler.command = ['menu', 'help', 'allmenu'];
 export default handler;
