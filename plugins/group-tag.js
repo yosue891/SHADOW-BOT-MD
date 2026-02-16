@@ -1,11 +1,11 @@
 import { downloadContentFromMessage } from '@whiskeysockets/baileys'
 import axios from 'axios'
 
-const handler = async (m, { conn, args, groupMetadata }) => {
+const handler = async (m, { conn, args }) => {
   try {
     const chatId = m.chat
     if (!chatId.endsWith('@g.us')) {
-      return await conn.sendMessage(chatId, { text: `𖣣ֶㅤ֯⌗ Este comando solo se puede usar en grupos.`, quoted: m })
+      return await conn.sendMessage(chatId, { text: `Este comando solo se puede usar en grupos.`, quoted: m })
     }
 
     const metadata = await conn.groupMetadata(chatId)
@@ -48,15 +48,12 @@ const handler = async (m, { conn, args, groupMetadata }) => {
     }
 
     if (!messageToForward) {
-      return await conn.sendMessage(chatId, { text: `> ⌗ Debes responder a un mensaje o escribir algo para etiquetar al grupo.`, quoted: m })
+      return await conn.sendMessage(chatId, { text: `Debes responder a un mensaje o escribir algo para etiquetar al grupo.`, quoted: m })
     }
 
-    // --- LÓGICA DEL ESTILO CATÁLOGO (FAKE PRODUCT) ---
-    
-    // Función para obtener la miniatura (puedes cambiar la URL por la que gustes)
     const getThumbnail = async () => {
       try {
-          const res = await axios.get("https://files.catbox.moe/e6br3k.jpg", { responseType: "arraybuffer" })
+          const res = await axios.get("https://i.postimg.cc/rFfVL8Ps/image.jpg", { responseType: "arraybuffer" })
           return Buffer.from(res.data, "binary")
       } catch (e) {
           return null 
@@ -68,7 +65,7 @@ const handler = async (m, { conn, args, groupMetadata }) => {
     const fakeProduct = {
       key: {
         fromMe: false,
-        participant: "0@s.whatsapp.net", // Fake sender
+        participant: "0@s.whatsapp.net", 
         remoteJid: "status@broadcast"
       },
       message: {
@@ -78,11 +75,11 @@ const handler = async (m, { conn, args, groupMetadata }) => {
               mimetype: "image/jpeg",
               jpegThumbnail: thumbnail
             },
-            title: "𐔌 . ⋮ ᗩ ᐯ I Տ O .ᐟ ֹ ₊ ꒱", // Título del catálogo
-            description: "Notificación General", // Descripción
+            title: "🔊 ＳＨＡＤＯＷ - ＴＡＧ",
+            description: "Notificación General", 
             currencyCode: "USD",
-            priceAmount1000: 0, // ESTO HACE QUE EL PRECIO SEA 0.00
-            retailerId: "Ghost",
+            priceAmount1000: 0,
+            retailerId: "Shadow",
             productImageCount: 1
           },
           businessOwnerJid: "0@s.whatsapp.net"
@@ -90,17 +87,15 @@ const handler = async (m, { conn, args, groupMetadata }) => {
       }
     }
 
-    // Enviamos el mensaje usando fakeProduct como quoted
     await conn.sendMessage(chatId, { ...messageToForward, mentions: allMentions }, { quoted: fakeProduct })
 
   } catch (error) {
-    console.error('❌ Error en el comando tag:', error)
-    await conn.sendMessage(m.chat, { text: `𖣣ֶㅤ֯⌗ 🕸 Ocurrió un error al ejecutar el comando *tag*.`, quoted: m })
+    console.error(error)
+    await conn.sendMessage(m.chat, { text: `Ocurrió un error al ejecutar el comando tag.`, quoted: m })
   }
 }
 
 handler.command = ['tag', 'todos']
-handler.help = ['tag']
 handler.tags = ['grupo']
 handler.group = true
 handler.admin = true
