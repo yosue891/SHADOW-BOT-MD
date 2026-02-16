@@ -1,15 +1,13 @@
 import fetch from 'node-fetch'
 
-export async function before(m, { conn }) {
+export const before = async (m, { conn }) => {
   try {
 
-    const chat = global.db.data.chats[m.chat] || {}
-    const primaryBot = chat.primaryBot
-
-    if (primaryBot && conn.user?.jid !== primaryBot) return true
-
+    if (!global.db.data.users[m.sender]) return true
     const user = global.db.data.users[m.sender]
-    if (!user) return true
+
+    if (!global.db.data.chats[m.chat])
+      global.db.data.chats[m.chat] = {}
 
     user.afk = typeof user.afk === 'number' ? user.afk : -1
     user.afkReason = user.afkReason || ''
@@ -43,64 +41,49 @@ export async function before(m, { conn }) {
     }
 
     const formatTiempo = (ms) => {
-      if (typeof ms !== 'number' || isNaN(ms)) return 'desconocido'
       const h = Math.floor(ms / 3600000)
       const min = Math.floor((ms % 3600000) / 60000)
       const s = Math.floor((ms % 60000) / 1000)
-      const parts = []
-      if (h) parts.push(`${h} ${h === 1 ? 'hora' : 'horas'}`)
-      if (min) parts.push(`${min} ${min === 1 ? 'minuto' : 'minutos'}`)
-      if (s || (!h && !min)) parts.push(`${s} ${s === 1 ? 'segundo' : 'segundos'}`)
-      return parts.join(' ')
+      return `${h ? h + 'h ' : ''}${min ? min + 'm ' : ''}${s ? s + 's' : ''}`.trim()
     }
 
     if (user.afk > -1) {
-      const ms = Date.now() - user.afk
-      const tiempo = formatTiempo(ms)
+      const tiempo = formatTiempo(Date.now() - user.afk)
 
-      await conn.sendMessage(
-        m.chat,
-        {
-          text:
-            `🌑 *Discípulo de las Sombras*\n` +
-            `Has regresado del reino de la inactividad.\n` +
-            `○ Motivo » *${user.afkReason || 'sin especificar'}*\n` +
-            `○ Tiempo ausente » *${tiempo}*`
-        },
-        { quoted: shadow_xyz }
-      )
+      await conn.sendMessage(m.chat, {
+        text:
+          `🌑 *Discípulo de las Sombras*\n` +
+          `Has regresado.\n` +
+          `○ Motivo » ${user.afkReason || 'sin especificar'}\n` +
+          `○ Tiempo » ${tiempo}`
+      }, { quoted: shadow_xyz })
 
       user.afk = -1
       user.afkReason = ''
     }
 
-    const quoted = m.quoted ? m.quoted.sender : null
-    const jids = [...new Set([...(m.mentionedJid || []), ...(quoted ? [quoted] : [])])]
-
+    const jids = m.mentionedJid || []
     for (const jid of jids) {
       const target = global.db.data.users[jid]
-      if (!target || typeof target.afk !== 'number' || target.afk < 0) continue
+      if (!target || target.afk < 0) continue
 
-      const ms = Date.now() - target.afk
-      const tiempo = formatTiempo(ms)
+      const tiempo = formatTiempo(Date.now() - target.afk)
 
-      await conn.sendMessage(
-        m.chat,
-        {
-          text:
-            `🌑 *Invocación Sombría*\n` +
-            `El usuario ${await conn.getName(jid)} está AFK.\n` +
-            `○ Motivo: ${target.afkReason || 'sin especificar'}\n` +
-            `○ Tiempo ausente: ${tiempo}`
-        },
-        { quoted: shadow_xyz }
-      )
+      await conn.sendMessage(m.chat, {
+        text:
+          `🌑 *Invocación Sombría*\n` +
+          `${await conn.getName(jid)} está AFK\n` +
+          `○ Motivo: ${target.afkReason || 'sin especificar'}\n` +
+          `○ Tiempo: ${tiempo}`
+      }, { quoted: shadow_xyz })
     }
 
     return true
 
   } catch (e) {
-    console.error(e)
+    console.log(e)
     return true
   }
-        }
+}
+
+export const disabled = false
