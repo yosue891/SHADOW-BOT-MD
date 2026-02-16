@@ -1,6 +1,7 @@
 import { downloadContentFromMessage } from '@whiskeysockets/baileys'
+import axios from 'axios'
 
-const handler = async (m, { conn, args }) => {
+const handler = async (m, { conn, args, groupMetadata }) => {
   try {
     const chatId = m.chat
     if (!chatId.endsWith('@g.us')) {
@@ -50,7 +51,47 @@ const handler = async (m, { conn, args }) => {
       return await conn.sendMessage(chatId, { text: `> ⌗ Debes responder a un mensaje o escribir algo para etiquetar al grupo.`, quoted: m })
     }
 
-    await conn.sendMessage(chatId, { ...messageToForward, mentions: allMentions }, { quoted: m })
+    // --- LÓGICA DEL ESTILO CATÁLOGO (FAKE PRODUCT) ---
+    
+    // Función para obtener la miniatura (puedes cambiar la URL por la que gustes)
+    const getThumbnail = async () => {
+      try {
+          const res = await axios.get("https://files.catbox.moe/e6br3k.jpg", { responseType: "arraybuffer" })
+          return Buffer.from(res.data, "binary")
+      } catch (e) {
+          return null 
+      }
+    }
+
+    const thumbnail = await getThumbnail()
+    
+    const fakeProduct = {
+      key: {
+        fromMe: false,
+        participant: "0@s.whatsapp.net", // Fake sender
+        remoteJid: "status@broadcast"
+      },
+      message: {
+        productMessage: {
+          product: {
+            productImage: {
+              mimetype: "image/jpeg",
+              jpegThumbnail: thumbnail
+            },
+            title: "𐔌 . ⋮ ᗩ ᐯ I Տ O .ᐟ ֹ ₊ ꒱", // Título del catálogo
+            description: "Notificación General", // Descripción
+            currencyCode: "USD",
+            priceAmount1000: 0, // ESTO HACE QUE EL PRECIO SEA 0.00
+            retailerId: "Ghost",
+            productImageCount: 1
+          },
+          businessOwnerJid: "0@s.whatsapp.net"
+        }
+      }
+    }
+
+    // Enviamos el mensaje usando fakeProduct como quoted
+    await conn.sendMessage(chatId, { ...messageToForward, mentions: allMentions }, { quoted: fakeProduct })
 
   } catch (error) {
     console.error('❌ Error en el comando tag:', error)
@@ -58,7 +99,7 @@ const handler = async (m, { conn, args }) => {
   }
 }
 
-handler.command = ['tag']
+handler.command = ['tag', 'todos']
 handler.help = ['tag']
 handler.tags = ['grupo']
 handler.group = true
