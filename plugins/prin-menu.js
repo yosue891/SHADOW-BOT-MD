@@ -6,7 +6,6 @@ const { prepareWAMessageMedia, generateWAMessageFromContent } = (await import("@
 
 let handler = async (m, { conn, usedPrefix }) => {
   try {
-
     let menu = {};
     for (let plugin of Object.values(global.plugins)) {
       if (!plugin || !plugin.help) continue;
@@ -24,7 +23,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     let uptimeStr = `${hours}h ${minutes}m ${seconds}s`;
 
     let botNameToShow = global.botname || "SHADOW";
-    let videoUrl = "https://files.catbox.moe/zlkzn5.mp4";
+    let videoUrl = "https://files.catbox.moe/kc4ncs.mp4"; // Tu URL de video funciona perfecto
 
     const now = moment().tz("America/Tegucigalpa");
     const timeStr = now.format("HH:mm:ss");
@@ -114,36 +113,17 @@ ${line}
                   name: "cta_url",
                   buttonParamsJson: JSON.stringify({
                     display_text: "Canal Oficial",
-                    url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
+                    url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O",
+                    merchant_url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O" // Requisito clave para WhatsApp actual
                   })
                 }
-              ],
-              messageParamsJson: JSON.stringify({
-                limited_time_offer: {
-                  text: "Shadow Menu List",
-                  url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O",
-                  copy_code: "SHADOW-BOT-MD",
-                  expiration_time: 1754613436864329
-                },
-                bottom_sheet: {
-                  in_thread_buttons_limit: 2,
-                  divider_indices: [1, 2],
-                  list_title: "Shadow Interface",
-                  button_title: "Open Shadow Menu"
-                },
-                tap_target_configuration: {
-                  title: "▸ SHADOW ◂",
-                  description: "Menú Principal",
-                  canonical_url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O",
-                  domain: "https://whatsapp.com",
-                  button_index: 0
-                }
-              })
+              ]
+              // Se eliminó messageParamsJson por completo para evitar bloqueos por versión
             },
             contextInfo: {
               mentionedJid: [m.sender],
               isForwarded: true,
-              forwardingScore: 999999
+              forwardingScore: 999
             }
           }
         }
