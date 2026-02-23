@@ -24,7 +24,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     let uptimeStr = `${hours}h ${minutes}m ${seconds}s`;
 
     let botNameToShow = global.botname || "SHADOW";
-    let videoUrl = "https://files.catbox.moe/kc4ncs.mp4";
+    let videoUrl = "https://files.catbox.moe/zlkzn5.mp4";
 
     const now = moment().tz("America/Tegucigalpa");
     const timeStr = now.format("HH:mm:ss");
