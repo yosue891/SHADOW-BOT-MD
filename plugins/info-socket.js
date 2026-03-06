@@ -33,7 +33,7 @@ let handler = async (m, { conn}) => {
     }).replace(/^./, m => m.toUpperCase());
 
     const botType = 'Principal/Owner';
-    const duenos = 'yosue, ado y Fede';
+    const duenos = 'yosue y ado';
 
     const message = `💜 Información del bot ${botname2}
 
