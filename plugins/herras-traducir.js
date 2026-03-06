@@ -67,7 +67,9 @@ await conn.sendMessage(
         body: "El conocimiento se somete a la Sombra.",
         mediaType: 1,
         thumbnail: bigBuffer,
-        renderLargerThumbnail: true
+        renderLargerThumbnail: true,
+        showAdAttribution: false,
+        sourceUrl: "https://google.com"
       }
     }
   },
