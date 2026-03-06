@@ -6,8 +6,8 @@ try {
 let text = args.join(' ') || m.quoted?.text
 if (!text) return conn.reply(m.chat, '《✧》 Escribe o responde un texto para traducirlo.', m)
 
-const iconUrl = "https://i.postimg.cc/rFfVL8Ps/image.jpg"
-const bigUrl = "https://adofiles.i11.eu/dl/pna6.jpg"
+const iconUrl = "https://i.ibb.co/JWjZXhNX/b50eeb86ca86.jpg"
+const bigUrl = "https://i.ibb.co/JWjZXhNX/b50eeb86ca86.jpg"
 
 const iconBuffer = await (await fetch(iconUrl)).buffer()
 const bigBuffer = await (await fetch(bigUrl)).buffer()
