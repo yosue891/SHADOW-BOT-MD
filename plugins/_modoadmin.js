@@ -6,6 +6,7 @@ export async function before(m, { conn, isAdmin, isMods, isROwner }) {
 
   if (chat.modoadmin) {
     if (!isAdmin && !isMods && !isROwner) {
+      m.text = ''
       return true
     }
   }
