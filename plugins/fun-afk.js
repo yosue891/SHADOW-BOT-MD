@@ -27,7 +27,7 @@ export async function before(m, { conn }) {
           title: "WhatsApp Business • Estado",
           description: "Shadow team",
           currencyCode: "USD",
-          priceAmount1000: 000,
+          priceAmount1000: 0, 
           retailerId: "ShadowCore",
           productImageCount: 1
         },
@@ -69,7 +69,7 @@ export async function before(m, { conn }) {
   }
 
   const quoted = m.quoted ? await m.quoted.sender : null
-  const jids = [...new Set([...(await m.mentionedJid || []), ...(quoted ? [quoted] : [])])]
+  const jids = [...new Set([...(m.mentionedJid || []), ...(quoted ? [quoted] : [])])]
 
   for (const jid of jids) {
     const target = global.db.data.users[jid]
@@ -92,5 +92,4 @@ export async function before(m, { conn }) {
   }
 
   return true
-    }
-      
+          }
