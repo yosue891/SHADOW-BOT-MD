@@ -88,7 +88,7 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
 
     const apiUrl = type === "mp3"
       ? `https://api-adonix.ultraplus.click/download/ytaudio?url=${encodeURIComponent(url)}&apikey=SHADOWBOTKEYMD`
-      : `https://api-adonix.ultraplus.click/download/ytvideo?url=${encodeURIComponent(url)}&apikey=SHADOWBOTKEYMD`
+      : `https://api-adonix.ultraplus.click/download/ytvideo?apikey=${global.apikey}&url=${encodeURIComponent(url)}`
 
     const response = await fetch(apiUrl)
     const data = await response.json()
@@ -156,8 +156,8 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
 
 const cleanName = (name) => name.replace(/[^\w\s-_.]/gi, "").substring(0, 50)
 
-handler.command = handler.help = ["ytmp3", "playvid", "ytv", "ytmp4", "play2", "yt"]
+handler.command = ["ytmp3", "playvid", "ytv", "ytmp4", "play2", "yt"]
 handler.tags = ["descargas"]
 handler.register = true
 
-export default handler            
+export default handler
