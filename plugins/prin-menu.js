@@ -6,17 +6,14 @@ import moment from 'moment-timezone'
 
 const botname = global.botname || "Shadow Garden"
 const dev = global.dev || "Cid Kagenou"
-const banner = global.banner || "https://adofiles.i11.eu/dl/kmbh.jpg"
 const channelRD = global.channelRD || { id: "0@newsletter", name: "Shadow Channel" }
 
 let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
   try {
 
     let mentionedJid = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.sender
-    let user = global.db.data.users[m.sender] || {}
     let name = await conn.getName(m.sender)
     let totalreg = Object.keys(global.db.data.users).length
-    let groupUserCount = m.isGroup ? participants.length : '-'
     let groupsCount = Object.values(conn.chats).filter(v => v.id.endsWith('@g.us')).length
     let uptime = clockString(process.uptime() * 1000)
     let fecha = new Date(Date.now())
@@ -93,27 +90,11 @@ ${comandos}
 ${readMore}
   乂 *ᴘʀᴏᴛᴏᴄᴏʟᴏ ᴅᴇ ᴄᴏᴍᴀɴᴅᴏꜱ ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ* 乂\n`.trim()
 
-
-   const icon = [
-     'https://i.postimg.cc/rFfVL8Ps/image.jpg',
-     'https://i.postimg.cc/rFfVL8Ps/image.jpg'
-   ]
-   let icons = icon[Math.floor(Math.random() * icon.length)]
-
-  const Shadow_url = await (await fetch(icons)).buffer()
-  const fkontak = {
-    key: {
-      fromMe: false,
-      participant: "0@s.whatsapp.net",
-      remoteJid: "status@broadcast"
-    },
+   const fkontak = {
+    key: { fromMe: false, participant: "0@s.whatsapp.net", remoteJid: "status@broadcast" },
     message: {
       productMessage: {
         product: {
-          productImage: {
-            mimetype: "image/jpeg",
-            jpegThumbnail: Shadow_url
-          },
           title: `⌗ֶㅤ𝐌𝐞𝐧𝐮 𝐝𝐞 𝐥𝐚 𝐒𝐨𝐦𝐛𝐫𝐚 - ${botname} 𝅄⚜︎`,
           description: "« Soy quien actúa en las sombras, fingiendo ser un simple extra. »",
           currencyCode: "USD",
@@ -137,13 +118,12 @@ contextInfo: {
  },
  externalAdReply: {
    title: `${botname} ┊ Organización en las Sombras`,
-   body: `Dirigido por ${dev}, el que juega a ser un simple mob.`,
+   body: `Dirigido por ${dev}`,
    mediaType: 2,
-   mediaUrl: "http://gohan-file.onrender.com/f/f04e69d3aff4c3d7.mp4",
-   sourceUrl: null,
-   thumbnail: await (await fetch(banner)).buffer(),
+   videoUrl: "http://gohan-file.onrender.com/f/f04e69d3aff4c3d7.mp4",
+   sourceUrl: "http://gohan-file.onrender.com/f/f04e69d3aff4c3d7.mp4",
+   thumbnail: null,
    showAdAttribution: false,
-   containsAutoReply: true,
    renderLargerThumbnail: false
  }}}, { quoted: fkontak })
 
@@ -151,7 +131,7 @@ contextInfo: {
    console.error(e)
    await conn.sendMessage(m.chat, { 
      text: `✘ Un fallo ha surgido entre las sombras: ${e.message}`,
-     mentionedJid: [mentionedJid]
+     mentionedJid: [m.sender]
    })
  }
 }
@@ -167,18 +147,4 @@ function clockString(ms) {
   const m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60
   const s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':')
-}
-
-function ucapan() {
-  const time = moment.tz('America/Lima').format('HH')
-  let res = "🄱ᴜᴇɴᴀs ɴᴏᴄʜᴇs ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ"
-
-  if (time >= 5 && time < 12)
-    res = "🄱ᴜᴇɴᴏꜱ ᴅɪᴀꜱ, ᴇxᴛʀᴀ ᴅᴇ ʟᴀ ʜɪꜱᴛᴏʀɪᴀ"
-  else if (time >= 12 && time < 18)
-    res = "🄱ᴜᴇɴᴀꜱ ᴛᴀʀᴅᴇꜱ, ᴀᴄᴛᴏʀ ᴅᴇ ꜱᴏᴍʙʀᴀ"
-  else if (time >= 18)
-    res = "🄱ᴜᴇɴᴀꜱ ɴᴏᴄʜᴇꜱ, ʟᴀ ᴏʙꜱᴄᴜʀɪᴅᴀᴅ ᴛᴇ ᴄᴜʙʀᴇ"
-
-  return res
-  }
+      }
