@@ -2,25 +2,24 @@ import moment from "moment-timezone";
 import fs from "fs";
 import path from "path";
 import fetch from "node-fetch";
-const { prepareWAMessageMedia, generateWAMessageFromContent } = (await import("@whiskeysockets/baileys")).default;
+import baileys from "@whiskeysockets/baileys";
+
+const { prepareWAMessageMedia, generateWAMessageFromContent } = baileys;
 
 let handler = async (m, { conn, usedPrefix, participants }) => {
   try {
-    // 1. Definición de variables y estadísticas
     let name = await conn.getName(m.sender);
     let uptimeSec = process.uptime();
     let uptimeStr = clockString(uptimeSec * 1000);
     let totalreg = Object.keys(global.db.data.users).length;
     let groupsCount = Object.values(conn.chats).filter(v => v.id.endsWith('@g.us')).length;
     let totalCommands = Object.keys(global.plugins).length;
-    
-    // Configuración de fecha y hora
-    const tz = "America/Lima"; // Ajustado a tu zona
+
+    const tz = "America/Lima";
     const dateStr = moment.tz(tz).format("DD/MM/YYYY");
     const timeStr = moment.tz(tz).format("HH:mm:ss");
     const dia = moment.tz(tz).format("dddd");
 
-    // 2. Construcción del Menú por Tags
     let tags = {
       'info': '𝐈𝐍𝐅𝐎 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
       'main': '𝐄𝐒𝐓𝐀𝐃𝐎 𝐃𝐄𝐋 𝐂𝐎𝐑𝐓𝐈𝐆𝐎',
@@ -41,7 +40,6 @@ let handler = async (m, { conn, usedPrefix, participants }) => {
       }
     }
 
-    // 3. Texto Principal (Cuerpo del mensaje)
     let bodyTxt = `
 > . ݁  🌑՞ *ʙɪᴇɴᴠᴇɴɪᴅᴏ ᴀ ʟᴀ ꜱᴏᴍʙʀᴀ,* ${name}.
 >    ʏᴀ ᴇꜱᴛᴀʙᴀ ᴇꜱᴄᴜᴄhᴀɴᴅᴏ ᴛᴜꜱ ᴘᴀꜱᴏꜱ...
@@ -58,9 +56,7 @@ ${menuTexto}
 
 🌑✨ *Creado por Yosue* ✨🌑`.trim();
 
-    // 4. Preparación del Video (GIF Playback)
     const videoUrl = "http://gohan-file.onrender.com/f/f04e69d3aff4c3d7.mp4";
-    
     await m.react('🔥');
 
     let mediaMessage = await prepareWAMessageMedia(
@@ -68,39 +64,34 @@ ${menuTexto}
       { upload: conn.waUploadToServer }
     );
 
-    // 5. Generación del Mensaje Interactivo (Cabecera de video grande)
     const msg = generateWAMessageFromContent(m.chat, {
-      viewOnceMessage: {
-        message: {
-          interactiveMessage: {
-            body: { text: bodyTxt },
-            footer: { text: "Shadow Garden Organization" },
-            header: {
-              hasMediaAttachment: true,
-              videoMessage: mediaMessage.videoMessage
-            },
-            nativeFlowMessage: {
-              buttons: [
-                {
-                  name: "cta_url",
-                  buttonParamsJson: JSON.stringify({
-                    display_text: "🌐 Canal de Shadow",
-                    url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
-                  })
-                }
-              ],
-              messageParamsJson: ""
-            },
-            contextInfo: {
-              mentionedJid: [m.sender],
-              isForwarded: true,
-              forwardingScore: 999,
-              forwardedNewsletterMessageInfo: {
-                newsletterJid: "120363297379502415@newsletter",
-                newsletterName: "Shadow Bot Updates",
-                serverMessageId: -1
-              }
+      interactiveMessage: {
+        body: { text: bodyTxt },
+        footer: { text: "Shadow Garden Organization" },
+        header: {
+          hasMediaAttachment: true,
+          videoMessage: mediaMessage.videoMessage
+        },
+        nativeFlowMessage: {
+          buttons: [
+            {
+              name: "cta_url",
+              buttonParamsJson: JSON.stringify({
+                display_text: "🌐 Canal de Shadow",
+                url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
+              })
             }
+          ],
+          messageParamsJson: ""
+        },
+        contextInfo: {
+          mentionedJid: [m.sender],
+          isForwarded: true,
+          forwardingScore: 999,
+          forwardedNewsletterMessageInfo: {
+            newsletterJid: "120363297379502415@newsletter",
+            newsletterName: "Shadow Bot Updates",
+            serverMessageId: -1
           }
         }
       }
