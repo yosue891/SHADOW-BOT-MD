@@ -88,7 +88,6 @@ const downloadMedia = async (conn, m, url, quotedMsg) => {
       { quoted: m }
     )
 
-    // API REAL SIN KEY
     const apiUrl = `https://apiaxi.i11.eu/down/ytaudio?url=${encodeURIComponent(url)}`
     const r = await fetch(apiUrl)
     const data = await r.json()
