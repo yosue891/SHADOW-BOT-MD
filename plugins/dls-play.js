@@ -1,5 +1,11 @@
 import yts from "yt-search"
 import fetch from "node-fetch"
+import fs from "fs"
+import path from "path"
+import { fileURLToPath } from "url"
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const handler = async (m, { conn, text }) => {
   if (!text) return m.reply("🎶 Ingresa el nombre del video de YouTube.")
@@ -80,11 +86,6 @@ const handler = async (m, { conn, text }) => {
   }
 }
 
-const fetchBuffer = async (url) => {
-  const response = await fetch(url)
-  return await response.buffer()
-}
-
 const downloadMedia = async (conn, m, url, quotedMsg) => {
   try {
     const sent = await conn.sendMessage(
@@ -95,62 +96,44 @@ const downloadMedia = async (conn, m, url, quotedMsg) => {
 
     const apiUrl = `https://apiaxi.i11.eu/down/ytaudio?url=${encodeURIComponent(url)}`
 
-    let fileUrl = null
-    let fileTitle = "audio"
+    // Descargar el archivo directamente (stream)
+    const response = await fetch(apiUrl)
 
-    // 1️⃣ Intentar leer JSON
-    let data = null
-    try {
-      const r = await fetch(apiUrl)
-      const text = await r.text()
-
-      try {
-        data = JSON.parse(text)
-      } catch {
-        data = null
-      }
-
-      if (data) {
-        fileUrl =
-          data.url ||
-          data.download_url ||
-          data.result?.url ||
-          data.result?.download_url
-
-        fileTitle =
-          cleanName(
-            data.title ||
-            data.result?.title ||
-            "audio"
-          )
-      }
-    } catch (e) {
-      data = null
+    if (!response.ok) {
+      return m.reply("🚫 La API no respondió correctamente.")
     }
 
-    // 2️⃣ Si no hay JSON válido o no hay url en el JSON, usar directamente la API como archivo
-    if (!fileUrl) {
-      fileUrl = apiUrl
-      fileTitle = "audio"
-    }
+    // Detectar tipo MIME real
+    const contentType = response.headers.get("content-type") || "audio/mpeg"
 
+    // Guardar archivo temporal
+    const tempPath = path.join(__dirname, "temp_audio")
+    if (!fs.existsSync(tempPath)) fs.mkdirSync(tempPath)
+
+    const filePath = path.join(tempPath, "audio_tmp")
+
+    const buffer = Buffer.from(await response.arrayBuffer())
+    fs.writeFileSync(filePath, buffer)
+
+    // Enviar audio con MIME correcto
     await conn.sendMessage(
       m.chat,
       {
-        audio: { url: fileUrl },
-        mimetype: "audio/mpeg",
-        fileName: fileTitle + ".mp3",
+        audio: fs.readFileSync(filePath),
+        mimetype: contentType,
+        fileName: "audio.mp3",
         ptt: false
       },
       { quoted: quotedMsg }
     )
 
+    fs.unlinkSync(filePath)
+
     await conn.sendMessage(
       m.chat,
-      { text: `✅ Descarga completada\n\n🎼 Título: ${fileTitle}`, edit: sent.key }
+      { text: `✅ Descarga completada\n\n🎼 Título: audio`, edit: sent.key }
     )
 
-    await m.react("✅")
   } catch (e) {
     console.error(e)
     m.reply("❌ Error: " + e.message)
@@ -158,11 +141,8 @@ const downloadMedia = async (conn, m, url, quotedMsg) => {
   }
 }
 
-const cleanName = (name) =>
-  name.replace(/[^\w\s-_.]/gi, "").substring(0, 50)
-
 const formatViews = (views) => {
-  if (views === undefined || views === null) return "No disponible"
+  if (!views) return "No disponible"
   if (views >= 1e9) return `${(views / 1e9).toFixed(1)}B`
   if (views >= 1e6) return `${(views / 1e6).toFixed(1)}M`
   if (views >= 1e3) return `${(views / 1e3).toFixed(1)}K`
