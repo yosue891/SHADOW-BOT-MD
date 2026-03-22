@@ -86,7 +86,6 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
       )
     }
 
-    // 🔥 NUEVAS APIS SIN KEY
     const apiUrl =
       type === "mp3"
         ? `https://apiaxi.i11.eu/down/ytaudio?url=${encodeURIComponent(url)}`
