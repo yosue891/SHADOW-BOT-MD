@@ -1,11 +1,5 @@
 import yts from "yt-search"
 import fetch from "node-fetch"
-import fs from "fs"
-import path from "path"
-import { fileURLToPath } from "url"
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
 
 const handler = async (m, { conn, text }) => {
   if (!text) return m.reply("🎶 Ingresa el nombre del video de YouTube.")
@@ -77,7 +71,7 @@ const handler = async (m, { conn, text }) => {
       { quoted: fkontak }
     )
 
-    await downloadAudio(conn, m, url, fkontak)
+    await downloadMedia(conn, m, url, fkontak)
 
     await m.react("✅")
   } catch (e) {
@@ -86,7 +80,7 @@ const handler = async (m, { conn, text }) => {
   }
 }
 
-const downloadAudio = async (conn, m, url, quotedMsg) => {
+const downloadMedia = async (conn, m, url, quotedMsg) => {
   try {
     const sent = await conn.sendMessage(
       m.chat,
@@ -94,53 +88,31 @@ const downloadAudio = async (conn, m, url, quotedMsg) => {
       { quoted: m }
     )
 
+    // API REAL SIN KEY
     const apiUrl = `https://apiaxi.i11.eu/down/ytaudio?url=${encodeURIComponent(url)}`
+    const r = await fetch(apiUrl)
+    const data = await r.json()
 
-    // Forzar user-agent y seguir redirecciones
-    const response = await fetch(apiUrl, {
-      redirect: "follow",
-      headers: {
-        "User-Agent": "Mozilla/5.0"
-      }
-    })
+    if (!data?.status || !data?.resultado?.url_dl)
+      return m.reply("🚫 No se pudo obtener el audio.")
 
-    const buffer = Buffer.from(await response.arrayBuffer())
+    const fileUrl = data.resultado.url_dl
+    const fileTitle = cleanName(data.resultado.titulo || "audio")
 
-    // Detectar si la API devolvió HTML (error)
-    const textCheck = buffer.toString("utf8").slice(0, 50)
-    if (textCheck.includes("<html") || textCheck.includes("DOCTYPE")) {
-      return m.reply("🚫 La API devolvió un error en HTML.")
-    }
-
-    // Detectar archivo vacío
-    if (buffer.length < 5000) {
-      return m.reply("🚫 La API devolvió un archivo vacío.")
-    }
-
-    // Guardar archivo temporal
-    const tempPath = path.join(__dirname, "temp_audio")
-    if (!fs.existsSync(tempPath)) fs.mkdirSync(tempPath)
-
-    const filePath = path.join(tempPath, "audio.mp3")
-    fs.writeFileSync(filePath, buffer)
-
-    // Enviar audio
     await conn.sendMessage(
       m.chat,
       {
-        audio: fs.readFileSync(filePath),
+        audio: { url: fileUrl },
         mimetype: "audio/mpeg",
-        fileName: "audio.mp3",
+        fileName: fileTitle + ".mp3",
         ptt: false
       },
       { quoted: quotedMsg }
     )
 
-    fs.unlinkSync(filePath)
-
     await conn.sendMessage(
       m.chat,
-      { text: `✅ Descarga completada`, edit: sent.key }
+      { text: `✅ Descarga completada\n\n🎼 Título: ${fileTitle}`, edit: sent.key }
     )
 
   } catch (e) {
@@ -149,6 +121,9 @@ const downloadAudio = async (conn, m, url, quotedMsg) => {
     m.react("💀")
   }
 }
+
+const cleanName = (name) =>
+  name.replace(/[^\w\s-_.]/gi, "").substring(0, 50)
 
 const formatViews = (views) => {
   if (!views) return "No disponible"
