@@ -23,10 +23,7 @@ const handler = async (m, { conn, text }) => {
       durationTimestamp = video.timestamp
       views = video.views
       url = video.url
-      thumbnail = video.thumbnail
-    }
-
-    const vistas = formatViews(views)
+      thumbnail = video = formatViews(views)
 
     const res3 = await fetch("https://files.catbox.moe/wfd0ze.jpg")
     const thumb3 = Buffer.from(await res3.arrayBuffer())
@@ -37,8 +34,7 @@ const handler = async (m, { conn, text }) => {
         participant: "0@s.whatsapp.net",
         remoteJid: "status@broadcast"
       },
-      message: {
-        locationMessage: {
+     : {
           name: `『 ${title} 』`,
           jpegThumbnail: thumb3
         }
@@ -93,15 +89,37 @@ const downloadMedia = async (conn, m, url, quotedMsg) => {
       { quoted: m }
     )
 
+    // Nueva API sin key
     const apiUrl = `https://apiaxi.i11.eu/down/ytaudio?url=${encodeURIComponent(url)}`
     const r = await fetch(apiUrl)
-    const data = await r.json()
 
-    if (!data?.status || !data?.result?.url)
-      return m.reply("🚫 No se pudo descargar el archivo.")
+    if (!r.ok) {
+      return m.reply("🚫 La API no respondió correctamente.")
+    }
 
-    const fileUrl = data.result.url
-    const fileTitle = cleanName(data.result.title || "audio")
+    const data = await r.json().catch(() => null)
+
+    if (!data) {
+      return m.reply("🚫 No se pudo leer la respuesta de la API.")
+    }
+
+    // Soportar varias estructuras posibles
+    const fileUrl =
+      data.url ||
+      data.download_url ||
+      data.result?.url ||
+      data.result?.download_url
+
+    const rawTitle =
+      data.title ||
+      data.result?.title ||
+      "audio"
+
+    if (!fileUrl) {
+      return m.reply("🚫 No se encontró el enlace de descarga en la API.")
+    }
+
+    const fileTitle = cleanName(rawTitle)
 
     await conn.sendMessage(
       m.chat,
