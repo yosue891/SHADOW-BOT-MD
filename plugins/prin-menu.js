@@ -9,7 +9,7 @@ const dev = global.dev || "Cid Kagenou"
 const banner = global.banner || "https://files.catbox.moe/gbp5x3.jpg"
 const channelRD = global.channelRD || { id: "0@newsletter", name: "Shadow Channel" }
 
-let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
+let handler = async (m, { conn, usedPrefix, dirname, participants }) => {
   try {
 
     let mentionedJid = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.sender
@@ -66,7 +66,7 @@ let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
     for (let tag in tags) {
       let comandos = commands
         .filter(cmd => cmd.tags.includes(tag))
-        .map(cmd => cmd.help.map(e => `*│ׄꤥㅤׅ*  ${usedPrefix}${e}`).join('\n'))
+        .map(cmd => cmd.help.map(e => `*│ׄꤥㅤׅ* ${usedPrefix}${e}`).join('\n'))
         .join('\n')
       if (comandos) {
         menuTexto += `\n*╭──･ ̸̷∵* \`${tags[tag]}\`  *݁ ⚜︎*
@@ -89,10 +89,10 @@ ${comandos}
 > ര ׄ 𓏸𓈒 ׅ *ᴀʟᴍᴀꜱ ›* ${totalreg}
 > ര ׄ 𓏸𓈒 ׅ *ᴄᴇʟᴅᴀꜱ ›* ${groupsCount}
 > ര ׄ 𓏸𓈒 ׅ *ᴛɪᴇᴍᴘᴏ ›* ${date}
+> ര ׄ 𓏸𓈒 ׅ *ᴄᴀɴᴀʟ ᴅᴇ ʟᴀ ᴏꜱᴄᴜʀɪᴅᴀᴅ xᴅ ›* https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
 
 ${readMore}
   乂 *ᴘʀᴏᴛᴏᴄᴏʟᴏ ᴅᴇ ᴄᴏᴍᴀɴᴅᴏꜱ ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ* 乂\n`.trim()
-
 
    const icon = [
      'https://i.postimg.cc/rFfVL8Ps/image.jpg',
@@ -168,17 +168,3 @@ function clockString(ms) {
   const s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':')
 }
-
-function ucapan() {
-  const time = moment.tz('America/Lima').format('HH')
-  let res = "🄱ᴜᴇɴᴀs ɴᴏᴄʜᴇs ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ"
-
-  if (time >= 5 && time < 12)
-    res = "🄱ᴜᴇɴᴏꜱ ᴅɪᴀꜱ, ᴇxᴛʀᴀ ᴅᴇ ʟᴀ ʜɪꜱᴛᴏʀɪᴀ"
-  else if (time >= 12 && time < 18)
-    res = "🄱ᴜᴇɴᴀꜱ ᴛᴀʀᴅᴇꜱ, ᴀᴄᴛᴏʀ ᴅᴇ ꜱᴏᴍʙʀᴀ"
-  else if (time >= 18)
-    res = "🄱ᴜᴇɴᴀꜱ ɴᴏᴄʜᴇꜱ, ʟᴀ ᴏʙꜱᴄᴜʀɪᴅᴀᴅ ᴛᴇ ᴄᴜʙʀᴇ"
-
-  return res
-      }
