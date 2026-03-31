@@ -7,7 +7,6 @@ import moment from 'moment-timezone'
 const botname = global.botname || "Shadow Garden"
 const dev = global.dev || "Cid Kagenou"
 const videoMenu = "https://files.catbox.moe/41gtac.mp4"
-// Imagen para miniaturas (necesaria para que no de error el mensaje)
 const thumbMenu = "https://files.catbox.moe/gbp5x3.jpg" 
 const channelRD = global.channelRD || { id: "0@newsletter", name: "Shadow Channel" }
 
@@ -101,7 +100,6 @@ ${readMore}
 
   await m.react('🔥')
   
-  // Enviamos el mensaje con el video y las miniaturas corregidas
   await conn.sendMessage(m.chat, { 
     video: { url: videoMenu },
     caption: infoUser + menuTexto,
@@ -118,7 +116,7 @@ ${readMore}
         body: `By ${dev}`,
         mediaType: 1,
         sourceUrl: null,
-        thumbnailUrl: thumbMenu, // Usamos URL directa para evitar errores de buffer
+        thumbnailUrl: thumbMenu, 
         renderLargerThumbnail: true,
         showAdAttribution: false
       }
