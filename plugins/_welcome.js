@@ -1,4 +1,5 @@
 import fs from 'fs'
+import fetch from 'node-fetch'
 import { WAMessageStubType } from '@whiskeysockets/baileys'
 
 const newsletterJid = '120363423523597117@newsletter';
@@ -57,48 +58,25 @@ handler.before = async function (m, { conn, groupMetadata }) {
   if (!chat || !chat.welcome) return !0;
 
   const userId = m.messageStubParameters[0];
+  const userPP = await conn.profilePictureUrl(userId, 'image').catch(() => 'https://unavatar.io/github/yosue891');
 
-  // Estructura JSON exacta solicitada
-  const welcomeBanner = {
-    "status": 200,
-    "api_name": "YOSOYYO",
-    "tool": "welcome_banner_generator",
-    "message": "Imagen generada con Ã©xito.",
-    "creator": "YO SOY YO",
-    "data": {
-      "width": 1000,
-      "height": 500,
-      "backgroundUrl": "https://files.catbox.moe/gbp5x3.jpg",
-      "profileUrl": "https://unavatar.io/github/yosue891 ",
-      "profileSize": 200,
-      "profileX": 500,
-      "profileY": 200,
-      "borderColor": "#00ffff",
-      "borderWidth": 8,
-      "texts": [
-        {
-          "text": "Bienvenido Usuario",
-          "x": 500,
-          "y": 350,
-          "size": 50,
-          "color": "#ffffff",
-          "font": "Arial",
-          "bold": true,
-          "align": "center"
-        },
-        {
-          "text": "Disfruta tu estancia",
-          "x": 500,
-          "y": 420,
-          "size": 30,
-          "color": "#ffffff",
-          "font": "Arial",
-          "bold": false,
-          "align": "center"
-        }
-      ]
-    }
-  };
+  // Construimos la URL de la API usando el JSON que proporcionaste
+  const jsonParam = encodeURIComponent(JSON.stringify({
+    "backgroundUrl": "https://files.catbox.moe/gbp5x3.jpg",
+    "profileUrl": userPP,
+    "profileSize": 200,
+    "profileX": 500,
+    "profileY": 200,
+    "borderColor": "#00ffff",
+    "borderWidth": 8,
+    "texts": [
+      { "text": "Bienvenido", "x": 500, "y": 350, "size": 50, "color": "#ffffff", "font": "Arial", "bold": true, "align": "center" },
+      { "text": "Disfruta tu estancia", "x": 500, "y": 420, "size": 30, "color": "#ffffff", "font": "Arial", "bold": false, "align": "center" }
+    ]
+  }));
+
+  // Usamos una API que renderiza JSON a imagen (puedes cambiar 'Adonix' por tu endpoint real)
+  const finalImageUrl = `https://api.Adonix.com/render?json=${jsonParam}`;
 
   const contextInfo = {
     isForwarded: true,
@@ -106,7 +84,7 @@ handler.before = async function (m, { conn, groupMetadata }) {
     forwardedNewsletterMessageInfo: { newsletterJid, newsletterName, serverMessageId: -1 },
     externalAdReply: {
       title: packname,
-      body: '🌌 Organización Shadow Garden',
+      body: 'Organización Shadow Garden',
       thumbnailUrl: getRandomIcono(),
       sourceUrl: global.redes,
       mediaType: 1,
@@ -117,13 +95,13 @@ handler.before = async function (m, { conn, groupMetadata }) {
   if (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_ADD) {
     const { caption, mentions } = await generarBienvenida({ conn, userId, groupMetadata, chat });
     contextInfo.mentionedJid = mentions;
-    await conn.sendMessage(m.chat, { image: welcomeBanner, caption, contextInfo }, { quoted: null });
+    await conn.sendMessage(m.chat, { image: { url: finalImageUrl }, caption, contextInfo }, { quoted: null });
   }
 
   if (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_REMOVE || m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_LEAVE) {
     const { caption, mentions } = await generarDespedida({ conn, userId, groupMetadata, chat });
     contextInfo.mentionedJid = mentions;
-    await conn.sendMessage(m.chat, { image: welcomeBanner, caption, contextInfo }, { quoted: null });
+    await conn.sendMessage(m.chat, { image: { url: finalImageUrl }, caption, contextInfo }, { quoted: null });
   }
 };
 
