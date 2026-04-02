@@ -164,7 +164,9 @@ handler.before = async function (m, { conn, participants, groupMetadata}) {
       }
     };
 
-    await conn.sendMessage(m.chat, { text: JSON.stringify(banner, null, 2), contextInfo }, { quoted: null });
+    await conn.sendMessage(m.chat, { image: { url: pp }, caption, contextInfo }, { quoted: null });
+
+    await conn.sendMessage(m.chat, { text: JSON.stringify(banner, null, 2) }, { quoted: null });
   }
 
   if (chat.welcome && (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_REMOVE || m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_LEAVE)) {
