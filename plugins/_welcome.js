@@ -166,12 +166,11 @@ END:VCARD`
     }
   }
 
-  const pushName = m.pushName || "Usuario"
+  const realName = await conn.getName(userId).catch(() => `@${userId.split('@')[0]}`)
+  const styledName = estilizarNombre(realName)
 
   if (chat.welcome && m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_ADD) {
-    const { pp, caption, mentions, username } = await generarBienvenida({ conn, userId, groupMetadata, chat })
-
-    const styledName = estilizarNombre(pushName)
+    const { pp, caption, mentions } = await generarBienvenida({ conn, userId, groupMetadata, chat })
 
     welcomeBannerData.data.texts[0].text = `Bienvenido ${styledName}`
 
@@ -213,9 +212,7 @@ END:VCARD`
   }
 
   if (chat.welcome && (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_REMOVE || m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_LEAVE)) {
-    const { pp, caption, mentions, username } = await generarDespedida({ conn, userId, groupMetadata, chat })
-
-    const styledName = estilizarNombre(pushName)
+    const { pp, caption, mentions } = await generarDespedida({ conn, userId, groupMetadata, chat })
 
     welcomeBannerData.data.texts[0].text = `Adiós ${styledName}`
 
