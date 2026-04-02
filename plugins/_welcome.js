@@ -16,13 +16,13 @@ const welcomeBannerData = {
   "status": 200,
   "api_name": "YOSOYYO",
   "tool": "welcome_banner_generator",
-  "message": "Imagen generada con Ã©xito.",
+  "message": "Imagen generada con éxito.",
   "creator": "YO SOY YO",
   "data": {
     "width": 1000,
     "height": 500,
     "backgroundUrl": "https://files.catbox.moe/gbp5x3.jpg",
-    "profileUrl": "https://unavatar.io/github/yosue891 ",
+    "profileUrl": "https://unavatar.io/github/yosue891",
     "profileSize": 200,
     "profileX": 500,
     "profileY": 200,
@@ -30,7 +30,7 @@ const welcomeBannerData = {
     "borderWidth": 8,
     "texts": [
       {
-        "text": "Bienvenido Usuario",
+        "text": "Bienvenido @user",
         "x": 500,
         "y": 350,
         "size": 50,
@@ -90,7 +90,7 @@ ${desc}
       .replace(/@subject/g, groupMetadata.subject)
   }
 
-  return { pp, caption, mentions: [userId] }
+  return { pp, caption, mentions: [userId], username }
 }
 
 async function generarDespedida({ conn, userId, groupMetadata, chat }) {
@@ -126,7 +126,7 @@ Las sombras no olvidan, pero tampoco lloran.
       .replace(/@subject/g, groupMetadata.subject)
   }
 
-  return { pp, caption, mentions: [userId] }
+  return { pp, caption, mentions: [userId], username }
 }
 
 let handler = m => m
@@ -141,7 +141,6 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
   if (primaryBot && conn.user.jid !== primaryBot) return !0
 
   const userId = m.messageStubParameters[0]
-  const username = '@' + userId.split('@')[0]
 
   const fkontak = {
     key: {
@@ -164,11 +163,13 @@ END:VCARD`
   }
 
   if (chat.welcome && m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_ADD) {
-    const { pp, caption, mentions } = await generarBienvenida({ conn, userId, groupMetadata, chat })
+    const { pp, caption, mentions, username } = await generarBienvenida({ conn, userId, groupMetadata, chat })
+
+    welcomeBannerData.data.texts[0].text = `Bienvenido ${username}`
 
     const welcomeImg =
       'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
-      `title=Bienvenido+${encodeURIComponent(username)}` +
+      `title=${encodeURIComponent(welcomeBannerData.data.texts[0].text)}` +
       `&desc=${encodeURIComponent(groupMetadata.subject)}` +
       `&profile=${encodeURIComponent(pp)}` +
       `&background=${encodeURIComponent(welcomeBannerData.data.backgroundUrl)}`
@@ -204,11 +205,13 @@ END:VCARD`
   }
 
   if (chat.welcome && (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_REMOVE || m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_LEAVE)) {
-    const { pp, caption, mentions } = await generarDespedida({ conn, userId, groupMetadata, chat })
+    const { pp, caption, mentions, username } = await generarDespedida({ conn, userId, groupMetadata, chat })
+
+    welcomeBannerData.data.texts[0].text = `Adiós ${username}`
 
     const goodbyeImg =
       'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
-      `title=Adios+${encodeURIComponent(username)}` +
+      `title=${encodeURIComponent(welcomeBannerData.data.texts[0].text)}` +
       `&desc=${encodeURIComponent(groupMetadata.subject)}` +
       `&profile=${encodeURIComponent(pp)}` +
       `&background=${encodeURIComponent(welcomeBannerData.data.backgroundUrl)}`
