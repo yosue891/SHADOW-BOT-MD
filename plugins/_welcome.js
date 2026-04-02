@@ -55,6 +55,10 @@ const welcomeBannerData = {
 
 const getRandomIcono = () => iconos[Math.floor(Math.random() * iconos.length)]
 
+function estilizarNombre(nombre) {
+  return `『 ${nombre} 』`
+}
+
 async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
   const username = `@${userId.split('@')[0]}`
   const pp = await conn.profilePictureUrl(userId, 'image').catch(() => 'https://raw.githubusercontent.com/The-King-Destroy/Adiciones/main/Contenido/1745522645448.jpeg')
@@ -162,10 +166,14 @@ END:VCARD`
     }
   }
 
+  const pushName = m.pushName || "Usuario"
+
   if (chat.welcome && m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_ADD) {
     const { pp, caption, mentions, username } = await generarBienvenida({ conn, userId, groupMetadata, chat })
 
-    welcomeBannerData.data.texts[0].text = `Bienvenido ${username}`
+    const styledName = estilizarNombre(pushName)
+
+    welcomeBannerData.data.texts[0].text = `Bienvenido ${styledName}`
 
     const welcomeImg =
       'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
@@ -207,7 +215,9 @@ END:VCARD`
   if (chat.welcome && (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_REMOVE || m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_LEAVE)) {
     const { pp, caption, mentions, username } = await generarDespedida({ conn, userId, groupMetadata, chat })
 
-    welcomeBannerData.data.texts[0].text = `Adiós ${username}`
+    const styledName = estilizarNombre(pushName)
+
+    welcomeBannerData.data.texts[0].text = `Adiós ${styledName}`
 
     const goodbyeImg =
       'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
