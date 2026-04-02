@@ -3,7 +3,7 @@ import { lookup } from 'mime-types'
 
 let handler = async (m, { conn, text, usedPrefix }) => {
   if (!text) return conn.reply(m.chat, '❀ Te faltó el enlace de Mediafire.', m)
-  if (!/^https:\/\/www\.mediafire\.com\//i.test(text)) 
+  if (!/^https:\/\/www\.mediafire\.com\//i.test(text))
     return conn.reply(m.chat, 'ꕥ Enlace inválido.', m)
 
   try {
@@ -13,15 +13,18 @@ let handler = async (m, { conn, text, usedPrefix }) => {
     const res = await fetch(apiURL)
     const json = await res.json()
 
-    if (!json.status || !json.result?.url) {
+    if (!json.status || !json.result) {
       throw 'ꕥ No se pudo obtener el archivo desde la API.'
     }
 
     const file = json.result
     const filename = file.filename || 'archivo'
     const filesize = file.filesize || 'desconocido'
-    const mimetype = lookup(filename.split('.').pop().toLowerCase()) || 'application/octet-stream'
     const dl_url = file.url
+
+    const mimetype =
+      lookup(filename.split('.').pop().toLowerCase()) ||
+      'application/octet-stream'
 
     const caption = `乂 MEDIAFIRE - DESCARGA 乂
 
@@ -32,7 +35,12 @@ let handler = async (m, { conn, text, usedPrefix }) => {
 
     await conn.sendMessage(
       m.chat,
-      { document: { url: dl_url }, fileName: filename, mimetype, caption },
+      {
+        document: { url: dl_url },
+        mimetype,
+        fileName: filename,
+        caption
+      },
       { quoted: m }
     )
 
