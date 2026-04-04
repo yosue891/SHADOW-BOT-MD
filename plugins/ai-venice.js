@@ -108,7 +108,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
         }
 
-        // Mensaje con efecto WhatsApp Business
 
         const fkontak = {
 
