@@ -23,7 +23,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const ShadowJBOptions = {}
 
-const newsletterJid = '120363423523597117@newsletter'
+const newsletterJid = '120363403739366547@newsletter'
 const newsletterName = '👑 SHADOW-BOT-MD| ᴄʜᴀɴɴᴇʟ-ʙᴏᴛ 🌌'
 
 let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
