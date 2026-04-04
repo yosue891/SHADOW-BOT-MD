@@ -6,11 +6,9 @@ let handler = async (m, { conn }) => {
   let userName = conn.getName(userId)
   let userNumber = userId.split('@')[0]
   
-  // Mensaje inicial rápido
-  let sentMsg = await conn.reply(m.chat, '❐ 𝐂𝐚𝐥𝐜𝐮𝐥𝐚𝐧𝐝𝐨 𝐏𝐢𝐧𝐠... 🚀', m)
-  
+  // Calculamos la latencia antes de mandar nada
   let latency = speed() - timestamp
-  let ping = latency.toFixed(0) // Quitamos decimales para que se vea más limpio
+  let ping = latency.toFixed(0)
 
   let result = `
 ✨ *¡𝐏𝐎𝐍𝐆!* ✨
@@ -24,14 +22,13 @@ let handler = async (m, { conn }) => {
 🛰️ *𝐍𝐨𝐝𝐞:* 𝐯𝟐𝟎.𝟏𝟏.𝟎
 ⚡ *𝐏𝐨𝐰𝐞𝐫:* 𝟏𝟎𝟎% 𝐂𝐚𝐩𝐚𝐜𝐢𝐭𝐲
 
-*જ 𝐒𝐡𝐚𝐝𝐨𝐰 𝐆𝐚𝐫𝐝𝐞𝐧 𝐈𝐧𝐭𝐞𝐫𝐟𝐚𝐜𝐞 🧪 𖤓*`.trim()
+*જ 𝐒𝐡𝐚𝐝𝐨𝐰 𝐆𝐀𝐑𝐃𝐄𝐍 𝐈𝐧𝐭𝐞𝐫𝐟𝐚𝐜𝐞 🧪 𖤓*`.trim()
 
-  // Editamos el mensaje con la imagen de forma instantánea
+  // Mandamos la imagen de una, sin editar, para que sea instantáneo
   await conn.sendMessage(m.chat, { 
     image: { url: 'https://files.catbox.moe/yfdd3r.jpg' }, 
     caption: result, 
-    mentions: [userId],
-    edit: sentMsg.key 
+    mentions: [userId]
   }, { quoted: m })
 }
 
