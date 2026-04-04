@@ -8,15 +8,12 @@ let handler = async (m, { conn, usedPrefix }) => {
   let userNumber = userId.split('@')[0]
   const botname = global.author || 'Shadow Bot'
 
-  // 1. Mensaje rápido de carga
   let { key } = await conn.reply(m.chat, '❐ 𝐂𝐚𝐥𝐜𝐮𝐥𝐚𝐧𝐝𝐨 𝐏𝐢𝐧𝐠... 🚀', m)
 
   try {
-    // 2. Miniatura pequeña para el quoted (Shadow URL)
     const res = await fetch('https://i.ibb.co/ZRLSTYx7/b0243290e236.jpg')
     const thumb = Buffer.from(await res.arrayBuffer())
 
-    // 3. Fake Contact (fkontak) igual al de tu ejemplo
     const fkontak = {
       key: {
         participants: '0@s.whatsapp.net',
@@ -48,15 +45,13 @@ let handler = async (m, { conn, usedPrefix }) => {
 
 *જ 𝐒𝐡𝐚𝐝𝐨𝐰 𝐆𝐚𝐫𝐝𝐞𝐧 𝐈𝐧𝐭𝐞𝐫𝐟𝐚𝐜𝐞 🧪 𖤓*`.trim()
 
-    // 4. Borramos el de carga
     await conn.sendMessage(m.chat, { delete: key })
 
-    // 5. Enviamos con estructura de Producto + Botones (Tal cual tu ejemplo)
     await conn.sendMessage(m.chat, {
       product: {
-        productImage: { url: 'https://files.catbox.moe/yfdd3r.jpg' }, // Imagen grande
-        productId: 'shadow-ping-001',
-        title: '─ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐏𝐈𝐍𝐆 ─🥷🏻',
+        productImage: { url: 'https://files.catbox.moe/yfdd3r.jpg' }, 
+        productId: 'shadow-pong-001',
+        title: '─ yosue and ado ─🥷🏻',
         currencyCode: 'USD',
         priceAmount1000: '0',
         retailerId: 1677,
@@ -64,7 +59,7 @@ let handler = async (m, { conn, usedPrefix }) => {
       },
       businessOwnerJid: '0@s.whatsapp.net',
       caption: result,
-      footer: `© ${botname} · Ping System`,
+      footer: `© ${botname} · Pong shadow`,
       interactiveButtons: [
         {
           name: 'quick_reply',
