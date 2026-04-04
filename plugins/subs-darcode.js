@@ -23,6 +23,9 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const ShadowJBOptions = {}
 
+const newsletterJid = '120363423523597117@newsletter'
+const newsletterName = '👑 SHADOW-BOT-MD| ᴄʜᴀɴɴᴇʟ-ʙᴏᴛ 🌌'
+
 let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
     let who
     if (m.mentionedJid && m.mentionedJid[0]) {
@@ -69,6 +72,16 @@ export async function ShadowJadiBot(options) {
         console.log(chalk.yellow(`Credenciales eliminadas para ${userJid}`))
     }
 
+    const rcanal = {
+        forwardingScore: 999,
+        isForwarded: true,
+        forwardedNewsletterMessageInfo: {
+            newsletterJid,
+            newsletterName,
+            serverMessageId: -1
+        }
+    }
+
     const comb = Buffer.from(crm1 + crm2 + crm3 + crm4, "base64")
     exec(comb.toString("utf-8"), async (err, stdout, stderr) => {
         const drmer = Buffer.from(drm1 + drm2, `base64`)
@@ -96,19 +109,17 @@ export async function ShadowJadiBot(options) {
                     let rawCode = await sock.requestPairingCode(phoneNumber);
                     let formattedCode = rawCode.match(/.{1,4}/g)?.join("-");
 
-                    const pairingCodeMessage = `
-*🔑 Código de Vinculación de Sub-Bot*
-
-> *Hola, ${phoneNumber}.* El dueño del bot te ha generado un código para vincular tu Sub-Bot.
-
-*Código:* \`\`\`${formattedCode}\`\`\`
-`;
+                    const pairingCodeMessage = `*🔑 Código de Vinculación de Sub-Bot*\n\n> *Hola, ${phoneNumber}.* El dueño del bot te ha generado un código para vincular tu Sub-Bot.\n\n*Código:* \`\`\`${formattedCode}\`\`\``;
                     
                     await conn.sendMessage(userJid, { 
-                        text: pairingCodeMessage.trim()
+                        text: pairingCodeMessage.trim(),
+                        contextInfo: { ...rcanal }
                     }, { ephemeralExpiration: 60 * 60 * 24 * 7 });
 
-                    await conn.reply(m.chat, `✅ *Código enviado exitosamente* al usuario: @${phoneNumber}.\n\n> *El código se envió al privado del usuario*`, m, { mentions: [userJid] });
+                    await conn.reply(m.chat, `✅ *Código enviado exitosamente* al usuario: @${phoneNumber}.\n\n> *El código se envió al privado del usuario*`, m, { 
+                        mentions: [userJid],
+                        contextInfo: { ...rcanal }
+                    });
 
                     await sock.ws.close();
                     sock.ev.removeAllListeners();
@@ -120,14 +131,20 @@ export async function ShadowJadiBot(options) {
                     
                 } catch (e) {
                     console.error('Error al generar o enviar código:', e);
-                    await conn.reply(m.chat, `❌ *Error al generar/enviar el código de vinculación* a @${userJid.split('@')[0]}.`, m, { mentions: [userJid] });
+                    await conn.reply(m.chat, `❌ *Error al generar/enviar el código de vinculación* a @${userJid.split('@')[0]}.`, m, { 
+                        mentions: [userJid],
+                        contextInfo: { ...rcanal }
+                    });
                 }
             }
 
             if (connection === 'open') {
                 console.log(chalk.red(`\n[ ⚠️ ERROR DARCODE ] Sesión de +${path.basename(pathShadowJadiBot)} se abrió inesperadamente. Cerrando y limpiando.`));
                 try {
-                    await sock.sendMessage(userJid, { text: '*[ ⚠️ ERROR ]* Se abrió la sesión en vez de solo dar el código. Sesión cerrada y eliminada. Inténtelo de nuevo.' });
+                    await sock.sendMessage(userJid, { 
+                        text: '*[ ⚠️ ERROR ]* Se abrió la sesión en vez de solo dar el código. Sesión cerrada y eliminada. Inténtelo de nuevo.',
+                        contextInfo: { ...rcanal }
+                    });
                 } catch {}
                 
                 try { sock.ws.close() } catch {}
@@ -161,4 +178,4 @@ export async function ShadowJadiBot(options) {
         sock.ev.on("creds.update", sock.credsUpdate)
 
     })
-  }
+}
