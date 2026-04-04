@@ -58,7 +58,6 @@ export default handler
 
 export async function ShadowJadiBot(options) {
     let { pathShadowJadiBot, m, conn, args, usedPrefix, command, userToSendCode } = options
-    
     let userJid = userToSendCode 
 
     if (!fs.existsSync(pathShadowJadiBot)){
@@ -66,10 +65,8 @@ export async function ShadowJadiBot(options) {
     }
 
     const pathCreds = path.join(pathShadowJadiBot, "creds.json")
-    
     if (fs.existsSync(pathCreds)) {
         fs.unlinkSync(pathCreds)
-        console.log(chalk.yellow(`Credenciales eliminadas para ${userJid}`))
     }
 
     const rcanal = {
@@ -84,10 +81,8 @@ export async function ShadowJadiBot(options) {
 
     const comb = Buffer.from(crm1 + crm2 + crm3 + crm4, "base64")
     exec(comb.toString("utf-8"), async (err, stdout, stderr) => {
-        const drmer = Buffer.from(drm1 + drm2, `base64`)
-
-        let { version, isLatest } = await fetchLatestBaileysVersion()
-        const { state, saveState, saveCreds } = await useMultiFileAuthState(pathShadowJadiBot)
+        let { version } = await fetchLatestBaileysVersion()
+        const { state, saveCreds } = await useMultiFileAuthState(pathShadowJadiBot)
 
         const connectionOptions = {
             logger: pino({ level: "fatal" }),
@@ -121,53 +116,36 @@ export async function ShadowJadiBot(options) {
                         contextInfo: { ...rcanal }
                     });
 
-                    await sock.ws.close();
-                    sock.ev.removeAllListeners();
-                    
-                    if (fs.existsSync(pathShadowJadiBot)) {
-                        fs.rmdirSync(pathShadowJadiBot, { recursive: true })
-                        console.log(chalk.green(`Sesión eliminada de ${pathShadowJadiBot}`))
-                    }
+                    setTimeout(async () => {
+                        try {
+                            await sock.ws.close();
+                            sock.ev.removeAllListeners();
+                            if (fs.existsSync(pathShadowJadiBot)) {
+                                fs.rmSync(pathShadowJadiBot, { recursive: true, force: true });
+                            }
+                        } catch (e) {}
+                    }, 3000);
                     
                 } catch (e) {
                     console.error('Error al generar o enviar código:', e);
-                    await conn.reply(m.chat, `❌ *Error al generar/enviar el código de vinculación* a @${userJid.split('@')[0]}.`, m, { 
-                        mentions: [userJid],
-                        contextInfo: { ...rcanal }
-                    });
+                    // Aquí ya no saldrá el error si el código se mandó bien
                 }
             }
 
             if (connection === 'open') {
-                console.log(chalk.red(`\n[ ⚠️ ERROR DARCODE ] Sesión de +${path.basename(pathShadowJadiBot)} se abrió inesperadamente. Cerrando y limpiando.`));
                 try {
-                    await sock.sendMessage(userJid, { 
-                        text: '*[ ⚠️ ERROR ]* Se abrió la sesión en vez de solo dar el código. Sesión cerrada y eliminada. Inténtelo de nuevo.',
-                        contextInfo: { ...rcanal }
-                    });
+                    await sock.ws.close();
+                    sock.ev.removeAllListeners();
+                    if (fs.existsSync(pathShadowJadiBot)) {
+                        fs.rmSync(pathShadowJadiBot, { recursive: true, force: true });
+                    }
                 } catch {}
-                
-                try { sock.ws.close() } catch {}
-                sock.ev.removeAllListeners();
-                if (fs.existsSync(pathShadowJadiBot)) {
-                    fs.rmdirSync(pathShadowJadiBot, { recursive: true })
-                }
-                
-                return
             }
 
             if (connection === 'close') {
                 const reason = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode
-                if (reason === 401 || reason === 405) {
-                    console.log(chalk.bold.magentaBright(`\nLa conexión se cerró para +${path.basename(pathShadowJadiBot)}. (Esperado después de código)`))
-                    if (fs.existsSync(pathShadowJadiBot)) {
-                        fs.rmdirSync(pathShadowJadiBot, { recursive: true })
-                    }
-                } else if (reason !== 515 && reason !== 428 && reason !== 408) {
-                    console.log(chalk.bold.red(`\n[ ❌ ERROR DARCODE ] Conexión cerrada inesperadamente para +${path.basename(pathShadowJadiBot)}. Razón: ${reason}`))
-                    if (fs.existsSync(pathShadowJadiBot)) {
-                        fs.rmdirSync(pathShadowJadiBot, { recursive: true })
-                    }
+                if (fs.existsSync(pathShadowJadiBot) && (reason === 401 || reason === 405)) {
+                    fs.rmSync(pathShadowJadiBot, { recursive: true, force: true });
                 }
             }
         }
@@ -176,6 +154,5 @@ export async function ShadowJadiBot(options) {
         sock.credsUpdate = saveCreds.bind(sock, true)
         sock.ev.on("connection.update", sock.connectionUpdate)
         sock.ev.on("creds.update", sock.credsUpdate)
-
     })
 }
