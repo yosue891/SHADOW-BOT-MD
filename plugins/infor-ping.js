@@ -1,44 +1,33 @@
 import speed from 'performance-now'
 import fetch from 'node-fetch'
 
-let handler = async (m, { conn }) => {
+let handler = async (m, { conn, usedPrefix }) => {
   let timestamp = speed()
   let userId = m.sender
   let userName = conn.getName(userId)
   let userNumber = userId.split('@')[0]
+  const botname = global.author || 'Shadow Bot'
 
   // 1. Mensaje rápido de carga
   let { key } = await conn.reply(m.chat, '❐ 𝐂𝐚𝐥𝐜𝐮𝐥𝐚𝐧𝐝𝐨 𝐏𝐢𝐧𝐠... 🚀', m)
 
   try {
-    // 2. Miniatura pequeña para el quoted (Shadow de la URL)
+    // 2. Miniatura pequeña para el quoted (Shadow URL)
     const res = await fetch('https://i.ibb.co/ZRLSTYx7/b0243290e236.jpg')
     const thumb = Buffer.from(await res.arrayBuffer())
 
-    // 3. Estructura shadow_xyz para el quoted (idéntica a tu AFK)
-    const shadow_xyz = {
+    // 3. Fake Contact (fkontak) igual al de tu ejemplo
+    const fkontak = {
       key: {
+        participants: '0@s.whatsapp.net',
         remoteJid: 'status@broadcast',
         fromMe: false,
-        id: 'ShadowCatalogPing',
-        participant: '0@s.whatsapp.net'
+        id: 'ShadowPing'
       },
       message: {
-        productMessage: {
-          product: {
-            productImage: {
-              mimetype: 'image/jpeg',
-              jpegThumbnail: thumb
-            },
-            title: '𝐒𝐡𝐚𝐝𝐨𝐰 𝐆𝐚𝐫𝐝𝐞𝐧 • 𝐏𝐢𝐧𝐠',
-            description: 'Shadow team system',
-            currencyCode: 'USD',
-            priceAmount1000: '0',
-            retailerId: 'ShadowCore',
-            productImageCount: 1,
-            productId: '999999999999999'
-          },
-          businessOwnerJid: '584242773183@s.whatsapp.net'
+        contactMessage: {
+          displayName: botname,
+          vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:${botname}\nORG:${botname};\nTEL;type=CELL;type=VOICE;waid=0:+0\nEND:VCARD`
         }
       }
     }
@@ -55,7 +44,6 @@ let handler = async (m, { conn }) => {
 > 🏎️ *𝐋𝐢𝐧𝐮𝐱 𝐒𝐩𝐞𝐞𝐝:* 𝐌𝐚́𝐱𝐢𝐦𝐚 𝐕𝐞𝐥𝐨𝐜𝐢𝐝𝐚𝐝 🚀
 
 🖥️ *𝐒𝐭𝐚𝐭𝐮𝐬:* 𝐎𝐧𝐥𝐢𝐧𝐞 
-🛰️ *𝐍𝐨𝐝𝐞:* 𝐯𝟐𝟎.𝟏𝟏.𝟎
 ⚡ *𝐏𝐨𝐰𝐞𝐫:* 𝟏𝟎𝟎% 𝐂𝐚𝐩𝐚𝐜𝐢𝐭𝐲
 
 *જ 𝐒𝐡𝐚𝐝𝐨𝐰 𝐆𝐚𝐫𝐝𝐞𝐧 𝐈𝐧𝐭𝐞𝐫𝐟𝐚𝐜𝐞 🧪 𖤓*`.trim()
@@ -63,41 +51,41 @@ let handler = async (m, { conn }) => {
     // 4. Borramos el de carga
     await conn.sendMessage(m.chat, { delete: key })
 
-    // 5. ENVIAMOS EL PRODUCT MESSAGE (IGUAL AL DE TU REGISTRO)
-    const productMessage = {
+    // 5. Enviamos con estructura de Producto + Botones (Tal cual tu ejemplo)
+    await conn.sendMessage(m.chat, {
       product: {
-        productImage: { url: 'https://files.catbox.moe/yfdd3r.jpg' },
-        productId: '999999999999999',
-        title: '✨ 𝐏𝐈𝐍𝐆 - 𝐒𝐇𝐀𝐃𝐎𝐖 𝐁𝐎𝐓 ✨',
-        description: 'Latencia del sistema',
+        productImage: { url: 'https://files.catbox.moe/yfdd3r.jpg' }, // Imagen grande
+        productId: 'shadow-ping-001',
+        title: '─ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐏𝐈𝐍𝐆 ─🥷🏻',
         currencyCode: 'USD',
         priceAmount1000: '0',
-        retailerId: 'ShadowCore',
-        url: `https://wa.me/584242773183`,
+        retailerId: 1677,
         productImageCount: 1
       },
-      businessOwnerJid: '584242773183@s.whatsapp.net',
+      businessOwnerJid: '0@s.whatsapp.net',
       caption: result,
-      footer: '🌌 Shadow Bot',
-      mentions: [m.sender],
-      contextInfo: {
-        externalAdReply: {
-          showAdAttribution: true,
-          title: '𝐒𝐡𝐚𝐝𝐨𝐰 𝐆𝐚𝐫𝐝𝐞𝐧 • 𝐏𝐢𝐧𝐠',
-          body: 'Sistema en línea',
-          mediaType: 1,
-          thumbnailUrl: 'https://i.ibb.co/ZRLSTYx7/b0243290e236.jpg',
-          sourceUrl: 'https://wa.me/584242773183'
+      footer: `© ${botname} · Ping System`,
+      interactiveButtons: [
+        {
+          name: 'quick_reply',
+          buttonParamsJson: JSON.stringify({
+            display_text: '👤 Registrarme',
+            id: `${usedPrefix}reg user.19`
+          })
+        },
+        {
+          name: 'quick_reply',
+          buttonParamsJson: JSON.stringify({
+            display_text: '🌌 Menú Principal',
+            id: `${usedPrefix}menu`
+          })
         }
-      }
-    }
-
-    // Usamos el envío directo que usa tu código de registro
-    return await conn.sendMessage(m.chat, productMessage, { quoted: shadow_xyz })
+      ],
+      mentions: [userId]
+    }, { quoted: fkontak })
 
   } catch (e) {
     console.error(e)
-    // Si algo falla, al menos manda el texto para que no se quede muerto
     await conn.sendMessage(m.chat, { text: '❌ Error en el sistema de ping.' }, { quoted: m })
   }
 }
