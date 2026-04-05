@@ -93,7 +93,7 @@ async function handler(m, { text, conn }) {
         message: {
             locationMessage: {
                 name: 'Copilot AI - Inteligencia Arcana 🌌',
-                jpegThumbnail: await (await fetch('https://files.catbox.moe/gbp5x3.jpg')).buffer(),
+                jpegThumbnail: await (await fetch('https://i.ibb.co/fdjQ3zng/dec97605db05.jpg')).buffer(),
                 vcard: 'BEGIN:VCARD\nVERSION:3.0\nN:;Shadow;;;\nFN:Shadow\nORG:Eminence in Shadow\nTITLE:\nitem1.TEL;waid=19709001746:+1 (970) 900-1746\nitem1.X-ABLabel:Shadow\nX-WA-BIZ-DESCRIPTION:Reino de las Sombras\nX-WA-BIZ-NAME:Shadow\nEND:VCARD'
             }
         },
@@ -119,8 +119,7 @@ async function handler(m, { text, conn }) {
         );
 
     } catch (error) {
-        console.error('Error en Copilot:', error);
-
+        console.error(error);
         await conn.sendMessage(
             m.chat,
             {
