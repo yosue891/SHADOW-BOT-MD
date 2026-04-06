@@ -34,17 +34,7 @@ const handler = async (m, { conn }) => {
             await conn.sendMessage(m.chat, { 
                 audio: audioBuffer, 
                 mimetype: 'audio/mpeg', 
-                ptt: false,
-                contextInfo: {
-                    externalAdReply: {
-                        title: 'Shadow Garden - Audio Extractor',
-                        body: 'Audio extraído con éxito 🌌',
-                        thumbnailUrl: 'https://i.ibb.co/fdjQ3zng/dec97605db05.jpg',
-                        sourceUrl: global.redes,
-                        mediaType: 1,
-                        showAdAttribution: true
-                    }
-                }
+                ptt: false
             }, { quoted: m })
 
             await fs.unlink(tempVideo).catch(() => {})
