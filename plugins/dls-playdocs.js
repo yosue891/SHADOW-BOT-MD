@@ -1,145 +1,156 @@
-import fetch from "node-fetch";
-import yts from 'yt-search';
+import yts from "yt-search"
+import fetch from "node-fetch"
 
-const handler = async (m, { conn, text, usedPrefix, command }) => {
+const handler = async (m, { conn, text, command }) => {
+  if (!text) return m.reply("🎶 Ingresa el nombre o el enlace de YouTube.")
+
+  await m.react("🕘")
+
   try {
-    console.log('[INFO] Comando recibido:', command, 'Texto:', text);
+    let url = text
+    let title = "Desconocido"
+    let authorName = "Desconocido"
+    let durationTimestamp = "Desconocida"
+    let views = "Desconocidas"
+    let thumbnail = ""
 
-    if (!text?.trim()) {
-      console.log('[WARN] No se envió texto para buscar');
-      return conn.reply(m.chat, `❀ Envía el nombre o link del vídeo para descargar.`, m);
+    if (!text.startsWith("https://")) {
+      const res = await yts(text)
+      if (!res?.videos?.length) return m.reply("🚫 No encontré nada.")
+      const video = res.videos[0]
+      title = video.title
+      authorName = video.author?.name
+      durationTimestamp = video.timestamp
+      views = video.views
+      url = video.url
+      thumbnail = video.thumbnail
     }
 
-    await m.react('🕒');
-    console.log('[INFO] Emoji de espera enviado');
+    const vistas = formatViews(views)
+    const isVideo = command.includes('mp4')
+    const type = isVideo ? "mp4" : "mp3"
 
-    const videoMatch = text.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([a-zA-Z0-9_-]{11})/);
-    const query = videoMatch ? 'https://youtu.be/' + videoMatch[1] : text;
-    console.log('[INFO] Query detectada:', query);
+    const res3 = await fetch("https://files.catbox.moe/wfd0ze.jpg")
+    const thumb3 = Buffer.from(await res3.arrayBuffer())
 
-    const search = await yts(query);
-    console.log('[INFO] Resultados de búsqueda obtenidos');
-
-    const result = videoMatch ? search.videos.find(v => v.videoId === videoMatch[1]) || search.all[0] : search.all[0];
-    if (!result) throw 'ꕥ No se encontraron resultados.';
-
-    const { title, seconds, views, url, thumbnail, author } = result;
-    console.log(`[INFO] Video seleccionado: ${title} | ${seconds}s | ${views} vistas | ${url}`);
-
-    if (seconds > 2400) throw '❐ Lo sentimos, este video excede la duración máxima de 40 minutos. Esta limitación se aplica para evitar saturación en el bot y garantizar un rendimiento estable.';
-
-    const vistas = formatViews(views);
-    const duracion = formatDuration(seconds);
-    const canal = author?.name || 'Desconocido';
-
-    if (['mp3doc', 'ytmp3doc'].includes(command)) {
-      console.log('[INFO] Descargando audio...');
-      const audioUrl = await getYtmp3(url);
-      if (!audioUrl) throw '> ⚠ Algo falló, no se pudo obtener el audio.';
-      console.log('[INFO] URL de audio obtenida:', audioUrl);
-
-      const info = `「✦」Descargando *<${title}>*
-
-> ✐ Canal » *${canal}*
-> ⴵ Duración » *${duracion}*
-> ✰ Calidad: *128k*
-> 🜸 Link » ${url}
-> ⟡ Vistas » *${vistas}*`;
-
-      console.log('[INFO] Enviando info...');
-      await conn.sendMessage(m.chat, { image: { url: thumbnail }, caption: info }, { quoted: m });
-
-      console.log('[INFO] Enviando audio como documento...');
-      await conn.sendMessage(m.chat, { document: { url: audioUrl }, fileName: `${title}.mp3`, mimetype: 'audio/mpeg' }, { quoted: m });
-
-      await m.react('✔️');
-      console.log('[SUCCESS] Audio enviado como documento correctamente');
-
-    } else if (['mp4doc', 'ytmp4doc'].includes(command)) {
-      console.log('[INFO] Descargando video...');
-      const video = await getYtmp4(url);
-      if (!video?.data) throw '⚠ Algo falló, no se pudo obtener el video.';
-      console.log('[INFO] Video obtenido');
-
-      const info = `「✦」Descargando *<${title}>*
-
-> ✐ Canal » *${canal}*
-> ⴵ Duración » *${duracion}*
-> ✰ Calidad: *360p*
-> 🜸 Link » ${url}
-> ⟡ Vistas » *${vistas}*`;
-
-      console.log('[INFO] Enviando info...');
-      await conn.sendMessage(m.chat, { image: { url: thumbnail }, caption: info }, { quoted: m });
-
-      console.log('[INFO] Enviando video como documento...');
-      await conn.sendMessage(m.chat, { document: { url: video.url }, fileName: `${title}.mp4`, mimetype: 'video/mp4' }, { quoted: m });
-
-      await m.react('✔️');
-      console.log('[SUCCESS] Video enviado como documento correctamente');
+    const fkontak = {
+      key: { fromMe: false, participant: "0@s.whatsapp.net" },
+      message: {
+        locationMessage: {
+          name: `『 ${title} 』`,
+          jpegThumbnail: thumb3
+        }
+      }
     }
+
+    const caption = `
+✧━───『 𝙸𝚗𝚏𝚘 𝚍𝚎𝚕 𝙳𝚘𝚌𝚞𝚖𝚎𝚗𝚝𝚘 』───━✧
+
+🎼 𝑻𝒊́𝒕𝒖𝒍𝒐: ${title}
+📺 𝑪𝒂𝒏𝒂𝒍: ${authorName}
+👁️ 𝑽𝒊𝒔𝒕𝒂𝒔: ${vistas}
+⏳ 𝑫𝒖𝒓𝒂ᶜ𝒊𝒐́𝒏: ${durationTimestamp}
+📦 𝑻𝒊𝒑𝒐: ${type.toUpperCase()} DOC
+🌐 𝑬𝒏𝒍𝒂𝒄𝒆: ${url}
+
+✧━───『 𝑺𝒉𝒂𝚍𝒐𝒘 𝑩𝒐𝒕 』───━✧
+⚡ 𝑷𝒐𝒘𝒆𝒓𝒆𝒅 𝒃𝒚 𝒀𝒐𝒔𝒖𝒆 ⚡
+`
+
+    const thumb = (await conn.getFile(thumbnail)).data
+
+    await conn.sendMessage(
+      m.chat,
+      {
+        image: thumb,
+        caption,
+        footer: "⚡ Shadow — Descargas en Documento ⚡",
+        headerType: 4
+      },
+      { quoted: fkontak }
+    )
+
+    await downloadMedia(conn, m, url, type)
+
+    await m.react("✅")
+  } catch (e) {
+    m.reply("❌ Error: " + e.message)
+    m.react("⚠️")
+  }
+}
+
+const downloadMedia = async (conn, m, url, type) => {
+  try {
+    const msg = type === "mp3"
+      ? "🎵 Preparando audio en documento..."
+      : "🎬 Preparando video en documento..."
+
+    const sent = await conn.sendMessage(m.chat, { text: msg }, { quoted: m })
+
+    const apiUrl = type === "mp3"
+      ? `https://apiaxi.i11.eu/down/ytaudio?url=${encodeURIComponent(url)}`
+      : `https://apiaxi.i11.eu/down/ytvideo?url=${encodeURIComponent(url)}`
+
+    const r = await fetch(apiUrl)
+    const data = await r.json()
+
+    if (!data?.status || !data?.resultado?.url_dl) return m.reply("🚫 No se pudo descargar el archivo.")
+
+    const fileUrl = data.resultado.url_dl
+    const fileTitle = cleanName(data.resultado.titulo || "Shadow_File")
+
+    const audioThumb = await fetch("https://files.catbox.moe/wfd0ze.jpg")
+    const mini = Buffer.from(await audioThumb.arrayBuffer())
+
+    if (type === "mp3") {
+      await conn.sendMessage(
+        m.chat,
+        {
+          document: { url: fileUrl },
+          mimetype: "audio/mpeg",
+          fileName: fileTitle + ".mp3",
+          jpegThumbnail: mini,
+          title: fileTitle
+        },
+        { quoted: m }
+      )
+    } else {
+      await conn.sendMessage(
+        m.chat,
+        {
+          document: { url: fileUrl },
+          mimetype: "video/mp4",
+          fileName: fileTitle + ".mp4",
+          jpegThumbnail: mini,
+          title: fileTitle
+        },
+        { quoted: m }
+      )
+    }
+
+    await conn.sendMessage(
+      m.chat,
+      { text: `✅ Entrega completada\n\n🎼 Título: ${fileTitle}`, edit: sent.key }
+    )
 
   } catch (e) {
-    await m.react('✖️');
-    console.error('[ERROR]', e);
-    return conn.reply(m.chat, typeof e === 'string' ? e : '⚠ Se produjo un error.\n' + e.message, m);
-  }
-};
-
-handler.command = handler.help = ['mp3doc', 'ytmp3doc', 'mp4doc', 'ytmp4doc'];
-handler.tags = ['descargas'];
-//handler.coin = 31
-
-export default handler;
-
-async function getYtmp3(url) {
-  try {
-    console.log('[INFO] Llamando API YTMP3');
-    const endpoint = `http://173.208.192.170/download/ytmp3?apikey=Adofreekey&url=${encodeURIComponent(url)}`;
-    const res = await fetch(endpoint, { redirect: 'follow' }).then(r => r.json());
-    console.log('[INFO] Respuesta API YTMP3:', res);
-    if (!res?.data?.url) return null;
-    return res.data.url;
-  } catch (err) {
-    console.error('[ERROR] getYtmp3', err);
-    return null;
+    console.error(e)
+    m.reply("❌ Error: " + e.message)
   }
 }
 
-async function getYtmp4(url) {
-  try {
-    console.log('[INFO] Llamando API YTMP4');
-    const endpoint = `https://api-adonix.ultraplus.click/download/ytmp4?apikey=Adofreekey&url=${encodeURIComponent(url)}`;
-    const res = await fetch(endpoint).then(r => r.json());
-    console.log('[INFO] Respuesta API YTMP4:', res);
-    if (!res?.data?.url) return null;
+const cleanName = (name) => name.replace(/[^\w\s-_.]/gi, "").substring(0, 50)
 
-    const finalUrl = await getFinalUrl(res.data.url);
-    console.log('[INFO] URL final del video:', finalUrl);
-
-    return { data: Buffer.from(await fetch(finalUrl).then(r => r.arrayBuffer())), url: finalUrl };
-  } catch (err) {
-    console.error('[ERROR] getYtmp4', err);
-    return null;
-  }
+const formatViews = (views) => {
+  if (views === undefined || views === null) return "No disponible"
+  if (views >= 1000000000) return `${(views / 1000000000).toFixed(1)}B`
+  if (views >= 1000000) return `${(views / 1000000).toFixed(1)}M`
+  if (views >= 1000) return `${(views / 1000).toFixed(1)}K`
+  return views.toString()
 }
 
-async function getFinalUrl(url) {
-  console.log('[INFO] Resolviendo URL final...');
-  const res = await fetch(url, { method: 'HEAD', redirect: 'follow' });
-  return res.url || url;
-}
+handler.command = handler.help = ['mp3doc', 'ytmp3doc', 'mp4doc', 'ytmp4doc']
+handler.tags = ['descargas']
+handler.register = true
 
-function formatViews(views) {
-  if (views === undefined) return "No disponible";
-  if (views >= 1_000_000_000) return `${(views / 1_000_000_000).toFixed(1)} B (${views.toLocaleString()})`;
-  if (views >= 1_000_000) return `${(views / 1_000_000).toFixed(1)} M (${views.toLocaleString()})`;
-  if (views >= 1_000) return `${(views / 1_000).toFixed(1)} K (${views.toLocaleString()})`;
-  return views.toString();
-}
-
-function formatDuration(seconds) {
-  const min = Math.floor(seconds / 60);
-  const sec = seconds % 60;
-  return `${min} minutos ${sec} segundos`;
-}
+export default handler
