@@ -2,7 +2,6 @@ import { downloadContentFromMessage } from '@whiskeysockets/baileys'
 import ffmpeg from 'fluent-ffmpeg'
 import fs from 'fs'
 import { join } from 'path'
-import { exec } from 'child_process'
 
 const handler = async (m, { conn }) => {
     const q = m.quoted ? m.quoted : m
@@ -15,10 +14,11 @@ const handler = async (m, { conn }) => {
     const videoBuffer = await q.download?.()
     if (!videoBuffer) return m.reply('❌ No se pudo descargar el video.')
 
-    const tempVideo = join(process.cwd(), `./tmp/${Date.now()}.mp4`)
-    const tempAudio = join(process.cwd(), `./tmp/${Date.now()}.mp3`)
+    const tempDir = join(process.cwd(), './tmp')
+    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir)
 
-    if (!fs.existsSync('./tmp')) fs.mkdirSync('./tmp')
+    const tempVideo = join(tempDir, `${Date.now()}.mp4`)
+    const tempAudio = join(tempDir, `${Date.now()}.mp3`)
 
     fs.writeFileSync(tempVideo, videoBuffer)
 
@@ -28,17 +28,29 @@ const handler = async (m, { conn }) => {
             await conn.sendMessage(m.chat, { 
                 audio: fs.readFileSync(tempAudio), 
                 mimetype: 'audio/mpeg', 
-                ptt: true 
+                ptt: false,
+                contextInfo: {
+                    externalAdReply: {
+                        title: 'Shadow Garden - Audio Extractor',
+                        body: 'Esencia extraída con éxito 🌌',
+                        thumbnailUrl: 'https://i.ibb.co/fdjQ3zng/dec97605db05.jpg',
+                        sourceUrl: global.redes,
+                        mediaType: 1,
+                        showAdAttribution: true,
+                        renderLargerThumbnail: false
+                    }
+                }
             }, { quoted: m })
 
-            fs.unlinkSync(tempVideo)
-            fs.unlinkSync(tempAudio)
+            if (fs.existsSync(tempVideo)) fs.unlinkSync(tempVideo)
+            if (fs.existsSync(tempAudio)) fs.unlinkSync(tempAudio)
             await m.react("✅")
         })
         .on('error', async (err) => {
             console.error(err)
-            m.reply('❌ Error al extraer el audio.')
+            m.reply('❌ Error al procesar el audio.')
             if (fs.existsSync(tempVideo)) fs.unlinkSync(tempVideo)
+            if (fs.existsSync(tempAudio)) fs.unlinkSync(tempAudio)
         })
         .save(tempAudio)
 }
