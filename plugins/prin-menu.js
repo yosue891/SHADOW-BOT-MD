@@ -6,7 +6,7 @@ import moment from 'moment-timezone'
 
 const botname = global.botname || "Shadow Garden"
 const dev = global.dev || "Cid Kagenou"
-const videoMenu = "https://files.catbox.moe/41gtac.mp4"
+const videoMenu = "https://files.catbox.moe/hj4kik.mp4"
 const thumbMenu = "https://files.catbox.moe/gbp5x3.jpg" 
 const channelRD = global.channelRD || { id: "0@newsletter", name: "Shadow Channel" }
 
