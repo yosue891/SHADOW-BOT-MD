@@ -1,8 +1,5 @@
 const handler = async (m, { conn }) => {
-    const buttonParamsJson = JSON.stringify({
-        title: "Código en Python", // Este es el título que sale arriba en la ventana negra
-        display_text: "Ver código",
-        code: `key: {
+  const codeContent = `key: {
     remoteJid: '120363423514187718@g.us',
     remoteJidAlt: undefined,
     fromMe: false,
@@ -23,33 +20,31 @@ const handler = async (m, { conn }) => {
   },
   id: 'A54F66F85457C83E39DD96F8167074CF',
   chat: '120363423514187718@g.us',
-  from: '120363423514187718@g.us',
   sender: '276995896258574@lid',
   pushName: 'Manuel VG',
   body: '.ver'`
-    })
 
-    const msg = {
-        viewOnceMessage: {
-            message: {
-                interactiveMessage: {
-                    body: { text: "texto2" },
-                    footer: { text: "Shadow Bot — MLS" },
-                    header: { title: "", hasMediaAttachment: false },
-                    nativeFlowMessage: {
-                        buttons: [
-                            {
-                                name: "cta_code",
-                                buttonParamsJson: buttonParamsJson
-                            }
-                        ]
-                    }
-                }
-            }
-        }
+  await conn.sendMessage(m.chat, {
+    text: 'texto2',
+    contextInfo: {
+      externalAdReply: {
+        title: 'Código en Python',
+        body: 'Ver código',
+        mediaType: 1,
+        previewType: 0,
+        showAdAttribution: true,
+        renderLargerThumbnail: false,
+        sourceUrl: 'https://whatsapp.com',
+        thumbnailUrl: 'https://files.catbox.moe/wfd0ze.jpg' // Tu logo de Shadow
+      },
+      // Aquí metemos la estructura de quoted que pasaste
+      stanzaId: 'SUKIB9B1F886466F7EFF',
+      participant: '261181826699458@lid',
+      quotedMessage: {
+        conversation: codeContent
+      }
     }
-
-    await conn.relayMessage(m.chat, msg, { messageId: m.key.id })
+  }, { quoted: m })
 }
 
 handler.help = ['mls']
