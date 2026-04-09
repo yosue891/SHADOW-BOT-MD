@@ -1,26 +1,8 @@
 const handler = async (m, { conn }) => {
-    const msg = {
-        viewOnceMessage: {
-            message: {
-                interactiveMessage: {
-                    header: {
-                        title: "",
-                        hasMediaAttachment: false
-                    },
-                    body: {
-                        text: "texto2"
-                    },
-                    footer: {
-                        text: "Shadow Bot — MLS"
-                    },
-                    nativeFlowMessage: {
-                        buttons: [
-                            {
-                                name: "cta_code",
-                                buttonParamsJson: JSON.stringify({
-                                    display_text: "Ver código",
-                                    title: "Código en Python",
-                                    code: `key: {
+    const buttonParamsJson = JSON.stringify({
+        title: "Código en Python", // Este es el título que sale arriba en la ventana negra
+        display_text: "Ver código",
+        code: `key: {
     remoteJid: '120363423514187718@g.us',
     remoteJidAlt: undefined,
     fromMe: false,
@@ -45,10 +27,22 @@ const handler = async (m, { conn }) => {
   sender: '276995896258574@lid',
   pushName: 'Manuel VG',
   body: '.ver'`
-                                })
+    })
+
+    const msg = {
+        viewOnceMessage: {
+            message: {
+                interactiveMessage: {
+                    body: { text: "texto2" },
+                    footer: { text: "Shadow Bot — MLS" },
+                    header: { title: "", hasMediaAttachment: false },
+                    nativeFlowMessage: {
+                        buttons: [
+                            {
+                                name: "cta_code",
+                                buttonParamsJson: buttonParamsJson
                             }
-                        ],
-                        messageParamsJson: ""
+                        ]
                     }
                 }
             }
