@@ -13,13 +13,15 @@ var handler = async (m, { conn, usedPrefix, command, text }) => {
 
     if (!color) {
         const colores = [
-            { title: "Blanco", id: `${usedPrefix + command} ${textoFinal}|white` },
-            { title: "Verde", id: `${usedPrefix + command} ${textoFinal}|green` },
-            { title: "Rojo", id: `${usedPrefix + command} ${textoFinal}|red` },
-            { title: "Azul", id: `${usedPrefix + command} ${textoFinal}|blue` },
-            { title: "Amarillo", id: `${usedPrefix + command} ${textoFinal}|yellow` },
-            { title: "Rosa", id: `${usedPrefix + command} ${textoFinal}|pink` },
-            { title: "Cian", id: `${usedPrefix + command} ${textoFinal}|cyan` }
+            { title: "Blanco", id: `${usedPrefix + command} ${textoFinal}|blanco` },
+            { title: "Verde", id: `${usedPrefix + command} ${textoFinal}|verde` },
+            { title: "Rojo", id: `${usedPrefix + command} ${textoFinal}|rojo` },
+            { title: "Azul", id: `${usedPrefix + command} ${textoFinal}|azul` },
+            { title: "Amarillo", id: `${usedPrefix + command} ${textoFinal}|amarillo` },
+            { title: "Rosa", id: `${usedPrefix + command} ${textoFinal}|rosa` },
+            { title: "Cian", id: `${usedPrefix + command} ${textoFinal}|cian` },
+            { title: "Naranja", id: `${usedPrefix + command} ${textoFinal}|naranja` },
+            { title: "Morado", id: `${usedPrefix + command} ${textoFinal}|morado` }
         ]
 
         const interactive = proto.Message.InteractiveMessage.fromObject({
@@ -31,7 +33,7 @@ var handler = async (m, { conn, usedPrefix, command, text }) => {
                     buttonParamsJson: JSON.stringify({
                         title: "📜 Elegir Color",
                         sections: [{
-                            title: "COLORES",
+                            title: "COLORES DISPONIBLES",
                             rows: colores
                         }]
                     })
@@ -50,7 +52,7 @@ var handler = async (m, { conn, usedPrefix, command, text }) => {
         await m.react('🕒')
         
         const apiKey = "yosoyyo_sk_u8qjoidy"
-        const apiUrl = `https://yosoyyo-api-ofc.onrender.com/api/brat?text=${encodeURIComponent(textoFinal)}&color=${color}&apiKey=${apiKey}`
+        const apiUrl = `https://yosoyyo-api-ofc.onrender.com/api/brat?text=${encodeURIComponent(textoFinal)}&color=${color.toLowerCase()}&apiKey=${apiKey}`
         
         const response = await axios.get(apiUrl, { responseType: 'arraybuffer' })
 
