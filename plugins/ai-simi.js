@@ -2,7 +2,6 @@ import axios from 'axios'
 
 let handler = async (m, { conn, usedPrefix, command, text }) => {
   const username = `${conn.getName(m.sender)}`
-  const sender = m.sender
   const isOwner = m.sender === '584242773183@s.whatsapp.net'
 
   const basePrompt = `
@@ -26,10 +25,17 @@ Ahora responde lo siguiente:
 
   try {
     const fullPrompt = `${basePrompt} ${text}`
-    const response = await simiAI(fullPrompt)
-    await conn.reply(m.chat, response, m)
+    const url = `https://api.adoolab.xyz/ai/gemini?q=${encodeURIComponent(fullPrompt)}`
+    const response = await axios.get(url)
+    
+    let result = response.data.result || response.data.resultado || response.data.respuesta || response.data
+
+    if (typeof result === 'object') result = JSON.stringify(result)
+
+    await conn.reply(m.chat, result, m)
   } catch (error) {
-    await conn.reply(m.chat, '*Error: intenta más tarde.*', m)
+    console.error(error)
+    await conn.reply(m.chat, '*[ 🤖 ] El servicio está saturado, intenta de nuevo.*', m)
   }
 }
 
@@ -38,26 +44,3 @@ handler.tags = ['tools']
 handler.register = true
 handler.command = ['simi']
 export default handler
-
-async function simiAI(prompt) {
-  try {
-    const url = `https://api.adoolab.xyz/ai/gemini?q=${encodeURIComponent(prompt)}`
-    const response = await axios.get(url)
-    
-    const res = response.data
-    
-    if (res.result) {
-      return res.result
-    } else if (res.resultado) {
-      return res.resultado
-    } else if (typeof res === 'string') {
-      return res
-    } else {
-      return "🤖 No pude generar una respuesta, intenta otra vez."
-    }
-
-  } catch (error) {
-    console.error(error)
-    throw error
-  }
-}
