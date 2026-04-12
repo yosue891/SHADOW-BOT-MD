@@ -1,3 +1,4 @@
+import yts from "yt-search"
 import fetch from "node-fetch"
 
 const handler = async (m, { conn, text }) => {
@@ -24,8 +25,33 @@ const handler = async (m, { conn, text }) => {
       if (!videoId) {
         return m.reply("🚫 No pude extraer el ID del video.")
       }
+
+      const res = await yts({ videoId })
+
+      if (!res) {
+        return m.reply("🚫 No pude obtener información del video.")
+      }
+
+      title = res.title || title
+      authorName = res.author?.name || authorName
+      durationTimestamp = res.timestamp || durationTimestamp
+      views = res.views || views
+      thumbnail = res.thumbnail || thumbnail
+      url = res.url || url
     } else {
-      return m.reply("🚫 Por favor, ingresa un enlace de YouTube válido.")
+      const res = await yts(url)
+
+      if (!res?.videos?.length) {
+        return m.reply("🚫 No encontré nada.")
+      }
+
+      const video = res.videos[0]
+      title = video.title || title
+      authorName = video.author?.name || authorName
+      durationTimestamp = video.timestamp || durationTimestamp
+      views = video.views || views
+      url = video.url || url
+      thumbnail = video.thumbnail || thumbnail
     }
 
     const vistas = formatViews(views)
@@ -56,7 +82,7 @@ const handler = async (m, { conn, text }) => {
 ⏳ 𝑫𝒖𝒓𝒂𝒄𝒊𝒐́𝒏: ${durationTimestamp}
 🌐 𝑬𝒏𝒍𝒂𝒄𝒆: ${url}
 
-✧━───『 𝑺𝒉𝒂𝒅𝒐𝒒 𝑩𝒐𝒕 』───━✧
+✧━───『 𝑺𝒉𝒂𝒅𝒐𝒘 𝑩𝒐𝒕 』───━✧
 ⚡ 𝑷𝒐𝒘𝒆𝒓𝒆𝒅 𝒃𝒚 𝒀𝒐𝒔𝒖𝒆 ⚡
 `
 
