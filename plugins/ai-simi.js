@@ -11,21 +11,22 @@ let handler = async (m, { conn, text }) => {
 
   try {
     const url = `https://api.adoolab.xyz/ai/gemini?q=${encodeURIComponent(basePrompt + text)}`
-    const response = await axios.get(url)
-    const data = response.data
+    
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    })
 
-    let result = data.respuesta || data.result || data.resultado || (typeof data === 'string' ? data : null)
-
-    if (typeof data === 'object' && !result) {
-        result = data[Object.keys(data).find(k => typeof data[k] === 'string')]
+    if (response.data && response.data.respuesta) {
+      await conn.reply(m.chat, response.data.respuesta, m)
+    } else {
+      throw new Error("No se encontró la propiedad respuesta")
     }
 
-    if (!result) return conn.reply(m.chat, `*[ 🤖 ] La API no respondió correctamente.*`, m)
-
-    await conn.reply(m.chat, result, m)
   } catch (error) {
     console.error(error)
-    await conn.reply(m.chat, `*[ 🤖 ] Error de conexión con Simi.*`, m)
+    await conn.reply(m.chat, `*[ 🤖 ] Error al conectar con Simi. Intenta de nuevo.*`, m)
   }
 }
 
