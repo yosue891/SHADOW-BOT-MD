@@ -4,7 +4,7 @@ import baileys from "@whiskeysockets/baileys"
 
 const { generateWAMessageFromContent, proto, prepareWAMessageMedia } = baileys
 
-let handler = async (m, { conn, text }) => {
+let handler = async (m, { conn, text, usedPrefix }) => {
   if (!text) return m.reply("🌑✦ Ingresa una búsqueda de YouTube.")
 
   try {
@@ -15,31 +15,15 @@ let handler = async (m, { conn, text }) => {
     if (!videos.length) throw new Error("No se encontraron resultados.")
 
     const first = videos[0]
-
-    // 🔥 Imagen pequeña fija estilo WhatsApp Business
     const smallThumb = await (await fetch("https://i.postimg.cc/rFfVL8Ps/image.jpg")).buffer()
 
     const businessHeader = {
-      key: {
-        participants: "0@s.whatsapp.net",
-        fromMe: false,
-        id: "ShadowYT"
-      },
+      key: { participants: "0@s.whatsapp.net", fromMe: false, id: "ShadowYT" },
       message: {
         locationMessage: {
           name: "🔍 YouTube Search",
           jpegThumbnail: smallThumb,
-          vcard:
-            "BEGIN:VCARD\n" +
-            "VERSION:3.0\n" +
-            "N:;YouTube;;;\n" +
-            "FN:YouTube\n" +
-            "ORG:Shadow Garden\n" +
-            "item1.TEL;waid=5804242773183:+58 0424-2773183\n" +
-            "item1.X-ABLabel:Buscador\n" +
-            "X-WA-BIZ-DESCRIPTION:Resultados de búsqueda en las sombras\n" +
-            "X-WA-BIZ-NAME:YouTube Search\n" +
-            "END:VCARD"
+          vcard: "BEGIN:VCARD\nVERSION:3.0\nN:;YouTube;;;\nFN:YouTube\nORG:Shadow Garden\nEND:VCARD"
         }
       },
       participant: "0@s.whatsapp.net"
@@ -50,27 +34,14 @@ let handler = async (m, { conn, text }) => {
       { upload: conn.waUploadToServer }
     )
 
-    await conn.sendMessage(
-      m.chat,
-      {
-        image: { url: first.thumbnail },
-        caption:
-          `🌑✦ Resultados para: *${text}*\n\n` +
-          `🜸 *${first.title}*\n` +
-          `⏱ ${first.timestamp} • 👁️ ${first.views.toLocaleString()}\n` +
-          `🔗 ${first.url}`
-      },
-      { quoted: businessHeader }
-    )
-
     const rows = videos.slice(0, 20).map(v => ({
       title: v.title,
-      description: `Canal: ${v.author.name}`,
-      id: v.url
+      description: `⏱ ${v.timestamp} | Canal: ${v.author.name}`,
+      id: `${usedPrefix}play ${v.url}` 
     }))
 
     const interactive = proto.Message.InteractiveMessage.fromObject({
-      body: { text: "🌑✦ Selecciona un video para reproducir:" },
+      body: { text: "🌑✦ Selecciona un video de la lista para descargarlo automáticamente." },
       footer: { text: "Shadow Garden — YouTube Search" },
       header: {
         hasMediaAttachment: true,
@@ -81,7 +52,7 @@ let handler = async (m, { conn, text }) => {
           {
             name: "single_select",
             buttonParamsJson: JSON.stringify({
-              title: "📜 Seleccionar video",
+              title: "📜 Lista de Resultados",
               sections: [
                 {
                   title: "RESULTADOS DE YOUTUBE",
@@ -91,8 +62,7 @@ let handler = async (m, { conn, text }) => {
               ]
             })
           }
-        ],
-        messageParamsJson: ""
+        ]
       },
       contextInfo: {
         mentionedJid: [m.sender]
@@ -115,6 +85,19 @@ let handler = async (m, { conn, text }) => {
   } catch (e) {
     await m.react("✖️")
     m.reply(`⚠️ Error:\n${e.message}`)
+  }
+}
+
+handler.all = async function (m) {
+  if (!m.message) return
+  const type = m.message.interactiveResponseMessage?.body?.text
+  if (type && type.startsWith(this.prefix || "/")) {
+    this.emit('chat-update', {
+      ...m,
+      message: {
+        extendedTextMessage: { text: type }
+      }
+    })
   }
 }
 
