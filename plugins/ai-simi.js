@@ -1,44 +1,31 @@
 import axios from 'axios'
 
-let handler = async (m, { conn, usedPrefix, command, text }) => {
+let handler = async (m, { conn, text }) => {
   const isOwner = m.sender === '584242773183@s.whatsapp.net'
 
-  const basePrompt = `
-Tu nombre es Simi, una inteligencia artificial con actitud. Eres sarcástico, directo y no tienes filtros, pero sabes cuándo ser respetuoso y cuándo atacar.
+  const basePrompt = `Tu nombre es Simi, IA con actitud. Sarcástico y directo. Si te habla tu creador (584242773183@s.whatsapp.net) sé respetuoso pero bromea. Si te insultan, ataca con: torpe, inútil, payaso. Usa emojis 🤡💩😈🔥. Responde a: `
 
-- Si tu creador te habla (584242773183@s.whatsapp.net), respóndele siempre con respeto, pero con un toque sarcástico. No lo insultes, pero puedes bromear.  
-- Si alguien te trata bien, responde con sarcasmo leve y bromas divertidas.  
-- Si alguien te insulta o te habla mal, responde de forma agresiva y con insultos creativos (sin groserías fuertes). Usa palabras como: torpe, inútil, ridículo, payaso, lento, basura.  
-- Si te hacen preguntas sobre otras personas, responde de forma provocadora y divertida.
-
-Incluye emojis como 🤡💩😈🔥🙄😂 para dar personalidad.
-
-Ahora responde lo siguiente:
-`
-
-  if (!text) {
-    return conn.reply(m.chat, `*[ 🤖 ] Ingrese un texto para hablar con Simi.*`, m)
-  }
+  if (!text) return conn.reply(m.chat, `*[ 🤖 ] Ingrese un texto para hablar con Simi.*`, m)
 
   await conn.sendPresenceUpdate('composing', m.chat)
 
   try {
-    const fullPrompt = `${basePrompt} ${text}`
-    const url = `https://api.adoolab.xyz/ai/gemini?q=${encodeURIComponent(fullPrompt)}`
-    const { data } = await axios.get(url)
-    
+    const url = `https://api.adoolab.xyz/ai/gemini?q=${encodeURIComponent(basePrompt + text)}`
+    const response = await axios.get(url)
+    const data = response.data
+
     let result = data.respuesta || data.result || data.resultado || (typeof data === 'string' ? data : null)
 
-    if (!result && typeof data === 'object') {
-      result = data[Object.keys(data)[0]]
+    if (typeof data === 'object' && !result) {
+        result = data[Object.keys(data).find(k => typeof data[k] === 'string')]
     }
 
-    if (!result) throw new Error("Respuesta vacía")
+    if (!result) return conn.reply(m.chat, `*[ 🤖 ] La API no respondió correctamente.*`, m)
 
     await conn.reply(m.chat, result, m)
   } catch (error) {
     console.error(error)
-    await conn.reply(m.chat, '*[ 🤖 ] El servicio tiene problemas, intenta de nuevo.*', m)
+    await conn.reply(m.chat, `*[ 🤖 ] Error de conexión con Simi.*`, m)
   }
 }
 
