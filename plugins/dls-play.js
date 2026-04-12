@@ -76,14 +76,14 @@ const handler = async (m, { conn, text }) => {
     const caption = `
 ✧━───『 𝙸𝚗𝚏𝚘 𝚍𝚎𝚕 𝚅𝚒𝚍𝚎𝚘 』───━✧
 
-🎼 _título_: ${title}
-📺 _canal_: ${authorName}
-👁️ _vistas_: ${vistas}
-⏳ _duración_: ${durationTimestamp}
-🌐 _enlace_: ${url}
+🎼 𝑻𝒊́𝒕𝒖𝒍𝒐: ${title}
+📺 𝑪𝒂𝒏𝒂𝒍: ${authorName}
+👁️ 𝑽𝒊𝒔𝒕𝒂𝒔: ${vistas}
+⏳ 𝑫𝒖𝒓𝒂𝒄𝒊𝒐́𝒏: ${durationTimestamp}
+🌐 𝑬𝒏𝒍𝒂𝒄𝒆: ${url}
 
-     ✧━『 _shadow bot_ 』━✧
-    🐉 _Powered by yosue_ 🐉
+✧━───『 𝑺𝒉𝒂𝒅𝒐𝒘 𝑩𝒐𝒕 』───━✧
+⚡ 𝑷𝒐𝒘𝒆𝒓𝒆𝒅 𝒃𝒚 𝒀𝒐𝒔𝒖𝒆 ⚡
 `
 
     let thumb = fallbackThumb
