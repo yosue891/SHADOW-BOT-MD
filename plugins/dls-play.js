@@ -191,7 +191,7 @@ const extractVideoId = (url) => {
   return match?.[1] || null
 }
 
-handler.command = ["play", "yt"]
+handler.command = ["play"]
 handler.tags = ["descargas"]
 handler.register = true
 
