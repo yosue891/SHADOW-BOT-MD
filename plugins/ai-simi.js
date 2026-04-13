@@ -30,19 +30,17 @@ Usa emojis como 🤡💩😈🔥🙄😂 para dar personalidad.
     const context = [systemPrompt, ...chatHistories[from].slice(-15)]
 
     const { data } = await axios.post(
-      "https://deepseek.openrouter.run/api/chat/completions",
+      "https://api.safone.dev/api/v1/ai/chat",
       {
-        model: "deepseek-chat",
+        model: "gpt-4o-mini",
         messages: context
-      },
-      {
-        headers: { "Content-Type": "application/json" }
       }
     )
 
     let respuesta =
-      data?.choices?.[0]?.message?.content ||
+      data?.result ||
       data?.response ||
+      data?.choices?.[0]?.message?.content ||
       data?.text ||
       null
 
