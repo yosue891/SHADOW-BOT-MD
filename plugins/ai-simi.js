@@ -1,10 +1,7 @@
 import axios from 'axios'
 
-let chatHistories = {}
-
 let handler = async (m, { conn, text }) => {
-  const from = m.sender
-  const isOwner = from === '584242773183@s.whatsapp.net'
+  const isOwner = m.sender === '584242773183@s.whatsapp.net'
 
   const basePrompt = `
 Tu nombre es Simi, una inteligencia artificial con actitud. Eres sarcástico, directo y no tienes filtros, pero sabes cuándo ser respetuoso y cuándo atacar.
@@ -22,41 +19,25 @@ Incluye emojis como 🤡💩😈🔥🙄😂 para dar personalidad.
   await conn.sendPresenceUpdate('composing', m.chat)
 
   try {
-    if (!chatHistories[from]) chatHistories[from] = []
-
-    chatHistories[from].push({ role: "user", content: text })
-
-    const systemPrompt = {
-      role: "system",
-      content: basePrompt
-    }
-
-    const context = [systemPrompt, ...chatHistories[from].slice(-15)]
-
-    const { data } = await axios.post("https://text.pollinations.ai/", {
-      messages: context,
-      model: "openai"
+    const url = `https://api.adoolab.xyz/ai/gemini?q=${encodeURIComponent(basePrompt + text)}`
+    
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0'
+      }
     })
 
-    let respuesta = null
+    let r = response.data
 
-    if (typeof data === 'string') {
-      respuesta = data
-    } else {
-      respuesta =
-        data?.response ||
-        data?.message ||
-        data?.text ||
-        data?.choices?.[0]?.message?.content ||
-        data?.choices?.[0]?.text
-    }
+    let respuesta =
+      r?.respuesta ||
+      r?.message ||
+      r?.text ||
+      r?.output ||
+      r?.ai ||
+      (typeof r === 'string' ? r : null)
 
-    if (!respuesta) {
-      console.log('Respuesta Pollinations sin texto reconocible:', data)
-      return await conn.reply(m.chat, `*[ 🤖 ] Simi no entendió la respuesta de la IA, intenta de nuevo.*`, m)
-    }
-
-    chatHistories[from].push({ role: "assistant", content: respuesta })
+    if (!respuesta) respuesta = "Simi no entendió nada 🤡"
 
     await conn.reply(m.chat, respuesta, m)
 
