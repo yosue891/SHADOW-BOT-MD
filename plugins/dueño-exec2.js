@@ -1,7 +1,15 @@
 import util from 'util'
 
 let handler = async (m, { conn }) => {
-  if (!global.owner.includes(m.sender)) {
+
+  const isOwner = global.owner?.some(v => {
+    if (typeof v === 'string') return m.sender.includes(v)
+    if (typeof v === 'number') return m.sender.includes(v.toString())
+    if (typeof v === 'object') return m.sender.includes(v[0] || v.number)
+    return false
+  })
+
+  if (!isOwner) {
     return m.reply('❌ *Solo el amo de las sombras puede usar este poder.*')
   }
 
@@ -13,7 +21,7 @@ let handler = async (m, { conn }) => {
     return m.reply(
 `⚙️ *E V A L  –  S H A D O W  G A R D E N*
 
-Ingresa código JavaScript para ejecutar en las sombras.
+Ejecuta código JavaScript en las sombras.
 
 Ejemplos:
 => 1 + 1
@@ -27,7 +35,7 @@ Ejemplos:
   let isError = false
 
   try {
-    result = await eval(`(async () => { ${code} })()`)
+    result = await eval(\`(async () => { \${code} })()\`)
   } catch (e) {
     isError = true
     result = e
@@ -45,26 +53,26 @@ Ejemplos:
   } else output = String(result)
 
   if (output.length > 3000) {
-    output = output.slice(0, 3000) + '\n\n... (truncado por las sombras)'
+    output = output.slice(0, 3000) + '\\n\\n... (truncado por las sombras)'
   }
 
   let status = isError ? '❌ Error en las sombras' : '✅ Ejecución exitosa'
   let type = isError ? result?.name || 'Error' : typeof result
 
   await m.reply(
-`⚙️ *R E S U L T A D O  –  E V A L*
+\`⚙️ *R E S U L T A D O  –  E V A L*
 
 ╭─「 📋 *I N F O* 」
-│ Estado: ${status}
-│ Tipo: ${type}
+│ Estado: \${status}
+│ Tipo: \${type}
 ╰───────────────
 
-\`\`\`${output}\`\`\`
-`)
+\`\`\`\${output}\`\`\`
+\`)
 }
 
-handler.customPrefix = /^=>/  // solo mensajes que empiezan con =>
-handler.command = /^(.*)$/    // cualquier cosa después de =>
+handler.customPrefix = /^=>/
+handler.command = /^(.*)$/
 handler.rowner = true
 
 export default handler
