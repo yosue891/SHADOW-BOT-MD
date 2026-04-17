@@ -1,19 +1,14 @@
 import util from 'util'
 
-let handler = async (m, { conn, text, usedPrefix, command }) => {
+let handler = async (m, { conn }) => {
   if (!global.owner.includes(m.sender)) {
     return m.reply('❌ *Solo el amo de las sombras puede usar este poder.*')
   }
 
   let raw = m.text || ''
-  let code = ''
+  if (!raw.startsWith('=>')) return !0
 
-  if (/^=>/.test(raw)) {
-    code = raw.replace(/^=>\s*/, '').trim()
-  } else {
-    code = text ? text.trim() : ''
-  }
-
+  let code = raw.slice(2).trim()
   if (!code) {
     return m.reply(
 `⚙️ *E V A L  –  S H A D O W  G A R D E N*
@@ -21,13 +16,10 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 Ingresa código JavaScript para ejecutar en las sombras.
 
 Ejemplos:
-${usedPrefix + command} 1 + 1
-${usedPrefix + command} m.chat
-${usedPrefix + command} Object.keys(global.db.data)
-
-O también:
-=> m.chat
 => 1 + 1
+=> m.chat
+=> groupMetadata.participants
+=> Object.keys(global.db.data)
 `)
   }
 
@@ -71,10 +63,8 @@ O también:
 `)
 }
 
-handler.help = ['eval']
-handler.tags = ['owner']
-handler.command = ['$', 'ev', 'eval']  // con prefijo: .$ .ev .eval
-handler.customPrefix = /^=>/           // sin prefijo: => código
+handler.customPrefix = /^=>/  // solo mensajes que empiezan con =>
+handler.command = /^(.*)$/    // cualquier cosa después de =>
 handler.rowner = true
 
 export default handler
