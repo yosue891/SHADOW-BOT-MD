@@ -122,7 +122,7 @@ const downloadMedia = async (conn, m, url, quotedMsg) => {
       { quoted: m }
     )
 
-    const apiUrl = `https://api-gohan.onrender.com/download/ytaudio?url=${encodeURIComponent(url)}`
+    const apiUrl = `https://api-gohan-ykq7.onrender.com/download/ytaudio?url=${encodeURIComponent(url)}`
     const r = await fetch(apiUrl)
 
     if (!r.ok) {
@@ -187,12 +187,4 @@ const isYouTubeUrl = (url) => {
 const extractVideoId = (url) => {
   const match =
     url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})(?:[?&/]|\b)/) ||
-    url.match(/youtu\.be\/([0-9A-Za-z_-]{11})/)
-  return match?.[1] || null
-}
-
-handler.command = ["play"]
-handler.tags = ["descargas"]
-handler.register = true
-
-export default handler
+    url
