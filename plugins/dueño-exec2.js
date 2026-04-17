@@ -1,88 +1,67 @@
-const { getDatabase } = require('../../src/lib/database')
-const config = require('../../config')
-const util = require('util')
+import util from 'util'
 
-const pluginConfig = {
-    name: 'eval',
-    alias: ['$', 'ev', 'evaluate', '=>'],
-    category: 'owner',
-    description: 'Jalankan kode JavaScript (Owner Only)',
-    usage: '=> <code> o .$ <code>',
-    example: '=> m.chat',
-    isOwner: true,
-    isPremium: false,
-    isGroup: false,
-    isPrivate: false,
-    cooldown: 0,
-    energi: 0,
-    isEnabled: true,
-    noPrefix: ['=>'],
-    customTrigger: (body) => body?.startsWith('=>')
-}
+let handler = async (m, { conn, text, usedPrefix, command }) => {
+  if (!global.owner.includes(m.sender)) {
+    return m.reply('❌ *Solo el amo de las sombras puede usar este poder.*')
+  }
 
-async function handler(m, { sock, store }) {
-    if (!config.isOwner(m.sender)) {
-        return m.reply('❌ *Owner Only!*')
-    }
-    
-    const code = m.fullArgs?.trim() || m.text?.trim()
-    
-    if (!code) {
-        return m.reply(
-            `⚙️ *ᴇᴠᴀʟ*\n\n` +
-            `> Ingresa kode JavaScript!\n\n` +
-            `*¿Acaso tengo que enseñarte todo? (Дурак). Ejemplo:*\n` +
-            `> .$ 1 + 1\n` +
-            `> .$ m.chat\n` +
-            `> .$ db.getUser(m.sender)`
-        )
-    }
-    
-    const db = getDatabase()
-    
-    let result
-    let isError = false
-    
+  let code = text.trim()
+  if (!code) {
+    return m.reply(
+`⚙️ *E V A L  –  S H A D O W  G A R D E N*
+
+Ingresa código JavaScript para ejecutar en las sombras.
+
+Ejemplos:
+${usedPrefix + command} 1 + 1
+${usedPrefix + command} m.chat
+${usedPrefix + command} Object.keys(global.db.data)
+`)
+  }
+
+  let result
+  let isError = false
+
+  try {
+    result = await eval(`(async () => { ${code} })()`)
+  } catch (e) {
+    isError = true
+    result = e
+  }
+
+  let output
+  if (typeof result === 'undefined') output = 'undefined'
+  else if (result === null) output = 'null'
+  else if (typeof result === 'object') {
     try {
-        result = await eval(`(async () => { ${code} })()`)
-    } catch (e) {
-        isError = true
-        result = e
+      output = util.inspect(result, { depth: 2, maxArrayLength: 50 })
+    } catch {
+      output = String(result)
     }
-    
-    let output
-    if (typeof result === 'undefined') {
-        output = 'undefined'
-    } else if (result === null) {
-        output = 'null'
-    } else if (typeof result === 'object') {
-        try {
-            output = util.inspect(result, { depth: 2, maxArrayLength: 50 })
-        } catch {
-            output = String(result)
-        }
-    } else {
-        output = String(result)
-    }
-    
-    if (output.length > 3000) {
-        output = output.slice(0, 3000) + '\n\n... (truncated)'
-    }
-    
-    const status = isError ? '❌ Error' : '✅ Success'
-    const type = isError ? result?.name || 'Error' : typeof result
-    
-    await m.reply(
-        `⚙️ *ᴇᴠᴀʟ ʀᴇsᴜʟᴛ*\n\n` +
-        `╭┈┈⬡「 📋 *ɪɴғᴏ* 」\n` +
-        `┃ ${status}\n` +
-        `┃ Type: ${type}\n` +
-        `╰┈┈┈┈┈┈┈┈⬡\n\n` +
-        `\`\`\`${output}\`\`\``
-    )
+  } else output = String(result)
+
+  if (output.length > 3000) {
+    output = output.slice(0, 3000) + '\n\n... (truncado por las sombras)'
+  }
+
+  let status = isError ? '❌ Error en las sombras' : '✅ Ejecución exitosa'
+  let type = isError ? result?.name || 'Error' : typeof result
+
+  await m.reply(
+`⚙️ *R E S U L T A D O  –  E V A L*
+
+╭─「 📋 *I N F O* 」
+│ Estado: ${status}
+│ Tipo: ${type}
+╰───────────────
+
+\`\`\`${output}\`\`\`
+`)
 }
 
-module.exports = {
-    config: pluginConfig,
-    handler
-          }
+handler.help = ['eval']
+handler.tags = ['owner']
+handler.command = ['$', 'ev', 'eval', '=>']
+handler.rowner = true
+
+export default handler
