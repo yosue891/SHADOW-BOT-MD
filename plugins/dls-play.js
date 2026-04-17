@@ -66,13 +66,6 @@ const handler = async (m, { conn, text }) => {
         remoteJid: "status@broadcast"
       },
       message: {
-        locationMessage    const fkontak = {
-      key: {
-        fromMe: false,
-        participant: "0@s.whatsapp.net",
-        remoteJid: "status@broadcast"
-      },
-      message: {
         locationMessage: {
           name: `『 ${title} 』`,
           jpegThumbnail: fallbackThumb
@@ -80,7 +73,8 @@ const handler = async (m, { conn, text }) => {
       }
     }
 
-    const caption = `
+
+const caption = `
 ✧━───『 𝙸𝚗𝚏𝚘 𝚍𝚎𝚕 𝚅𝚒𝚍𝚎𝚘 』───━✧
 
 🎼 𝑻𝒊́𝒕𝒖𝒍𝒐: ${title}
@@ -198,8 +192,9 @@ const extractVideoId = (url) => {
   return match?.[1] || null
 }
 
-handler.command = ["play"]
+handler.command = ["play", "yt", "ytsearch"]
 handler.tags = ["descargas"]
-handler.register = true
+handler.help = ['play'];
+handler.register = false
 
 export default handler
