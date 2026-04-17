@@ -1,5 +1,3 @@
-🌑 SHADOW-BOT-MD — README OFICIAL
-
 <h1 align="center">
   <img src="https://files.catbox.moe/tep16z.jpg" width="270px" /><br>
   <strong>SHADOW-BOT-MD</strong>
@@ -168,6 +166,9 @@ Inicia el bot nuevamente:
 💫 Colaboradores
 
 <p align="center">
+<a href="https://github.com/SoyMaycol">
+  <img src="https://github.com/SoyMaycol.png" width="80" height="80" style="border-radius:50%">
+</a>
 <a href="https://github.com/thisAdo1">
   <img src="https://github.com/thisAdo.png" width="80" height="80" style="border-radius:50%">
 </a>
