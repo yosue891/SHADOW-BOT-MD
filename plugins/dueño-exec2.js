@@ -24,10 +24,10 @@ async function handler(m, { sock, store }) {
     if (!config.isOwner(m.sender)) {
         return m.reply('❌ *Solo el amo de las sombras puede usar este poder.*')
     }
-
+    
     const raw = m.text || ''
     const code = m.fullArgs?.trim() || raw.replace(/^=>\s*/, '').trim()
-
+    
     if (!code) {
         return m.reply(
             `⚙️ *E V A L – S H A D O W  G A R D E N*\n\n` +
@@ -35,11 +35,10 @@ async function handler(m, { sock, store }) {
             `Ejemplos:\n` +
             `=> 1 + 1\n` +
             `=> m.chat\n` +
-            `=> groupMetadata.participants\n` +
-            `=> Object.keys(global.db.data)\n`
+            `=> db.getUser(m.sender)\n`
         )
     }
-
+    
     const db = getDatabase()
 
     let groupMetadata
@@ -50,18 +49,17 @@ async function handler(m, { sock, store }) {
             groupMetadata = null
         }
     }
-
+    
     let result
     let isError = false
-
+    
     try {
-        // m, sock, store, db, groupMetadata, config, global quedan en scope del eval
         result = await eval(`(async () => { ${code} })()`)
     } catch (e) {
         isError = true
         result = e
     }
-
+    
     let output
     let type
 
@@ -82,13 +80,13 @@ async function handler(m, { sock, store }) {
         output = String(result)
         type = typeof result
     }
-
+    
     if (output.length > 3000) {
         output = output.slice(0, 3000) + '\n\n... (truncado por las sombras)'
     }
-
+    
     const status = isError ? '❌ Error en las sombras' : '✅ Ejecución exitosa'
-
+    
     await m.reply(
         `⚙️ *R E S U L T A D O  –  E V A L*\n\n` +
         `╭─「 📋 *I N F O* 」\n` +
@@ -102,4 +100,4 @@ async function handler(m, { sock, store }) {
 module.exports = {
     config: pluginConfig,
     handler
-        }
+                       }
