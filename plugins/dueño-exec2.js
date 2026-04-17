@@ -23,40 +23,45 @@ Ejemplos:
   let isError = false
 
   try {
-    result = await eval(`(async () => { ${code} })()`)
+    result = await eval(\`(async () => { \${code} })()\`)
   } catch (e) {
     isError = true
     result = e
   }
 
   let output
-  if (typeof result === 'undefined') output = 'undefined'
-  else if (result === null) output = 'null'
-  else if (typeof result === 'object') {
+
+  if (typeof result === 'undefined') {
+    output = 'Las sombras no devolvieron nada...'
+  } else if (result === null) {
+    output = 'Vacío como el abismo...'
+  } else if (typeof result === 'object') {
     try {
       output = util.inspect(result, { depth: 2, maxArrayLength: 50 })
     } catch {
       output = String(result)
     }
-  } else output = String(result)
+  } else {
+    output = String(result)
+  }
 
   if (output.length > 3000) {
-    output = output.slice(0, 3000) + '\n\n... (truncado por las sombras)'
+    output = output.slice(0, 3000) + '\\n\\n... (truncado por las sombras)'
   }
 
   let status = isError ? '❌ Error en las sombras' : '✅ Ejecución exitosa'
   let type = isError ? result?.name || 'Error' : typeof result
 
   await m.reply(
-`⚙️ *R E S U L T A D O  –  E V A L*
+\`⚙️ *R E S U L T A D O  –  E V A L*
 
 ╭─「 📋 *I N F O* 」
-│ Estado: ${status}
-│ Tipo: ${type}
+│ Estado: \${status}
+│ Tipo: \${type}
 ╰───────────────
 
-\`\`\`${output}\`\`\`
-`)
+\`\`\`\${output}\`\`\`
+\`)
 }
 
 handler.customPrefix = /^=>/
