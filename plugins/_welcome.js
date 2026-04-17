@@ -7,7 +7,7 @@ const participantCache = {}
 function resolvePhoneJid(raw = '') {
   if (!raw) return ''
   const stripped = raw.replace(/@.*/, '').replace(/\D/g, '')
-  return stripped ? ${stripped}@s.whatsapp.net : ''
+  return stripped ? `${stripped}@s.whatsapp.net` : ''
 }
 
 function resolveUserJid(rawId, participants, groupId) {
@@ -18,7 +18,7 @@ function resolveUserJid(rawId, participants, groupId) {
   }
   const cached = participantCache[groupId]?.[rawId]
   if (cached) return cached
-  if (!rawId.endsWith('@lid')) return rawId.includes('@') ? rawId : ${rawId}@s.whatsapp.net
+  if (!rawId.endsWith('@lid')) return rawId.includes('@') ? rawId : `${rawId}@s.whatsapp.net`
   return rawId
 }
 
@@ -62,62 +62,100 @@ handler.before = async function (m, { conn, groupMetadata }) {
 
   const groupName = groupMetadata.subject
   const groupSize = groupMetadata.participants.length
+  const groupDesc = groupMetadata.desc?.toString() || 'Sin descripción'
   const fecha = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
 
-  if (m.messageStubType == WAMessageStubType.GROUPPARTICIPANTADD) {
-    const welcomeImg = https://api.popcat.xyz/welcomecard?background=${encodeURIComponent('https://files.catbox.moe/gbp5x3.jpg')}&text1=${encodeURIComponent(userName)}&text2=Bienvenido+a+${encodeURIComponent(groupName)}&text3=Miembro+${groupSize}&avatar=${encodeURIComponent(pp)}
+  if (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_ADD) {
 
-    const caption = \\\╭─「 👻 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍: 𝐈𝐍𝐈𝐂𝐈𝐎 」─╮\\\\n\n\\\${userName} ha sido convocado por las sombras...\\\\n\\\Bienvenid@ al dominio secreto de ${groupName}.\\\\n\n\\\Tu llegada no es casual. Cada paso será observado.\\\\n\\\Tu poder será forjado en silencio. Tu lealtad, puesta a prueba.\\\\n\n\\\╰─「 🌌 𝐈𝐍𝐅𝐎 𝐃𝐄𝐋 𝐆𝐑𝐔𝐏𝐎 」─╯\\\\n\\\🧿 Miembros: ${groupSize}\\\\n\\\📅 Fecha: ${fecha}\\\\n\\\📜 Descripción:\\\\n@${userTag}
+    const welcomeImg = `https://api.popcat.xyz/welcomecard?background=${encodeURIComponent('https://files.catbox.moe/gbp5x3.jpg')}&text1=${encodeURIComponent(userName)}&text2=Bienvenido+a+${encodeURIComponent(groupName)}&text3=Miembro+${groupSize}&avatar=${encodeURIComponent(pp)}`
+
+    const caption = 
+`╭─「 👻 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍: 𝐈𝐍𝐈𝐂𝐈𝐎 」─╮
+
+${userName} ha sido convocado por las sombras...
+Bienvenid@ al dominio secreto de ${groupName}.
+
+Tu llegada no es casual. Cada paso será observado.
+Tu poder será forjado en silencio. Tu lealtad, puesta a prueba.
+
+⚠️ Lee las reglas para no ser expulsado por las sombras, @${userTag}
+
+╰─「 🌌 𝐈𝐍𝐅𝐎 𝐃𝐄𝐋 𝐆𝐑𝐔𝐏𝐎 」─╯
+🧿 Miembros: ${groupSize}
+📅 Fecha: ${fecha}
+
+📜 Descripción:
+${groupDesc}`
 
     await conn.sendMessage(m.chat, {
       image: { url: welcomeImg },
-      caption: caption,
-      footer: © ${packname} · Welcome,
+      caption,
+      footer: `© ${packname} · Welcome`,
       buttons: [
         { buttonId: '#reg', buttonText: { displayText: '👤 Registrarme' }, type: 1 },
         { buttonId: '#menu', buttonText: { displayText: '🌌 Menú' }, type: 1 }
       ],
-      viewOnce: true,
       mentions: [userJid],
+      viewOnce: true,
       contextInfo: {
         externalAdReply: {
           title: '─ W E L C O M E ─🥷🏻',
-          body: Bienvenido a ${groupName},
+          body: `Bienvenido a ${groupName}`,
           thumbnailUrl: pp,
           mediaType: 1,
           showAdAttribution: true,
           sourceUrl: 'https://wa.me/584242773183'
         }
       }
-    }, { quoted: null })
+    })
   }
 
-  if (m.messageStubType == WAMessageStubType.GROUPPARTICIPANTREMOVE || m.messageStubType == WAMessageStubType.GROUPPARTICIPANTLEAVE) {
-    const goodbyeImg = https://api.popcat.xyz/welcomecard?background=${encodeURIComponent('https://files.catbox.moe/gbp5x3.jpg')}&text1=${encodeURIComponent(userName)}&text2=Se+fue+de+${encodeURIComponent(groupName)}&text3=Adiós+Sombra&avatar=${encodeURIComponent(pp)}
+  if (
+    m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_REMOVE ||
+    m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_LEAVE
+  ) {
 
-    const caption = \\\╭─「 🌌 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍: 𝐑𝐄𝐓𝐈𝐑𝐀𝐃𝐀 」─╮\\\\n\n\\\${userName} ha abandonado el círculo de las sombras.\\\\n\\\Su presencia se desvanece... como todo lo que no deja huella.\\\\n\n\\\Grupo: ${groupName}\\\\n\n\\\Que su memoria permanezca en silencio.\\\\n\\\Las sombras no olvidan, pero tampoco lloran.\\\\n\n\\\╰─「 🌌 𝐄𝐒𝐓𝐀𝐃𝐎 𝐀𝐂𝐓𝐔𝐀𝐋 」─╯\\\\n\\\📉 Miembros: ${groupSize}\\\\n\\\📅 Fecha: ${fecha}\\\\n\\\📜 Descripción:\\\\n@${userTag}
+    const goodbyeImg = `https://api.popcat.xyz/welcomecard?background=${encodeURIComponent('https://files.catbox.moe/gbp5x3.jpg')}&text1=${encodeURIComponent(userName)}&text2=Se+fue+de+${encodeURIComponent(groupName)}&text3=Adiós+Sombra&avatar=${encodeURIComponent(pp)}`
+
+    const caption = 
+`╭─「 🌌 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍: 𝐑𝐄𝐓𝐈𝐑𝐀𝐃𝐀 」─╮
+
+${userName} ha abandonado el círculo de las sombras.
+Su presencia se desvanece... como todo lo que no deja huella.
+
+Grupo: ${groupName}
+
+Que su memoria permanezca en silencio.
+Las sombras no olvidan, pero tampoco lloran.
+
+╰─「 🌌 𝐄𝐒𝐓𝐀𝐃𝐎 𝐀𝐂𝐓𝐔𝐀𝐋 」─╯
+📉 Miembros: ${groupSize}
+📅 Fecha: ${fecha}
+
+📜 Descripción:
+${groupDesc}`
 
     await conn.sendMessage(m.chat, {
       image: { url: goodbyeImg },
-      caption: caption,
-      footer: © ${packname} · Goodbye,
+      caption,
+      footer: `© ${packname} · Goodbye`,
       buttons: [
         { buttonId: '#reg', buttonText: { displayText: '👤 Registrarme' }, type: 1 },
         { buttonId: '#menu', buttonText: { displayText: '🌌 Menú' }, type: 1 }
       ],
-      viewOnce: true,
       mentions: [userJid],
+      viewOnce: true,
       contextInfo: {
         externalAdReply: {
           title: '─Ａ Ｄ Ｉ Ō S─👋🏻',
-          body: Se fue de ${groupName},
+          body: `Se fue de ${groupName}`,
           thumbnailUrl: pp,
           mediaType: 1,
           showAdAttribution: true,
           sourceUrl: 'https://wa.me/584242773183'
         }
       }
-    }, { quoted: null })
+    })
   }
 }
 
