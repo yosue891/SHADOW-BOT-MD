@@ -50,7 +50,7 @@ colors: ['red', 'magenta', 'yellow']
 protoType()
 serialize()
 
-require('fs').mkdirSync('tmp', { recursive: true });
+fs.mkdirSync('tmp', { recursive: true });
 global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') {
 return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString();
 }; global.__dirname = function dirname(pathURL) {
