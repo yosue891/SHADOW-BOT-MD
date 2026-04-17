@@ -62,12 +62,21 @@ handler.before = async function (m, { conn, groupMetadata }) {
 
   const groupName = groupMetadata.subject
   const groupSize = groupMetadata.participants.length
+  const groupDesc = groupMetadata.desc?.toString() || 'Sin descripción'
   const fecha = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
 
   if (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_ADD) {
     const welcomeImg = `https://api.popcat.xyz/welcomecard?background=${encodeURIComponent('https://files.catbox.moe/gbp5x3.jpg')}&text1=${encodeURIComponent(userName)}&text2=Bienvenido+a+${encodeURIComponent(groupName)}&text3=Miembro+${groupSize}&avatar=${encodeURIComponent(pp)}`
 
-    const caption = `\`\`\`╭─「 👻 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍: 𝐈𝐍𝐈𝐂𝐈𝐎 」─╮\`\`\`\n\n\`\`\`${userName} ha sido convocado por las sombras...\`\`\`\n\`\`\`Bienvenid@ al dominio secreto de ${groupName}.\`\`\`\n\n\`\`\`Tu llegada no es casual. Cada paso será observado.\`\`\`\n\`\`\`Tu poder será forjado en silencio. Tu lealtad, puesta a prueba.\`\`\`\n\n\`\`\`╰─「 🌌 𝐈𝐍𝐅𝐎 𝐃𝐄𝐋 𝐆𝐑𝐔𝐏𝐎 」─╯\`\`\`\n\`\`\`🧿 Miembros: ${groupSize}\`\`\`\n\`\`\`📅 Fecha: ${fecha}\`\`\`\n\`\`\`📜 Descripción:\`\`\`\n@${userTag}`
+    const caption = `\`\`\`╭─「 👻 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍: 𝐈𝐍𝐈𝐂𝐈𝐎 」─╮\`\`\`\n
+\`\`\`${userName} ha sido convocado por las sombras...\`\`\`\n
+\`\`\`Bienvenid@ al dominio secreto de ${groupName}.\`\`\`\n
+\`\`\`Tu llegada no es casual. Cada paso será observado.\`\`\`\n
+\`\`\`Tu poder será forjado en silencio. Tu lealtad, puesta a prueba.\`\`\`\n
+\`\`\`╰─「 🌌 𝐈𝐍𝐅𝐎 𝐃𝐄𝐋 𝐆𝐑𝐔𝐏𝐎 」─╯\`\`\`\n
+\`\`\`🧿 Miembros: ${groupSize}\`\`\`\n
+\`\`\`📅 Fecha: ${fecha}\`\`\`\n
+\`\`\`📜 Descripción:\`\`\`\n${groupDesc}`
 
     await conn.sendMessage(m.chat, {
       image: { url: welcomeImg },
@@ -95,7 +104,16 @@ handler.before = async function (m, { conn, groupMetadata }) {
   if (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_REMOVE || m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_LEAVE) {
     const goodbyeImg = `https://api.popcat.xyz/welcomecard?background=${encodeURIComponent('https://files.catbox.moe/gbp5x3.jpg')}&text1=${encodeURIComponent(userName)}&text2=Se+fue+de+${encodeURIComponent(groupName)}&text3=Adiós+Sombra&avatar=${encodeURIComponent(pp)}`
 
-    const caption = `\`\`\`╭─「 🌌 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍: 𝐑𝐄𝐓𝐈𝐑𝐀𝐃𝐀 」─╮\`\`\`\n\n\`\`\`${userName} ha abandonado el círculo de las sombras.\`\`\`\n\`\`\`Su presencia se desvanece... como todo lo que no deja huella.\`\`\`\n\n\`\`\`Grupo: ${groupName}\`\`\`\n\n\`\`\`Que su memoria permanezca en silencio.\`\`\`\n\`\`\`Las sombras no olvidan, pero tampoco lloran.\`\`\`\n\n\`\`\`╰─「 🌌 𝐄𝐒𝐓𝐀𝐃𝐎 𝐀𝐂𝐓𝐔𝐀𝐋 」─╯\`\`\`\n\`\`\`📉 Miembros: ${groupSize}\`\`\`\n\`\`\`📅 Fecha: ${fecha}\`\`\`\n\`\`\`📜 Descripción:\`\`\`\n@${userTag}`
+    const caption = `\`\`\`╭─「 🌌 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍: 𝐑𝐄𝐓𝐈𝐑𝐀𝐃𝐀 」─╮\`\`\`\n
+\`\`\`${userName} ha abandonado el círculo de las sombras.\`\`\`\n
+\`\`\`Su presencia se desvanece... como todo lo que no deja huella.\`\`\`\n
+\`\`\`Grupo: ${groupName}\`\`\`\n
+\`\`\`Que su memoria permanezca en silencio.\`\`\`\n
+\`\`\`Las sombras no olvidan, pero tampoco lloran.\`\`\`\n
+\`\`\`╰─「 🌌 𝐄𝐒𝐓𝐀𝐃𝐎 𝐀𝐂𝐓𝐔𝐀𝐋 」─╯\`\`\`\n
+\`\`\`📉 Miembros: ${groupSize}\`\`\`\n
+\`\`\`📅 Fecha: ${fecha}\`\`\`\n
+\`\`\`📜 Descripción:\`\`\`\n${groupDesc}`
 
     await conn.sendMessage(m.chat, {
       image: { url: goodbyeImg },
