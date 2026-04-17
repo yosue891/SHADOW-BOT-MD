@@ -123,7 +123,7 @@ const downloadMedia = async (conn, m, url, quotedMsg) => {
       { quoted: m }
     )
 
-    const apiUrl = `https://api-gohan-ykq7.onrender.com/download/ytaudio?url=${encodeURIComponent(url)}`
+    const apiUrl = `https://api-gohan.onrender.com/download/ytaudio?url=${encodeURIComponent(url)}`
     const r = await fetch(apiUrl)
 
     if (!r.ok) {
