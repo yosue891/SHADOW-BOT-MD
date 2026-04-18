@@ -193,7 +193,7 @@ const extractVideoId = (url) => {
   return match?.[1] || null
 }
 
-handler.command = ["play", "yt", "ytsearch"]
+handler.command = ["play"]
 handler.tags = ["descargas"]
 handler.help = ['play'];
 handler.register = false
