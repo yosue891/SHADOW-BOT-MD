@@ -13,7 +13,7 @@ if (!fs.existsSync(tmp)) fs.mkdirSync(tmp);
 async function searchStickerPacks(searchTerm, limit = 1) {
   try {
     const url = `https://getstickerpack.com/stickers?query=${encodeURIComponent(searchTerm)}`;
-    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } });
+    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
     if (!res.ok) return { status: false };
     const html = await res.text();
     const $ = cheerio.load(html);
@@ -37,7 +37,6 @@ async function searchStickerPacks(searchTerm, limit = 1) {
 
     for (const pack of packs) {
       const resPack = await fetch(pack.url, { headers: { "User-Agent": "Mozilla/5.0" } });
-      if (!resPack.ok) continue;
       const htmlPack = await resPack.text();
       const $pack = cheerio.load(htmlPack);
       $pack(".sticker-image").each((i, el) => {
@@ -49,18 +48,19 @@ async function searchStickerPacks(searchTerm, limit = 1) {
       });
     }
     return { status: true, result: packs };
-  } catch (e) {
+  } catch {
     return { status: false };
   }
 }
 
 async function addExif(webpSticker, packname, author) {
   const img = new webp.Image();
+  const stickerPackId = crypto.randomBytes(32).toString('hex');
   const json = {
-    'sticker-pack-id': crypto.randomBytes(32).toString('hex'),
+    'sticker-pack-id': stickerPackId,
     'sticker-pack-name': packname,
     'sticker-pack-publisher': author,
-    emojis: ['👤']
+    'emojis': ['👤', '✨', '🌑']
   };
   const exifAttr = Buffer.from([0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00, 0x41, 0x57, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00]);
   const jsonBuffer = Buffer.from(JSON.stringify(json), 'utf8');
@@ -73,13 +73,10 @@ async function addExif(webpSticker, packname, author) {
 
 async function urlToSticker(url, packname, author) {
   const res = await fetch(url);
-  if (!res.ok) throw new Error('Error al descargar');
   const imgBuffer = await res.buffer();
   const type = await fileTypeFromBuffer(imgBuffer);
-  const extension = type ? type.ext : 'png';
-  const tmpFile = path.join(tmp, `${Date.now()}.${extension}`);
+  const tmpFile = path.join(tmp, `${Date.now()}.${type?.ext || 'png'}`);
   const outFile = path.join(tmp, `${Date.now()}.webp`);
-  
   await fs.promises.writeFile(tmpFile, imgBuffer);
 
   await new Promise((resolve, reject) => {
@@ -95,45 +92,36 @@ async function urlToSticker(url, packname, author) {
   });
 
   const buffer = await fs.promises.readFile(outFile);
-  if (fs.existsSync(tmpFile)) await fs.promises.unlink(tmpFile);
+  if (fs.existsSync(tmpFile)) fs.promises.unlink(tmpFile);
   if (fs.existsSync(outFile)) await fs.promises.unlink(outFile);
-
   return await addExif(buffer, packname, author);
 }
 
 let handler = async (m, { conn, text, command }) => {
-  if (!text) return m.reply(`*Ｉ ａｍ ｔｈｅ ａｌｌ-ｒａｎｇｅ ａｔｏｍｉｃ...*\n\n✐ Ingrese el nombre del pack que desea buscar.`);
+  if (!text) return m.reply(`*Ｉ ａｍ ｔｈｅ ａｌｌ-ｒａｎｇｅ ａｔｏｍｉｃ...*\n\n✐ Escribe el nombre del pack.`);
 
   try {
     const data = await searchStickerPacks(text, 1);
-    if (!data.status || !data.result || data.result.length === 0) {
-      return m.reply(`[!] Las sombras no pudieron encontrar el objetivo.`);
-    }
+    if (!data.status || data.result.length === 0) return m.reply(`[!] Objetivo no localizado.`);
 
     const pack = data.result[0];
-    const stickers = pack.stickers || [];
-    if (stickers.length === 0) return m.reply(`[!] El archivo está vacío.`);
+    const stickers = pack.stickers.slice(0, 10); // Límite de 10 para no saturar
 
     await m.reply(
       `『 **SHADOW GARDEN - ARCHIVE** 』\n\n` +
-      `👤 **Codename:** ${pack.author}\n` +
-      `📦 **Misión:** ${pack.title}\n` +
-      `📊 **Archivos:** ${stickers.length}\n\n` +
-      `*Desplegando desde las sombras...*`
+      `👤 **Autor:** ${pack.author}\n` +
+      `📦 **Pack:** ${pack.title}\n\n` +
+      `*Enviando ráfaga de stickers...*`
     );
 
-    const limit = 6;
-    for (let i = 0; i < Math.min(stickers.length, limit); i++) {
-      try {
-        const stickerBuffer = await urlToSticker(stickers[i], pack.title, pack.author);
-        await conn.sendMessage(m.chat, { sticker: stickerBuffer }, { quoted: m });
-      } catch (e) {
-        continue;
-      }
+    for (let st of stickers) {
+      const buffer = await urlToSticker(st, pack.title, pack.author);
+      await conn.sendMessage(m.chat, { sticker: buffer }, { quoted: m });
     }
+
   } catch (err) {
     console.error(err);
-    m.reply(`[!] Error crítico en el Garden.`);
+    m.reply(`[!] Error en la transmisión de datos.`);
   }
 };
 
@@ -141,6 +129,5 @@ handler.help = ['stickersearch'];
 handler.tags = ['sticker'];
 handler.command = ['stickersearch', 'search'];
 handler.register = false;
-handler.coin = 12;
 
 export default handler;
