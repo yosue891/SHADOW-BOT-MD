@@ -1,23 +1,33 @@
-import speed from 'performance-now' import fs from 'fs' import path from 'path' import sharp from 'sharp'
+import speed from 'performance-now'
+import fs from 'fs'
+import path from 'path'
+import sharp from 'sharp'
 
-let handler = async (m, { conn, usedPrefix }) => { const start = speed() const userId = m.sender const userName = conn.getName(userId) const userNumber = userId.split('@')[0] const botname = global.author || 'Shadow Bot'
+let handler = async (m, { conn, usedPrefix }) => {
+  const start = speed()
+  const userId = m.sender
+  const userName = conn.getName(userId)
+  const userNumber = userId.split('@')[0]
+  const botname = global.author || 'Shadow Bot'
 
-const { key } = await conn.reply(m.chat, '❐ 𝐂𝐚𝐥𝐜𝐮𝐥𝐚𝐧𝐝𝐨 𝐏𝐢𝐧𝐠... 🚀', m)
+  const { key } = await conn.reply(m.chat, '❐ 𝐂𝐚𝐥𝐜𝐮𝐥𝐚𝐧𝐝𝐨 𝐏𝐢𝐧𝐠... 🚀', m)
 
-try { const latency = speed() - start const ping = Math.max(0, Math.round(latency)) const uptime = process.uptime() const hours = Math.floor(uptime / 3600) const minutes = Math.floor((uptime % 3600) / 60) const seconds = Math.floor(uptime % 60) const uptimeText = ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}
+  try {
+    const latency = speed() - start
+    const ping = Math.max(0, Math.round(latency))
+    const uptime = process.uptime()
+    const hours = Math.floor(uptime / 3600)
+    const minutes = Math.floor((uptime % 3600) / 60)
+    const seconds = Math.floor(uptime % 60)
+    const uptimeText = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 
-const shadowPath = path.resolve('./../lib/Shadow.webp')
-const shadowBuffer = fs.existsSync(shadowPath) ? fs.readFileSync(shadowPath) : null
+    const shadowPath = path.resolve('./../lib/Shadow.webp')
+    const shadowBuffer = fs.existsSync(shadowPath) ? fs.readFileSync(shadowPath) : null
 
-const width = 1600
-const height = 900
-const accent = '#c58cff'
-const gold = '#f4c95d'
-const dark = '#08050f'
-const deep = '#140b22'
-const mid = '#25143d'
+    const width = 1600
+    const height = 900
 
-const bg = `
+    const bg = `
 <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
@@ -109,46 +119,50 @@ const bg = `
   <text x="1500" y="820" text-anchor="end" fill="#f4c95d" font-size="22" font-family="Arial, Helvetica, sans-serif">© ${botname}</text>
 </svg>`
 
-let base = sharp(Buffer.from(bg)).png()
+    let base = sharp(Buffer.from(bg)).png()
 
-if (shadowBuffer) {
-  const resized = await sharp(shadowBuffer)
-    .resize(610, 610, { fit: 'contain' })
-    .toBuffer()
+    if (shadowBuffer) {
+      const resized = await sharp(shadowBuffer)
+        .resize(610, 610, { fit: 'contain' })
+        .toBuffer()
 
-  base = base.composite([
-    { input: resized, left: 1030, top: 210 }
-  ])
-}
-
-const image = await base.png().toBuffer()
-
-const fkontak = {
-  key: {
-    participants: '0@s.whatsapp.net',
-    remoteJid: 'status@broadcast',
-    fromMe: false,
-    id: 'ShadowPing'
-  },
-  message: {
-    contactMessage: {
-      displayName: botname,
-      vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:${botname}\nORG:${botname};\nTEL;type=CELL;type=VOICE;waid=0:+0\nEND:VCARD`
+      base = base.composite([{ input: resized, left: 1030, top: 210 }])
     }
+
+    const image = await base.png().toBuffer()
+
+    const fkontak = {
+      key: {
+        participants: '0@s.whatsapp.net',
+        remoteJid: 'status@broadcast',
+        fromMe: false,
+        id: 'ShadowPing'
+      },
+      message: {
+        contactMessage: {
+          displayName: botname,
+          vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:${botname}\nORG:${botname};\nTEL;type=CELL;type=VOICE;waid=0:+0\nEND:VCARD`
+        }
+      }
+    }
+
+    await conn.sendMessage(m.chat, { delete: key })
+
+    await conn.sendMessage(m.chat, {
+      image,
+      caption: `✨ ¡𝐏𝐎𝐍𝐆! ✨\n\n> 🌌 𝐓𝐢𝐞𝐦𝐩𝐨: ${ping}𝐦𝐬\n> 👤 𝐔𝐬𝐮𝐚𝐫𝐢𝐨: ${userName} (@${userNumber})\n> 👑 𝐃𝐮𝐞𝐧̃𝐨𝐬: 𝐘𝐨𝐬𝐮𝐞 (𝐒𝐡𝐚𝐝𝐨𝐰) & 𝐀𝐝𝐨\n> 🏎️ 𝐋𝐢𝐧𝐮𝐱 𝐒𝐩𝐞𝐞𝐝: 𝐌𝐚́𝐱𝐢𝐦𝐚 𝐕𝐞𝐥𝐨𝐜𝐢𝐝𝐚𝐝 🚀\n\n*જ 𝐒𝐡𝐚𝐝𝐨𝐰 𝐆𝐚𝐫𝐝𝐞𝐧 𝐈𝐧𝐭𝐞𝐫𝐟𝐚𝐜𝐞 🧪 𖤓*`,
+      footer: `© ${botname} · Pong shadow`,
+      mentions: [userId]
+    }, { quoted: fkontak })
+
+  } catch (e) {
+    console.error(e)
+    await conn.sendMessage(m.chat, { text: '❌ Error en el sistema de ping.' }, { quoted: m })
   }
 }
 
-await conn.sendMessage(m.chat, { delete: key })
-
-await conn.sendMessage(m.chat, {
-  image,
-  caption: `✨ ¡𝐏𝐎𝐍𝐆! ✨\n\n> 🌌 𝐓𝐢𝐞𝐦𝐩𝐨: ${ping}𝐦𝐬\n> 👤 𝐔𝐬𝐮𝐚𝐫𝐢𝐨: ${userName} (@${userNumber})\n> 👑 𝐃𝐮𝐞𝐧̃𝐨𝐬: 𝐘𝐨𝐬𝐮𝐞 (𝐒𝐡𝐚𝐝𝐨𝐰) & 𝐀𝐝𝐨\n> 🏎️ 𝐋𝐢𝐧𝐮𝐱 𝐒𝐩𝐞𝐞𝐝: 𝐌𝐚́𝐱𝐢𝐦𝐚 𝐕𝐞𝐥𝐨𝐜𝐢𝐝𝐚𝐝 🚀\n\n*જ 𝐒𝐡𝐚𝐝𝐨𝐰 𝐆𝐚𝐫𝐝𝐞𝐧 𝐈𝐧𝐭𝐞𝐫𝐟𝐚𝐜𝐞 🧪 𖤓*`,
-  footer: `© ${botname} · Pong shadow`,
-  mentions: [userId]
-}, { quoted: fkontak })
-
-} catch (e) { console.error(e) await conn.sendMessage(m.chat, { text: '❌ Error en el sistema de ping.' }, { quoted: m }) } }
-
-handler.help = ['ping'] handler.tags = ['informacion'] handler.command = ['ping', 'p']
+handler.help = ['ping']
+handler.tags = ['informacion']
+handler.command = ['ping', 'p']
 
 export default handler
