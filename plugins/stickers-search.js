@@ -13,7 +13,7 @@ if (!fs.existsSync(tmp)) fs.mkdirSync(tmp);
 async function searchStickerPacks(searchTerm, limit = 1) {
   try {
     const url = `https://getstickerpack.com/stickers?query=${encodeURIComponent(searchTerm)}`;
-    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
+    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } });
     if (!res.ok) return { status: false };
     const html = await res.text();
     const $ = cheerio.load(html);
@@ -37,6 +37,7 @@ async function searchStickerPacks(searchTerm, limit = 1) {
 
     for (const pack of packs) {
       const resPack = await fetch(pack.url, { headers: { "User-Agent": "Mozilla/5.0" } });
+      if (!resPack.ok) continue;
       const htmlPack = await resPack.text();
       const $pack = cheerio.load(htmlPack);
       $pack(".sticker-image").each((i, el) => {
@@ -48,18 +49,18 @@ async function searchStickerPacks(searchTerm, limit = 1) {
       });
     }
     return { status: true, result: packs };
-  } catch {
+  } catch (e) {
     return { status: false };
   }
 }
 
-async function addExif(webpSticker, packname, author, packID) {
+async function addExif(webpSticker, packname, author) {
   const img = new webp.Image();
   const json = {
-    'sticker-pack-id': packID, // Usamos el mismo ID para todo el paquete
+    'sticker-pack-id': crypto.randomBytes(32).toString('hex'),
     'sticker-pack-name': packname,
     'sticker-pack-publisher': author,
-    'emojis': ['🌑']
+    emojis: ['👤']
   };
   const exifAttr = Buffer.from([0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00, 0x41, 0x57, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00]);
   const jsonBuffer = Buffer.from(JSON.stringify(json), 'utf8');
@@ -70,12 +71,14 @@ async function addExif(webpSticker, packname, author, packID) {
   return await img.save(null);
 }
 
-async function urlToSticker(url, packname, author, packID) {
+async function urlToSticker(url, packname, author) {
   const res = await fetch(url);
+  if (!res.ok) throw new Error('Error al descargar');
   const imgBuffer = await res.buffer();
   const type = await fileTypeFromBuffer(imgBuffer);
-  const tmpFile = path.join(tmp, `${Date.now()}-${Math.random()}.${type?.ext || 'png'}`);
-  const outFile = `${tmpFile}.webp`;
+  const extension = type ? type.ext : 'png';
+  const tmpFile = path.join(tmp, `${Date.now()}.${extension}`);
+  const outFile = path.join(tmp, `${Date.now()}.webp`);
   
   await fs.promises.writeFile(tmpFile, imgBuffer);
 
@@ -92,38 +95,52 @@ async function urlToSticker(url, packname, author, packID) {
   });
 
   const buffer = await fs.promises.readFile(outFile);
-  fs.promises.unlink(tmpFile).catch(() => {});
-  fs.promises.unlink(outFile).catch(() => {});
-  return await addExif(buffer, packname, author, packID);
+  if (fs.existsSync(tmpFile)) await fs.promises.unlink(tmpFile);
+  if (fs.existsSync(outFile)) await fs.promises.unlink(outFile);
+
+  return await addExif(buffer, packname, author);
 }
 
-let handler = async (m, { conn, text }) => {
-  if (!text) return m.reply(`*Ｉ ａｍ ｔｈｅ ａｌｌ-ｒａｎｇｅ ａｔｏｍｉｃ...*\n\n✐ Nombre del paquete a buscar.`);
+let handler = async (m, { conn, text, command }) => {
+  if (!text) return m.reply(`*Ｉ ａｍ ｔｈｅ ａｌｌ-ｒａｎｇｅ ａｔｏｍｉｃ...*\n\n✐ Ingrese el nombre del pack que desea buscar.`);
 
   try {
     const data = await searchStickerPacks(text, 1);
-    if (!data.status || data.result.length === 0) return m.reply(`[!] No se hallaron registros.`);
+    if (!data.status || !data.result || data.result.length === 0) {
+      return m.reply(`[!] Las sombras no pudieron encontrar el objetivo.`);
+    }
 
     const pack = data.result[0];
-    const stickers = pack.stickers.slice(0, 10); // Enviamos 10 para evitar ban de flujo
-    const packID = crypto.randomBytes(16).toString('hex'); // ID único para este set
+    const stickers = pack.stickers || [];
+    if (stickers.length === 0) return m.reply(`[!] El archivo está vacío.`);
 
-    await m.reply(`『 **SHADOW GARDEN - MISSION** 』\n\n📦 **Pack:** ${pack.title}\n👤 **Autor:** ${pack.author}\n\n*Infiltrando paquete de stickers...*`);
+    await m.reply(
+      `『 **SHADOW GARDEN - ARCHIVE** 』\n\n` +
+      `👤 **Codename:** ${pack.author}\n` +
+      `📦 **Misión:** ${pack.title}\n` +
+      `📊 **Archivos:** ${stickers.length}\n\n` +
+      `*Desplegando desde las sombras...*`
+    );
 
-    // Promesas en paralelo para mayor velocidad
-    await Promise.all(stickers.map(async (url) => {
-      const buffer = await urlToSticker(url, pack.title, pack.author, packID);
-      return conn.sendMessage(m.chat, { sticker: buffer }, { quoted: m });
-    }));
-
+    const limit = 6;
+    for (let i = 0; i < Math.min(stickers.length, limit); i++) {
+      try {
+        const stickerBuffer = await urlToSticker(stickers[i], pack.title, pack.author);
+        await conn.sendMessage(m.chat, { sticker: stickerBuffer }, { quoted: m });
+      } catch (e) {
+        continue;
+      }
+    }
   } catch (err) {
     console.error(err);
-    m.reply(`[!] Error en el despliegue.`);
+    m.reply(`[!] Error crítico en el Garden.`);
   }
 };
 
 handler.help = ['stickersearch'];
 handler.tags = ['sticker'];
 handler.command = ['stickersearch', 'search'];
+handler.register = false;
+handler.coin = 12;
 
 export default handler;
