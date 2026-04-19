@@ -31,7 +31,14 @@ Ahora responde lo siguiente:`
       headers: { "User-Agent": "Mozilla/5.0" }
     })
 
-    const respuesta = data?.result || "Simi no entendió nada 🤡"
+    console.log("Respuesta de la API:", data)
+
+    const respuesta =
+      data?.result ||
+      data?.response ||
+      data?.message ||
+      data?.text ||
+      JSON.stringify(data)
 
     await conn.reply(m.chat, respuesta, m)
 
