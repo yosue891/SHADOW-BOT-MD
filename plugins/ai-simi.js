@@ -17,24 +17,13 @@ Ahora responde lo siguiente:
     const prompt = encodeURIComponent(basePrompt + "\nUsuario: " + text + "\nSimi:")
     const url = `https://api-gohan.onrender.com/ai/gemini?text=${prompt}`
 
-    const response = await axios.get(url, {
-      headers: { "User-Agent": "Mozilla/5.0" },
-      timeout: 20000,
-      validateStatus: () => true
+    const { data } = await axios.get(url, {
+      headers: { "User-Agent": "Mozilla/5.0" }
     })
 
-    console.log("STATUS:", response.status)
-    console.log("HEADERS:", response.headers)
-    console.log("DATA:", response.data)
-
-    let data = response.data
-
     const respuesta =
-      data?.result ||
-      data?.response ||
-      data?.message ||
-      data?.text ||
-      (typeof data === "string" ? data : JSON.stringify(data))
+      data?.result?.text ||
+      JSON.stringify(data)
 
     await conn.reply(m.chat, respuesta, m)
 
