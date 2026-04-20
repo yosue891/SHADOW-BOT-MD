@@ -17,7 +17,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
       itemCount: 1,
       status: 1,
       surface: 1,
-      message: `🕸️ *ACCESO DENEGADO*\n\nHola @${m.sender.split('@')[0]}, debes estar registrado para usar advertencias.\n\n🔐 Usa: *${usedPrefix}reg shadow.18*`,
+      message: `🕸️ *ACCESO DENEGADO*\n\nHola @${m.sender.split('@')[0]}, debes estar registrado.\n\n🔐 Usa: *${usedPrefix}reg shadow.18*`,
       orderTitle: 'Registro Requerido',
       totalAmount1000: '0',
       totalCurrencyCode: 'GTQ',
@@ -31,34 +31,33 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
         }
       }
     };
-
     const msg = generateWAMessageFromContent(m.chat, { orderMessage }, { quoted: m });
     return await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id });
   }
 
-  let who;
-  if (m.mentionedJid && m.mentionedJid.length > 0) {
-    who = m.mentionedJid[0];
-  } else if (m.quoted) {
-    who = m.quoted.sender;
-  } else if (text) {
-    who = text.replace(/[@ .+-]/g, '') + '@s.whatsapp.net';
-  } else {
-    who = m.chat;
+  let who = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : false;
+  if (!who && text) who = text.replace(/[@ .+-]/g, '') + '@s.whatsapp.net';
+  
+  if (!who) return conn.reply(m.chat, `${emoji} Etiqueta a alguien o responde a un mensaje.`, m);
+
+  // Obtener nombre del usuario
+  const userName = conn.getName(who) || who.split('@')[0];
+
+  // COMANDO PARA QUITAR ADVERTENCIAS
+  if (command === 'unwarn' || command === 'delwarn' || command === 'quitarwarn') {
+    global.db.data.users[who] = global.db.data.users[who] || {};
+    global.db.data.users[who].warn = 0;
+    await m.react('✨');
+    return conn.reply(m.chat, `✨ *USUARIO LIBERADO*\n\nLas sombras han purificado a *@${who.split('@')[0]}*.\nHas sido liberado de las advertencias por las sombras. 🌑`, m, { mentions: [who] });
   }
 
-  if (!who || who === 'undefined@s.whatsapp.net') {
-    return conn.reply(m.chat, `${emoji} Etiqueta a alguien o responde a su mensaje.`, m);
-  }
-
+  // LOGICA DE ADVERTIR
   const botJid = conn.user.jid;
   if (who === botJid) return conn.reply(m.chat, `${emoji} No puedo advertirme a mí mismo.`, m);
   if (who === m.sender) return conn.reply(m.chat, `${emoji} No puedes advertirte a ti mismo.`, m);
 
   const owners = (global.owner || []).map(v => Array.isArray(v) ? v[0] : v).filter(Boolean);
-  if (owners.includes(who.split('@')[0])) {
-    return conn.reply(m.chat, `🌌 No se puede advertir a un Owner.`, m);
-  }
+  if (owners.includes(who.split('@')[0])) return conn.reply(m.chat, `🌌 No se puede advertir a un Owner.`, m);
 
   const dReason = 'Sin motivo';
   const msgtext = text || dReason;
@@ -68,7 +67,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
   const user = global.db.data.users[who];
   user.warn = (user.warn || 0) + 1;
 
-  await conn.sendMessage(m.chat, { react: { text: '🌑', key: m.key } });
+  await m.react('🌑');
 
   const imgWarn = 'https://files.catbox.moe/88n20k.jpg';
   const resWarn = await axios.get(imgWarn, { responseType: 'arraybuffer' });
@@ -80,7 +79,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
     itemCount: 1,
     status: 1,
     surface: 1,
-    message: `🌌 *ADVERTENCIA*\n\n🕯️ *Usuario:* @${who.split('@')[0]}\n🕯️ *Motivo:* ${sdms}\n🕯️ *Advertencias:* ${user.warn}/${maxWarn}`,
+    message: `🌌 *ADVERTENCIA*\n\n🕯️ *Usuario:* ${userName}\n🕯️ *Motivo:* ${sdms}\n🕯️ *Advertencias:* ${user.warn}/${maxWarn}`,
     orderTitle: 'Ritual de Advertencia',
     totalAmount1000: '0',
     totalCurrencyCode: 'GTQ',
@@ -100,14 +99,14 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
 
   if (user.warn >= maxWarn) {
     user.warn = 0;
-    await conn.reply(m.chat, `${emoji} @${who.split('@')[0]} expulsado por acumular ${maxWarn} advertencias.`, m, { mentions: [who] });
+    await conn.reply(m.chat, `${emoji} @${who.split('@')[0]} sellado fuera del grupo por acumular ${maxWarn} advertencias.`, m, { mentions: [who] });
     await conn.groupParticipantsUpdate(m.chat, [who], 'remove');
   }
 
   return true;
 };
 
-handler.command = ['advertir', 'advertencia', 'warn', 'warning'];
+handler.command = ['advertir', 'advertencia', 'warn', 'unwarn', 'quitarwarn', 'delwarn'];
 handler.group = true;
 handler.admin = true;
 handler.botAdmin = true;
