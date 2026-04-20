@@ -131,7 +131,6 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
       const target = who.includes('@') ? who : who + '@s.whatsapp.net';
       await conn.groupParticipantsUpdate(m.chat, [target], 'remove');
     } catch (e) {
-      console.log('Error al eliminar:', e);
       await conn.reply(m.chat, `⚠️ No pude expulsar al usuario. Verifica si soy admin.`, m);
     }
   }
