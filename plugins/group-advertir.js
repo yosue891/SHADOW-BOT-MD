@@ -44,7 +44,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
     who = m.quoted.key?.participant || m.quoted.sender;
   }
 
-  if (!who) return conn.reply(m.chat, `${emoji} Etiqueta a alguien o responde a un mensaje.`, m);
+  if (!who) return conn.reply(m.chat, `${emoji} responde a un mensaje para poder advertirlo rn las sombras.`, m);
 
   const userName = global.db.data.users[who]?.name || conn.getName(who) || 'Usuario';
 
