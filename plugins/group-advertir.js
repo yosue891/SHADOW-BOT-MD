@@ -40,7 +40,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
     let target = text.replace(/[@ .+-]/g, '');
     if (target.length >= 10) who = target + '@s.whatsapp.net';
   }
-  
+
   if (!who) return conn.reply(m.chat, `${emoji} Etiqueta a alguien o responde a un mensaje.`, m);
 
   const userName = global.db.data.users[who]?.name || conn.getName(who) || 'Usuario';
@@ -116,20 +116,23 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
   const msgWarn = generateWAMessageFromContent(m.chat, { orderMessage: orderMessageWarn }, { quoted: m });
   await conn.relayMessage(m.chat, msgWarn.message, { messageId: msgWarn.key.id });
 
-  // Lógica de Expulsión
   if (user.warn >= maxWarn) {
     user.warn = 0;
-    
-    await conn.reply(m.chat, `${emoji} *${userName}* ha sido sellado fuera del Reino por las sombras al alcanzar el límite de advertencias.`, null);
-    
-    // Pequeña espera para asegurar que el mensaje llegue antes que la expulsión
+
+    await conn.reply(
+      m.chat,
+      `${emoji} *${userName}* ha sido sellado fuera del Reino por las sombras al alcanzar el límite de advertencias.`,
+      null
+    );
+
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     try {
-      // Forzamos la actualización de participantes
-      await conn.groupParticipantsUpdate(m.chat, [who], 'remove');
+      const target = who.includes('@') ? who : who + '@s.whatsapp.net';
+      await conn.groupParticipantsUpdate(m.chat, [target], 'remove');
     } catch (e) {
       console.log('Error al eliminar:', e);
+      await conn.reply(m.chat, `⚠️ No pude expulsar al usuario. Verifica si soy admin.`, m);
     }
   }
 
