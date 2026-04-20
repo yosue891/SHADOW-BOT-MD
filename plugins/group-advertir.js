@@ -40,18 +40,46 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
   
   if (!who) return conn.reply(m.chat, `${emoji} Etiqueta a alguien o responde a un mensaje.`, m);
 
-  // Obtener nombre del usuario
-  const userName = conn.getName(who) || who.split('@')[0];
+  const userName = await conn.getName(who);
+  const userTag = `@${who.split('@')[0]}`;
 
-  // COMANDO PARA QUITAR ADVERTENCIAS
+  const imgPath = 'https://files.catbox.moe/88n20k.jpg';
+  const resImg = await axios.get(imgPath, { responseType: 'arraybuffer' });
+  const imgBuffer = Buffer.from(resImg.data);
+
+  // --- COMANDO QUITAR ADVERTENCIAS (UNWARN) ---
   if (command === 'unwarn' || command === 'delwarn' || command === 'quitarwarn') {
     global.db.data.users[who] = global.db.data.users[who] || {};
     global.db.data.users[who].warn = 0;
+
     await m.react('✨');
-    return conn.reply(m.chat, `✨ *USUARIO LIBERADO*\n\nLas sombras han purificado a *@${who.split('@')[0]}*.\nHas sido liberado de las advertencias por las sombras. 🌑`, m, { mentions: [who] });
+
+    const orderMessageUnwarn = {
+      orderId: 'UNWARN-' + Date.now(),
+      thumbnail: imgBuffer,
+      itemCount: 1,
+      status: 1,
+      surface: 1,
+      message: `✨ *PURIFICACIÓN SOMBRÍA*\n\n🕯️ *Usuario:* ${userName}\n🕯️ *Estado:* Libre de pecados\n\n@${who.split('@')[0]} has sido liberado de las advertencias por las sombras. 🌑`,
+      orderTitle: '✨ Absolución de Advertencias',
+      totalAmount1000: '0',
+      totalCurrencyCode: 'GTQ',
+      contextInfo: {
+        mentionedJid: [who],
+        externalAdReply: {
+          title: 'Shadow Bot',
+          thumbnailUrl: imgPath,
+          mediaType: 1,
+          renderLargerThumbnail: true
+        }
+      }
+    };
+
+    const msgUnwarn = generateWAMessageFromContent(m.chat, { orderMessage: orderMessageUnwarn }, { quoted: m });
+    return await conn.relayMessage(m.chat, msgUnwarn.message, { messageId: msgUnwarn.key.id });
   }
 
-  // LOGICA DE ADVERTIR
+  // --- LÓGICA DE ADVERTIR (WARN) ---
   const botJid = conn.user.jid;
   if (who === botJid) return conn.reply(m.chat, `${emoji} No puedo advertirme a mí mismo.`, m);
   if (who === m.sender) return conn.reply(m.chat, `${emoji} No puedes advertirte a ti mismo.`, m);
@@ -69,13 +97,9 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
 
   await m.react('🌑');
 
-  const imgWarn = 'https://files.catbox.moe/88n20k.jpg';
-  const resWarn = await axios.get(imgWarn, { responseType: 'arraybuffer' });
-  const imgBufferWarn = Buffer.from(resWarn.data);
-
   const orderMessageWarn = {
     orderId: 'WARN-' + Date.now(),
-    thumbnail: imgBufferWarn,
+    thumbnail: imgBuffer,
     itemCount: 1,
     status: 1,
     surface: 1,
@@ -87,7 +111,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
       mentionedJid: [who],
       externalAdReply: {
         title: 'Shadow Bot',
-        thumbnailUrl: imgWarn,
+        thumbnailUrl: imgPath,
         mediaType: 1,
         renderLargerThumbnail: true
       }
@@ -97,9 +121,10 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
   const msgWarn = generateWAMessageFromContent(m.chat, { orderMessage: orderMessageWarn }, { quoted: m });
   await conn.relayMessage(m.chat, msgWarn.message, { messageId: msgWarn.key.id });
 
+  // Expulsión automática
   if (user.warn >= maxWarn) {
     user.warn = 0;
-    await conn.reply(m.chat, `${emoji} @${who.split('@')[0]} sellado fuera del grupo por acumular ${maxWarn} advertencias.`, m, { mentions: [who] });
+    await conn.reply(m.chat, `${emoji} ${userTag} ha sido sellado fuera del Reino por acumular ${maxWarn} advertencias.`, m, { mentions: [who] });
     await conn.groupParticipantsUpdate(m.chat, [who], 'remove');
   }
 
