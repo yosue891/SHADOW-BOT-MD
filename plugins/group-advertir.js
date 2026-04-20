@@ -36,11 +36,10 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
     return await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id });
   }
 
-  let who = m.mentionedJid?.[0] || (m.quoted ? m.quoted.sender : false);
-  if (!who && text) {
-    let target = text.replace(/[@ .+-]/g, '');
-    if (target.length >= 8) who = target + '@s.whatsapp.net';
-  }
+  let who = null;
+
+  if (m.mentionedJid?.length) who = m.mentionedJid[0];
+  else if (m.quoted) who = m.quoted.sender;
 
   if (!who) return conn.reply(m.chat, `${emoji} Etiqueta a alguien o responde a un mensaje.`, m);
 
@@ -131,8 +130,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
     await new Promise(r => setTimeout(r, 1500));
 
     try {
-      const target = who.includes('@') ? who : who + '@s.whatsapp.net';
-      await conn.groupParticipantsUpdate(m.chat, [target], 'remove');
+      await conn.groupParticipantsUpdate(m.chat, [who], 'remove');
     } catch {
       await conn.reply(m.chat, `⚠️ No pude expulsar al usuario.`, m);
     }
