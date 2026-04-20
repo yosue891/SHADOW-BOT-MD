@@ -40,14 +40,14 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
   
   if (!who) return conn.reply(m.chat, `${emoji} Etiqueta a alguien o responde a un mensaje.`, m);
 
-  const userName = await conn.getName(who);
-  const userTag = `@${who.split('@')[0]}`;
+  // --- OBTENER NOMBRE REAL ---
+  const userName = global.db.data.users[who]?.name || conn.getName(who) || (m.quoted ? m.quoted.pushName : null) || who.split('@')[0];
 
   const imgPath = 'https://files.catbox.moe/88n20k.jpg';
   const resImg = await axios.get(imgPath, { responseType: 'arraybuffer' });
   const imgBuffer = Buffer.from(resImg.data);
 
-  // --- COMANDO QUITAR ADVERTENCIAS (UNWARN) ---
+  // --- COMANDO UNWARN ---
   if (command === 'unwarn' || command === 'delwarn' || command === 'quitarwarn') {
     global.db.data.users[who] = global.db.data.users[who] || {};
     global.db.data.users[who].warn = 0;
@@ -79,7 +79,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
     return await conn.relayMessage(m.chat, msgUnwarn.message, { messageId: msgUnwarn.key.id });
   }
 
-  // --- LÓGICA DE ADVERTIR (WARN) ---
+  // --- COMANDO WARN ---
   const botJid = conn.user.jid;
   if (who === botJid) return conn.reply(m.chat, `${emoji} No puedo advertirme a mí mismo.`, m);
   if (who === m.sender) return conn.reply(m.chat, `${emoji} No puedes advertirte a ti mismo.`, m);
@@ -121,11 +121,14 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
   const msgWarn = generateWAMessageFromContent(m.chat, { orderMessage: orderMessageWarn }, { quoted: m });
   await conn.relayMessage(m.chat, msgWarn.message, { messageId: msgWarn.key.id });
 
-  // Expulsión automática
+  // Expulsión forzada
   if (user.warn >= maxWarn) {
     user.warn = 0;
-    await conn.reply(m.chat, `${emoji} ${userTag} ha sido sellado fuera del Reino por acumular ${maxWarn} advertencias.`, m, { mentions: [who] });
-    await conn.groupParticipantsUpdate(m.chat, [who], 'remove');
+    await conn.reply(m.chat, `${emoji} @${who.split('@')[0]} ha sido sellado fuera del Reino por las sombras.`, m, { mentions: [who] });
+    // Usamos setTimeout para dar tiempo a que se envíe el mensaje antes de sacarlo
+    setTimeout(async () => {
+        await conn.groupParticipantsUpdate(m.chat, [who], 'remove');
+    }, 1000);
   }
 
   return true;
