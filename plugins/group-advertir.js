@@ -1,45 +1,107 @@
 import axios from 'axios';
+import { generateWAMessageFromContent } from '@whiskeysockets/baileys';
 
-const maxWarn = 3;
+const handler = async (m, { conn, text, command, usedPrefix }) => {
+  const emoji = '⚠️';
+  const maxWarn = 3;
 
-export async function before(m, { conn, isAdmin, isBotAdmin, isMods, isOwner }) {
-  if (!m.isGroup) return;
-  if (!m.text) return;
+  const userSender = global.db.data.users[m.sender];
+  if (!userSender || !userSender.registered) {
+    const img = 'https://files.catbox.moe/88n20k.jpg';
+    const res = await axios.get(img, { responseType: 'arraybuffer' });
+    const imgBuffer = Buffer.from(res.data);
 
-  const chat = global.db.data.chats[m.chat];
-  if (!chat.warnsystem) chat.warnsystem = true;
+    const orderMessage = {
+      orderId: 'REGISTRO-' + Date.now(),
+      thumbnail: imgBuffer,
+      itemCount: 1,
+      status: 1,
+      surface: 1,
+      message: `🕸️ *ACCESO DENEGADO*\n\nHola @${m.sender.split('@')[0]}, debes estar registrado.\n\n🔐 Usa: *${usedPrefix}reg shadow.18*`,
+      orderTitle: 'Registro Requerido',
+      totalAmount1000: '0',
+      totalCurrencyCode: 'GTQ',
+      contextInfo: {
+        mentionedJid: [m.sender],
+        externalAdReply: {
+          title: 'Shadow Bot',
+          thumbnailUrl: img,
+          mediaType: 1,
+          renderLargerThumbnail: true
+        }
+      }
+    };
 
-  if (!chat.warnsystem) return;
+    const msg = generateWAMessageFromContent(m.chat, { orderMessage }, { quoted: m });
+    return await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id });
+  }
 
-  let who = m.mentionedJid && m.mentionedJid[0] 
-    ? m.mentionedJid[0] 
-    : m.quoted 
-      ? m.quoted.sender 
-      : false;
+  let who = m.mentionedJid?.[0] || (m.quoted ? m.quoted.sender : false);
+  if (!who && text) {
+    let target = text.replace(/[@ .+-]/g, '');
+    if (target.length >= 8) who = target + '@s.whatsapp.net';
+  }
 
-  if (!who) return;
+  if (!who) return conn.reply(m.chat, `${emoji} Etiqueta a alguien o responde a un mensaje.`, m);
 
-  const user = global.db.data.users[who] || {};
-  const userName = user.name || conn.getName(who) || 'Usuario';
+  const userName = global.db.data.users[who]?.name || conn.getName(who) || 'Usuario';
 
-  if (isOwner || isMods) return;
-  if (who === conn.user.jid) return;
-  if (who === m.sender) return;
+  const imgPath = 'https://files.catbox.moe/88n20k.jpg';
+  const resImg = await axios.get(imgPath, { responseType: 'arraybuffer' });
+  const imgBuffer = Buffer.from(resImg.data);
 
+  if (['unwarn', 'delwarn', 'quitarwarn'].includes(command)) {
+    global.db.data.users[who] = global.db.data.users[who] || {};
+    global.db.data.users[who].warn = 0;
+    await m.react('✨');
+
+    const orderMessageUnwarn = {
+      orderId: 'UNWARN-' + Date.now(),
+      thumbnail: imgBuffer,
+      itemCount: 1,
+      status: 1,
+      surface: 1,
+      message: `✨ *PURIFICACIÓN SOMBRÍA*\n\n🕯️ *Usuario:* ${userName}\n🕯️ *Estado:* Libre de pecados`,
+      orderTitle: '✨ Absolución',
+      totalAmount1000: '0',
+      totalCurrencyCode: 'GTQ',
+      contextInfo: {
+        mentionedJid: [who],
+        externalAdReply: {
+          title: 'Shadow Bot',
+          thumbnailUrl: imgPath,
+          mediaType: 1,
+          renderLargerThumbnail: true
+        }
+      }
+    };
+
+    const msgUnwarn = generateWAMessageFromContent(m.chat, { orderMessage: orderMessageUnwarn }, { quoted: m });
+    return await conn.relayMessage(m.chat, msgUnwarn.message, { messageId: msgUnwarn.key.id });
+  }
+
+  const botJid = conn.user.jid;
+  if (who === botJid) return conn.reply(m.chat, `${emoji} No puedo advertirme a mí mismo.`, m);
+  if (who === m.sender) return conn.reply(m.chat, `${emoji} No puedes advertirte a ti mismo.`, m);
+
+  const owners = (global.owner || []).map(v => Array.isArray(v) ? v[0] : v);
+  if (owners.includes(who.split('@')[0])) return conn.reply(m.chat, `🌌 No se puede advertir a un Owner.`, m);
+
+  global.db.data.users[who] = global.db.data.users[who] || {};
+  const user = global.db.data.users[who];
   user.warn = (user.warn || 0) + 1;
-  global.db.data.users[who] = user;
 
-  const img = 'https://files.catbox.moe/88n20k.jpg';
-  const res = await axios.get(img, { responseType: 'arraybuffer' });
-  const imgBuffer = Buffer.from(res.data);
+  await m.react('🌑');
 
-  const warnMsg = {
+  const dReason = text?.replace(/@\d+/g, '').trim() || 'Sin motivo';
+
+  const orderMessageWarn = {
     orderId: 'WARN-' + Date.now(),
     thumbnail: imgBuffer,
     itemCount: 1,
     status: 1,
     surface: 1,
-    message: `🌌 *ADVERTENCIA*\n\n🕯️ *Usuario:* ${userName}\n🕯️ *Advertencias:* ${user.warn}/${maxWarn}`,
+    message: `🌌 *ADVERTENCIA*\n\n🕯️ *Usuario:* ${userName}\n🕯️ *Motivo:* ${dReason}\n🕯️ *Advertencias:* ${user.warn}/${maxWarn}`,
     orderTitle: 'Ritual de Advertencia',
     totalAmount1000: '0',
     totalCurrencyCode: 'GTQ',
@@ -47,30 +109,41 @@ export async function before(m, { conn, isAdmin, isBotAdmin, isMods, isOwner }) 
       mentionedJid: [who],
       externalAdReply: {
         title: 'Shadow Bot',
-        thumbnailUrl: img,
+        thumbnailUrl: imgPath,
         mediaType: 1,
         renderLargerThumbnail: true
       }
     }
   };
 
-  const msg = await conn.sendMessage(m.chat, { forward: warnMsg }, { quoted: m });
+  const msgWarn = generateWAMessageFromContent(m.chat, { orderMessage: orderMessageWarn }, { quoted: m });
+  await conn.relayMessage(m.chat, msgWarn.message, { messageId: msgWarn.key.id });
 
   if (user.warn >= maxWarn) {
     user.warn = 0;
 
     await conn.reply(
       m.chat,
-      `⚠️ *${userName}* ha sido sellado fuera del Reino por alcanzar el límite de advertencias.`,
+      `${emoji} *${userName}* ha sido sellado fuera del Reino por alcanzar el límite de advertencias.`,
       null
     );
 
     await new Promise(r => setTimeout(r, 1500));
 
     try {
-      await conn.groupParticipantsUpdate(m.chat, [who], 'remove');
+      const target = who.includes('@') ? who : who + '@s.whatsapp.net';
+      await conn.groupParticipantsUpdate(m.chat, [target], 'remove');
     } catch {
       await conn.reply(m.chat, `⚠️ No pude expulsar al usuario.`, m);
     }
   }
-}
+
+  return true;
+};
+
+handler.command = ['advertir', 'advertencia', 'warn', 'unwarn', 'quitarwarn', 'delwarn'];
+handler.group = true;
+handler.admin = true;
+handler.botAdmin = true;
+
+export default handler;
