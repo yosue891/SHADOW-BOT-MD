@@ -36,22 +36,21 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
   }
 
   let who = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : false;
-  if (!who && text) who = text.replace(/[@ .+-]/g, '') + '@s.whatsapp.net';
+  if (!who && text) {
+    let target = text.replace(/[@ .+-]/g, '');
+    if (target.length >= 10) who = target + '@s.whatsapp.net';
+  }
   
   if (!who) return conn.reply(m.chat, `${emoji} Etiqueta a alguien o responde a un mensaje.`, m);
 
-  // --- OBTENER NOMBRE REAL ---
-  const userName = global.db.data.users[who]?.name || conn.getName(who) || (m.quoted ? m.quoted.pushName : null) || who.split('@')[0];
-
+  const userName = global.db.data.users[who]?.name || conn.getName(who) || 'Usuario';
   const imgPath = 'https://files.catbox.moe/88n20k.jpg';
   const resImg = await axios.get(imgPath, { responseType: 'arraybuffer' });
   const imgBuffer = Buffer.from(resImg.data);
 
-  // --- COMANDO UNWARN ---
   if (command === 'unwarn' || command === 'delwarn' || command === 'quitarwarn') {
     global.db.data.users[who] = global.db.data.users[who] || {};
     global.db.data.users[who].warn = 0;
-
     await m.react('✨');
 
     const orderMessageUnwarn = {
@@ -60,8 +59,8 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
       itemCount: 1,
       status: 1,
       surface: 1,
-      message: `✨ *PURIFICACIÓN SOMBRÍA*\n\n🕯️ *Usuario:* ${userName}\n🕯️ *Estado:* Libre de pecados\n\n@${who.split('@')[0]} has sido liberado de las advertencias por las sombras. 🌑`,
-      orderTitle: '✨ Absolución de Advertencias',
+      message: `✨ *PURIFICACIÓN SOMBRÍA*\n\n🕯️ *Usuario:* ${userName}\n🕯️ *Estado:* Libre de pecados\n\n${userName} ha sido liberado de las advertencias por las sombras. 🌑`,
+      orderTitle: '✨ Absolución',
       totalAmount1000: '0',
       totalCurrencyCode: 'GTQ',
       contextInfo: {
@@ -74,12 +73,10 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
         }
       }
     };
-
     const msgUnwarn = generateWAMessageFromContent(m.chat, { orderMessage: orderMessageUnwarn }, { quoted: m });
     return await conn.relayMessage(m.chat, msgUnwarn.message, { messageId: msgUnwarn.key.id });
   }
 
-  // --- COMANDO WARN ---
   const botJid = conn.user.jid;
   if (who === botJid) return conn.reply(m.chat, `${emoji} No puedo advertirme a mí mismo.`, m);
   if (who === m.sender) return conn.reply(m.chat, `${emoji} No puedes advertirte a ti mismo.`, m);
@@ -87,15 +84,13 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
   const owners = (global.owner || []).map(v => Array.isArray(v) ? v[0] : v).filter(Boolean);
   if (owners.includes(who.split('@')[0])) return conn.reply(m.chat, `🌌 No se puede advertir a un Owner.`, m);
 
-  const dReason = 'Sin motivo';
-  const msgtext = text || dReason;
-  const sdms = msgtext.replace(/@\d{5,}[^\s]*/g, '').trim() || dReason;
-
   global.db.data.users[who] = global.db.data.users[who] || {};
   const user = global.db.data.users[who];
   user.warn = (user.warn || 0) + 1;
 
   await m.react('🌑');
+
+  const dReason = text?.replace(/@\d+/g, '').trim() || 'Sin motivo';
 
   const orderMessageWarn = {
     orderId: 'WARN-' + Date.now(),
@@ -103,7 +98,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
     itemCount: 1,
     status: 1,
     surface: 1,
-    message: `🌌 *ADVERTENCIA*\n\n🕯️ *Usuario:* ${userName}\n🕯️ *Motivo:* ${sdms}\n🕯️ *Advertencias:* ${user.warn}/${maxWarn}`,
+    message: `🌌 *ADVERTENCIA*\n\n🕯️ *Usuario:* ${userName}\n🕯️ *Motivo:* ${dReason}\n🕯️ *Advertencias:* ${user.warn}/${maxWarn}`,
     orderTitle: 'Ritual de Advertencia',
     totalAmount1000: '0',
     totalCurrencyCode: 'GTQ',
@@ -121,14 +116,16 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
   const msgWarn = generateWAMessageFromContent(m.chat, { orderMessage: orderMessageWarn }, { quoted: m });
   await conn.relayMessage(m.chat, msgWarn.message, { messageId: msgWarn.key.id });
 
-  // Expulsión forzada
   if (user.warn >= maxWarn) {
     user.warn = 0;
-    await conn.reply(m.chat, `${emoji} @${who.split('@')[0]} ha sido sellado fuera del Reino por las sombras.`, m, { mentions: [who] });
-    // Usamos setTimeout para dar tiempo a que se envíe el mensaje antes de sacarlo
-    setTimeout(async () => {
-        await conn.groupParticipantsUpdate(m.chat, [who], 'remove');
-    }, 1000);
+    
+    await conn.reply(m.chat, `${emoji} *${userName}* ha sido sellado fuera del Reino por las sombras al alcanzar las ${maxWarn} advertencias.`, null);
+    
+    try {
+      await conn.groupParticipantsUpdate(m.chat, [who], 'remove');
+    } catch (e) {
+      console.error('Error al remover:', e);
+    }
   }
 
   return true;
