@@ -116,15 +116,20 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
   const msgWarn = generateWAMessageFromContent(m.chat, { orderMessage: orderMessageWarn }, { quoted: m });
   await conn.relayMessage(m.chat, msgWarn.message, { messageId: msgWarn.key.id });
 
+  // Lógica de Expulsión
   if (user.warn >= maxWarn) {
     user.warn = 0;
     
-    await conn.reply(m.chat, `${emoji} *${userName}* ha sido sellado fuera del Reino por las sombras al alcanzar las ${maxWarn} advertencias.`, null);
+    await conn.reply(m.chat, `${emoji} *${userName}* ha sido sellado fuera del Reino por las sombras al alcanzar el límite de advertencias.`, null);
     
+    // Pequeña espera para asegurar que el mensaje llegue antes que la expulsión
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
     try {
+      // Forzamos la actualización de participantes
       await conn.groupParticipantsUpdate(m.chat, [who], 'remove');
     } catch (e) {
-      console.error('Error al remover:', e);
+      console.log('Error al eliminar:', e);
     }
   }
 
