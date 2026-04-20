@@ -38,8 +38,14 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
 
   let who = null;
 
-  if (m.mentionedJid?.length) who = m.mentionedJid[0];
-  else if (m.quoted) who = m.quoted.sender;
+  if (m.mentionedJid?.length) {
+    who = m.mentionedJid[0];
+  } else if (m.quoted) {
+    who = m.quoted.sender;
+  } else if (text) {
+    let target = text.replace(/[@ .+-]/g, '');
+    if (target.length >= 8) who = target + '@s.whatsapp.net';
+  }
 
   if (!who) return conn.reply(m.chat, `${emoji} Etiqueta a alguien o responde a un mensaje.`, m);
 
