@@ -1,10 +1,11 @@
 const handler = async (m, { conn, command, usedPrefix, text }) => {
   const users = global.db.data.users
   const userId = m.sender
+  const rcanal = typeof global.rcanal !== 'undefined' ? global.rcanal : {}
 
   if (command === 'divorce' || command === 'divorciarse') {
     const partnerId = users[userId]?.marry
-    if (!partnerId) return m.reply('💔 No estás casado con nadie en el Reino de las Sombras.')
+    if (!partnerId) return conn.sendMessage(m.chat, { text: '💔 No estás casado con nadie en el Reino de las Sombras.', ...rcanal }, { quoted: m })
 
     return conn.sendButton(m.chat, `¿Estás seguro de que quieres romper tu pacto con @${partnerId.split('@')[0]}?`, 'Shadow Garden', null, [
       ['SÍ, DIVORCIARME', `${usedPrefix}confirmdivorce`],
@@ -17,15 +18,21 @@ const handler = async (m, { conn, command, usedPrefix, text }) => {
     if (!partnerId) return
     users[userId].marry = ''
     users[partnerId].marry = ''
-    return m.reply(`💔 El pacto se ha roto. @${userId.split('@')[0]} y @${partnerId.split('@')[0]} ya no están unidos.`, null, { mentions: [userId, partnerId] })
+    return conn.sendMessage(m.chat, { text: `💔 El pacto se ha roto. @${userId.split('@')[0]} y @${partnerId.split('@')[0]} ya no están unidos.`, mentions: [userId, partnerId], ...rcanal }, { quoted: m })
   }
 
   if (command === 'marry' || command === 'casarse') {
-    let partnerId = m.mentionedJid?.[0] || (m.quoted ? m.quoted.sender : false)
+    let partnerId = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : false
 
-    if (!partnerId) return m.reply('💍 Menciona o responde a la persona con la que quieres sellar el pacto.')
+    if (!partnerId && text) {
+      partnerId = text.replace(/[^0-9]/g, '') + '@s.whatsapp.net'
+    }
+
+    if (!partnerId || partnerId.length < 15) {
+      return conn.sendMessage(m.chat, { text: '💍 Menciona o responde a la persona con la que quieres sellar el pacto.', ...rcanal }, { quoted: m })
+    }
+
     if (partnerId === userId) return m.reply('🌌 No puedes casarte con tu propia sombra.')
-
     if (users[userId]?.marry) return m.reply(`⚠️ Ya estás casado con @${users[userId].marry.split('@')[0]}.`, null, { mentions: [users[userId].marry] })
     if (users[partnerId]?.marry) return m.reply(`⚠️ @${partnerId.split('@')[0]} ya tiene un pacto con alguien más.`, null, { mentions: [partnerId] })
 
@@ -36,7 +43,7 @@ const handler = async (m, { conn, command, usedPrefix, text }) => {
 
     setTimeout(() => {
       if (users[userId] && !users[userId].marry) {
-        conn.reply(m.chat, `🥀 @${userId.split('@')[0]}, te han dejado plantado... El tiempo expiró.`, m, { mentions: [userId] })
+        conn.sendMessage(m.chat, { text: `🥀 @${userId.split('@')[0]}, te han dejado plantado... El tiempo expiró.`, mentions: [userId], ...rcanal }, { quoted: m })
       }
     }, 50000)
   }
@@ -46,13 +53,13 @@ const handler = async (m, { conn, command, usedPrefix, text }) => {
     if (!suitorId) return
     users[userId].marry = suitorId
     users[suitorId].marry = userId
-    return m.reply(`💒 『☽』 Las sombras han sellado el pacto.\n@${suitorId.split('@')[0]} y @${userId.split('@')[0]} ahora están casados.`, null, { mentions: [suitorId, userId] })
+    return conn.sendMessage(m.chat, { text: `💒 『☽』 Las sombras han sellado el pacto.\n@${suitorId.split('@')[0]} y @${userId.split('@')[0]} ahora están casados.`, mentions: [suitorId, userId], ...rcanal }, { quoted: m })
   }
 
   if (command === 'declinemarry') {
     const suitorId = text.split(' ')[0]
     if (!suitorId) return
-    return m.reply(`💔 @${suitorId.split('@')[0]}, has sido rechazado en el altar.`, null, { mentions: [suitorId] })
+    return conn.sendMessage(m.chat, { text: `💔 @${suitorId.split('@')[0]}, has sido rechazado en el altar.`, mentions: [suitorId], ...rcanal }, { quoted: m })
   }
 }
 
