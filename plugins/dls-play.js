@@ -14,7 +14,7 @@ const handler = async (m, { conn, text }) => {
     let views = 0
     let thumbnail = ""
 
-    const isUrl = /^https?://S+/i.test(url)
+    const isUrl = /^https?:\/\/\S+/i.test(url)
 
     if (isUrl) {
       if (!isYouTubeUrl(url)) {
@@ -73,7 +73,8 @@ const handler = async (m, { conn, text }) => {
       }
     }
 
-    const caption = `
+
+const caption = `
 ✧━───『 𝙸𝚗𝚏𝚘 𝚍𝚎𝚕 𝚅𝚒𝚍𝚎𝚘 』───━✧
 
 🎼 𝑻𝒊́𝒕𝒖𝒍𝒐: ${title}
@@ -84,7 +85,7 @@ const handler = async (m, { conn, text }) => {
 🐉 _Api:_ https://api-gohan.onrender.com
 
 ✧━───『 𝑺𝒉𝒂𝒅𝒐𝒘 𝑩𝒐𝒕 』───━✧
-⚡ 𝑷𝒐𝒘𝒆𝒓𝒆𝒅 𝒃𝒚 𝒀𝚘𝒔𝚞𝚎 ⚡
+⚡ 𝑷𝒐𝒘𝒆𝒓𝒆𝒅 𝒃𝒚 𝒀𝒐𝒔𝒖𝒆 ⚡
 `
 
     let thumb = fallbackThumb
@@ -106,7 +107,7 @@ const handler = async (m, { conn, text }) => {
       { quoted: fkontak }
     )
 
-    await downloadMedia(conn, m, url)
+    await downloadMedia(conn, m, url, fkontak)
     await m.react("✅")
   } catch (e) {
     console.error(e)
@@ -115,37 +116,62 @@ const handler = async (m, { conn, text }) => {
   }
 }
 
-const downloadMedia = async (conn, m, url) => {
+const downloadMedia = async (conn, m, url, quotedMsg) => {
   try {
-    const canalId = "120363403739366547@newsletter"
+    const sent = await conn.sendMessage(
+      m.chat,
+      { text: "🎵 Descargando audio..." },
+      { quoted: m }
+    )
+
     const apiUrl = `https://api-gohan.onrender.com/download/ytaudio?url=${encodeURIComponent(url)}`
     const r = await fetch(apiUrl)
 
-    if (!r.ok) return
+    if (!r.ok) {
+      return m.reply(`🚫 Error HTTP ${r.status} al obtener el audio.`)
+    }
 
     const data = await r.json()
+    console.log("Respuesta API:", JSON.stringify(data, null, 2))
 
-    if (!data?.status || !data?.result?.download_url) return
+    if (!data?.status || !data?.result?.download_url) {
+      return m.reply("🚫 No se pudo obtener el audio.")
+    }
 
     const fileUrl = data.result.download_url
     const fileTitle = cleanName(data.result.title || "audio")
 
     await conn.sendMessage(
-      canalId,
+      m.chat,
       {
         audio: { url: fileUrl },
         mimetype: "audio/mpeg",
         fileName: `${fileTitle}.mp3`,
-        ptt: true
-      }
+        ptt: false
+      },
+      { quoted: quotedMsg }
     )
+
+    try {
+      await conn.sendMessage(
+        m.chat,
+        {
+          text: `✅ Descarga completada\n\n🎼 Título: ${fileTitle}`,
+          edit: sent.key
+        }
+      )
+    } catch {
+      await m.reply(`✅ Descarga completada\n\n🎼 Título: ${fileTitle}`)
+    }
   } catch (e) {
     console.error(e)
+    await m.reply("❌ Error: " + e.message)
+    await m.react("💀")
   }
 }
 
 const cleanName = (name) =>
-  String(name).replace(/[^ws._-]/gi, "").substring(0, 50)
+  String(name).replace(/[^\w\s._-]/gi, "").substring(0, 50)
 
 const formatViews = (views) => {
   const n = Number(views)
@@ -157,19 +183,19 @@ const formatViews = (views) => {
 }
 
 const isYouTubeUrl = (url) => {
-  return /^(https?://)?(www.)?(youtube.com|youtu.be)//i.test(url)
+  return /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test(url)
 }
 
 const extractVideoId = (url) => {
   const match =
-    url.match(/(?:v=|/)([0-9A-Za-z_-]{11})(?:[?&/]|\b)/) ||
-    url.match(/youtu.be/([0-9A-Za-z_-]{11})/)
+    url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})(?:[?&/]|\b)/) ||
+    url.match(/youtu\.be\/([0-9A-Za-z_-]{11})/)
   return match?.[1] || null
 }
 
 handler.command = ["play"]
 handler.tags = ["descargas"]
-handler.help = ["play"]
+handler.help = ['play'];
 handler.register = false
 
 export default handler
