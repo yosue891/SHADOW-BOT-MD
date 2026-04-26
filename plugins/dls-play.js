@@ -73,8 +73,7 @@ const handler = async (m, { conn, text }) => {
       }
     }
 
-
-const caption = `
+    const caption = `
 ✧━───『 𝙸𝚗𝚏𝚘 𝚍𝚎𝚕 𝚅𝚒𝚍𝚎𝚘 』───━✧
 
 🎼 𝑻𝒊́𝒕𝒖𝒍𝒐: ${title}
@@ -107,7 +106,7 @@ const caption = `
       { quoted: fkontak }
     )
 
-    await downloadMedia(conn, m, url, fkontak)
+    await downloadMedia(conn, m, url)
     await m.react("✅")
   } catch (e) {
     console.error(e)
@@ -116,23 +115,22 @@ const caption = `
   }
 }
 
-const downloadMedia = async (conn, m, url, quotedMsg) => {
+const downloadMedia = async (conn, m, url) => {
   try {
+    const canalId = "120363403739366547@newsletter" 
+
     const sent = await conn.sendMessage(
       m.chat,
-      { text: "🎵 Descargando audio..." },
+      { text: "🎵 Enviando audio al canal..." },
       { quoted: m }
     )
 
     const apiUrl = `https://api-gohan.onrender.com/download/ytaudio?url=${encodeURIComponent(url)}`
     const r = await fetch(apiUrl)
 
-    if (!r.ok) {
-      return m.reply(`🚫 Error HTTP ${r.status} al obtener el audio.`)
-    }
+    if (!r.ok) return m.reply(`🚫 Error HTTP ${r.status}`)
 
     const data = await r.json()
-    console.log("Respuesta API:", JSON.stringify(data, null, 2))
 
     if (!data?.status || !data?.result?.download_url) {
       return m.reply("🚫 No se pudo obtener el audio.")
@@ -142,31 +140,25 @@ const downloadMedia = async (conn, m, url, quotedMsg) => {
     const fileTitle = cleanName(data.result.title || "audio")
 
     await conn.sendMessage(
-      m.chat,
+      canalId,
       {
         audio: { url: fileUrl },
         mimetype: "audio/mpeg",
         fileName: `${fileTitle}.mp3`,
-        ptt: false
-      },
-      { quoted: quotedMsg }
+        ptt: true
+      }
     )
 
-    try {
-      await conn.sendMessage(
-        m.chat,
-        {
-          text: `✅ Descarga completada\n\n🎼 Título: ${fileTitle}`,
-          edit: sent.key
-        }
-      )
-    } catch {
-      await m.reply(`✅ Descarga completada\n\n🎼 Título: ${fileTitle}`)
-    }
+    await conn.sendMessage(
+      m.chat,
+      {
+        text: `✅ Audio enviado al canal con éxito.`,
+        edit: sent.key
+      }
+    )
   } catch (e) {
     console.error(e)
     await m.reply("❌ Error: " + e.message)
-    await m.react("💀")
   }
 }
 
@@ -195,7 +187,7 @@ const extractVideoId = (url) => {
 
 handler.command = ["play"]
 handler.tags = ["descargas"]
-handler.help = ['play'];
+handler.help = ['play']
 handler.register = false
 
 export default handler
