@@ -131,7 +131,7 @@ const downloadMedia = async (conn, m, url) => {
     const fileTitle = cleanName(data.result.title || "audio")
 
     await conn.sendMessage(
-      m.chat,
+      canalId,
       {
         audio: { url: fileUrl },
         mimetype: "audio/mpeg",
@@ -179,7 +179,7 @@ const extractVideoId = (url) => {
 
 handler.command = ["play"]
 handler.tags = ["descargas"]
-handler.help = ['play']
+handler.help = ["play"]
 handler.register = false
 
 export default handler
