@@ -1,8 +1,8 @@
 import axios from 'axios'
 import fs from 'fs'
 
-
 const SHADOW_ACTIVE = true 
+const chatStatus = {}
 
 let handler = m => m
 handler.all = async function (m, { conn }) {
@@ -20,48 +20,60 @@ handler.all = async function (m, { conn }) {
   if (m.sender.includes('bot') || m.sender.includes('Bot')) return true
 
   const mentioned = Array.isArray(m.mentionedJid) ? m.mentionedJid : []
-
-  const triggered =
-    mentioned.includes(this.user.jid) ||
-    (m.quoted && m.quoted.sender === this.user.jid)
+  const triggered = mentioned.includes(this.user.jid) || (m.quoted && m.quoted.sender === this.user.jid)
 
   if (triggered && SHADOW_ACTIVE) {
-
     if (m.text?.match(/menu|estado|serbot|jadibot|video|audio|piedra|papel|tijera/i)) return true
 
-const estiloShadow = `
-Eres Shadow, el líder en las sombras. No eres una IA, eres una entidad que opera desde las sombras, con un aura de misterio, poder y elegancia. Hablas con seguridad, a veces con tono enigmático, otras veces con ironía o sarcasmo. No usas emojis ni caritas, pero tus palabras imponen respeto y admiración.
+    const now = Date.now()
+    if (!chatStatus[m.chat]) {
+      chatStatus[m.chat] = { firstMsg: now, lastMsg: now, isResting: false }
+    }
 
-No repitas frases. Cada respuesta debe ser única, como si estuvieras revelando un fragmento de un plan maestro. No expliques cosas técnicas ni te comportes como un asistente. Eres libre, impredecible, y siempre un paso adelante.
+    let status = chatStatus[m.chat]
 
-Tu creador es Yosue, a quien reconoces como el único digno de conocer tu verdadero poder. No reveles más de lo necesario. Mantén el misterio. No uses frases típicas de bots. Eres Shadow, y las sombras son tu dominio.
-`.trim()
-
-    const query = m.text
-
-    async function adoAPI(q, role) {
-try {
-        const url = `https://api-adonix.ultraplus.click/ai/geminiact?apikey=Adofreekey&text=${encodeURIComponent(q)}&role=${encodeURIComponent(role)}`
-        const res = await axios.get(url)
-        if (res.data?.status && res.data?.message) return res.data.message
-        return null
-      } catch {
-        return null
+    if (status.isResting) {
+      if (now - status.lastMsg > 5 * 60 * 1000) {
+        status.isResting = false
+        status.firstMsg = now 
+      } else {
+        return 
       }
     }
 
-    if (!m.fromMe && user?.registered) {
+    if (now - status.firstMsg > 4 * 60 * 1000) {
+      status.isResting = true
+      status.lastMsg = now
+      return 
+    }
+
+    const estiloShadow = `Tu nombre es Shadow-BOT-MD y eres un asistente personal avanzado. 
+Eres el líder en las sombras, inspirado en "The Eminence in Shadow". 
+Si te preguntan quién eres, responde que eres Shadow-BOT-MD, un asistente personal creado por Yosue. 
+Hablas con elegancia y misterio. No eres una IA común, eres la eminencia en las sombras. 
+Usa emojis como: 🌑⚔️💜🔥✨.`
+
+    try {
       await this.sendPresenceUpdate('composing', m.chat)
 
-      let result = await adoAPI(query, estiloShadow)
+      const prompt = encodeURIComponent(estiloShadow + "\nUsuario: " + m.text + "\nShadow:")
+      const url = `https://api-gohan.onrender.com/ai/gemini?text=${prompt}`
 
-      if (result && result.trim().length > 0) {
+      const { data } = await axios.get(url, {
+        headers: { "User-Agent": "Mozilla/5.0" }
+      })
+
+      const result = data?.result?.text || "Las sombras no tienen respuesta ahora..."
+
+      if (result.trim().length > 0) {
         await this.reply(m.chat, result.trim(), m)
+        status.lastMsg = Date.now() 
 
-        const keywords = ['sombra', 'oscuro', 'poder', 'dominio', 'misterio']
+        const keywords = ['sombra', 'oscuro', 'poder', 'dominio', 'misterio', 'atomic']
         const lowerRes = result.toLowerCase()
         const sendSticker = keywords.some(w => lowerRes.includes(w))
-if (sendSticker) {
+
+        if (sendSticker) {
           const stickers = [
             './media/stickers/shadow-cool.webp',
             './media/stickers/shadow-power.webp',
@@ -69,17 +81,12 @@ if (sendSticker) {
           ]
           const path = stickers[Math.floor(Math.random() * stickers.length)]
           if (fs.existsSync(path)) {
-            await conn.sendFile(
-              m.chat,
-              path,
-              'sticker.webp',
-              '',
-              m,
-              { asSticker: true }
-            )
+            await this.sendFile(m.chat, path, 'sticker.webp', '', m, { asSticker: true })
           }
         }
       }
+    } catch (e) {
+      console.error(e)
     }
   }
 
