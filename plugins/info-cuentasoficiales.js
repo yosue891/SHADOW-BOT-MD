@@ -13,7 +13,7 @@ let handler = async (m, {conn, command}) => {
     participant: '0@s.whatsapp.net'
   }
 
-  let str = `🌑⚔️ 𝘽𝙄𝙀𝙉𝙑𝙀𝙉𝙄𝘿𝙊(𝘼) 𝘼 𝙇𝘼𝙎 𝘾𝙐𝙀𝙉𝙏𝘼𝙎 𝙊𝙁𝙄𝘾𝙄𝘼𝙇𝙀𝙎 ⚔️🌑
+  let texto = `🌑⚔️ 𝘽𝙄𝙀𝙉𝙑𝙀𝙉𝙄𝘿𝙊(𝘼) 𝘼 𝙇𝘼𝙎 𝘾𝙐𝙀𝙉𝙏𝘼𝙎 𝙊𝙁𝙄𝘾𝙄𝘼𝙇𝙀𝙎 ⚔️🌑
 💜 𝙒𝙀𝙇𝘾𝙊𝙈𝙀 𝙏𝙊 𝙏𝙃𝙀 𝙊𝙁𝙁𝙄𝘾𝙄𝘼𝙇 𝘼𝘾𝘾𝙊𝙐𝙉𝙏𝙎
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 💖 𝙎𝙝𝙖𝙙𝙤𝙬-𝘽𝙊𝙏-𝙈𝘿 ⚔️✨
@@ -33,24 +33,21 @@ https://chat.whatsapp.com/ETHW7aP7kOICrR2RBrfE6N
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 👑 Creador Principal: +58 424-2773183 (Yosue)
 ⚔️ Segundo Creador: +504 9373-2693 (Ado)
+🤩 Colaborador: +51 900 373 696 (Gian Pool?
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 🌌✨ *Shadow-BOT-MD* — El jardín sombrío nunca duerme ✨🌌`
 
-  await conn.sendButton(
-    m.chat,
-    str,
-    wm,
-    media,
-    [
-      ['👑 Creadores 💗', '#owner'],
-      ['☘️ Volver al Menú', '/menu']
-    ],
-    null,
-    [[bot, 'https://github.com/yosue891/SHADOW-BOT-MD.git']],
+  await conn.sendButton(m.chat, texto, wm, media, [
+   ['👑 Creadores 💗', '#owner'],
+   ['☘️ Volver al Menú', '/menu']
+       ],
+    null, [
+   ['Shadow-BOT-MD ⚔️', 'https://github.com/yosue891/SHADOW-BOT-MD.git']
+       ],
     fkontak
   )
 }
 
 handler.command = ['cuentasoficiales']
-handler.exp = 35
+
 export default handler
