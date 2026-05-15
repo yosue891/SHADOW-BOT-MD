@@ -24,7 +24,7 @@ let handler = async (m, { conn }) => {
   const userNum  = userId.split('@')[0]
   const botname  = escapeXml(global.author || 'Shadow Bot')
 
-  const { key } = await conn.reply(m.chat, '❐ 𝐂𝐚𝐥𝐜𝐮𝐥𝐚𝐧𝐝𝐨 𝐏𝐢𝐧𝐠... 🚀', m)
+  await conn.sendMessage(m.chat, { react: { text: '⏳', key: m.key } })
 
   try {
     const ping = Math.max(0, Math.round(performance.now() - start))
@@ -323,7 +323,7 @@ let handler = async (m, { conn }) => {
       }
     }
 
-    await conn.sendMessage(m.chat, { delete: key })
+    await conn.sendMessage(m.chat, { react: { text: '✅', key: m.key } })
 
     await conn.sendMessage(m.chat, {
       image,
