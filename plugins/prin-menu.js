@@ -42,7 +42,7 @@ let handler = async (m, { conn, usedPrefix, dirname, participants }) => {
       'ia': '𝐈𝐍𝐓𝐄𝐋𝐈𝐆𝐄𝐍𝐂𝐈𝐀 𝐀𝐑𝐂𝐀𝐍𝐀',
       'stalk': '𝐎𝐁𝐒𝐄𝐑𝐕𝐀𝐂𝐈𝐎𝐍 𝐒𝐈𝐋𝐄𝐍𝐂𝐈𝐎𝐒𝐀',
       'maker': '𝐀𝐋𝐐𝐔𝐈𝐌𝐈𝐀 𝐕𝐈𝐒𝐔𝐀𝐋',
-      'tools': '𝐇𝐄𝐑𝐀𝐌𝐈𝐄𝐍𝐓𝐀𝐒 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
+      'tools': '𝐇𝐄𝐑𝐑𝐀𝐌𝐈𝐄𝐍𝐓𝐀𝐒 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
       'sticker': '𝐒𝐄𝐋𝐋𝐎𝐒 𝐀𝐑𝐂𝐀𝐍𝐎𝐒',
       'owner': '𝐌𝐀𝐄𝐒𝐓𝐑𝐎 𝐃𝐄 𝐋𝐀 𝐎𝐑𝐆𝐀𝐍𝐈𝐙𝐀𝐂𝐈𝐎𝐍',
       'nsfw': '𝐙𝐎𝐍𝐀 𝐑𝐄𝐒𝐓𝐑𝐈𝐍𝐆𝐈𝐃𝐀 (+18)'
@@ -81,61 +81,52 @@ ${comandos}
 ${readMore}
   乂 *ᴘʀᴏᴛᴏᴄᴏʟᴏ ᴅᴇ ᴄᴏᴍᴀɴᴅᴏꜱ ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ* 乂\n`.trim()
 
-    let thumbBuffer = null
-    try {
-      thumbBuffer = await (await fetch(thumbMenu)).buffer()
-    } catch {}
-
-    const fkontak = {
-      key: { fromMe: false, participant: "0@s.whatsapp.net", remoteJid: "status@broadcast" },
-      message: {
-        productMessage: {
-          product: {
-            productImage: thumbBuffer ? { mimetype: "image/jpeg", jpegThumbnail: thumbBuffer } : undefined,
-            title: `⌗ֶㅤ𝐌𝐞𝐧𝐮 𝐝𝐞 𝐥𝐚 𝐒𝐨𝐦𝐛𝐫𝐚`,
-            description: "« Soy quien actúa en las sombras »",
-            currencyCode: "USD",
-            priceAmount1000: 0,
-            retailerId: "menu"
-          },
-          businessOwnerJid: "584242773183@s.whatsapp.net"
-        }
+  const fkontak = {
+    key: { fromMe: false, participant: "0@s.whatsapp.net", remoteJid: "status@broadcast" },
+    message: {
+      productMessage: {
+        product: {
+          productImage: { mimetype: "image/jpeg", jpegThumbnail: await (await fetch(thumbMenu)).buffer() },
+          title: `⌗ֶㅤ𝐌𝐞𝐧𝐮 𝐝𝐞 𝐥𝐚 𝐒𝐨𝐦𝐛𝐫𝐚`,
+          description: "« Soy quien actúa en las sombras »",
+          currencyCode: "USD",
+          priceAmount1000: 0,
+          retailerId: "menu"
+        },
+        businessOwnerJid: "584242773183@s.whatsapp.net"
       }
     }
-
-    await m.react('🔥')
-  
-    await conn.sendMessage(m.chat, { 
-      video: { url: videoMenu },
-      caption: infoUser + menuTexto,
-      gifPlayback: true,
-      contextInfo: {
-        isForwarded: true,
-        forwardedNewsletterMessageInfo: {
-          newsletterJid: channelRD.id,
-          serverMessageId: '',
-          newsletterName: channelRD.name
-        },
-        externalAdReply: {
-          title: `${botname}  organizacional`,
-          body: `By ${dev}`,
-          mediaType: 1,
-          renderLargerThumbnail: true,
-          showAdAttribution: false
-        }
-      }
-    }, { quoted: fkontak })
-
-    await conn.sendMessage(m.chat, {
-      audio: { url: "https://files.catbox.moe/biplcz.m4a" },
-      mimetype: "audio/mpeg",
-      ptt: false,
-      fileName: "menu-shadow.mp3"
-    })
-
-  } catch (e) {
-    await conn.sendMessage(m.chat, { text: `✘ Error: ${e.message}` })
   }
+
+  await m.react('🔥')
+  
+  await conn.sendMessage(m.chat, { 
+    video: { url: videoMenu },
+    caption: infoUser + menuTexto,
+    gifPlayback: true,
+    contextInfo: {
+      isForwarded: true,
+      forwardedNewsletterMessageInfo: {
+        newsletterJid: channelRD.id,
+        serverMessageId: '',
+        newsletterName: channelRD.name
+      },
+      externalAdReply: {
+        title: `${botname}  organizacional`,
+        body: `By ${dev}`,
+        mediaType: 1,
+        sourceUrl: null,
+        thumbnailUrl: thumbMenu, 
+        renderLargerThumbnail: true,
+        showAdAttribution: false
+      }
+    }
+  }, { quoted: fkontak })
+
+} catch (e) {
+   console.error(e)
+   await conn.sendMessage(m.chat, { text: `✘ Error: ${e.message}` })
+ }
 }
 
 handler.help = ['menu']
@@ -149,4 +140,5 @@ function clockString(ms) {
   const m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60
   const s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':')
-      }
+  }
+  
