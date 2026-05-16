@@ -43,14 +43,16 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     };
 
     await m.react('❤️');
-    await conn.reply(m.chat, '🌌 *Buscando una waifu para ti espera un momento por favor...*', m, { contextInfo });
+    await conn.reply(m.chat, '🌌 *Buscando una waifu exótica para ti...*', m, { contextInfo });
 
-    let res = await fetch('https://api.waifu.pics/sfw/waifu');
-    if (!res.ok) throw new Error('No se pudo obtener la waifu.');
+    let res = await fetch('https://api.waifu.it/random');
     let json = await res.json();
-    if (!json.url) throw new Error('Respuesta inválida.');
 
-    const caption = `🌌 *Aquí tienes tu waifu, ${conn.getName(m.sender)}* 👑\n\n💫 ¿Quieres otra waifu? Solo toca el botón de abajo~`;
+    if (!json?.url) throw new Error('No se pudo obtener la waifu.');
+
+    let url = json.url;
+
+    const caption = `🌌 *Aquí tienes tu waifu exótica, ${await conn.getName(m.sender)}* 👑\n\n💫 ¿Quieres otra? Solo toca el botón.`;
 
     const buttons = [
       { buttonId: usedPrefix + command, buttonText: { displayText: '🔁 Siguiente waifu' }, type: 1 }
@@ -59,7 +61,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     await conn.sendMessage(
       m.chat,
       {
-        image: { url: json.url },
+        image: { url },
         caption,
         footer: '👑 SHADOW BOT MD',
         buttons,
@@ -69,8 +71,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     );
 
   } catch (e) {
-    console.error(e);
-    await conn.reply(m.chat, '❌ Lo siento, ocurrió un error al buscar la waifu.', m);
+    await conn.reply(m.chat, '❌ Error al buscar la waifu.', m);
   }
 };
 
