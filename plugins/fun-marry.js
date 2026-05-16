@@ -51,9 +51,29 @@ const handler = async (m, { conn, command, usedPrefix, text }) => {
   if (command === 'acceptmarry') {
     const suitorId = text.split(' ')[0]
     if (!suitorId) return
+
     users[userId].marry = suitorId
     users[suitorId].marry = userId
-    return conn.sendMessage(m.chat, { text: `💒 『☽』 Las sombras han sellado el pacto.\n@${suitorId.split('@')[0]} y @${userId.split('@')[0]} ahora están casados.`, mentions: [suitorId, userId], ...rcanal }, { quoted: m })
+
+    const gifs = [
+      "https://cdn.adoolab.xyz/dl/cc6b1c4f.mp4",
+      "https://cdn.adoolab.xyz/dl/cce37153.mp4",
+      "https://cdn.adoolab.xyz/dl/aa9d8f15.mp4"
+    ]
+
+    const randomGif = gifs[Math.floor(Math.random() * gifs.length)]
+
+    await conn.sendMessage(
+      m.chat,
+      {
+        video: { url: randomGif },
+        caption: `💒 『☽』 Las sombras han sellado el pacto.\n@${suitorId.split('@')[0]} y @${userId.split('@')[0]} ahora están casados.\n\n🎉🥳 *¡VIVAN LOS NOVIOSSS NJD!* (ojalá no sean infiel xd)`,
+        mentions: [suitorId, userId]
+      },
+      { quoted: m }
+    )
+
+    return
   }
 
   if (command === 'declinemarry') {
