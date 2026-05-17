@@ -266,10 +266,10 @@ export async function MichiJadiBot(options) {
       }
     }, 60000)
 
-    let handler = await import('../handler.js')
+    let handler = await import('../src/handler.js')
     let creloadHandler = async function (restatConn) {
       try {
-        const Handler = await import(`../handler.js?update=${Date.now()}`).catch(console.error)
+        const Handler = await import(`../src/handler.js?update=${Date.now()}`).catch(console.error)
         if (Object.keys(Handler || {}).length) handler = Handler
       } catch (e) {
         console.error('⚠︎ Nuevo error: ', e)
