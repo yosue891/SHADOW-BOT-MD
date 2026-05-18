@@ -13,7 +13,6 @@ const handler = async (m, { args, conn, usedPrefix }) => {
 
     if (m.react) await m.react('🕒')
 
-    // API 1
     try {
       const api = `${global.APIs.vreden.url}/api/igdownload?url=${encodeURIComponent(args[0])}`
       const res = await fetch(api)
@@ -27,7 +26,6 @@ const handler = async (m, { args, conn, usedPrefix }) => {
       console.log('Vreden IG error:', e.message)
     }
 
-    // API 2 fallback
     if (!data.length) {
       try {
         const api = `${global.APIs.delirius.url}/download/instagram?url=${encodeURIComponent(args[0])}`
