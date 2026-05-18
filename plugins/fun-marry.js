@@ -34,13 +34,9 @@ const handler = async (m, { conn, command, usedPrefix, text }) => {
 
   if (command === 'confirmdivorce') {
     const partnerId = users[userId]?.marry
-
     if (!partnerId) return
 
-    if (users[partnerId]) {
-      users[partnerId].marry = ''
-    }
-
+    if (users[partnerId]) users[partnerId].marry = ''
     users[userId].marry = ''
 
     return conn.sendMessage(
@@ -120,10 +116,7 @@ const handler = async (m, { conn, command, usedPrefix, text }) => {
     )
 
     setTimeout(() => {
-      if (
-        users[userId] &&
-        !users[userId].marry
-      ) {
+      if (users[userId] && !users[userId].marry) {
         conn.sendMessage(
           m.chat,
           {
@@ -140,7 +133,10 @@ const handler = async (m, { conn, command, usedPrefix, text }) => {
   }
 
   if (command === 'acceptmarry') {
-    const suitorId = text.split(' ')[0]
+    const suitorId =
+      text?.split(' ')[0] ||
+      m.quoted?.sender ||
+      m.message?.extendedTextMessage?.contextInfo?.participant
 
     if (!suitorId) return
 
@@ -166,7 +162,7 @@ const handler = async (m, { conn, command, usedPrefix, text }) => {
       {
         video: { url: randomGif },
         gifPlayback: true,
-        caption: `💒 『☽』 Las sombras han sellado el pacto.\n@${suitorId.split('@')[0]} y @${userId.split('@')[0]} ahora están casados.\n\n🎉🥳 *¡VIVAN LOS NOVIOSSS NJD!* (ojalá no sean infiel xd)`,
+        caption: `💒 『☽』 Las sombras han sellado el pacto.\n@${suitorId.split('@')[0]} y @${userId.split('@')[0]} ahora están casados.\n\n🎉🥳 *¡VIVAN LOS NOVIOSSS NJD!*`,
         mentions: [suitorId, userId]
       },
       { quoted: m }
@@ -174,7 +170,10 @@ const handler = async (m, { conn, command, usedPrefix, text }) => {
   }
 
   if (command === 'declinemarry') {
-    const suitorId = text.split(' ')[0]
+    const suitorId =
+      text?.split(' ')[0] ||
+      m.quoted?.sender ||
+      m.message?.extendedTextMessage?.contextInfo?.participant
 
     if (!suitorId) return
 
