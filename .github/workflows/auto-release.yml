@@ -1,0 +1,77 @@
+name: Auto Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'package.json'
+
+jobs:
+  crear-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Obtener Version
+        id: get_version
+        run: |
+          VERSION=$(jq -r .version package.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Publicar Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: SHADOW-BOT-MD v${{ steps.get_version.outputs.version }}
+          body: |
+            <h1 align="center">    
+              <img src="https://files.catbox.moe/tep16z.jpg" width="270px" /><br>    
+              <strong>SHADOW-BOT-MD</strong>    
+            </h1>    
+                  
+            <div align="center">    
+              <p align="center">    
+                <img src="https://img.shields.io/github/stars/yosue891/SHADOW-BOT-MD?style=for-the-badge&color=1E90FF&logo=github">    
+                <img src="https://img.shields.io/github/followers/yosue891?style=for-the-badge&color=blue">    
+                <img src="https://img.shields.io/badge/CREADOR-YOSUE-1E90FF?style=for-the-badge">    
+              </p>    
+                
+            ---    
+                
+            ### ❀ **Actualizacion**:    
+            > Se ha estado mejorando el bot para traer esta Actualización...    
+                
+            - Se ha agregado mas Plugins...    
+            - Se ha mejorado archivo principales.    
+            #### Y mas cosas...    
+                
+            <details>    
+              <summary><b> Licence (MIT) </b></summary>    
+                
+            ## MIT License    
+                
+            Copyright (c) 2025 By Ado And Yosue    
+                
+            Permission is hereby granted, free of charge, to any person obtaining a copy    
+            of this software and associated documentation files (the "Software"), to deal    
+            in the Software without restriction, including without limitation the rights    
+            to use copy modify merge publish distribute sublicense and/or sell copies of    
+            the Software and to permit persons to whom the Software is furnished to do    
+            so subject to the following conditions    
+                
+            The above copyright notice and this permission notice shall be included in all    
+            copies or substantial portions of the Software    
+                
+            THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND EXPRESS OR    
+            IMPLIED INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY    
+            FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT IN NO EVENT SHALL THE    
+            AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM DAMAGES OR OTHER    
+            LIABILITY WHETHER IN AN ACTION OF CONTRACT TORT OR OTHERWISE ARISING FROM    
+            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE    
+            SOFTWARE    
+            </details>
+            
