@@ -127,7 +127,12 @@ export async function handler(chatUpdate) {
     if (opts["swonly"] && m.chat !== "status@broadcast") return;
     if (m.isBaileys) return;
 
-    if (chat.primaryBot && chat.primaryBot !== this.user.jid && !m.text.startsWith((prefixRegex.source || '.') + 'delprimary')) {
+    const delPrimaryRegex = prefixRegex instanceof RegExp
+        ? new RegExp(`${prefixRegex.source}delprimary\\b`, prefixRegex.flags)
+        : /^delprimary\b/i;
+    const isDelPrimaryCommand = typeof m.text === "string" && delPrimaryRegex.test(m.text);
+
+    if (chat.primaryBot && chat.primaryBot !== this.user.jid && !isDelPrimaryCommand) {
         const participants = m.isGroup ? (await this.groupMetadata(m.chat).catch(() => ({ participants: [] }))).participants : [];
         const primaryBotInGroup = participants.some(p => p.jid === chat.primaryBot);
         const primaryBotConn = global.conns.find(conn => conn.user.jid === chat.primaryBot && conn.ws.socket?.readyState !== ws.CLOSED);

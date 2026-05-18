@@ -379,7 +379,7 @@ if (readBotPath.includes(creds)) {
 MichiJadiBot({pathMichiJadiBot: botPath, m: null, conn, args: '', usedPrefix: '/', command: 'serbot'})
 }}}}
 
-const pluginFolder = global.__dirname(join(__dirname, '../plugins'))
+const pluginFolder = join(__dirname, '../plugins')
 const pluginFilter = (filename) => /\.js$/.test(filename)
 global.plugins = {}
 async function filesInit() {
@@ -392,7 +392,8 @@ global.plugins[filename] = module.default || module
 conn.logger.error(e)
 delete global.plugins[filename]
 }}}
-filesInit().then((_) => Object.keys(global.plugins)).catch(console.error)
+await filesInit()
+console.log(chalk.cyan(`[ ✿ ] Plugins cargados: ${Object.keys(global.plugins).length}`))
 
 global.reload = async (_ev, filename) => {
 if (pluginFilter(filename)) {
