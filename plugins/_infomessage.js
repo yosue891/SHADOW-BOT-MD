@@ -1,4 +1,4 @@
-let WAMessageStubType = (await import('@whiskeysockets/baileys')).default
+import { WAMessageStubType } from '@whiskeysockets/baileys'
 import chalk from 'chalk'
 import fs from 'fs'
 import path from 'path'
