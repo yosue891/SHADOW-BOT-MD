@@ -6,12 +6,123 @@ import fs, { unwatchFile, watchFile } from "fs";
 import chalk from "chalk";
 import fetch from "node-fetch";
 import ws from "ws";
-
-const { proto } = (await import("@whiskeysockets/baileys")).default;
+import { proto } from "@whiskeysockets/baileys";
 const isNumber = x => typeof x === "number" && !isNaN(x);
 const delay = ms => isNumber(ms) && new Promise(resolve => setTimeout(resolve, ms));
 
 const prefixCache = new Map();
+const groupMetadataCache = global.__shadowGroupMetadataCache || (global.__shadowGroupMetadataCache = new Map());
+const GROUP_METADATA_TTL = 30 * 1000;
+
+function normalizeJid(jid, conn) {
+    if (!jid) return "";
+    if (typeof jid === "object") jid = jid.phoneNumber || jid.jid || jid.id || jid.lid || "";
+    if (typeof jid !== "string") jid = String(jid || "");
+    if (!jid) return "";
+    try {
+        jid = conn?.decodeJid?.(jid) || jid;
+    } catch { }
+    return jid.trim().replace(/:\d+@/, "@").toLowerCase();
+}
+
+function jidNumber(jid, conn) {
+    const normalized = normalizeJid(jid, conn);
+    if (!normalized || normalized.endsWith("@lid")) return "";
+    return normalized.split("@")[0].replace(/\D/g, "");
+}
+
+function rawNumber(value) {
+    const raw = Array.isArray(value) ? value[0] : value;
+    return String(raw || "").replace(/\D/g, "");
+}
+
+function identityNumbers(jids, conn) {
+    return new Set((jids || []).map(jid => jidNumber(jid, conn)).filter(Boolean));
+}
+
+function matchesNumberList(jids, list, conn) {
+    const numbers = identityNumbers(jids, conn);
+    return (list || []).some(entry => {
+        const number = rawNumber(entry);
+        return number && numbers.has(number);
+    });
+}
+
+function participantIds(participant) {
+    if (!participant) return [];
+    return [
+        participant.id,
+        participant.jid,
+        participant.lid,
+        participant.phoneNumber,
+        participant.pn,
+        participant.phone
+    ].filter(Boolean);
+}
+
+function messageIds(m) {
+    return [
+        m?.sender,
+        m?.participant,
+        m?.key?.participantAlt,
+        m?.key?.remoteJidAlt,
+        m?.key?.participant,
+        m?.key?.remoteJid
+    ].filter(Boolean);
+}
+
+function sameIdentity(a, b, conn) {
+    const na = normalizeJid(a, conn);
+    const nb = normalizeJid(b, conn);
+    if (!na || !nb) return false;
+    if (na === nb) return true;
+    const aa = jidNumber(na, conn);
+    const bb = jidNumber(nb, conn);
+    return !!aa && !!bb && aa === bb;
+}
+
+function findParticipant(participants, candidates, conn) {
+    if (!Array.isArray(participants) || !participants.length) return {};
+    const cleanCandidates = (candidates || []).filter(Boolean);
+    return participants.find(p => participantIds(p).some(id => cleanCandidates.some(candidate => sameIdentity(id, candidate, conn)))) || {};
+}
+
+function normalizeParticipant(participant, conn) {
+    if (!participant) return participant;
+    const id = participant.id || participant.jid || participant.phoneNumber || participant.lid || "";
+    const phoneNumber = participant.phoneNumber || (!normalizeJid(id, conn).endsWith("@lid") ? id : undefined);
+    return {
+        ...participant,
+        jid: participant.jid || phoneNumber || participant.id || participant.lid,
+        phoneNumber
+    };
+}
+
+async function getGroupMetadataCached(conn, jid) {
+    if (!jid?.endsWith("@g.us")) return { participants: [] };
+    const now = Date.now();
+    const cached = groupMetadataCache.get(jid);
+    if (cached && now - cached.ts < GROUP_METADATA_TTL) return cached.data;
+
+    const stored = conn?.chats?.[jid]?.metadata;
+    if (stored?.participants?.length) {
+        groupMetadataCache.set(jid, { ts: now, data: stored });
+        return stored;
+    }
+
+    const metadata = await conn.groupMetadata(jid).catch(() => stored || { id: jid, participants: [] });
+    const safeMetadata = metadata || { id: jid, participants: [] };
+    if (safeMetadata?.participants?.length) {
+        if (!conn.chats[jid]) conn.chats[jid] = { id: jid };
+        conn.chats[jid].metadata = safeMetadata;
+    }
+    groupMetadataCache.set(jid, { ts: now, data: safeMetadata });
+    return safeMetadata;
+}
+
+function isAdminParticipant(participant) {
+    return participant?.admin === "admin" || participant?.admin === "superadmin" || participant?.isAdmin === true || participant?.isSuperAdmin === true;
+}
 
 export async function handler(chatUpdate) {
     this.msgqueque = this.msgqueque || [];
@@ -26,7 +137,7 @@ export async function handler(chatUpdate) {
 
     let prefixRegex = global.prefix;
     let usedPrefix = global.prefix || "";
-    const senderNumber = this.user.jid.split('@')[0];
+    const senderNumber = (this.user.jid || this.user.id || '').split('@')[0].replace(/:\d+$/, '');
     if (!prefixCache.has(senderNumber)) {
         const botPath = path.join('./Sessions/SubBot', senderNumber);
         const configPath = path.join(botPath, 'config.json');
@@ -116,10 +227,19 @@ export async function handler(chatUpdate) {
     }
 
     const conn = m.conn || global.conn;
-    const isROwner = global.owner.some(([number]) => number.replace(/[^0-9]/g, "") + "@s.whatsapp.net" === m.sender);
+    const groupMetadata = m.isGroup ? await getGroupMetadataCached(this, m.chat) : { participants: [] };
+    const participants = m.isGroup ? (groupMetadata.participants || []).map(p => normalizeParticipant(p, this)) : [];
+
+    const senderCandidates = messageIds(m);
+    const botCandidates = [this.user?.jid, this.user?.id, this.user?.lid, this.user?.phoneNumber, this.user?.pn].filter(Boolean);
+    const userGroup = m.isGroup ? findParticipant(participants, senderCandidates, this) : {};
+    const botGroup = m.isGroup ? findParticipant(participants, botCandidates, this) : {};
+
+    const senderIdentity = [...senderCandidates, ...participantIds(userGroup)];
+    const isROwner = matchesNumberList(senderIdentity, global.owner, this);
     const isOwner = isROwner || m.fromMe;
-    const isMods = isROwner || global.mods.some(v => v.replace(/[^0-9]/g, "") + "@s.whatsapp.net" === m.sender);
-    const isPrems = isROwner || global.prems.some(v => v.replace(/[^0-9]/g, "") + "@s.whatsapp.net" === m.sender) || user.premium;
+    const isMods = isROwner || matchesNumberList(senderIdentity, global.mods, this);
+    const isPrems = isROwner || matchesNumberList(senderIdentity, global.prems, this) || user.premium;
 
     if (opts["nyimak"]) return;
     if (!m.fromMe && !isMods && settings.self) return;
@@ -132,10 +252,9 @@ export async function handler(chatUpdate) {
         : /^delprimary\b/i;
     const isDelPrimaryCommand = typeof m.text === "string" && delPrimaryRegex.test(m.text);
 
-    if (chat.primaryBot && chat.primaryBot !== this.user.jid && !isDelPrimaryCommand) {
-        const participants = m.isGroup ? (await this.groupMetadata(m.chat).catch(() => ({ participants: [] }))).participants : [];
-        const primaryBotInGroup = participants.some(p => p.jid === chat.primaryBot);
-        const primaryBotConn = global.conns.find(conn => conn.user.jid === chat.primaryBot && conn.ws.socket?.readyState !== ws.CLOSED);
+    if (chat.primaryBot && !sameIdentity(chat.primaryBot, this.user.jid || this.user.id, this) && !isDelPrimaryCommand) {
+        const primaryBotInGroup = participants.some(p => participantIds(p).some(id => sameIdentity(id, chat.primaryBot, this)));
+        const primaryBotConn = (global.conns || []).find(sock => sameIdentity(sock?.user?.jid || sock?.user?.id, chat.primaryBot, sock) && sock.ws?.socket?.readyState !== ws.CLOSED);
         if (primaryBotConn && primaryBotInGroup) return;
         chat.primaryBot = null;
     }
@@ -149,26 +268,9 @@ export async function handler(chatUpdate) {
 
     m.exp += Math.ceil(Math.random() * 10);
 
-    async function getLidFromJid(id, conn) {
-        if (id.endsWith('@lid')) return id;
-        const res = await conn.onWhatsApp(id).catch(() => []);
-        return res[0]?.lid || id;
-    }
-
-    const groupMetadata = m.isGroup ? (await this.groupMetadata(m.chat).catch(() => ({ participants: [] }))) : {};
-    const participants = m.isGroup ? (groupMetadata.participants || []) : [];
-
-    const senderLid = await getLidFromJid(m.sender, this);
-    const botLid = await getLidFromJid(this.user.jid, this);
-    const senderJid = m.sender;
-    const botJid = this.user.jid;
-
-    const userGroup = participants.find(p => p.id === senderLid || p.id === senderJid) || {};
-    const botGroup = participants.find(p => p.id === botLid || p.id === botJid) || {};
-
-    const isRAdmin = userGroup.admin === "superadmin";
-    const isAdmin = isRAdmin || userGroup.admin === "admin";
-    const isBotAdmin = botGroup.admin === "admin" || botGroup.admin === "superadmin";
+    const isRAdmin = userGroup?.admin === "superadmin" || userGroup?.isSuperAdmin === true;
+    const isAdmin = isAdminParticipant(userGroup);
+    const isBotAdmin = isAdminParticipant(botGroup);
 
     const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), "../plugins");
     for (const name in global.plugins) {
@@ -268,15 +370,11 @@ export async function handler(chatUpdate) {
             global.dfail("group", m, this);
             continue;
         }
-        
-        // ===================================
-        // ===== BLOQUE CORREGIDO AÑADIDO ====
-        // ===================================
+
         if (plugin.admin && !isAdmin) {
             global.dfail("admin", m, this);
             continue;
         }
-        // ===================================
         
         if (plugin.botAdmin && !isBotAdmin) {
             global.dfail("botAdmin", m, this);
