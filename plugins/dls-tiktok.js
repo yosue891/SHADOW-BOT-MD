@@ -34,11 +34,11 @@ var handler = async (m, { conn, args, usedPrefix, command }) => {
 
     // Header tipo WhatsApp Business (miniatura + descripción debajo)
     const businessHeader = {
-      key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'ShadowHeader' },
+      key: { remoteJid: m.chat, participant: '0@s.whatsapp.net', fromMe: false, id: 'ShadowHeader' },
       message: {
         locationMessage: {
           name: '𝙩𝙞𝙠𝙩𝙤𝙠 👑',
-          jpegThumbnail: await (await fetch('https://files.catbox.moe/dsgmid.jpg')).buffer(),
+          jpegThumbnail: Buffer.from(await (await fetch('https://files.catbox.moe/dsgmid.jpg')).arrayBuffer()),
           vcard:
             'BEGIN:VCARD\n' +
             'VERSION:3.0\n' +
@@ -59,11 +59,15 @@ var handler = async (m, { conn, args, usedPrefix, command }) => {
     const media = await generateWAMessageContent({
       video: { url: videoURL },
       caption: 'TRANSMISIÓN COMPLETADA - ARCHIVO DE LAS SOMBRAS\n\n' + shadowInfo
-    }, { upload: conn.waUploadToServer })
+    }, { upload: conn.waUploadToServer, jid: m.chat })
 
     const msg = generateWAMessageFromContent(m.chat, {
       viewOnceMessage: {
         message: {
+          messageContextInfo: {
+            deviceListMetadata: {},
+            deviceListMetadataVersion: 2
+          },
           interactiveMessage: proto.Message.InteractiveMessage.fromObject({
             body: { text: 'TRANSMISIÓN COMPLETADA - ARCHIVO DE LAS SOMBRAS\n\n' + shadowInfo },
             footer: { text: '⚔️ Shadow Garden' },
@@ -71,7 +75,8 @@ var handler = async (m, { conn, args, usedPrefix, command }) => {
               hasMediaAttachment: true,
               videoMessage: media.videoMessage
             },
-            nativeFlowMessage: {
+            nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
+              messageParamsJson: '',
               buttons: [
                 {
                   name: 'cta_copy',
@@ -89,7 +94,7 @@ var handler = async (m, { conn, args, usedPrefix, command }) => {
                   })
                 }
               ]
-            },
+            }),
             contextInfo: {
               mentionedJid: [m.sender],
               isForwarded: false
@@ -97,7 +102,11 @@ var handler = async (m, { conn, args, usedPrefix, command }) => {
           })
         }
       }
-    }, { quoted: businessHeader })
+    }, {
+      quoted: businessHeader,
+      userJid: conn.user?.jid || conn.user?.id,
+      upload: conn.waUploadToServer
+    })
 
     await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
   } catch (error1) {
