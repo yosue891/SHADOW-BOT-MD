@@ -26,7 +26,7 @@
     "@bochilteam/scraper": "^4.2.4",
     "@hapi/boom": "^10.0.1",
     "@vitalets/google-translate-api": "^8.0.0",
-    "@whiskeysockets/baileys": "github:thisAdo/Baileys",
+    "@whiskeysockets/baileys": "npm i ourin-baileys@0.0.1-beta.1",
     "acrcloud": "^1.4.0",
     "aptoide-scraper": "github:DIEGO-OFC/dv-aptoide-scraper",
     "awesome-phonenumber": "^3.4.0",
