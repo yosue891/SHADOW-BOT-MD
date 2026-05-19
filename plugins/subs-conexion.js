@@ -47,8 +47,18 @@ function isSubBotConnected(jid) {
 let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
   if (!globalThis.db.data.settings[conn.user.jid].jadibotmd) return m.reply(`ꕥ El Comando *${command}* está desactivado temporalmente.`)
 
-  let time = global.db.data.users[m.sender].Subs + 120000
-  if (new Date - global.db.data.users[m.sender].Subs < 120000) return conn.reply(m.chat, `ꕥ Debes esperar ${msToTime(time - new Date())} para volver a vincular un *Sub-Bot.*`, m)
+  const userData = global.db.data.users[m.sender]
+  const now = Date.now()
+  const isCodeCommand = command === 'code'
+  const cooldownMs = isCodeCommand ? 60000 : 120000
+  const lastUse = isCodeCommand ? (userData?.lastCodeRequest || 0) : (userData?.Subs || 0)
+  const remaining = cooldownMs - (now - lastUse)
+  if (remaining > 0) {
+    const retryMsg = isCodeCommand
+      ? `Debes esperar ${msToTime(remaining)} para volver a usar *${usedPrefix}code*.`
+      : `Debes esperar ${msToTime(remaining)} para volver a vincular un *Sub-Bot.*`
+    return conn.reply(m.chat, retryMsg, m)
+  }
 
   let socklimit = global.conns.filter(sock => sock?.user).length
   if (socklimit >= 50) {
@@ -72,8 +82,13 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
   MichiJBOptions.command = command
   MichiJBOptions.fromCommand = true
 
+  if (isCodeCommand) {
+    userData.lastCodeRequest = now
+  } else {
+    userData.Subs = now
+  }
+
   MichiJadiBot(MichiJBOptions)
-  global.db.data.users[m.sender].Subs = new Date * 1
 }
 
 handler.help = ['qr', 'code']
