@@ -9,9 +9,35 @@ const dev = global.dev || "Cid Kagenou"
 const videoMenu = "https://cdn.adoolab.xyz/dl/f0924ab5.mp4"
 const thumbMenu = "https://cdn.adoolab.xyz/dl/c8a31e0f.jpg"
 const channelRD = global.channelRD || { id: "120363403739366547@newsletter", name: "Shadow" }
+const menuCooldown = new Map()
+const MENU_COOLDOWN_MS = 15000
+let thumbCache = null
+
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+
+function isRateOverlimitError(err) {
+  return err?.data === 429 || /rate-overlimit/i.test(String(err?.message || ""))
+}
+
+async function getThumbBuffer() {
+  if (thumbCache) return thumbCache
+  const response = await fetch(thumbMenu)
+  const arr = await response.arrayBuffer()
+  thumbCache = Buffer.from(arr)
+  return thumbCache
+}
 
 let handler = async (m, { conn, usedPrefix, dirname, participants }) => {
   try {
+    const now = Date.now()
+    const cooldownKey = `${m.chat}:${m.sender}`
+    const lastMenu = menuCooldown.get(cooldownKey) || 0
+    const remaining = MENU_COOLDOWN_MS - (now - lastMenu)
+    if (remaining > 0) {
+      return conn.reply(m.chat, `⏳ Espera ${Math.ceil(remaining / 1000)}s para volver a pedir el menú.`, m)
+    }
+    menuCooldown.set(cooldownKey, now)
+
     let mentionedJid = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.sender
     let name = await conn.getName(m.sender)
     let totalreg = Object.keys(global.db.data.users).length
@@ -81,12 +107,13 @@ ${comandos}
 ${readMore}
   乂 *ᴘʀᴏᴛᴏᴄᴏʟᴏ ᴅᴇ ᴄᴏᴍᴀɴᴅᴏꜱ ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ* 乂\n`.trim()
 
+    const thumbBuffer = await getThumbBuffer()
     const fkontak = {
       key: { fromMe: false, participant: "0@s.whatsapp.net", remoteJid: "status@broadcast" },
       message: {
         productMessage: {
           product: {
-            productImage: { mimetype: "image/jpeg", jpegThumbnail: await (await fetch(thumbMenu)).buffer() },
+            productImage: { mimetype: "image/jpeg", jpegThumbnail: thumbBuffer },
             title: `⌗ֶㅤ𝐌𝐞𝐧𝐮 𝐝𝐞 𝐥𝐚 𝐒𝐨𝐦𝐛𝐫𝐚`,
             description: "« Soy quien actúa en las sombras »",
             currencyCode: "USD",
@@ -123,31 +150,37 @@ ${readMore}
       }
     }, { quoted: fkontak })
 
-    await conn.sendMessage(m.chat, {
-      audio: { url: "https://cdn.adoolab.xyz/dl/ee22f32a.m4a" },
-      mimetype: "audio/mpeg",
-      ptt: false,
-      fileName: "menu-shadow.mp3",
-      contextInfo: {
-        forwardedNewsletterMessageInfo: {
-          newsletterJid: "120363403739366547@newsletter",
-          serverMessageId: '',
-          newsletterName: "shadow"
-        },
-        forwardingScore: 9999999,
-        isForwarded: true,
-        externalAdReply: {
-          title: "👻 Menú de la Sombra",
-          body: "« Soy quien actúa en las sombras »",
-          previewType: "PHOTO",
-          thumbnail: await (await fetch(thumbMenu)).buffer(),
-          sourceUrl: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O",
-          showAdAttribution: true
+    await delay(1200)
+    try {
+      await conn.sendMessage(m.chat, {
+        audio: { url: "https://cdn.adoolab.xyz/dl/ee22f32a.m4a" },
+        mimetype: "audio/mpeg",
+        ptt: false,
+        fileName: "menu-shadow.mp3",
+        contextInfo: {
+          forwardedNewsletterMessageInfo: {
+            newsletterJid: "120363403739366547@newsletter",
+            serverMessageId: '',
+            newsletterName: "shadow"
+          },
+          forwardingScore: 9999999,
+          isForwarded: true,
+          externalAdReply: {
+            title: "👻 Menú de la Sombra",
+            body: "« Soy quien actúa en las sombras »",
+            previewType: "PHOTO",
+            thumbnail: thumbBuffer,
+            sourceUrl: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O",
+            showAdAttribution: true
+          }
         }
-      }
-    })
+      })
+    } catch (audioErr) {
+      if (!isRateOverlimitError(audioErr)) throw audioErr
+    }
 
   } catch (e) {
+    if (isRateOverlimitError(e)) return
     await conn.sendMessage(m.chat, { text: `✘ Error: ${e.message}` })
   }
 }
