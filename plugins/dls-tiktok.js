@@ -1,6 +1,5 @@
 import fetch from 'node-fetch'
-import baileys from '@whiskeysockets/baileys'
-const { generateWAMessageFromContent, generateWAMessageContent, proto } = baileys
+import { generateWAMessageFromContent, generateWAMessageContent, proto } from '@whiskeysockets/baileys'
 
 var handler = async (m, { conn, args, usedPrefix, command }) => {
   if (!args[0]) {
