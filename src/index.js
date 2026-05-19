@@ -24,7 +24,7 @@ import { makeWASocket, protoType, serialize } from '../lib/simple.js'
 import { Low, JSONFile } from 'lowdb'
 import { mongoDB, mongoDBV2 } from '../lib/mongoDB.js'
 import store from '../lib/store.js'
-const { proto } = (await import('@whiskeysockets/baileys')).default
+import { proto } from '@whiskeysockets/baileys'
 import pkg from 'google-libphonenumber'
 const { PhoneNumberUtil } = pkg
 const phoneUtil = PhoneNumberUtil.getInstance()
@@ -142,7 +142,7 @@ return ""
 msgRetryCounterCache: msgRetryCounterCache || new Map(),
 userDevicesCache: userDevicesCache || new Map(),
 defaultQueryTimeoutMs: undefined,
-cachedGroupMetadata: (jid) => globalThis.conn.chats[jid] ?? {},
+cachedGroupMetadata: (jid) => globalThis.conn?.chats?.[jid]?.metadata ?? {},
 version: version, 
 keepAliveIntervalMs: 55000, 
 maxIdleTimeMs: 60000, 
@@ -181,6 +181,8 @@ if (opts['autocleartmp'] && (global.support || {}).find) (tmp = [os.tmpdir(), 't
 }, 30 * 1000)
 }
 
+const lidCache = global.__shadowLidCache || (global.__shadowLidCache = new Map())
+
 async function resolveLidToRealJid(lidJid, groupJid, maxRetries = 3, retryDelay = 1000) {
 if (!lidJid?.endsWith("@lid") || !groupJid?.endsWith("@g.us")) return lidJid?.includes("@") ? lidJid : `${lidJid}@s.whatsapp.net`
 const cached = lidCache.get(lidJid);
@@ -193,13 +195,18 @@ const metadata = await conn.groupMetadata(groupJid)
 if (!metadata?.participants) throw new Error("No se obtuvieron participantes")
 for (const participant of metadata.participants) {
 try {
-if (!participant?.jid) continue
-const contactDetails = await conn.onWhatsApp(participant.jid)
+const participantJid = participant.phoneNumber || participant.jid || participant.id
+if (!participantJid) continue
+if (participant.lid?.split('@')[0] === lidToFind && participant.phoneNumber) {
+lidCache.set(lidJid, participant.phoneNumber)
+return participant.phoneNumber
+}
+const contactDetails = await conn.onWhatsApp(participantJid)
 if (!contactDetails?.[0]?.lid) continue
 const possibleLid = contactDetails[0].lid.split("@")[0]
 if (possibleLid === lidToFind) {
-lidCache.set(lidJid, participant.jid)
-return participant.jid
+lidCache.set(lidJid, participantJid)
+return participantJid
 }} catch (e) {
 continue
 }}
