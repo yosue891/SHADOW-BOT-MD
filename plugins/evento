@@ -1,0 +1,49 @@
+// plugins/evento.js
+// Plugin para enviar invitaciones a eventos usando Baileys
+// Comando: .evento
+// Uso datos basados en la documentación oficial de Baileys:
+// await sock.sendMessage(jid, {
+//   eventMessage: {
+//     name: '🎉 Community Meetup',
+//     description: 'Join us for the monthly meetup!',
+//     startTime: Date.now() + 86400000,
+//     endTime: Date.now() + 90000000,
+//     location: {
+//       name: 'Jakarta',
+//       degreesLatitude: -6.2,
+//       degreesLongitude: 106.8
+//     }
+//   }
+// })
+
+const handler = async (m, { conn, args }) => {
+  // Puedes personalizar el nombre y descripción desde el comando
+  const nombre = args[0] || '🎉 Evento Especial'
+  const descripcion = args.slice(1).join(' ') || 'Únete a nuestro evento exclusivo.'
+
+  // Fecha de inicio: mañana
+  const startTime = Date.now() + 24 * 60 * 60 * 1000
+
+  // Fecha de finalización: 1 hora después de iniciar
+  const endTime = startTime + 60 * 60 * 1000
+
+  await conn.sendMessage(m.chat, {
+    eventMessage: {
+      name: nombre,
+      description: descripcion,
+      startTime,
+      endTime,
+      location: {
+        name: 'Belmont, Virginia',
+        degreesLatitude: 39.0000,
+        degreesLongitude: -77.5300
+      }
+    }
+  }, { quoted: m })
+}
+
+handler.help = ['evento [nombre] [descripción]']
+handler.tags = ['tools']
+handler.command = ['evento', 'event']
+
+export default handler
