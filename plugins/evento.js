@@ -8,11 +8,13 @@ const handler = async (m, { conn }) => {
       productId: 'AIRPODS-PRO-2',
       retailerId: 'apple-store',
       url: 'https://www.apple.com/airpods-pro/',
-      priceAmount1000: 249000, // 249.00 USD (formato x1000 en Baileys)
+
+      priceAmount1000: 249000,
       currencyCode: 'USD',
 
+      // ✅ Imagen estable (GitHub raw, no bloquea stream)
       thumbnail: {
-        url: 'https://images.unsplash.com/photo-1585386959984-a41552231693?auto=format&fit=crop&w=600&q=60'
+        url: 'https://raw.githubusercontent.com/andresv27728/assets/main/airpods.png'
       },
 
       body: '🔥 Apple AirPods Pro 2 disponibles ahora',
