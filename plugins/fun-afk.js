@@ -29,7 +29,7 @@ export async function before(m, { conn }) {
           title: 'WhatsApp Business • Estado',
           description: 'Shadow team',
           currencyCode: 'USD',
-          priceAmount1000: 0,
+          priceAmount1000: '0',
           retailerId: 'ShadowCore',
           productImageCount: 1
         },

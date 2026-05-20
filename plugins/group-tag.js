@@ -78,7 +78,7 @@ const handler = async (m, { conn, args }) => {
             title: "🔊 ＳＨＡＤＯＷ - ＴＡＧ",
             description: "Notificación General", 
             currencyCode: "USD",
-            priceAmount1000: 0,
+            priceAmount1000: '0',
             retailerId: "Shadow",
             productImageCount: 1
           },

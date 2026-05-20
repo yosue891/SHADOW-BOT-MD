@@ -126,7 +126,7 @@ ${readMore}
             title: `⌗ֶㅤ𝐌𝐞𝐧𝐮 𝐝𝐞 𝐥𝐚 𝐒𝐨𝐦𝐛𝐫𝐚`,
             description: "« Soy quien actúa en las sombras »",
             currencyCode: "USD",
-            priceAmount1000: 0,
+            priceAmount1000: '0',
             retailerId: "menu"
           },
           businessOwnerJid: "584242773183@s.whatsapp.net"

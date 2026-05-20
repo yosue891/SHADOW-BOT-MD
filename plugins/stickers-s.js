@@ -32,7 +32,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         description: 'Registro requerido',
         currencyCode: 'USD',
         priceAmount1000: '0',
-        retailerId: 1677,
+        retailerId: '1677',
         url: `https://wa.me/584242773183`,
         productImageCount: 1
       },

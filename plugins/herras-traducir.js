@@ -28,7 +28,7 @@ const fkontak = {
         title: `⌗ֶㅤ𝐓𝐫𝐚𝐝𝐮𝐜𝐭𝐨𝐫 𝐝𝐞 𝐥𝐚 𝐒𝐨𝐦𝐛𝐫𝐚 ⚜`,
         description: "« Las lenguas del mundo se inclinan ante la Sombra. »",
         currencyCode: "USD",
-        priceAmount1000: 0,
+        priceAmount1000: '0',
         retailerId: "traductor"
       },
       businessOwnerJid: "584242773183@s.whatsapp.net"
