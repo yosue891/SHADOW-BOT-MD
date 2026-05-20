@@ -1,7 +1,7 @@
 import fs, { promises as fsp } from 'fs'
 import { fileURLToPath } from 'url'
 import path, { dirname, join } from 'path'
-import Jimp from 'jimp'
+import { Jimp } from 'jimp'
 import { xpRange } from '../lib/levelling.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -25,7 +25,7 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
     async function resizeImage(buffer, width, height) {
       try {
         const img = await Jimp.read(buffer)
-        return await img.resize(width, height).getBufferAsync(Jimp.MIME_JPEG)
+        return await img.resize({ w: width, h: height }).getBuffer('image/jpeg')
       } catch {
         return buffer
       }
