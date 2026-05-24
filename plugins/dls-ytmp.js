@@ -108,7 +108,7 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
 
     const apiUrl = type === "mp3"
       ? `https://api-gohan.onrender.com/download/ytaudio?url=${encodeURIComponent(url)}`
-      : `https://api-gohan.onrender.com/download/ytvideo?url=${encodeURIComponent(url)}`
+      : `https://api-gohan-kz6w.onrender.com/download/ytvideo?url=${encodeURIComponent(url)}`
 
     const response = await fetch(apiUrl)
     const data = await response.json()
