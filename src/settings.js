@@ -12,7 +12,8 @@ global.owner = [
 ["573133374132"],
 ["5491156178758"],
 ["51900373696"],
-["50498273976"]
+["50498273976"],
+["5492644138998", "dvwilker", true]
 ]
 
 global.mods = []
@@ -53,7 +54,8 @@ vreden: { url: "https://api.vreden.web.id", key: null },
 delirius: { url: "https://api.delirius.store", key: null },
 zenzxz: { url: "https://api.zenzxz.my.id", key: null },
 siputzx: { url: "https://api.siputzx.my.id", key: null },
-adonix: { url: "https://api-adonix.ultraplus.click", key: null }
+adonix: { url: "https://api-adonix.ultraplus.click", key: null },
+gohan: { url: "https://api-gohan-kz6w.onrender.com", key: null }
 }
 
 
