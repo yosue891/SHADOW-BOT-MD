@@ -1,10 +1,11 @@
 // código creado por DvWilkerOFC 
 // github https://github.com/dvwilker
+// no quitar créditos att DvWilkerOFC
 
 import { generateWAMessageFromContent } from '@whiskeysockets/baileys'
 
 let handler = async (m, { conn, text, usedPrefix }) => {
-if (!m.quoted && !text) return conn.reply(m.chat, `❀ Escribe el texto que deseas repetir.`, m)
+if (!m.quoted && !text) return conn.reply(m.chat, `🌌 Escribe el texto que deseas repetir.`, m)
 let mentionedJid = await m.mentionedJid
 let htextos = text ? text : (m.quoted && m.quoted.text) ? m.quoted.text : "Soy Shadow..."
 if ((mentionedJid && mentionedJid.length) || (m.quoted && m.quoted.mentionedJid && m.quoted.mentionedJid.length)) {
