@@ -1,3 +1,4 @@
+import fetch from 'node-fetch'
 import { xpRange } from '../lib/levelling.js'
 import fs from 'fs'
 import PhoneNumber from 'awesome-phonenumber'
@@ -32,11 +33,9 @@ let handler = async (m, { conn, usedPrefix, dirname, participants }) => {
     const cooldownKey = `${m.chat}:${m.sender}`
     const lastMenu = menuCooldown.get(cooldownKey) || 0
     const remaining = MENU_COOLDOWN_MS - (now - lastMenu)
-
     if (remaining > 0) {
       return conn.reply(m.chat, `⏳ Espera ${Math.ceil(remaining / 1000)}s para volver a pedir el menú.`, m)
     }
-
     menuCooldown.set(cooldownKey, now)
 
     let mentionedJid = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.sender
@@ -83,40 +82,32 @@ let handler = async (m, { conn, usedPrefix, dirname, participants }) => {
       }))
 
     let menuTexto = ''
-
     for (let tag in tags) {
       let comandos = commands
         .filter(cmd => cmd.tags.includes(tag))
         .map(cmd => cmd.help.map(e => `*│ׄꤥㅤׅ* ${usedPrefix}${e}`).join('\n'))
         .join('\n')
-
       if (comandos) {
         menuTexto += `\n*╭──･ ̸̷∵* \`${tags[tag]}\`  *݁ ⚜︎*
-
 ${comandos}
-╰─────────────֙╯\n`
+*╰─────────────֙╯*\n`
       }
     }
 
     let infoUser = `
-> . ݁  🌑՞ ʙɪᴇɴᴠᴇɴɪᴅᴏ ᴀ ʟᴀ ꜱᴏᴍʙʀᴀ, ${name}.
-
-
+> . ݁  🌑՞ *ʙɪᴇɴᴠᴇɴɪᴅᴏ ᴀ ʟᴀ ꜱᴏᴍʙʀᴀ,* ${name}.
 
 > ﹙⚜︎﹚੭੭ ─ \`ɪ ɴ ғ ᴏ - ꜱʜᴀᴅᴏᴡ ʙᴏᴛ\`
-ര ׄ 𓏸𓈒 ׅ ᴄᴏᴍᴀɴᴅᴏꜱ › ${totalCommands}
-ര ׄ 𓏸𓈒 ׅ ᴛɪᴇᴍᴘᴏ › ${uptime}
-ര ׄ 𓏸𓈒 ׅ ᴅᴏᴍɪɴɪᴏ › ${pais}
-ര ׄ 𓏸𓈒 ׅ ᴀʟᴍᴀꜱ › ${totalreg}
-ര ׄ 𓏸𓈒 ׅ ᴄᴀɴᴀʟ › https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
-
-
+> ര ׄ 𓏸𓈒 ׅ *ᴄᴏᴍᴀɴᴅᴏꜱ ›* ${totalCommands}
+> ര ׄ 𓏸𓈒 ׅ *ᴛɪᴇᴍᴘᴏ ›* ${uptime}
+> ര ׄ 𓏸𓈒 ׅ *ᴅᴏᴍɪɴɪᴏ ›* ${pais}
+> ര ׄ 𓏸𓈒 ׅ *ᴀʟᴍᴀꜱ ›* ${totalreg}
+> ര ׄ 𓏸𓈒 ׅ *ᴄᴀɴᴀʟ ›* https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
 
 ${readMore}
-乂 ᴘʀᴏᴛᴏᴄᴏʟᴏ ᴅᴇ ᴄᴏᴍᴀɴᴅᴏꜱ ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ 乂\n`.trim()
+  乂 *ᴘʀᴏᴛᴏᴄᴏʟᴏ ᴅᴇ ᴄᴏᴍᴀɴᴅᴏꜱ ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ* 乂\n`.trim()
 
     const thumbBuffer = await getThumbBuffer()
-
     const fkontak = {
       key: { fromMe: false, participant: "0@s.whatsapp.net", remoteJid: "status@broadcast" },
       message: {
@@ -126,7 +117,7 @@ ${readMore}
             title: `⌗ֶㅤ𝐌𝐞𝐧𝐮 𝐝𝐞 𝐥𝐚 𝐒𝐨𝐦𝐛𝐫𝐚`,
             description: "« Soy quien actúa en las sombras »",
             currencyCode: "USD",
-            priceAmount1000: '0',
+            priceAmount1000: 0,
             retailerId: "menu"
           },
           businessOwnerJid: "584242773183@s.whatsapp.net"
@@ -139,17 +130,50 @@ ${readMore}
     await conn.sendMessage(m.chat, {
       video: { url: videoMenu },
       caption: infoUser + menuTexto,
-      gifPlayback: true
+      gifPlayback: true,
+      contextInfo: {
+        isForwarded: true,
+        forwardedNewsletterMessageInfo: {
+          newsletterJid: channelRD.id,
+          serverMessageId: '',
+          newsletterName: channelRD.name
+        },
+        externalAdReply: {
+          title: `${botname} organizacional`,
+          body: `By ${dev}`,
+          mediaType: 1,
+          sourceUrl: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O",
+          thumbnailUrl: thumbMenu,
+          renderLargerThumbnail: true,
+          showAdAttribution: true
+        }
+      }
     }, { quoted: fkontak })
 
     await delay(1200)
-
     try {
       await conn.sendMessage(m.chat, {
         audio: { url: "https://cdn.adoolab.xyz/dl/ee22f32a.m4a" },
         mimetype: "audio/mpeg",
         ptt: false,
-        fileName: "menu-shadow.mp3"
+        fileName: "menu-shadow.mp3",
+        contextInfo: {
+          forwardedNewsletterMessageInfo: {
+            newsletterJid: "120363403739366547@newsletter",
+            serverMessageId: '',
+            newsletterName: "shadow"
+          },
+          forwardingScore: 9999999,
+          isForwarded: true,
+          externalAdReply: {
+            title: "👻 Menú de la Sombra",
+            body: "« Soy quien actúa en las sombras »",
+            previewType: "PHOTO",
+            thumbnail: thumbBuffer,
+            sourceUrl: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O",
+            showAdAttribution: true
+          }
+        }
       })
     } catch (audioErr) {
       if (!isRateOverlimitError(audioErr)) throw audioErr
@@ -163,9 +187,8 @@ ${readMore}
 
 handler.help = ['menu']
 handler.tags = ['main']
-handler.command = ['menu', 'help', 'menú', 'allmenu']
+handler.command = ['menu','help','menú', 'allmenu']
 handler.register = true
-
 export default handler
 
 function clockString(ms) {
