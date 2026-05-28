@@ -7,7 +7,7 @@ import moment from 'moment-timezone'
 const botname = global.botname || "Shadow Garden"
 const dev = global.dev || "Cid Kagenou"
 const videoMenu = "https://cdn.adoolab.xyz/dl/f0924ab5.mp4"
-const thumbMenu = "https://cdn.adoolab.xyz/dl/c8a31e0f.jpg"
+const thumbMenu = "https://cdn.adoolab.xyz/dl/796b0515.jpg"
 const channelRD = global.channelRD || { id: "120363403739366547@newsletter", name: "Shadow" }
 const menuCooldown = new Map()
 const MENU_COOLDOWN_MS = 15000
@@ -153,7 +153,7 @@ ${readMore}
     await delay(1200)
     try {
       await conn.sendMessage(m.chat, {
-        audio: { url: "https://cdn.adoolab.xyz/dl/ee22f32a.m4a" },
+        audio: { url: "https://cdn.adoolab.xyz/dl/fdc14de5.m4a" },
         mimetype: "audio/mpeg",
         ptt: false,
         fileName: "menu-shadow.mp3",
