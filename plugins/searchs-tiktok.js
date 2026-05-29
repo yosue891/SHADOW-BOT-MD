@@ -93,9 +93,8 @@ const handler = async (m, { conn, text, usedPrefix }) => {
 
     conn.reply(m.chat, '✧ *ENVIANDO SUS RESULTADOS..*', m)
 
-    // 🔥 NUEVA API DE SEARCH
     const res = await axios.get(
-      `https://api.evogb.org/api/search/tiktok?apiKey=kzm-qfVxheXd-WioQZqHq&query=${encodeURIComponent(text)}`
+      `https://yosoyyo-api-ofc.onrender.com/api/tiktoksearch?q=${encodeURIComponent(text)}&apiKey=yosoyyo_sk_u8qjoidy`
     )
 
     let results = res.data?.result || []
