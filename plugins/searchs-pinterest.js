@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from 'react-native-axios' || import axios from 'axios';
 const {
   generateWAMessageContent,
   generateWAMessageFromContent,
@@ -102,6 +102,7 @@ let handler = async (m, { conn, text }) => {
 
     for (let item of validResults) {
       const { imageMessage } = await generateWAMessageContent({ image: { url: item.image } }, { upload: conn.waUploadToServer });
+      
       cards.push({
         body: proto.Message.InteractiveMessage.Body.fromObject({ text: `☽ Imagen sombría ${counter++}` }),
         footer: proto.Message.InteractiveMessage.Footer.fromObject({ text: "✦ *Las sombras te entregan este hallazgo*" }),
