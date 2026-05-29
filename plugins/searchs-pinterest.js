@@ -15,15 +15,14 @@ let handler = async (m, { conn, text }) => {
   conn.reply(m.chat, `☽ *Las Sombras buscan tus imágenes...* espera un momento bajo la luna`);
 
   try {
-    const url = `https://api.kyuurzy.site/api/search/pinterest?apiKey=kzm-qfVxheXd-WioQZqHq&query=${encodeURIComponent(query)}`
+    const url = `https://rest.kazuma.giize.com/api/search/pinterest?apikey=kzm-qfVxheXd-WioQZqHq&query=${encodeURIComponent(query)}`
     const { data } = await axios.get(url)
 
     let results =
+      data?.result ||
       data?.results ||
       data?.data ||
-      data?.imagenes ||
       data?.items ||
-      data?.pins ||
       [];
 
     if (!Array.isArray(results) || results.length === 0) {
@@ -63,8 +62,8 @@ let handler = async (m, { conn, text }) => {
             name: "cta_url",
             buttonParamsJson: JSON.stringify({
               display_text: "🔗 Portal de Pinterest",
-              Url: item.pinUrl || "",
-              merchant_url: item.pinUrl || ""
+              Url: item.link || item.pinUrl || "",
+              merchant_url: item.link || item.pinUrl || ""
             })
           }]
         })
