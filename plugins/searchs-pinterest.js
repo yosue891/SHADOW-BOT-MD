@@ -1,98 +1,102 @@
-import axios from 'axios'
+import axios from "axios";
 const {
   generateWAMessageContent,
   generateWAMessageFromContent,
   proto
 } = (await import("@whiskeysockets/baileys"))["default"];
 
-async function getSession() {
-  const res = await fetch("https://id.pinterest.com/", {
+async function pinterestSearchV2(query) {
+  const session = await axios.get("https://www.pinterest.com/", {
     headers: {
       "user-agent": "Mozilla/5.0",
       "accept-language": "en-US,en;q=0.9"
     }
-  })
-  const raw = res.headers.getSetCookie?.() || []
-  const cookies = raw.map(c => c.split(";")[0]).join("; ")
-  const csrf = raw.find(c => c.startsWith("csrftoken="))?.match(/csrftoken=([^;]+)/)?.[1] || ""
-  return { cookies, csrf }
-}
+  });
 
-async function pinterestSearch(query, options = {}) {
-  const { limit = 10, scope = "pins", bookmark = null } = options
-  const session = await getSession()
+  const cookies = session.headers["set-cookie"]
+    ?.map(c => c.split(";")[0])
+    .join("; ") || "";
 
-  const data = {
+  const payload = {
     options: {
       query,
-      scope,
-      page_size: limit,
-      refine_search_with_filters: true,
-      ...(bookmark ? { bookmarks: [bookmark] } : {})
+      scope: "pins",
+      page_size: 20,
+      field_set_key: "unauth_react",
+      redux_normalize_feed: true
     },
     context: {}
-  }
+  };
 
-  const sourceUrl = `/search/${scope}/?q=${encodeURIComponent(query)}`
-  const url = `https://id.pinterest.com/resource/BaseSearchResource/get/?source_url=${encodeURIComponent(sourceUrl)}&data=${encodeURIComponent(JSON.stringify(data))}&_=${Date.now()}`
-
-  const res = await fetch(url, {
-    headers: {
-      "accept": "application/json",
-      "user-agent": "Mozilla/5.0",
-      "referer": `https://id.pinterest.com${sourceUrl}`,
-      ...(session.csrf ? { "x-csrftoken": session.csrf } : {}),
-      ...(session.cookies ? { "cookie": session.cookies } : {})
+  const res = await axios.get(
+    "https://www.pinterest.com/resource/BaseSearchResource/get/",
+    {
+      params: {
+        source_url: `/search/pins/?q=${encodeURIComponent(query)}`,
+        data: JSON.stringify(payload),
+        _: Date.now()
+      },
+      headers: {
+        "user-agent": "Mozilla/5.0",
+        "x-pinterest-appstate": "active",
+        "x-requested-with": "XMLHttpRequest",
+        cookie: cookies,
+        referer: "https://www.pinterest.com/"
+      }
     }
-  })
+  );
 
-  const json = await res.json().catch(() => null)
-  const payload = json?.resource_response?.data
-  if (!payload) return { results: [] }
+  const data = res.data?.resource_response?.data?.results || [];
 
-  const arr = Array.isArray(payload) ? payload : payload.results || []
-
-  const mapPin = (pin) => ({
-    title: pin.title || pin.grid_title || "",
-    image: pin.images?.orig?.url || pin.images?.["736x"]?.url || null,
-    username: pin.pinner?.username || null,
-    fullName: pin.pinner?.full_name || null,
-    pinUrl: `https://id.pinterest.com/pin/${pin.id}/`
-  })
-
-  return {
-    results: arr.filter(x => x?.id).map(mapPin)
-  }
+  return data
+    .filter(pin => pin?.images)
+    .map(pin => ({
+      title: pin.title || pin.grid_title || "",
+      image:
+        pin.images?.orig?.url ||
+        pin.images?.["736x"]?.url ||
+        null,
+      pinUrl: `https://www.pinterest.com/pin/${pin.id}/`
+    }));
 }
 
 let handler = async (m, { conn, text }) => {
   if (!text) {
-    return conn.reply(m.chat, `☽ *Discípulo de las Sombras*, ingresa lo que deseas invocar desde Pinterest`, m);
+    return conn.reply(
+      m.chat,
+      `☽ *Discípulo de las Sombras*, ingresa lo que deseas invocar desde Pinterest`,
+      m
+    );
   }
 
   await m.react("🗡️");
-  conn.reply(m.chat, `☽ *Las Sombras buscan tus imágenes...* espera un momento bajo la luna`);
+  conn.reply(
+    m.chat,
+    `☽ *Las Sombras buscan tus imágenes...* espera un momento bajo la luna`,
+    m
+  );
 
   try {
-    const searchResult = await pinterestSearch(text, { limit: 10, scope: "pins" })
+    const results = await pinterestSearchV2(text);
 
-    if (!searchResult.results.length) {
-      return conn.reply(m.chat, `☽ No se encontraron resultados para "${text}"`, m);
+    if (!results.length) {
+      return conn.reply(
+        m.chat,
+        `☽ No se encontraron resultados para "${text}"`,
+        m
+      );
     }
 
-    const validResults = searchResult.results.filter(p => p.image)
-    if (!validResults.length) {
-      return conn.reply(m.chat, `☽ No se encontraron imágenes válidas para "${text}"`, m);
-    }
+    let cards = [];
+    let counter = 1;
 
-    let cards = []
-    let counter = 1
+    for (let item of results) {
+      if (!item.image) continue;
 
-    for (let item of validResults) {
       const { imageMessage } = await generateWAMessageContent(
         { image: { url: item.image } },
         { upload: conn.waUploadToServer }
-      )
+      );
 
       cards.push({
         body: proto.Message.InteractiveMessage.Body.fromObject({
@@ -107,52 +111,65 @@ let handler = async (m, { conn, text }) => {
           imageMessage
         }),
         nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
-          buttons: [{
-            name: "cta_url",
-            buttonParamsJson: JSON.stringify({
-              display_text: "🔗 Portal de Pinterest",
-              Url: item.pinUrl,
-              merchant_url: item.pinUrl
-            })
-          }]
+          buttons: [
+            {
+              name: "cta_url",
+              buttonParamsJson: JSON.stringify({
+                display_text: "🔗 Portal de Pinterest",
+                Url: item.pinUrl,
+                merchant_url: item.pinUrl
+              })
+            }
+          ]
         })
-      })
+      });
     }
 
-    const messageContent = generateWAMessageFromContent(m.chat, {
-      viewOnceMessage: {
-        message: {
-          messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 },
-          interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-            body: proto.Message.InteractiveMessage.Body.create({
-              text: `📎 *Sombras encontradas para:* ${text}`
-            }),
-            footer: proto.Message.InteractiveMessage.Footer.create({
-              text: "☽ *Imágenes procesadas por el Reino de las Sombras*"
-            }),
-            header: proto.Message.InteractiveMessage.Header.create({
-              hasMediaAttachment: false
-            }),
-            carouselMessage: proto.Message.InteractiveMessage.CarouselMessage.fromObject({
-              cards
+    const messageContent = generateWAMessageFromContent(
+      m.chat,
+      {
+        viewOnceMessage: {
+          message: {
+            messageContextInfo: {
+              deviceListMetadata: {},
+              deviceListMetadataVersion: 2
+            },
+            interactiveMessage: proto.Message.InteractiveMessage.fromObject({
+              body: proto.Message.InteractiveMessage.Body.create({
+                text: `📎 *Sombras encontradas para:* ${text}`
+              }),
+              footer: proto.Message.InteractiveMessage.Footer.create({
+                text: "☽ *Imágenes procesadas por el Reino de las Sombras*"
+              }),
+              header: proto.Message.InteractiveMessage.Header.create({
+                hasMediaAttachment: false
+              }),
+              carouselMessage:
+                proto.Message.InteractiveMessage.CarouselMessage.fromObject({
+                  cards
+                })
             })
-          })
+          }
         }
-      }
-    }, { quoted: m })
+      },
+      { quoted: m }
+    );
 
-    await m.react("✅")
+    await m.react("✅");
     await conn.relayMessage(m.chat, messageContent.message, {
       messageId: messageContent.key.id
-    })
-
+    });
   } catch (e) {
-    return conn.reply(m.chat, `⛔ *Las Sombras fallaron...*`, m);
+    return conn.reply(
+      m.chat,
+      `⛔ *Las Sombras fallaron... intenta nuevamente bajo la luna*`,
+      m
+    );
   }
-}
+};
 
-handler.help = ["pinterest", "pin"]
-handler.tags = ["buscador"]
-handler.command = ["pinterest", "pin"]
+handler.help = ["pinterest", "pin"];
+handler.tags = ["buscador"];
+handler.command = ["pinterest", "pin"];
 
-export default handler
+export default handler;
