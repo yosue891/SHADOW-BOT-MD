@@ -15,7 +15,7 @@ let handler = async (m, { conn, text }) => {
   conn.reply(m.chat, `☽ *Las Sombras buscan tus imágenes...* espera un momento bajo la luna`);
 
   try {
-    const url = `https://rest.kazuma.giize.com/api/search/pinterest?apikey=kzm-qfVxheXd-WioQZqHq&query=${encodeURIComponent(query)}`
+    const url = `https://st.kazuma.giize.com/api/search/pinterest?apiKey=kzm-qfVxheXd-WioQZqHq&query=${encodeURIComponent(query)}`
     const { data } = await axios.get(url)
 
     let results =
