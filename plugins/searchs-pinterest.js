@@ -6,77 +6,74 @@ const {
 } = (await import("@whiskeysockets/baileys"))["default"];
 
 async function getSession() {
-  const res = await fetch("https://id.pinterest.com/", {
-    headers: {
-      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0",
-      "accept-language": "en-US,en;q=0.9"
-    }
-  })
-  const raw = res.headers.getSetCookie?.() || []
-  const cookies = raw.map(c => c.split(";")[0]).join("; ")
-  const csrf = raw.find(c => c.startsWith("csrftoken="))?.match(/csrftoken=([^;]+)/)?.[1] || ""
-  return { cookies, csrf }
+  try {
+    const res = await axios.get("https://id.pinterest.com/", {
+      headers: {
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0",
+        "accept-language": "en-US,en;q=0.9"
+      }
+    });
+    const raw = res.headers['set-cookie'] || [];
+    const cookies = raw.map(c => c.split(";")[0]).join("; ");
+    const csrf = raw.find(c => c.startsWith("csrftoken="))?.match(/csrftoken=([^;]+)/)?.[1] || "";
+    return { cookies, csrf };
+  } catch {
+    return { cookies: "", csrf: "" };
+  }
 }
 
 async function pinterestSearch(query, options = {}) {
-  const { limit = 5, scope = "pins", bookmark = null } = options
-  const session = await getSession()
+  const { limit = 10, scope = "pins", bookmark = null } = options;
+  const session = await getSession();
 
   const data = {
     options: {
       query,
       scope,
-      page_size: limit,
+      page_size: parseInt(limit),
       refine_search_with_filters: true,
       ...(bookmark ? { bookmarks: [bookmark] } : {})
     },
     context: {}
-  }
+  };
 
-  const sourceUrl = `/search/${scope}/?q=${encodeURIComponent(query)}`
-  const url = `https://id.pinterest.com/resource/BaseSearchResource/get/?source_url=${encodeURIComponent(sourceUrl)}&data=${encodeURIComponent(JSON.stringify(data))}&_=${Date.now()}`
+  const sourceUrl = `/search/${scope}/?q=${encodeURIComponent(query)}`;
+  const url = `https://id.pinterest.com/resource/BaseSearchResource/get/?source_url=${encodeURIComponent(sourceUrl)}&data=${encodeURIComponent(JSON.stringify(data))}&_=${Date.now()}`;
 
-  const res = await fetch(url, {
-    headers: {
-      "accept": "application/json, text/javascript, */*, q=0.01",
-      "accept-language": "en-US,en;q=0.9",
-      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0",
-      "referer": `https://id.pinterest.com${sourceUrl}`,
-      "x-requested-with": "XMLHttpRequest",
-      "x-app-version": "6d51d5a",
-      "x-pinterest-appstate": "active",
-      "x-pinterest-pws-handler": "www/search/[scope].js",
-      "x-pinterest-source-url": sourceUrl,
-      ...(session.csrf ? { "x-csrftoken": session.csrf } : {}),
-      ...(session.cookies ? { "cookie": session.cookies } : {})
-    }
-  })
+  try {
+    const res = await axios.get(url, {
+      headers: {
+        "accept": "application/json, text/javascript, */*, q=0.01",
+        "accept-language": "en-US,en;q=0.9",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0",
+        "referer": `https://id.pinterest.com${sourceUrl}`,
+        "x-requested-with": "XMLHttpRequest",
+        "x-app-version": "6d51d5a",
+        "x-pinterest-appstate": "active",
+        "x-pinterest-pws-handler": "www/search/[scope].js",
+        "x-pinterest-source-url": sourceUrl,
+        ...(session.csrf ? { "x-csrftoken": session.csrf } : {}),
+        ...(session.cookies ? { "cookie": session.cookies } : {})
+      }
+    });
 
-  if (!res.ok) return { results: [], bookmark: null, error: `HTTP ${res.status}` }
+    const payload = res.data?.resource_response?.data;
+    if (!payload) return { results: [] };
 
-  const json = await res.json().catch(() => null)
-  const payload = json?.resource_response?.data
-  if (!payload) return { results: [], bookmark: null, error: "no data" }
+    const arr = Array.isArray(payload) ? payload : payload.results || [];
 
-  const arr = Array.isArray(payload) ? payload : payload.results || []
+    const mapPin = (pin) => ({
+      title: pin.title || pin.grid_title || "Sin título",
+      image: pin.images?.orig?.url || pin.images?.["736x"]?.url || null,
+      pinUrl: `https://id.pinterest.com/pin/${pin.id}/`
+    });
 
-  const mapPin = (pin) => ({
-    title: pin.title || pin.grid_title || "",
-    image: pin.images?.orig?.url || pin.images?.["736x"]?.url || null,
-    video: pin.videos?.video_list?.V_HLSV4?.url
-      || pin.videos?.video_list?.V_EXP7?.url
-      || pin.videos?.video_list?.V_720P?.url
-      || null,
-    username: pin.pinner?.username || null,
-    fullName: pin.pinner?.full_name || null,
-    pinUrl: `https://id.pinterest.com/pin/${pin.id}/`
-  })
-
-  return {
-    query,
-    count: arr.length,
-    bookmark: payload.bookmark || null,
-    results: arr.filter(x => x?.id).map(mapPin)
+    return {
+      results: arr.filter(x => x?.id).map(mapPin)
+    };
+  } catch (err) {
+    console.error('Error en pinterestSearch:', err);
+    return { results: [] };
   }
 }
 
@@ -114,7 +111,7 @@ let handler = async (m, { conn, text }) => {
             name: "cta_url",
             buttonParamsJson: JSON.stringify({
               display_text: "🔗 Portal de Pinterest",
-              Url: item.pinUrl,
+              url: item.pinUrl,
               merchant_url: item.pinUrl
             })
           }]
@@ -127,12 +124,11 @@ let handler = async (m, { conn, text }) => {
         message: {
           messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 },
           interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-            body: proto.Message.InteractiveMessage.Body.create({ text: `📎 *Sombras encontradas para:* ${query}` }),
+            body: proto.Message.InteractiveMessage.Body.create({ text: `📎 *Sombras encontradas para:* ${text}` }),
             footer: proto.Message.InteractiveMessage.Footer.create({ text: "☽ *Imágenes procesadas por el Reino de las Sombras*" }),
             header: proto.Message.InteractiveMessage.Header.create({ hasMediaAttachment: false }),
             carouselMessage: proto.Message.InteractiveMessage.CarouselMessage.fromObject({ cards })
           })
-          
         }
       }
     }, { quoted: m });
