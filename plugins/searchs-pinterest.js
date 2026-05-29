@@ -18,11 +18,19 @@ let handler = async (m, { conn, text }) => {
     const url = `https://api.kyuurzy.site/api/search/pinterest?apiKey=kzm-qfVxheXd-WioQZqHq&query=${encodeURIComponent(query)}`
     const { data } = await axios.get(url)
 
-    if (!data || !data.results || data.results.length === 0) {
+    let results =
+      data?.results ||
+      data?.data ||
+      data?.imagenes ||
+      data?.items ||
+      data?.pins ||
+      [];
+
+    if (!Array.isArray(results) || results.length === 0) {
       return conn.reply(m.chat, `☽ No se encontraron resultados para "${text}"`, m);
     }
 
-    const validResults = data.results.filter(p => p.image);
+    const validResults = results.filter(p => p.image || p.url || p.img);
     if (validResults.length === 0) {
       return conn.reply(m.chat, `☽ No se encontraron imágenes válidas para "${text}"`, m);
     }
@@ -31,8 +39,10 @@ let handler = async (m, { conn, text }) => {
     let counter = 1;
 
     for (let item of validResults) {
+      const img = item.image || item.url || item.img;
+
       const { imageMessage } = await generateWAMessageContent(
-        { image: { url: item.image } },
+        { image: { url: img } },
         { upload: conn.waUploadToServer }
       );
 
@@ -53,8 +63,8 @@ let handler = async (m, { conn, text }) => {
             name: "cta_url",
             buttonParamsJson: JSON.stringify({
               display_text: "🔗 Portal de Pinterest",
-              Url: item.pinUrl,
-              merchant_url: item.pinUrl
+              Url: item.pinUrl || "",
+              merchant_url: item.pinUrl || ""
             })
           }]
         })
@@ -89,10 +99,9 @@ let handler = async (m, { conn, text }) => {
     });
 
   } catch (error) {
-    console.error(error);
     return conn.reply(
       m.chat,
-      `⛔ *Las Sombras fallaron... inténtalo más tarde bajo la luna* 🌌`,
+      `⛔ *Las Sombras fallaron... la API no respondió correctamente* 🌑`,
       m
     );
   }
