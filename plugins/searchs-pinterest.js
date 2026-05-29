@@ -5,45 +5,94 @@ const {
   proto
 } = (await import("@whiskeysockets/baileys"))["default"];
 
+async function getSession() {
+  const res = await fetch("https://id.pinterest.com/", {
+    headers: {
+      "user-agent": "Mozilla/5.0",
+      "accept-language": "en-US,en;q=0.9"
+    }
+  })
+  const raw = res.headers.getSetCookie?.() || []
+  const cookies = raw.map(c => c.split(";")[0]).join("; ")
+  const csrf = raw.find(c => c.startsWith("csrftoken="))?.match(/csrftoken=([^;]+)/)?.[1] || ""
+  return { cookies, csrf }
+}
+
+async function pinterestSearch(query, options = {}) {
+  const { limit = 10, scope = "pins", bookmark = null } = options
+  const session = await getSession()
+
+  const data = {
+    options: {
+      query,
+      scope,
+      page_size: limit,
+      refine_search_with_filters: true,
+      ...(bookmark ? { bookmarks: [bookmark] } : {})
+    },
+    context: {}
+  }
+
+  const sourceUrl = `/search/${scope}/?q=${encodeURIComponent(query)}`
+  const url = `https://id.pinterest.com/resource/BaseSearchResource/get/?source_url=${encodeURIComponent(sourceUrl)}&data=${encodeURIComponent(JSON.stringify(data))}&_=${Date.now()}`
+
+  const res = await fetch(url, {
+    headers: {
+      "accept": "application/json",
+      "user-agent": "Mozilla/5.0",
+      "referer": `https://id.pinterest.com${sourceUrl}`,
+      ...(session.csrf ? { "x-csrftoken": session.csrf } : {}),
+      ...(session.cookies ? { "cookie": session.cookies } : {})
+    }
+  })
+
+  const json = await res.json().catch(() => null)
+  const payload = json?.resource_response?.data
+  if (!payload) return { results: [] }
+
+  const arr = Array.isArray(payload) ? payload : payload.results || []
+
+  const mapPin = (pin) => ({
+    title: pin.title || pin.grid_title || "",
+    image: pin.images?.orig?.url || pin.images?.["736x"]?.url || null,
+    username: pin.pinner?.username || null,
+    fullName: pin.pinner?.full_name || null,
+    pinUrl: `https://id.pinterest.com/pin/${pin.id}/`
+  })
+
+  return {
+    results: arr.filter(x => x?.id).map(mapPin)
+  }
+}
+
 let handler = async (m, { conn, text }) => {
   if (!text) {
     return conn.reply(m.chat, `☽ *Discípulo de las Sombras*, ingresa lo que deseas invocar desde Pinterest`, m);
   }
 
-  let query = text + " hd";
   await m.react("🗡️");
   conn.reply(m.chat, `☽ *Las Sombras buscan tus imágenes...* espera un momento bajo la luna`);
 
   try {
-    const url = `https://st.kazuma.giize.com/api/search/pinterest?apiKey=kzm-qfVxheXd-WioQZqHq&query=${encodeURIComponent(query)}`
-    const { data } = await axios.get(url)
+    const searchResult = await pinterestSearch(text, { limit: 10, scope: "pins" })
 
-    let results =
-      data?.result ||
-      data?.results ||
-      data?.data ||
-      data?.items ||
-      [];
-
-    if (!Array.isArray(results) || results.length === 0) {
+    if (!searchResult.results.length) {
       return conn.reply(m.chat, `☽ No se encontraron resultados para "${text}"`, m);
     }
 
-    const validResults = results.filter(p => p.image || p.url || p.img);
-    if (validResults.length === 0) {
+    const validResults = searchResult.results.filter(p => p.image)
+    if (!validResults.length) {
       return conn.reply(m.chat, `☽ No se encontraron imágenes válidas para "${text}"`, m);
     }
 
-    let cards = [];
-    let counter = 1;
+    let cards = []
+    let counter = 1
 
     for (let item of validResults) {
-      const img = item.image || item.url || item.img;
-
       const { imageMessage } = await generateWAMessageContent(
-        { image: { url: img } },
+        { image: { url: item.image } },
         { upload: conn.waUploadToServer }
-      );
+      )
 
       cards.push({
         body: proto.Message.InteractiveMessage.Body.fromObject({
@@ -53,7 +102,7 @@ let handler = async (m, { conn, text }) => {
           text: "✦ *Las sombras te entregan este hallazgo*"
         }),
         header: proto.Message.InteractiveMessage.Header.fromObject({
-          title: item.title || "",
+          title: item.title,
           hasMediaAttachment: true,
           imageMessage
         }),
@@ -62,12 +111,12 @@ let handler = async (m, { conn, text }) => {
             name: "cta_url",
             buttonParamsJson: JSON.stringify({
               display_text: "🔗 Portal de Pinterest",
-              Url: item.link || item.pinUrl || "",
-              merchant_url: item.link || item.pinUrl || ""
+              Url: item.pinUrl,
+              merchant_url: item.pinUrl
             })
           }]
         })
-      });
+      })
     }
 
     const messageContent = generateWAMessageFromContent(m.chat, {
@@ -76,7 +125,7 @@ let handler = async (m, { conn, text }) => {
           messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 },
           interactiveMessage: proto.Message.InteractiveMessage.fromObject({
             body: proto.Message.InteractiveMessage.Body.create({
-              text: `📎 *Sombras encontradas para:* ${query}`
+              text: `📎 *Sombras encontradas para:* ${text}`
             }),
             footer: proto.Message.InteractiveMessage.Footer.create({
               text: "☽ *Imágenes procesadas por el Reino de las Sombras*"
@@ -90,24 +139,20 @@ let handler = async (m, { conn, text }) => {
           })
         }
       }
-    }, { quoted: m });
+    }, { quoted: m })
 
-    await m.react("✅");
+    await m.react("✅")
     await conn.relayMessage(m.chat, messageContent.message, {
       messageId: messageContent.key.id
-    });
+    })
 
-  } catch (error) {
-    return conn.reply(
-      m.chat,
-      `⛔ *Las Sombras fallaron... la API no respondió correctamente* 🌑`,
-      m
-    );
+  } catch (e) {
+    return conn.reply(m.chat, `⛔ *Las Sombras fallaron...*`, m);
   }
-};
+}
 
-handler.help = ["pinterest", "pin"];
-handler.tags = ["buscador"];
-handler.command = ["pinterest", "pin"];
+handler.help = ["pinterest", "pin"]
+handler.tags = ["buscador"]
+handler.command = ["pinterest", "pin"]
 
-export default handler;
+export default handler
