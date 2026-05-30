@@ -8,10 +8,8 @@ const {
 
 const handler = async (m, { conn, text, usedPrefix }) => {
   if (!text) {
-    return conn.reply(m.chat, '✐ Por favor, ingresa un término de búsqueda o un enlace de TikTok.', m)
+    return conn.reply(m.chat, '✐ Por favor, ingresa un término de búsqueda de TikTok.', m)
   }
-
-  const isUrl = /(?:https?:\/\/)?(?:www\.|vm\.|vt\.|t\.)?tiktok\.com\/[^\s&]+/i.test(text)
 
   async function createVideoMessage(url) {
     const { videoMessage } = await generateWAMessageContent(
@@ -31,70 +29,10 @@ const handler = async (m, { conn, text, usedPrefix }) => {
   try {
     if (m.react) await m.react('🕒')
 
-    if (isUrl) {
-      const res = await axios.get(
-        `https://www.tikwm.com/api/?url=${encodeURIComponent(text)}&hd=1`
-      )
-
-      const data = res.data?.data
-      if (!data?.play && !data?.images) {
-        if (m.react) await m.react('✖️')
-        return conn.reply(m.chat, 'ꕥ Enlace inválido o sin contenido descargable.', m)
-      }
-
-      const { title, duration, author, created_at, type, images, music, play } = data
-
-      const caption = `✐ Título » ${title || 'Contenido TikTok'}
-ⴵ Autor » ${author?.nickname || author?.unique_id || 'No disponible'}
-✰ Duración » ${duration ?? 'No disponible'} segundos
-❒ Fecha » ${created_at ?? 'No disponible'}`
-
-      if (type === 'image' && Array.isArray(images) && images.length) {
-        for (let i = 0; i < Math.min(images.length, 10); i++) {
-          await conn.sendMessage(
-            m.chat,
-            { image: { url: images[i] }, caption: i === 0 ? caption : undefined },
-            { quoted: m }
-          )
-        }
-
-        if (music) {
-          await conn.sendMessage(
-            m.chat,
-            {
-              audio: { url: music },
-              mimetype: 'audio/mp4',
-              fileName: 'tiktok_audio.mp4'
-            },
-            { quoted: m }
-          )
-        }
-
-        if (m.react) await m.react('✔️')
-        return
-      }
-
-      if (play) {
-        await conn.sendMessage(
-          m.chat,
-          {
-            video: { url: play },
-            caption
-          },
-          { quoted: m }
-        )
-        if (m.react) await m.react('✔️')
-        return
-      }
-
-      if (m.react) await m.react('✖️')
-      return conn.reply(m.chat, 'ꕥ No se encontró video descargable en ese enlace.', m)
-    }
-
     conn.reply(m.chat, '✧ *ENVIANDO SUS RESULTADOS..*', m)
 
     const res = await axios.get(
-      `https://yosoyyo-api-ofc.onrender.com/api/tiktoksearch?q=${encodeURIComponent(text)}&apiKey=yosoyyo_sk_u8qjoidy`
+      `https://yosoyyo-api-ofc.onrender.com/api/tiktoksearch?q=${encodeURIComponent(text)}&apiKey=yosoyyo_sk_2nbk5m69`
     )
 
     let results = res.data?.result || []
@@ -174,7 +112,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
   }
 }
 
-handler.help = ['tiktoks <texto|link>', 'tiktoksearch <texto|link>']
+handler.help = ['tiktoksearch <texto>']
 handler.tags = ['buscadores']
 handler.command = ['tiktoks', 'tiktoksearch', 'ttss']
 handler.group = true
