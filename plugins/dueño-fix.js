@@ -21,7 +21,7 @@ var handler = async (m, { conn, text, isMods }) => {
             title: 'Shadow • Update SHADOW-BOT-MD',
             body: 'Actualización del bot',
             mediaType: 1,
-            thumbnailUrl: 'https://files.catbox.moe/t6bwzk.jpg',
+            thumbnailUrl: 'https://cdn.adoolab.xyz/dl/3e965739.webp',
             sourceUrl: 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O'
           }
         }
