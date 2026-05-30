@@ -6,58 +6,22 @@ const {
 } = (await import("@whiskeysockets/baileys"))["default"];
 
 async function pinterestSearchV2(query) {
-  const session = await axios.get("https://www.pinterest.com/", {
-    headers: {
-      "user-agent": "Mozilla/5.0",
-      "accept-language": "en-US,en;q=0.9"
-    }
-  });
-
-  const cookies = session.headers["set-cookie"]
-    ?.map(c => c.split(";")[0])
-    .join("; ") || "";
-
-  const payload = {
-    options: {
-      query,
-      scope: "pins",
-      page_size: 20,
-      field_set_key: "unauth_react",
-      redux_normalize_feed: true
-    },
-    context: {}
-  };
-
-  const res = await axios.get(
-    "https://www.pinterest.com/resource/BaseSearchResource/get/",
-    {
-      params: {
-        source_url: `/search/pins/?q=${encodeURIComponent(query)}`,
-        data: JSON.stringify(payload),
-        _: Date.now()
-      },
-      headers: {
-        "user-agent": "Mozilla/5.0",
-        "x-pinterest-appstate": "active",
-        "x-requested-with": "XMLHttpRequest",
-        cookie: cookies,
-        referer: "https://www.pinterest.com/"
-      }
-    }
-  );
-
-  const data = res.data?.resource_response?.data?.results || [];
-
-  return data
-    .filter(pin => pin?.images)
-    .map(pin => ({
-      title: pin.title || pin.grid_title || "",
-      image:
-        pin.images?.orig?.url ||
-        pin.images?.["736x"]?.url ||
-        null,
-      pinUrl: `https://www.pinterest.com/pin/${pin.id}/`
+  try {
+    const limit = 10;
+    const apiUrl = `https://tester-web.onrender.com/api/pinterest?query=${encodeURIComponent(query)}&limit=${limit}`;
+    const res = await axios.get(apiUrl);
+    
+    if (!res.data || !res.data.status || !res.data.results) return [];
+    
+    return res.data.results.map(result => ({
+      title: result.titulo || "Sin título",
+      image: result.descarga || null,
+      pinUrl: ""
     }));
+  } catch (error) {
+    console.error("Error al consultar la API de Pinterest:", error);
+    return [];
+  }
 }
 
 let handler = async (m, { conn, text }) => {
@@ -111,16 +75,7 @@ let handler = async (m, { conn, text }) => {
           imageMessage
         }),
         nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
-          buttons: [
-            {
-              name: "cta_url",
-              buttonParamsJson: JSON.stringify({
-                display_text: "🔗 Portal de Pinterest",
-                Url: item.pinUrl,
-                merchant_url: item.pinUrl
-              })
-            }
-          ]
+          buttons: []
         })
       });
     }
