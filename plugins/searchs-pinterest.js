@@ -9,6 +9,7 @@ async function pinterestSearchV2(query) {
   try {
     const limit = 10;
     const apiUrl = `https://tester-web.onrender.com/api/pinterest?query=${encodeURIComponent(query)}&limit=${limit}`;
+
     const { data } = await axios.get(apiUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0"
@@ -19,13 +20,13 @@ async function pinterestSearchV2(query) {
     if (!data?.status || !Array.isArray(data.results)) return [];
 
     return data.results
-      .filter(result => result?.tipo === "imagen" && result?.descarga)
-      .map((result, i) => ({
-        title: result.titulo || `Imagen de Pinterest ${i + 1}`,
-        author: result.autor || "Desconocido",
-        likes: result.likes || "0",
-        image: result.descarga,
-        pinUrl: result.url || "https://pinterest.com"
+      .filter(v => v?.tipo === "imagen" && v?.descarga)
+      .map((v, i) => ({
+        title: v.titulo || `Imagen de Pinterest ${i + 1}`,
+        author: v.autor || "Desconocido",
+        likes: v.likes || "0",
+        image: v.descarga,
+        pinUrl: v.url || "https://pinterest.com"
       }));
   } catch (error) {
     console.error("Error al consultar la API de Pinterest:", error);
@@ -43,6 +44,7 @@ let handler = async (m, { conn, text }) => {
   }
 
   await m.react("🗡️");
+
   await conn.reply(
     m.chat,
     `☽ *Las Sombras buscan tus imágenes...* espera un momento bajo la luna`,
@@ -77,33 +79,31 @@ let handler = async (m, { conn, text }) => {
           }
         );
 
-        cards.push(
-          proto.Message.InteractiveMessage.CarouselMessage.Card.fromObject({
-            body: proto.Message.InteractiveMessage.Body.fromObject({
-              text: `☽ Imagen sombría ${counter++}\n𖣔 Autor: ${item.author}\n𖣔 Likes: ${item.likes}`
-            }),
-            footer: proto.Message.InteractiveMessage.Footer.fromObject({
-              text: "✦ Las sombras te entregan este hallazgo"
-            }),
-            header: proto.Message.InteractiveMessage.Header.fromObject({
-              title: item.title,
-              hasMediaAttachment: true,
-              imageMessage: media.imageMessage
-            }),
-            nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
-              buttons: [
-                {
-                  name: "cta_url",
-                  buttonParamsJson: JSON.stringify({
-                    display_text: "Ver en Pinterest",
-                    url: item.pinUrl,
-                    merchant_url: item.pinUrl
-                  })
-                }
-              ]
-            })
-          })
-        );
+        cards.push({
+          body: {
+            text: `☽ Imagen sombría ${counter++}\n𖣔 Autor: ${item.author}\n𖣔 Likes: ${item.likes}`
+          },
+          footer: {
+            text: "✦ Las sombras te entregan este hallazgo"
+          },
+          header: {
+            title: item.title,
+            hasMediaAttachment: true,
+            imageMessage: media.imageMessage
+          },
+          nativeFlowMessage: {
+            buttons: [
+              {
+                name: "cta_url",
+                buttonParamsJson: JSON.stringify({
+                  display_text: "Ver en Pinterest",
+                  url: item.pinUrl,
+                  merchant_url: item.pinUrl
+                })
+              }
+            ]
+          }
+        });
       } catch (err) {
         console.error("Error creando card de Pinterest:", err);
       }
@@ -128,18 +128,18 @@ let handler = async (m, { conn, text }) => {
               deviceListMetadataVersion: 2
             },
             interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-              body: proto.Message.InteractiveMessage.Body.fromObject({
+              body: {
                 text: `📎 *Sombras encontradas para:* ${text}`
-              }),
-              footer: proto.Message.InteractiveMessage.Footer.fromObject({
+              },
+              footer: {
                 text: "☽ Imágenes procesadas por el Reino de las Sombras"
-              }),
-              header: proto.Message.InteractiveMessage.Header.fromObject({
+              },
+              header: {
                 hasMediaAttachment: false
-              }),
-              carouselMessage: proto.Message.InteractiveMessage.CarouselMessage.fromObject({
+              },
+              carouselMessage: {
                 cards
-              })
+              }
             })
           }
         }
