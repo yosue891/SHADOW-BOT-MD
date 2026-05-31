@@ -6,7 +6,9 @@ import {
 } from '@whiskeysockets/baileys'
 
 const handler = async (m, { conn, text, usedPrefix }) => {
-  if (!text) return m.reply('✐ Ingresa un término de búsqueda de TikTok.')
+  if (!text) {
+    return conn.reply(m.chat, '✐ Por favor, ingresa un término de búsqueda de TikTok.', m)
+  }
 
   async function createImageMessage(url) {
     const { imageMessage } = await generateWAMessageContent(
@@ -24,71 +26,80 @@ const handler = async (m, { conn, text, usedPrefix }) => {
   }
 
   try {
-    await m.react('🕘')
+    if (m.react) await m.react('🕒')
+
+    conn.reply(m.chat, '✧ ENVIANDO SUS RESULTADOS..', m)
 
     const res = await axios.get(
       `https://yosoyyo-api-ofc.onrender.com/api/tiktoksearch?q=${encodeURIComponent(text)}&apiKey=yosoyyo_sk_2nbk5m69`
     )
 
     let results = res.data?.result || res.data?.results || res.data?.data || []
-    if (!Array.isArray(results) && typeof results === 'object') results = [results]
+    
+    if (!Array.isArray(results) && typeof results === 'object') {
+      results = [results]
+    }
 
     const validResults = results.filter(v => v && (v.play || v.download || v.video))
-    if (!validResults.length) return m.reply('❌ No se encontraron videos válidos.')
+
+    if (!validResults.length) {
+      if (m.react) await m.react('✖️')
+      return conn.reply(m.chat, 'ꕥ No se encontraron videos válidos en la respuesta de la API.', m)
+    }
 
     shuffleArray(validResults)
     const topResults = validResults.slice(0, 7)
 
-    let cards = []
+    const cards = []
     for (const v of topResults) {
       const videoUrl = v.play || v.download || v.video
-      const coverUrl = v.cover || v.origin_cover
+      const coverUrl = v.cover || v.origin_cover || 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7'
       const audioUrl = v.music || v.audio || v.sound || videoUrl
+      const imageMessage = await createImageMessage(coverUrl)
+      
       const title = v.title || v.description || 'Video TikTok'
       const author = v.author?.nickname || v.author || 'Desconocido'
-      const duration = v.duration || 'No disponible'
-
-      const imageMessage = await createImageMessage(coverUrl)
+      const duration = v.duration ?? 'No disponible'
 
       cards.push({
-        body: proto.Message.InteractiveMessage.Body.fromObject({
-          text: `✨ Título: ${title}\n👤 Autor: ${author}\n⏳ Duración: ${duration}s`
-        }),
-        footer: proto.Message.InteractiveMessage.Footer.fromObject({
-          text: 'Shadow Garden — TikTok'
-        }),
-        header: proto.Message.InteractiveMessage.Header.fromObject({
-          title: 'Resultados TikTok',
+        body: {
+          text: `✐ ${title}\nⴵ Autor » ${author}\n✰ Duración » ${duration} segundos`
+        },
+        footer: {
+          text: 'TikTok Search'
+        },
+        header: {
+          title: title.slice(0, 50),
           hasMediaAttachment: true,
-          imageMessage
-        }),
+          imageMessage: imageMessage
+        },
         nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
           buttons: [
             {
               name: 'quick_reply',
               buttonParamsJson: JSON.stringify({
-                display_text: '🎵 Audio',
+                display_text: "🎵 Audio",
                 id: `${usedPrefix}tiktokaudio ${videoUrl}`
               })
             },
             {
               name: 'quick_reply',
               buttonParamsJson: JSON.stringify({
-                display_text: '🎥 Video',
+                display_text: "🎥 Video",
                 id: `${usedPrefix}tiktokvideo ${videoUrl}`
               })
             },
             {
               name: 'quick_reply',
               buttonParamsJson: JSON.stringify({
-                display_text: '🖼 Imagen',
+                display_text: "🖼 Imagen",
                 id: `${usedPrefix}tiktokimg ${coverUrl}`
               })
             },
             {
-              name: 'cta_url',
+              name: "cta_url",
               buttonParamsJson: JSON.stringify({
-                display_text: '🌐 Ver en TikTok',
+                display_text: "🌐 Ver en TikTok",
                 url: videoUrl
               })
             }
@@ -97,21 +108,33 @@ const handler = async (m, { conn, text, usedPrefix }) => {
       })
     }
 
+    if (!cards.length) {
+      if (m.react) await m.react('✖️')
+      return conn.reply(m.chat, 'ꕥ No se pudo procesar ninguna card para el carrusel.', m)
+    }
+
     const msg = generateWAMessageFromContent(
       m.chat,
       {
         viewOnceMessage: {
           message: {
+            messageContextInfo: {
+              deviceListMetadata: {},
+              deviceListMetadataVersion: 2
+            },
             interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-              body: proto.Message.InteractiveMessage.Body.create({
-                text: `🌑✦ Resultados para: *${text}*`
-              }),
-              footer: proto.Message.InteractiveMessage.Footer.create({
-                text: 'Selecciona una opción del carrusel'
-              }),
-              carouselMessage: proto.Message.InteractiveMessage.CarouselMessage.fromObject({
+              body: {
+                text: `✧ RESULTADO DE: ${text}`
+              },
+              footer: {
+                text: 'TikTok Search'
+              },
+              header: {
+                hasMediaAttachment: false
+              },
+              carouselMessage: {
                 cards
-              })
+              }
             })
           }
         }
@@ -120,11 +143,15 @@ const handler = async (m, { conn, text, usedPrefix }) => {
     )
 
     await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
-    await m.react('✅')
 
+    if (m.react) await m.react('✔️')
   } catch (e) {
-    await m.reply(`❌ Error\n${e.message}`)
-    await m.react('⚠️')
+    if (m.react) await m.react('✖️')
+    await conn.reply(
+      m.chat,
+      `⚠︎ Se ha producido un problema.\n\n🜸 Detalles: ${e.message}`,
+      m
+    )
   }
 }
 
@@ -132,5 +159,6 @@ handler.help = ['tiktoksearch <texto>']
 handler.tags = ['buscadores']
 handler.command = ['tiktoks', 'tiktoksearch', 'ttss']
 handler.group = true
+handler.coin = 23
 
 export default handler
