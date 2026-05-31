@@ -48,26 +48,36 @@ const handler = async (m, { conn, text, usedPrefix }) => {
 
     const cards = []
     for (const v of topResults) {
-      const title = v.title || 'Video TikTok'
-      const author = v.author || 'Desconocido'
-      const duration = v.duration ?? 'No disponible'
+      try {
+        const videoMessage = await createVideoMessage(v.play)
+        const title = v.title || 'Video TikTok'
+        const author = v.author || 'Desconocido'
+        const duration = v.duration ?? 'No disponible'
 
-      cards.push({
-        body: proto.Message.InteractiveMessage.Body.fromObject({
-          text: `✐ ${title}\nⴵ Autor » ${author}\n✰ Duración » ${duration} segundos`
-        }),
-        footer: proto.Message.InteractiveMessage.Footer.fromObject({
-          text: 'TikTok Search'
-        }),
-        header: proto.Message.InteractiveMessage.Header.fromObject({
-          title: title,
-          hasMediaAttachment: true,
-          videoMessage: await createVideoMessage(v.play)
-        }),
-        nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
-          buttons: []
+        cards.push({
+          body: {
+            text: `✐ ${title}\nⴵ Autor » ${author}\n✰ Duración » ${duration} segundos`
+          },
+          footer: {
+            text: 'TikTok Search'
+          },
+          header: {
+            title: title,
+            hasMediaAttachment: true,
+            videoMessage: videoMessage
+          },
+          nativeFlowMessage: {
+            buttons: []
+          }
         })
-      })
+      } catch (err) {
+        console.error("Error creando card de TikTok:", err)
+      }
+    }
+
+    if (!cards.length) {
+      if (m.react) await m.react('✖️')
+      return conn.reply(m.chat, 'ꕥ No se pudieron procesar los videos encontrados.', m)
     }
 
     const msg = generateWAMessageFromContent(
@@ -80,18 +90,18 @@ const handler = async (m, { conn, text, usedPrefix }) => {
               deviceListMetadataVersion: 2
             },
             interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-              body: proto.Message.InteractiveMessage.Body.create({
+              body: {
                 text: `✧ RESULTADO DE: ${text}`
-              }),
-              footer: proto.Message.InteractiveMessage.Footer.create({
+              },
+              footer: {
                 text: 'TikTok Search'
-              }),
-              header: proto.Message.InteractiveMessage.Header.create({
+              },
+              header: {
                 hasMediaAttachment: false
-              }),
-              carouselMessage: proto.Message.InteractiveMessage.CarouselMessage.fromObject({
+              },
+              carouselMessage: {
                 cards
-              })
+              }
             })
           }
         }
