@@ -11,12 +11,12 @@ const handler = async (m, { conn, text, usedPrefix }) => {
     return conn.reply(m.chat, '✐ Por favor, ingresa un término de búsqueda de TikTok.', m)
   }
 
-  async function createVideoMessage(url) {
-    const { videoMessage } = await generateWAMessageContent(
-      { video: { url } },
+  async function createImageMessage(url) {
+    const { imageMessage } = await generateWAMessageContent(
+      { image: { url } },
       { upload: conn.waUploadToServer }
     )
-    return videoMessage
+    return imageMessage
   }
 
   function shuffleArray(array) {
@@ -35,19 +35,17 @@ const handler = async (m, { conn, text, usedPrefix }) => {
       `https://yosoyyo-api-ofc.onrender.com/api/tiktoksearch?q=${encodeURIComponent(text)}&apiKey=yosoyyo_sk_2nbk5m69`
     )
 
-    console.log("Respuesta completa de la API:", JSON.stringify(res.data, null, 2))
-
     let results = res.data?.result || res.data?.results || res.data?.data || []
     
     if (!Array.isArray(results) && typeof results === 'object') {
       results = [results]
     }
 
-    const validResults = results.filter(v => v && (v.play || v.download || v.video || v.nowatermark))
+    const validResults = results.filter(v => v && (v.play || v.download || v.video))
 
     if (!validResults.length) {
       if (m.react) await m.react('✖️')
-      return conn.reply(m.chat, 'ꕥ No se encontraron videos válidos en la respuesta de la API. Revisa la consola.', m)
+      return conn.reply(m.chat, 'ꕥ No se encontraron videos válidos en la respuesta de la API.', m)
     }
 
     shuffleArray(validResults)
@@ -56,8 +54,10 @@ const handler = async (m, { conn, text, usedPrefix }) => {
     const cards = []
     for (const v of topResults) {
       try {
-        const videoUrl = v.play || v.download || v.video || v.nowatermark
-        const videoMessage = await createVideoMessage(videoUrl)
+        const videoUrl = v.play || v.download || v.video
+        const coverUrl = v.cover || v.origin_cover || 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7'
+        const imageMessage = await createImageMessage(coverUrl)
+        
         const title = v.title || v.description || 'Video TikTok'
         const author = v.author?.nickname || v.author || 'Desconocido'
         const duration = v.duration ?? 'No disponible'
@@ -72,10 +72,19 @@ const handler = async (m, { conn, text, usedPrefix }) => {
           header: {
             title: title.slice(0, 50),
             hasMediaAttachment: true,
-            videoMessage: videoMessage
+            imageMessage: imageMessage
           },
           nativeFlowMessage: {
-            buttons: []
+            buttons: [
+              {
+                name: "cta_url",
+                buttonParamsJson: JSON.stringify({
+                  display_text: "Ver / Descargar Video",
+                  url: videoUrl,
+                  merchant_url: videoUrl
+                })
+              }
+            ]
           }
         })
       } catch (err) {
@@ -85,7 +94,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
 
     if (!cards.length) {
       if (m.react) await m.react('✖️')
-      return conn.reply(m.chat, 'ꕥ No se pudo procesar ningún video para el carrusel.', m)
+      return conn.reply(m.chat, 'ꕥ No se pudo procesar ninguna card para el carrusel.', m)
     }
 
     const msg = generateWAMessageFromContent(
