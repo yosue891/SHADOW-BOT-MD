@@ -5,7 +5,7 @@ import {
   generateWAMessageContent
 } from '@whiskeysockets/baileys'
 
-const handler = async (m, { conn, text, usedPrefix }) => {
+const handler = async (m, { conn, text }) => {
   if (!text) {
     return conn.reply(m.chat, '✐ Por favor, ingresa un término de búsqueda de TikTok.', m)
   }
@@ -72,38 +72,29 @@ const handler = async (m, { conn, text, usedPrefix }) => {
           hasMediaAttachment: true,
           imageMessage: imageMessage
         },
-        nativeFlowMessage: {
-          buttons: [
-            {
-              name: "cta_url",
-              buttonParamsJson: JSON.stringify({
-                display_text: "Ver / Descargar Video 🎬",
-                url: videoUrl
-              })
-            },
-            {
-              name: "cta_url",
-              buttonParamsJson: JSON.stringify({
-                display_text: "Ver Imagen 🖼️",
-                url: coverUrl
-              })
-            },
-            {
-              name: "cta_url",
-              buttonParamsJson: JSON.stringify({
-                display_text: "Escuchar Audio 🎧",
-                url: audioUrl
-              })
-            },
-            {
-              name: "cta_url",
-              buttonParamsJson: JSON.stringify({
-                display_text: "Abrir en TikTok ↗️",
-                url: videoUrl
-              })
-            }
-          ]
-        }
+        nativeFlowMessage: null,
+        buttons: [
+          {
+            buttonId: `video_${videoUrl}`,
+            buttonText: { displayText: "🎬 Video" },
+            type: 1
+          },
+          {
+            buttonId: `imagen_${coverUrl}`,
+            buttonText: { displayText: "🖼️ Imagen" },
+            type: 1
+          },
+          {
+            buttonId: `audio_${audioUrl}`,
+            buttonText: { displayText: "🎧 Audio" },
+            type: 1
+          },
+          {
+            buttonId: `tiktok_${videoUrl}`,
+            buttonText: { displayText: "↗️ TikTok" },
+            type: 1
+          }
+        ]
       })
     }
 
