@@ -35,23 +35,31 @@ const handler = async (m, { conn, text, usedPrefix }) => {
       `https://yosoyyo-api-ofc.onrender.com/api/tiktoksearch?q=${encodeURIComponent(text)}&apiKey=yosoyyo_sk_2nbk5m69`
     )
 
-    let results = res.data?.result || []
-    results = results.filter(v => v.play)
+    console.log("Respuesta completa de la API:", JSON.stringify(res.data, null, 2))
 
-    if (!results.length) {
-      if (m.react) await m.react('✖️')
-      return conn.reply(m.chat, 'ꕥ No se encontraron resultados válidos para tu búsqueda.', m)
+    let results = res.data?.result || res.data?.results || res.data?.data || []
+    
+    if (!Array.isArray(results) && typeof results === 'object') {
+      results = [results]
     }
 
-    shuffleArray(results)
-    const topResults = results.slice(0, 7)
+    const validResults = results.filter(v => v && (v.play || v.download || v.video || v.nowatermark))
+
+    if (!validResults.length) {
+      if (m.react) await m.react('✖️')
+      return conn.reply(m.chat, 'ꕥ No se encontraron videos válidos en la respuesta de la API. Revisa la consola.', m)
+    }
+
+    shuffleArray(validResults)
+    const topResults = validResults.slice(0, 7)
 
     const cards = []
     for (const v of topResults) {
       try {
-        const videoMessage = await createVideoMessage(v.play)
-        const title = v.title || 'Video TikTok'
-        const author = v.author || 'Desconocido'
+        const videoUrl = v.play || v.download || v.video || v.nowatermark
+        const videoMessage = await createVideoMessage(videoUrl)
+        const title = v.title || v.description || 'Video TikTok'
+        const author = v.author?.nickname || v.author || 'Desconocido'
         const duration = v.duration ?? 'No disponible'
 
         cards.push({
@@ -62,7 +70,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
             text: 'TikTok Search'
           },
           header: {
-            title: title,
+            title: title.slice(0, 50),
             hasMediaAttachment: true,
             videoMessage: videoMessage
           },
@@ -71,13 +79,13 @@ const handler = async (m, { conn, text, usedPrefix }) => {
           }
         })
       } catch (err) {
-        console.error("Error creando card de TikTok:", err)
+        console.error("Error creando card individual de TikTok:", err)
       }
     }
 
     if (!cards.length) {
       if (m.react) await m.react('✖️')
-      return conn.reply(m.chat, 'ꕥ No se pudieron procesar los videos encontrados.', m)
+      return conn.reply(m.chat, 'ꕥ No se pudo procesar ningún video para el carrusel.', m)
     }
 
     const msg = generateWAMessageFromContent(
@@ -113,11 +121,11 @@ const handler = async (m, { conn, text, usedPrefix }) => {
 
     if (m.react) await m.react('✔️')
   } catch (e) {
-    console.error("Error completo en el comando TikTokSearch:", e)
+    console.error("Error crítico en el comando TikTokSearch:", e)
     if (m.react) await m.react('✖️')
     await conn.reply(
       m.chat,
-      `⚠︎ Se ha producido un problema.\n> Usa *${usedPrefix}report* para informarlo.\n\n🜸 Detalles: ${e.message}`,
+      `⚠︎ Se ha producido un problema.\n\n🜸 Detalles: ${e.message}`,
       m
     )
   }
