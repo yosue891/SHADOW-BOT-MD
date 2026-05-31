@@ -1,10 +1,9 @@
 import axios from 'axios'
-
-const {
+import {
   proto,
   generateWAMessageFromContent,
   generateWAMessageContent
-} = (await import('@whiskeysockets/baileys')).default
+} from '@whiskeysockets/baileys'
 
 const handler = async (m, { conn, text, usedPrefix }) => {
   if (!text) {
@@ -29,7 +28,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
   try {
     if (m.react) await m.react('🕒')
 
-    conn.reply(m.chat, '✧ *ENVIANDO SUS RESULTADOS..*', m)
+    conn.reply(m.chat, '✧ ENVIANDO SUS RESULTADOS..', m)
 
     const res = await axios.get(
       `https://yosoyyo-api-ofc.onrender.com/api/tiktoksearch?q=${encodeURIComponent(text)}&apiKey=yosoyyo_sk_2nbk5m69`
@@ -87,9 +86,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
             ]
           }
         })
-      } catch (err) {
-        console.error("Error creando card individual de TikTok:", err)
-      }
+      } catch (err) {}
     }
 
     if (!cards.length) {
@@ -130,7 +127,6 @@ const handler = async (m, { conn, text, usedPrefix }) => {
 
     if (m.react) await m.react('✔️')
   } catch (e) {
-    console.error("Error crítico en el comando TikTokSearch:", e)
     if (m.react) await m.react('✖️')
     await conn.reply(
       m.chat,
