@@ -1,22 +1,23 @@
 import axios from 'axios'
-
-const {
+import {
   proto,
   generateWAMessageFromContent,
   generateWAMessageContent
-} = (await import('@whiskeysockets/baileys')).default
+} from '@whiskeysockets/baileys'
 
 const handler = async (m, { conn, text, usedPrefix }) => {
   if (!text) {
-    return conn.reply(m.chat, '✐ Por favor, ingresa un término de búsqueda de TikTok.', m)
+    return conn.reply(m.chat, '✐ Por favor, ingresa un término de búsqueda o un enlace de TikTok.', m)
   }
 
-  async function createImageMessage(url) {
-    const { imageMessage } = await generateWAMessageContent(
-      { image: { url } },
+  const isUrl = /(?:https?:\/\/)?(?:www\.|vm\.|vt\.|t\.)?tiktok\.com\/[^\s&]+/i.test(text)
+
+  async function createVideoMessage(url) {
+    const { videoMessage } = await generateWAMessageContent(
+      { video: { url } },
       { upload: conn.waUploadToServer }
     )
-    return imageMessage
+    return videoMessage
   }
 
   function shuffleArray(array) {
@@ -29,93 +30,117 @@ const handler = async (m, { conn, text, usedPrefix }) => {
   try {
     if (m.react) await m.react('🕒')
 
-    conn.reply(m.chat, '✧ ENVIANDO SUS RESULTADOS..*', m)
+    if (isUrl) {
+      const res = await axios.get(
+        `https://www.tikwm.com/api/?url=${encodeURIComponent(text)}&hd=1`
+      )
 
-    const res = await axios.get(
-      `https://yosoyyo-api-ofc.onrender.com/api/tiktoksearch?q=${encodeURIComponent(text)}&apiKey=yosoyyo_sk_2nbk5m69`
-    )
+      const data = res.data?.data
+      if (!data?.play && !data?.images) {
+        if (m.react) await m.react('✖️')
+        return conn.reply(m.chat, 'ꕥ Enlace inválido o sin contenido descargable.', m)
+      }
 
-    let results = res.data?.result || res.data?.results || res.data?.data || []
-    
-    if (!Array.isArray(results) && typeof results === 'object') {
-      results = [results]
-    }
+      const { title, duration, author, created_at, type, images, music, play } = data
 
-    const validResults = results.filter(v => v && (v.play || v.download || v.video))
+      const caption = `✐ Título » ${title || 'Contenido TikTok'}
+ⴵ Autor » ${author?.nickname || author?.unique_id || 'No disponible'}
+✰ Duración » ${duration ?? 'No disponible'} segundos
+❒ Fecha » ${created_at ?? 'No disponible'}`
 
-    if (!validResults.length) {
+      if (type === 'image' && Array.isArray(images) && images.length) {
+        for (let i = 0; i < Math.min(images.length, 10); i++) {
+          await conn.sendMessage(
+            m.chat,
+            { image: { url: images[i] }, caption: i === 0 ? caption : undefined },
+            { quoted: m }
+          )
+        }
+
+        if (music) {
+          await conn.sendMessage(
+            m.chat,
+            {
+              audio: { url: music },
+              mimetype: 'audio/mp4',
+              fileName: 'tiktok_audio.mp4'
+            },
+            { quoted: m }
+          )
+        }
+
+        if (m.react) await m.react('✔️')
+        return
+      }
+
+      if (play) {
+        await conn.sendMessage(
+          m.chat,
+          {
+            video: { url: play },
+            caption
+          },
+          { quoted: m }
+        )
+        if (m.react) await m.react('✔️')
+        return
+      }
+
       if (m.react) await m.react('✖️')
-      return conn.reply(m.chat, 'ꕥ No se encontraron videos válidos en la respuesta de la API.', m)
+      return conn.reply(m.chat, 'ꕥ No se encontró video descargable en ese enlace.', m)
     }
 
-    shuffleArray(validResults)
-    const topResults = validResults.slice(0, 7)
+    conn.reply(m.chat, '✧ *ENVIANDO SUS RESULTADOS..*', m)
+
+    const form = new URLSearchParams()
+    form.append('keywords', text)
+    form.append('count', '20')
+    form.append('cursor', '0')
+    form.append('HD', '1')
+
+    const res = await axios({
+      method: 'POST',
+      url: 'https://tikwm.com/api/feed/search',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Cookie': 'current_language=en',
+        'User-Agent':
+          'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36'
+      },
+      data: form.toString()
+    })
+
+    let results = res.data?.data?.videos?.filter(v => v.play) || []
+    if (results.length < 2) {
+      if (m.react) await m.react('✖️')
+      return conn.reply(m.chat, 'ꕥ Se requieren al menos 2 resultados válidos con contenido.', m)
+    }
+
+    shuffleArray(results)
+    const topResults = results.slice(0, 7)
 
     const cards = []
     for (const v of topResults) {
-      try {
-        const videoUrl = v.play || v.download || v.video
-        const coverUrl = v.cover || v.origin_cover || v.dynamic_cover || v.thumbnail || 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7'
-        const imageMessage = await createImageMessage(coverUrl)
+      const title = v.title || 'Video TikTok'
+      const author = v.author?.nickname || v.author?.unique_id || 'Desconocido'
+      const duration = v.duration ?? 'No disponible'
 
-        const title = v.title || v.description || 'Video TikTok'
-        const author = v.author?.nickname || v.author || 'Desconocido'
-        const duration = v.duration ?? 'No disponible'
-
-        cards.push({
-          body: {
-            text: `✐ ${title}\nⴵ Autor » ${author}\n✰ Duración » ${duration} segundos`
-          },
-          footer: {
-            text: 'TikTok Search'
-          },
-          header: {
-            title: title.slice(0, 50),
-            hasMediaAttachment: true,
-            imageMessage: imageMessage
-          },
-          nativeFlowMessage: {
-            buttons: [
-              {
-                name: 'quick_reply',
-                buttonParamsJson: JSON.stringify({
-                  display_text: "🎵 Audio",
-                  id: `${usedPrefix}tiktokaudio ${videoUrl}`
-                })
-              },
-              {
-                name: 'quick_reply',
-                buttonParamsJson: JSON.stringify({
-                  display_text: "🎥 Video",
-                  id: `${usedPrefix}tiktokvideo ${videoUrl}`
-                })
-              },
-              {
-                name: 'quick_reply',
-                buttonParamsJson: JSON.stringify({
-                  display_text: "🖼 Imagen",
-                  id: `${usedPrefix}tiktokimg ${coverUrl}`
-                })
-              },
-              {
-                name: "cta_url",
-                buttonParamsJson: JSON.stringify({
-                  display_text: "🌐 Ver en TikTok",
-                  url: videoUrl,
-                  merchant_url: videoUrl
-                })
-              }
-            ]
-          }
+      cards.push({
+        body: proto.Message.InteractiveMessage.Body.fromObject({
+          text: `✐ ${title}\nⴵ Autor » ${author}\n✰ Duración » ${duration} segundos`
+        }),
+        footer: proto.Message.InteractiveMessage.Footer.fromObject({
+          text: 'TikTok Search'
+        }),
+        header: proto.Message.InteractiveMessage.Header.fromObject({
+          title: title,
+          hasMediaAttachment: true,
+          videoMessage: await createVideoMessage(v.play)
+        }),
+        nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
+          buttons: []
         })
-      } catch (err) {
-        console.error("Error creando card individual de TikTok:", err)
-      }
-    }
-
-    if (!cards.length) {
-      if (m.react) await m.react('✖️')
-      return conn.reply(m.chat, 'ꕥ No se pudo procesar ninguna card para el carrusel.', m)
+      })
     }
 
     const msg = generateWAMessageFromContent(
@@ -128,18 +153,18 @@ const handler = async (m, { conn, text, usedPrefix }) => {
               deviceListMetadataVersion: 2
             },
             interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-              body: {
+              body: proto.Message.InteractiveMessage.Body.create({
                 text: `✧ RESULTADO DE: ${text}`
-              },
-              footer: {
+              }),
+              footer: proto.Message.InteractiveMessage.Footer.create({
                 text: 'TikTok Search'
-              },
-              header: {
+              }),
+              header: proto.Message.InteractiveMessage.Header.create({
                 hasMediaAttachment: false
-              },
-              carouselMessage: {
+              }),
+              carouselMessage: proto.Message.InteractiveMessage.CarouselMessage.fromObject({
                 cards
-              }
+              })
             })
           }
         }
@@ -151,17 +176,16 @@ const handler = async (m, { conn, text, usedPrefix }) => {
 
     if (m.react) await m.react('✔️')
   } catch (e) {
-    console.error("Error crítico en el comando TikTokSearch:", e)
     if (m.react) await m.react('✖️')
     await conn.reply(
       m.chat,
-      `⚠︎ Se ha producido un problema.\n\n🜸 Detalles: ${e.message}`,
+      `⚠︎ Se ha producido un problema.\n> Usa *${usedPrefix}report* para informarlo.\n\n🜸 Detalles: ${e.message}`,
       m
     )
   }
 }
 
-handler.help = ['tiktoksearch <texto>']
+handler.help = ['tiktoks <texto|link>', 'tiktoksearch <texto|link>']
 handler.tags = ['buscadores']
 handler.command = ['tiktoks', 'tiktoksearch', 'ttss']
 handler.group = true
