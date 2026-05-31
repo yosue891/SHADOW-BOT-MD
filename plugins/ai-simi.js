@@ -40,7 +40,7 @@ Ahora responde lo siguiente`
 
   try {
     const prompt = encodeURIComponent(basePrompt + "\nUsuario: " + text + "\nSimi:")
-    const url = `https://api-gohan-kz6w.onrender.com/ai/gemini?text=${prompt}`
+    const url = `https://api-gohan-v1.onrender.com/ai/gemini?text=${prompt}`
 
     const { data } = await axios.get(url, {
       headers: { "User-Agent": "Mozilla/5.0" }
