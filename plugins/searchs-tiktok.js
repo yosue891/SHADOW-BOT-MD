@@ -38,9 +38,9 @@ const handler = async (m, { conn, text, usedPrefix }) => {
     let results = res.data?.result || []
     results = results.filter(v => v.play)
 
-    if (results.length < 2) {
+    if (!results.length) {
       if (m.react) await m.react('✖️')
-      return conn.reply(m.chat, 'ꕥ Se requieren al menos 2 resultados válidos con contenido.', m)
+      return conn.reply(m.chat, 'ꕥ No se encontraron resultados válidos para tu búsqueda.', m)
     }
 
     shuffleArray(results)
@@ -113,6 +113,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
 
     if (m.react) await m.react('✔️')
   } catch (e) {
+    console.error("Error completo en el comando TikTokSearch:", e)
     if (m.react) await m.react('✖️')
     await conn.reply(
       m.chat,
