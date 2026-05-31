@@ -1,9 +1,10 @@
 import axios from 'axios'
-import {
+
+const {
   proto,
   generateWAMessageFromContent,
   generateWAMessageContent
-} from '@whiskeysockets/baileys'
+} = (await import('@whiskeysockets/baileys')).default
 
 const handler = async (m, { conn, text, usedPrefix }) => {
   if (!text) {
@@ -28,7 +29,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
   try {
     if (m.react) await m.react('🕒')
 
-    conn.reply(m.chat, '✧ ENVIANDO SUS RESULTADOS..', m)
+    conn.reply(m.chat, '✧ ENVIANDO SUS RESULTADOS..*', m)
 
     const res = await axios.get(
       `https://yosoyyo-api-ofc.onrender.com/api/tiktoksearch?q=${encodeURIComponent(text)}&apiKey=yosoyyo_sk_2nbk5m69`
@@ -52,68 +53,64 @@ const handler = async (m, { conn, text, usedPrefix }) => {
 
     const cards = []
     for (const v of topResults) {
+      try {
+        const videoUrl = v.play || v.download || v.video
+        const coverUrl = v.cover || v.origin_cover || v.dynamic_cover || v.thumbnail || 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7'
+        const imageMessage = await createImageMessage(coverUrl)
 
-      const videoUrl = v.play || v.download || v.video
-      const audioUrl = v.music || v.audio || v.sound || videoUrl
+        const title = v.title || v.description || 'Video TikTok'
+        const author = v.author?.nickname || v.author || 'Desconocido'
+        const duration = v.duration ?? 'No disponible'
 
-      const coverUrl =
-        v.cover ||
-        v.origin_cover ||
-        v.dynamic_cover ||
-        v.thumbnail ||
-        'https://i.imgur.com/0ZQZ0Z0.jpeg'
-
-      const imageMessage = await createImageMessage(coverUrl)
-
-      const title = v.title || v.description || 'Video TikTok'
-      const author = v.author?.nickname || v.author || 'Desconocido'
-      const duration = v.duration ?? 'No disponible'
-
-      cards.push({
-        body: {
-          text: `✐ ${title}\nⴵ Autor » ${author}\n✰ Duración » ${duration} segundos`
-        },
-        footer: {
-          text: 'TikTok Search'
-        },
-        header: {
-          title: title.slice(0, 50),
-          hasMediaAttachment: true,
-          imageMessage: imageMessage
-        },
-        nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
-          buttons: [
-            {
-              name: 'quick_reply',
-              buttonParamsJson: JSON.stringify({
-                display_text: "🎵 Audio",
-                id: `${usedPrefix}tiktokaudio ${videoUrl}`
-              })
-            },
-            {
-              name: 'quick_reply',
-              buttonParamsJson: JSON.stringify({
-                display_text: "🎥 Video",
-                id: `${usedPrefix}tiktokvideo ${videoUrl}`
-              })
-            },
-            {
-              name: 'quick_reply',
-              buttonParamsJson: JSON.stringify({
-                display_text: "🖼 Imagen",
-                id: `${usedPrefix}tiktokimg ${coverUrl}`
-              })
-            },
-            {
-              name: "cta_url",
-              buttonParamsJson: JSON.stringify({
-                display_text: "🌐 Ver en TikTok",
-                url: videoUrl
-              })
-            }
-          ]
+        cards.push({
+          body: {
+            text: `✐ ${title}\nⴵ Autor » ${author}\n✰ Duración » ${duration} segundos`
+          },
+          footer: {
+            text: 'TikTok Search'
+          },
+          header: {
+            title: title.slice(0, 50),
+            hasMediaAttachment: true,
+            imageMessage: imageMessage
+          },
+          nativeFlowMessage: {
+            buttons: [
+              {
+                name: 'quick_reply',
+                buttonParamsJson: JSON.stringify({
+                  display_text: "🎵 Audio",
+                  id: `${usedPrefix}tiktokaudio ${videoUrl}`
+                })
+              },
+              {
+                name: 'quick_reply',
+                buttonParamsJson: JSON.stringify({
+                  display_text: "🎥 Video",
+                  id: `${usedPrefix}tiktokvideo ${videoUrl}`
+                })
+              },
+              {
+                name: 'quick_reply',
+                buttonParamsJson: JSON.stringify({
+                  display_text: "🖼 Imagen",
+                  id: `${usedPrefix}tiktokimg ${coverUrl}`
+                })
+              },
+              {
+                name: "cta_url",
+                buttonParamsJson: JSON.stringify({
+                  display_text: "🌐 Ver en TikTok",
+                  url: videoUrl,
+                  merchant_url: videoUrl
+                })
+              }
+            ]
+          }
         })
-      })
+      } catch (err) {
+        console.error("Error creando card individual de TikTok:", err)
+      }
     }
 
     if (!cards.length) {
@@ -154,6 +151,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
 
     if (m.react) await m.react('✔️')
   } catch (e) {
+    console.error("Error crítico en el comando TikTokSearch:", e)
     if (m.react) await m.react('✖️')
     await conn.reply(
       m.chat,
