@@ -16,7 +16,7 @@ async function pinterestSearchV2(query) {
     return res.data.results.map(result => ({
       title: result.titulo || "Sin título",
       image: result.descarga || null,
-      pinUrl: ""
+      pinUrl: result.url || ""
     }));
   } catch (error) {
     console.error("Error al consultar la API de Pinterest:", error);
@@ -75,7 +75,16 @@ let handler = async (m, { conn, text }) => {
           imageMessage
         }),
         nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
-          buttons: []
+          buttons: [
+            {
+              name: "cta_url",
+              buttonParamsJson: JSON.stringify({
+                display_text: "Ver en Pinterest",
+                url: item.pinUrl || "https://pinterest.com",
+                merchant_url: "https://pinterest.com"
+              })
+            }
+          ]
         })
       });
     }
@@ -115,6 +124,7 @@ let handler = async (m, { conn, text }) => {
       messageId: messageContent.key.id
     });
   } catch (e) {
+    console.error(e);
     return conn.reply(
       m.chat,
       `⛔ *Las Sombras fallaron... intenta nuevamente bajo la luna*`,
