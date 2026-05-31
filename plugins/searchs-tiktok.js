@@ -52,11 +52,19 @@ const handler = async (m, { conn, text, usedPrefix }) => {
 
     const cards = []
     for (const v of topResults) {
+
       const videoUrl = v.play || v.download || v.video
-      const coverUrl = v.cover || v.origin_cover || 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7'
       const audioUrl = v.music || v.audio || v.sound || videoUrl
+
+      const coverUrl =
+        v.cover ||
+        v.origin_cover ||
+        v.dynamic_cover ||
+        v.thumbnail ||
+        'https://i.imgur.com/0ZQZ0Z0.jpeg'
+
       const imageMessage = await createImageMessage(coverUrl)
-      
+
       const title = v.title || v.description || 'Video TikTok'
       const author = v.author?.nickname || v.author || 'Desconocido'
       const duration = v.duration ?? 'No disponible'
