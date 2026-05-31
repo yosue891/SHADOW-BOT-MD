@@ -88,8 +88,8 @@ const downloadMedia = async (conn, m, url, type) => {
     const sent = await conn.sendMessage(m.chat, { text: msg }, { quoted: m })
 
     const apiUrl = type === "mp3"
-      ? `https://api-gohan.onrender.com/download/ytaudio?url=${encodeURIComponent(url)}`
-      : `https://api-gohan.onrender.com/download/ytvideo?url=${encodeURIComponent(url)}`
+      ? `https://api-gohan-v1.onrender.com/download/ytaudio?url=${encodeURIComponent(url)}`
+      : `https://api-gohan-v1.onrender.com/download/ytvideo?url=${encodeURIComponent(url)}`
 
     const r = await fetch(apiUrl)
     const data = await r.json()
