@@ -6,12 +6,10 @@ import {
 } from '@whiskeysockets/baileys'
 
 const handler = async (m, { conn, text, command, usedPrefix }) => {
-  let db = global.db.data.users[m.sender]
-  if (!db) global.db.data.users[m.sender] = {}
-  
-  if (!global.db.data.users[m.sender].esclavos) {
-    global.db.data.users[m.sender].esclavos = []
-  }
+  if (!global.db.data) global.db.data = {}
+  if (!global.db.data.users) global.db.data.users = {}
+  if (!global.db.data.users[m.sender]) global.db.data.users[m.sender] = {}
+  if (!global.db.data.users[m.sender].esclavos) global.db.data.users[m.sender].esclavos = []
 
   if (command === 'esclavizar') {
     let who
