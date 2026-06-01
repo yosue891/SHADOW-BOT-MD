@@ -25,8 +25,12 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
       esclavoStorage[amo] = []
     }
 
+    if (esclavoStorage[amo].includes(who)) {
+      return conn.reply(m.chat, `⚠︎ ¡Este usuario ya es tu esclavo! No puedes volver a esclavizarlo.`, m)
+    }
+
     if (esclavoStorage[amo].length >= 3) {
-      return conn.reply(m.chat, `☠︎ Ya tienes el límite máximo de 3 esclavos. ¡Libera a alguno primero!`, m)
+      return conn.reply(m.chat, `☠︎ Ya tienes el límite máximo de 3 esclavos. ¡Libera a alguno primero con *${usedPrefix}liberar*!`, m)
     }
 
     if (m.react) await m.react('⛓️')
@@ -100,11 +104,33 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
 
     if (accion === 'aceptar') {
       if (!esclavoStorage[amoJid]) esclavoStorage[amoJid] = []
-      if (!esclavoStorage[amoJid].includes(esclavoJid) && esclavoStorage[amoJid].length < 3) {
-        esclavoStorage[amoJid].push(esclavoJid)
+      
+      if (esclavoStorage[amoJid].includes(esclavoJid)) {
+        return conn.reply(m.chat, `Ya aceptaste tu destino anteriormente, ya eres su esclavo.`, m)
       }
+
+      if (esclavoStorage[amoJid].length >= 3) {
+        return conn.reply(m.chat, `El amo ya alcanzó el límite máximo de 3 esclavos mientras decidías.`, m)
+      }
+
+      esclavoStorage[amoJid].push(esclavoJid)
       return conn.reply(m.chat, `bueno @${esclavoJid.split('@')[0]} te quedaste como esclavo de ${nombreAmo} bueno ya que ahora te morirás de hambre xd`, m, { mentions: [esclavoJid, amoJid] })
     }
+  }
+
+  if (command === 'esclavos') {
+    let amo = m.sender
+    if (!esclavoStorage[amo] || esclavoStorage[amo].length === 0) {
+      return conn.reply(m.chat, `⛓️ No tienes a nadie esclavizado actualmente. ¡Sal a buscar víctimas!`, m)
+    }
+
+    let texto = `⛓️ *Tus Esclavos Actuales (${esclavoStorage[amo].length}/3):*\n\n`
+    for (let i = 0; i < esclavoStorage[amo].length; i++) {
+      texto += `${i + 1}. @${esclavoStorage[amo][i].split('@')[0]}\n`
+    }
+    texto += `\n> Puedes liberar a cualquiera usando *${usedPrefix}liberar*`
+
+    return conn.reply(m.chat, texto, m, { mentions: esclavoStorage[amo] })
   }
 
   if (command === 'liberar') {
@@ -180,9 +206,9 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
   }
 }
 
-handler.help = ['esclavizar', 'liberar']
+handler.help = ['esclavizar', 'liberar', 'esclavos']
 handler.tags = ['juegos']
-handler.command = ['esclavizar', 'esclavo_opcion', 'liberar', 'liberar_confirm']
+handler.command = ['esclavizar', 'esclavo_opcion', 'liberar', 'liberar_confirm', 'esclavos']
 handler.group = true
 
 export default handler
