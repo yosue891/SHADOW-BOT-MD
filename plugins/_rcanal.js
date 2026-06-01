@@ -7,7 +7,6 @@ export async function before(m, { conn }) {
     let nombreBot = global.botname || 'Bot'
     let bannerFinal = 'https://cdn.adoolab.xyz/dl/3e965739.webp'
 
-
     const botActual = conn.user?.jid?.split('@')[0].replace(/\D/g, '')
     const configPath = path.join('./Sessions/SubBot', botActual, 'config.json')
 
@@ -21,10 +20,8 @@ export async function before(m, { conn }) {
       }
     }
 
-
     const canales = [global.idcanal, global.idcanal2]
     const newsletterJidRandom = canales[Math.floor(Math.random() * canales.length)]
-
 
     global.rcanal = {
       contextInfo: {
@@ -34,18 +31,11 @@ export async function before(m, { conn }) {
           newsletterJid: channelRD.id,
           serverMessageId: 100,
           newsletterName: channelRD.name,
-        },
-        externalAdReply: {
-          title: nombreBot,
-          body: "✎⍴᥆ᥕᥱrᥱძ ᑲᥡ 𝙮𝙤𝙨𝙪𝙚,𝙖𝙙𝙤",
-          thumbnailUrl: bannerFinal,
-          sourceUrl: "api-adonix.ultraplus.click",
-          mediaType: 1,
-          renderLargerThumbnail: false
         }
       }
     }
+
   } catch (e) {
     console.log('Error al generar rcanal:', e)
   }
-}
+      }
