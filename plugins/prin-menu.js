@@ -2,6 +2,20 @@ import fs from 'fs'
 const { prepareWAMessageMedia, generateWAMessageFromContent } = (await import("@whiskeysockets/baileys")).default;
 
 let handler = async (m, { conn, usedPrefix }) => {
+
+  const loadingFrames = [
+    "•",
+    "• •",
+    "• • •",
+    "• •",
+    "•"
+  ]
+
+  for (let frame of loadingFrames) {
+    await conn.sendMessage(m.chat, { text: `Loading ${frame}` }, { quoted: m })
+    await new Promise(res => setTimeout(res, 350))
+  }
+
   const delay = ms => new Promise(res => setTimeout(res, ms))
 
   let tags = {
@@ -58,8 +72,6 @@ let handler = async (m, { conn, usedPrefix }) => {
 │  ◦ ᴛɪᴇᴍᴘᴏ ᴀᴄᴛɪᴠᴏ: ${muptime}
 │  ◦ ᴜsᴜᴀʀɪᴏs: ${totalreg}
 └  ◦ ᴘʟᴀᴛᴀꜰᴏʀᴍᴀ: ʟɪɴᴜx
-
-*ꜱɪ ᴇɴᴄᴜᴇɴᴛʀᴀꜱ ᴀʟɢᴜ́ɴ ᴇʀʀᴏʀ, ᴘᴏʀ ꜰᴀᴠᴏʀ ᴄᴏɴᴛᴀᴄᴛᴀ ᴀʟ ᴏᴡɴᴇʀ.*
 `.trim()
 
   let commands = Object.values(global.plugins).filter(v => v.help && v.tags).map(v => {
@@ -83,8 +95,18 @@ let handler = async (m, { conn, usedPrefix }) => {
   let finalMenu = infoUser + '\n\n' + menu.join('\n\n') + '\n' + after
   let imagen = 'https://cdn.adoolab.xyz/dl/760d46e7.jpg'
 
-  let vcard = `BEGIN:VCARD\nVERSION:3.0\nN:;Itachi;;;\nFN:Itachi\nitem1.TEL;waid=13135550002:+1 (313) 555-0002\nitem1.X-ABLabel:Celular\nEND:VCARD`
-  let qkontak = { key: { fromMe: false, participant: "0@s.whatsapp.net", remoteJid: "status@broadcast" }, message: { contactMessage: { displayName: "Shadow-BOT-MD", vcard: vcard } } }
+  let vcard = `BEGIN:VCARD
+VERSION:3.0
+N:;Itachi;;;
+FN:Itachi
+item1.TEL;waid=13135550002:+1 (313) 555-0002
+item1.X-ABLabel:Celular
+END:VCARD`
+
+  let qkontak = { 
+    key: { fromMe: false, participant: "0@s.whatsapp.net", remoteJid: "status@broadcast" }, 
+    message: { contactMessage: { displayName: "Shadow-BOT-MD", vcard: vcard } } 
+  }
 
   let media = await prepareWAMessageMedia({ image: { url: imagen } }, { upload: conn.waUploadToServer })
 
