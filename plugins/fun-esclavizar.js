@@ -101,9 +101,9 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
     if (accion === 'aceptar') {
       if (!esclavoStorage[amoJid]) esclavoStorage[amoJid] = []
       if (!esclavoStorage[amoJid].includes(esclavoJid) && esclavoStorage[amoJid].length < 3) {
-        esclavoStorage[amoid].push(esclavoJid)
+        esclavoStorage[amoJid].push(esclavoJid)
       }
-      return conn.reply(m.chat, `bueno te quedaste como esclavo de ${nombreAmo} bueno ya que ahora te morirás de hambre xd`, m, { mentions: [esclavoJid, amoJid] })
+      return conn.reply(m.chat, `bueno @${esclavoJid.split('@')[0]} te quedaste como esclavo de ${nombreAmo} bueno ya que ahora te morirás de hambre xd`, m, { mentions: [esclavoJid, amoJid] })
     }
   }
 
