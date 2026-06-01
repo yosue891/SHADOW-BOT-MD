@@ -8,11 +8,19 @@ let handler = async (m, { conn, usedPrefix }) => {
   let momento = hora < 12 ? '🌅 Buenos días' : hora < 18 ? '🌇 Buenas tardes' : '🌙 Buenas noches'
 
   await conn.sendMessage(m.chat, { react: { text: '⏳', key: m.key } })
-  let loading = await conn.sendMessage(m.chat, { text: 'Loading.' }, { quoted: m })
-  let puntos = ['..', '...', '.....', '.']
-  for (let p of puntos) {
-    await delay(400)
-    await conn.sendMessage(m.chat, { text: `Loading${p}` }, { edit: loading.key })
+
+  let frases = [
+    '✨ Has invocado el menú de las sombras...',
+    '⛧ Ya casi tenemos tu menú, sé paciente...',
+    '🌑 Espera… las sombras están respondiendo...',
+    '🌘 Aquí está, gracias por tu paciencia ✨'
+  ]
+
+  let loading = await conn.sendMessage(m.chat, { text: frases[0] }, { quoted: m })
+
+  for (let i = 1; i < frases.length; i++) {
+    await delay(700)
+    await conn.sendMessage(m.chat, { text: frases[i] }, { edit: loading.key })
   }
 
   let tags = {
