@@ -8,6 +8,7 @@ import {
 const handler = async (m, { conn, text, command, usedPrefix }) => {
   if (!global.db.data) global.db.data = {}
   if (!global.db.data.users) global.db.data.users = {}
+  
   if (!global.db.data.users[m.sender]) global.db.data.users[m.sender] = {}
   if (!global.db.data.users[m.sender].esclavos) global.db.data.users[m.sender].esclavos = []
 
@@ -118,6 +119,9 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
       }
 
       global.db.data.users[amoJid].esclavos.push(esclavoJid)
+      
+      if (global.db.write) await global.db.write()
+
       return conn.reply(m.chat, `bueno @${esclavoJid.split('@')[0]} te quedaste como esclavo de ${nombreAmo} bueno ya que ahora te morirás de hambre xd`, m, { mentions: [esclavoJid, amoJid] })
     }
   }
@@ -203,6 +207,8 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
     if (decision === 'si') {
       if (global.db.data.users[amoJid] && global.db.data.users[amoJid].esclavos) {
         global.db.data.users[amoJid].esclavos = global.db.data.users[amoJid].esclavos.filter(id => id !== esclavoJid)
+        
+        if (global.db.write) await global.db.write()
       }
       if (m.react) await m.react('🕊️')
       return conn.reply(m.chat, `bueno te han liberado eres libre cuidate y que te atropelle un tren digo te quiero cuidate uwu`, m, { mentions: [esclavoJid] })
