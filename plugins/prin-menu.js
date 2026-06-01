@@ -5,19 +5,24 @@ let handler = async (m, { conn, usedPrefix }) => {
 
   const delay = ms => new Promise(res => setTimeout(res, ms))
 
-  let frases = [
-    "✨ Has invocado el menú de las sombras...",
-    "⛧ Ya casi tenemos tu menú, sé paciente...",
-    "🌑 Espera… las sombras están respondiendo...",
-    "🌘 Aquí está, gracias por tu paciencia ✨"
+  let hora = new Date().getHours()
+  let momento = hora < 12 ? '🌅 Buenos días' : hora < 18 ? '🌇 Buenas tardes' : '🌙 Buenas noches'
+
+  await conn.sendMessage(m.chat, { react: { text: '⏳', key: m.key } })
+
+  const frames = [
+    '✨ Has invocado el menú de las sombras...',
+    '⛧ Ya casi tenemos tu menú, sé paciente...',
+    '🌑 Espera… las sombras están respondiendo...',
+    '🌘 Aquí está, gracias por tu paciencia ✨'
   ]
 
-  let loadMsg = await conn.sendMessage(m.chat, { text: `⛧ Sombras: ${frases[0]}` }, { quoted: m })
+  let loadMsg = await conn.sendMessage(m.chat, { text: frames[0] }, { quoted: m })
 
-  for (let i = 1; i < frases.length; i++) {
+  for (let i = 1; i < frames.length; i++) {
     await delay(650)
     await conn.sendMessage(m.chat, { 
-      text: `⛧ Sombras: ${frases[i]}`, 
+      text: frames[i], 
       edit: loadMsg.key 
     })
   }
@@ -49,8 +54,6 @@ let handler = async (m, { conn, usedPrefix }) => {
 
   let user = global.db.data.users[m.sender]
   let nombre = await conn.getName(m.sender)
-  let premium = user.premium ? 'Sí' : 'No'
-  let limite = user.limit || 0
   let totalreg = Object.keys(global.db.data.users).length
   let groupsCount = Object.values(conn.chats).filter(v => v.id.endsWith('@g.us')).length
 
@@ -64,19 +67,13 @@ let handler = async (m, { conn, usedPrefix }) => {
   let muptime = clockString(process.uptime())
 
   let infoUser = `
-Hola, ${nombre}
-Soy 🪴 Shadow-BOT-MD 🪴, listo para ayudarte.
-
-*乂 ɪɴꜰᴏ ᴅᴇʟ ᴜꜱᴜᴀʀɪᴏ*
-┌  ◦ Estado: Usuario
-│  ◦ Premium: ${premium}
-└  ◦ Límite: ${limite}
+${momento}, ${nombre}
+ꜱᴏʏ 🪴 Shadow-BOT-MD 🪴, ʟɪꜱᴛᴏ ᴘᴀʀᴀ ᴀʏᴜᴅᴀʀᴛᴇ
 
 *乂 ɪɴꜰᴏ ᴅᴇʟ ʙᴏᴛ*
-┌  ◦ Grupos: ${groupsCount}
-│  ◦ Tiempo activo: ${muptime}
-│  ◦ Usuarios: ${totalreg}
-└  ◦ Plataforma: Linux
+┌  ◦ ɢʀᴜᴘᴏꜱ: ${groupsCount}
+│  ◦ ᴛɪᴇᴍᴘᴏ ᴀᴄᴛɪᴠᴏ: ${muptime}
+└  ◦ ᴜsᴜᴀʀɪᴏs: ${totalreg}
 `.trim()
 
   let commands = Object.values(global.plugins).filter(v => v.help && v.tags).map(v => ({
@@ -156,6 +153,7 @@ Soy 🪴 Shadow-BOT-MD 🪴, listo para ayudarte.
   }, { quoted: m })
 
   await conn.relayMessage(m.chat, msg.message, {})
+  await conn.sendMessage(m.chat, { react: { text: '✅', key: m.key } })
 }
 
 handler.help = ['menu']
