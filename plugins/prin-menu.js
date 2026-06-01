@@ -4,6 +4,17 @@ import { prepareWAMessageMedia, generateWAMessageFromContent } from "@whiskeysoc
 let handler = async (m, { conn, usedPrefix }) => {
   const delay = ms => new Promise(res => setTimeout(res, ms))
 
+  let hora = new Date().getHours()
+  let momento = hora < 12 ? '🌅 Buenos días' : hora < 18 ? '🌇 Buenas tardes' : '🌙 Buenas noches'
+
+  await conn.sendMessage(m.chat, { react: { text: '⏳', key: m.key } })
+  let loading = await conn.sendMessage(m.chat, { text: 'Loading.' }, { quoted: m })
+  let puntos = ['..', '...', '.....', '.']
+  for (let p of puntos) {
+    await delay(400)
+    await conn.sendMessage(m.chat, { text: `Loading${p}` }, { edit: loading.key })
+  }
+
   let tags = {
     'info': 'ᴍᴇɴᴜ ɪɴғᴏ',
     'anime': 'ᴍᴇɴᴜ ᴀɴɪᴍᴇ',
@@ -29,10 +40,7 @@ let handler = async (m, { conn, usedPrefix }) => {
   let footer = '└––'
   let after = `🪴 Shadow-BOT-MD - Tu asistente oscuro y elegante`
 
-  let user = global.db.data.users[m.sender]
   let nombre = await conn.getName(m.sender)
-  let premium = user.premium ? '✅ Sí' : '❌ No'
-  let limite = user.limit || 0
   let totalreg = Object.keys(global.db.data.users).length
   let groupsCount = Object.values(conn.chats).filter(v => v.id.endsWith('@g.us')).length
   let muptime = clockString(process.uptime())
@@ -45,19 +53,13 @@ let handler = async (m, { conn, usedPrefix }) => {
   }
 
   let infoUser = `
-ʜᴏʟᴀ, ${nombre}
+${momento}, ${nombre}
 ꜱᴏʏ 🪴 Shadow-BOT-MD 🪴, ʟɪꜱᴛᴏ ᴘᴀʀᴀ ᴀʏᴜᴅᴀʀᴛᴇ
-
-*乂 ɪɴꜰᴏ ᴅᴇʟ ᴜꜱᴜᴀʀɪᴏ*
-┌  ◦ ᴇꜱᴛᴀᴅᴏ: ᴜꜱᴜᴀʀɪᴏ
-│  ◦ ᴘʀᴇᴍɪᴜᴍ: ${premium}
-└  ◦ ʟíᴍɪᴛᴇ: ${limite}
 
 *乂 ɪɴꜰᴏ ᴅᴇʟ ʙᴏᴛ*
 ┌  ◦ ɢʀᴜᴘᴏꜱ: ${groupsCount}
 │  ◦ ᴛɪᴇᴍᴘᴏ ᴀᴄᴛɪᴠᴏ: ${muptime}
-│  ◦ ᴜsᴜᴀʀɪᴏs: ${totalreg}
-└  ◦ ᴘʟᴀᴛᴀꜰᴏʀᴍᴀ: ʟɪɴᴜx
+└  ◦ ᴜsᴜᴀʀɪᴏs: ${totalreg}
 
 *ꜱɪ ᴇɴᴄᴜᴇɴᴛʀᴀꜱ ᴀʟɢᴜ́ɴ ᴇʀʀᴏʀ, ᴘᴏʀ ꜰᴀᴠᴏʀ ᴄᴏɴᴛᴀᴄᴛᴀ ᴀʟ ᴏᴡɴᴇʀ.*
 `.trim()
@@ -125,7 +127,7 @@ END:VCARD`
   }, { quoted: qkontak })
 
   await conn.relayMessage(m.chat, msg.message, {})
-  await delay(400)
+  await conn.sendMessage(m.chat, { react: { text: '✅', key: m.key } })
 }
 
 handler.help = ['menu']
