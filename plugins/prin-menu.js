@@ -142,7 +142,9 @@ let handler = async (m, { conn, usedPrefix }) => {
   })
 
   const msg = generateWAMessageFromContent(m.chat, {
-    interactiveMessage: interactive
+    message: {
+      interactiveMessage: interactive
+    }
   }, { quoted: m })
 
   await conn.relayMessage(m.chat, msg.message, {})
