@@ -16,11 +16,11 @@ let handler = async (m, { conn, usedPrefix }) => {
     '🌘 Aquí está, gracias por tu paciencia ✨'
   ]
 
-  let loading = await conn.sendMessage(m.chat, { text: frases[0] }, { quoted: m })
+  let loading = await conn.sendMessage(m.chat, { text: `⛧ Sombras: ${frases[0]}` }, { quoted: m })
 
   for (let i = 1; i < frases.length; i++) {
-    await delay(700)
-    await conn.sendMessage(m.chat, { text: frases[i] }, { edit: loading.key })
+    await delay(900)
+    await conn.sendMessage(m.chat, { text: `⛧ Sombras: ${frases[i]}` }, { edit: loading.key })
   }
 
   let tags = {
