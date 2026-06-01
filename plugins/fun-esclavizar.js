@@ -5,9 +5,14 @@ import {
   generateWAMessageContent
 } from '@whiskeysockets/baileys'
 
-let esclavoStorage = {}
-
 const handler = async (m, { conn, text, command, usedPrefix }) => {
+  let db = global.db.data.users[m.sender]
+  if (!db) global.db.data.users[m.sender] = {}
+  
+  if (!global.db.data.users[m.sender].esclavos) {
+    global.db.data.users[m.sender].esclavos = []
+  }
+
   if (command === 'esclavizar') {
     let who
     if (m.isGroup) {
@@ -21,15 +26,13 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
     }
 
     let amo = m.sender
-    if (!esclavoStorage[amo]) {
-      esclavoStorage[amo] = []
-    }
+    let misEsclavos = global.db.data.users[amo].esclavos
 
-    if (esclavoStorage[amo].includes(who)) {
+    if (misEsclavos.includes(who)) {
       return conn.reply(m.chat, `⚠︎ ¡Este usuario ya es tu esclavo! No puedes volver a esclavizarlo.`, m)
     }
 
-    if (esclavoStorage[amo].length >= 3) {
+    if (misEsclavos.length >= 3) {
       return conn.reply(m.chat, `☠︎ Ya tienes el límite máximo de 3 esclavos. ¡Libera a alguno primero con *${usedPrefix}liberar*!`, m)
     }
 
@@ -94,6 +97,9 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
     let [accion, esclavoJid, amoJid] = text.split('|')
     let nombreAmo = await conn.getName(amoJid)
 
+    if (!global.db.data.users[amoJid]) global.db.data.users[amoJid] = {}
+    if (!global.db.data.users[amoJid].esclavos) global.db.data.users[amoJid].esclavos = []
+
     if (accion === 'correr') {
       return conn.reply(m.chat, `@${esclavoJid.split('@')[0]} corrió lo más rápido para no ser esclavizado (pero muere por pendejo que se cree xd)`, m, { mentions: [esclavoJid] })
     }
@@ -103,34 +109,36 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
     }
 
     if (accion === 'aceptar') {
-      if (!esclavoStorage[amoJid]) esclavoStorage[amoJid] = []
+      let actuales = global.db.data.users[amoJid].esclavos
       
-      if (esclavoStorage[amoJid].includes(esclavoJid)) {
+      if (actuales.includes(esclavoJid)) {
         return conn.reply(m.chat, `Ya aceptaste tu destino anteriormente, ya eres su esclavo.`, m)
       }
 
-      if (esclavoStorage[amoJid].length >= 3) {
+      if (actuales.length >= 3) {
         return conn.reply(m.chat, `El amo ya alcanzó el límite máximo de 3 esclavos mientras decidías.`, m)
       }
 
-      esclavoStorage[amoJid].push(esclavoJid)
+      global.db.data.users[amoJid].esclavos.push(esclavoJid)
       return conn.reply(m.chat, `bueno @${esclavoJid.split('@')[0]} te quedaste como esclavo de ${nombreAmo} bueno ya que ahora te morirás de hambre xd`, m, { mentions: [esclavoJid, amoJid] })
     }
   }
 
   if (command === 'esclavos') {
     let amo = m.sender
-    if (!esclavoStorage[amo] || esclavoStorage[amo].length === 0) {
+    let misEsclavos = global.db.data.users[amo].esclavos
+
+    if (!misEsclavos || misEsclavos.length === 0) {
       return conn.reply(m.chat, `⛓️ No tienes a nadie esclavizado actualmente. ¡Sal a buscar víctimas!`, m)
     }
 
-    let texto = `⛓️ *Tus Esclavos Actuales (${esclavoStorage[amo].length}/3):*\n\n`
-    for (let i = 0; i < esclavoStorage[amo].length; i++) {
-      texto += `${i + 1}. @${esclavoStorage[amo][i].split('@')[0]}\n`
+    let texto = `⛓️ *Tus Esclavos Actuales (${misEsclavos.length}/3):*\n\n`
+    for (let i = 0; i < misEsclavos.length; i++) {
+      texto += `${i + 1}. @${misEsclavos[i].split('@')[0]}\n`
     }
     texto += `\n> Puedes liberar a cualquiera usando *${usedPrefix}liberar*`
 
-    return conn.reply(m.chat, texto, m, { mentions: esclavoStorage[amo] })
+    return conn.reply(m.chat, texto, m, { mentions: misEsclavos })
   }
 
   if (command === 'liberar') {
@@ -140,7 +148,9 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
     }
 
     let amo = m.sender
-    if (!esclavoStorage[amo] || !esclavoStorage[amo].includes(who)) {
+    let misEsclavos = global.db.data.users[amo].esclavos
+
+    if (!misEsclavos || !misEsclavos.includes(who)) {
       return conn.reply(m.chat, `⚠︎ Esa persona no es esclavo tuyo.`, m)
     }
 
@@ -193,8 +203,8 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
     let [decision, esclavoJid, amoJid] = text.split('|')
 
     if (decision === 'si') {
-      if (esclavoStorage[amoJid]) {
-        esclavoStorage[amoJid] = esclavoStorage[amoJid].filter(id => id !== esclavoJid)
+      if (global.db.data.users[amoJid] && global.db.data.users[amoJid].esclavos) {
+        global.db.data.users[amoJid].esclavos = global.db.data.users[amoJid].esclavos.filter(id => id !== esclavoJid)
       }
       if (m.react) await m.react('🕊️')
       return conn.reply(m.chat, `bueno te han liberado eres libre cuidate y que te atropelle un tren digo te quiero cuidate uwu`, m, { mentions: [esclavoJid] })
