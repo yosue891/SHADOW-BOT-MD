@@ -42,7 +42,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
             },
             interactiveMessage: proto.Message.InteractiveMessage.fromObject({
               body: {
-                text: `jajajaja este wey te dejaste esclavizar que pendejo pero bueno aquí tienes 3 opciones elije sabíamente u.u`
+                text: `jajajaja este wey te dejaste esclavizar que pendejo pero bueno aquí tienes 3 opciones elije sabíamente u.u\n\n Elige tu destino antes de que sea tarde...`
               },
               footer: {
                 text: 'Shadow Juego - Sistema de Esclavitud'
@@ -50,37 +50,28 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
               header: {
                 hasMediaAttachment: false
               },
-              carouselMessage: {
-                cards: [
+              nativeFlowMessage: {
+                buttons: [
                   {
-                    body: {
-                      text: `Elige tu destino antes de que sea tarde...`
-                    },
-                    nativeFlowMessage: {
-                      buttons: [
-                        {
-                          name: 'quick_reply',
-                          buttonParamsJson: JSON.stringify({
-                            display_text: '🏃 Correr',
-                            id: `${usedPrefix}esclavo_opcion correr|${who}|${amo}`
-                          })
-                        },
-                        {
-                          name: 'quick_reply',
-                          buttonParamsJson: JSON.stringify({
-                            display_text: '💀 Matarse',
-                            id: `${usedPrefix}esclavo_opcion matarse|${who}|${amo}`
-                          })
-                        },
-                        {
-                          name: 'quick_reply',
-                          buttonParamsJson: JSON.stringify({
-                            display_text: '🧎 Aceptar destino',
-                            id: `${usedPrefix}esclavo_opcion aceptar|${who}|${amo}`
-                          })
-                        }
-                      ]
-                    }
+                    name: 'quick_reply',
+                    buttonParamsJson: JSON.stringify({
+                      display_text: '🏃 Correr',
+                      id: `${usedPrefix}esclavo_opcion correr|${who}|${amo}`
+                    })
+                  },
+                  {
+                    name: 'quick_reply',
+                    buttonParamsJson: JSON.stringify({
+                      display_text: '💀 Matarse',
+                      id: `${usedPrefix}esclavo_opcion matarse|${who}|${amo}`
+                    })
+                  },
+                  {
+                    name: 'quick_reply',
+                    buttonParamsJson: JSON.stringify({
+                      display_text: '🧎 Aceptar destino',
+                      id: `${usedPrefix}esclavo_opcion aceptar|${who}|${amo}`
+                    })
                   }
                 ]
               }
@@ -110,7 +101,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
     if (accion === 'aceptar') {
       if (!esclavoStorage[amoJid]) esclavoStorage[amoJid] = []
       if (!esclavoStorage[amoJid].includes(esclavoJid) && esclavoStorage[amoJid].length < 3) {
-        esclavoStorage[amoJid].push(esclavoJid)
+        esclavoStorage[amoid].push(esclavoJid)
       }
       return conn.reply(m.chat, `bueno te quedaste como esclavo de ${nombreAmo} bueno ya que ahora te morirás de hambre xd`, m, { mentions: [esclavoJid, amoJid] })
     }
@@ -138,35 +129,26 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
             },
             interactiveMessage: proto.Message.InteractiveMessage.fromObject({
               body: {
-                text: `¿quieres liberaelo de verdad?`
+                text: `¿quieres liberaelo de verdad?\n\nConfirma tu acción en los botones de abajo:`
               },
               header: {
                 hasMediaAttachment: false
               },
-              carouselMessage: {
-                cards: [
+              nativeFlowMessage: {
+                buttons: [
                   {
-                    body: {
-                      text: `Confirma tu acción`
-                    },
-                    nativeFlowMessage: {
-                      buttons: [
-                        {
-                          name: 'quick_reply',
-                          buttonParamsJson: JSON.stringify({
-                            display_text: '✅ Sí',
-                            id: `${usedPrefix}liberar_confirm si|${who}|${amo}`
-                          })
-                        },
-                        {
-                          name: 'quick_reply',
-                          buttonParamsJson: JSON.stringify({
-                            display_text: '❌ No',
-                            id: `${usedPrefix}liberar_confirm no|${who}|${amo}`
-                          })
-                        }
-                      ]
-                    }
+                    name: 'quick_reply',
+                    buttonParamsJson: JSON.stringify({
+                      display_text: '✅ Sí',
+                      id: `${usedPrefix}liberar_confirm si|${who}|${amo}`
+                    })
+                  },
+                  {
+                    name: 'quick_reply',
+                    buttonParamsJson: JSON.stringify({
+                      display_text: '❌ No',
+                      id: `${usedPrefix}liberar_confirm no|${who}|${amo}`
+                    })
                   }
                 ]
               }
