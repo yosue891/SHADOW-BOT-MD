@@ -11,10 +11,10 @@ let handler = async (m, { conn, usedPrefix }) => {
   await conn.sendMessage(m.chat, { react: { text: '⏳', key: m.key } })
 
   const frames = [
-    '✨ Has invocado el menú de las sombras...',
-    '⛧ Ya casi tenemos tu menú, sé paciente...',
-    '🌑 Espera… las sombras están respondiendo...',
-    '🌘 Aquí está, gracias por tu paciencia ✨'
+    "✨ Has invocado el menú de las sombras...",
+    "⛧ Ya casi tenemos tu menú, sé paciente...",
+    "🌑 Espera… las sombras están respondiendo...",
+    "🌘 Aquí está, gracias por tu paciencia ✨"
   ]
 
   let loadMsg = await conn.sendMessage(m.chat, { text: frames[0] }, { quoted: m })
@@ -26,6 +26,8 @@ let handler = async (m, { conn, usedPrefix }) => {
       edit: loadMsg.key 
     })
   }
+
+  await delay(300)
 
   let tags = {
     info: 'ᴍᴇɴᴜ ɪɴғᴏ',
@@ -52,7 +54,6 @@ let handler = async (m, { conn, usedPrefix }) => {
   let footer = '└––'
   let after = `🪴 Shadow-BOT-MD - Tu asistente oscuro y elegante`
 
-  let user = global.db.data.users[m.sender]
   let nombre = await conn.getName(m.sender)
   let totalreg = Object.keys(global.db.data.users).length
   let groupsCount = Object.values(conn.chats).filter(v => v.id.endsWith('@g.us')).length
@@ -68,12 +69,12 @@ let handler = async (m, { conn, usedPrefix }) => {
 
   let infoUser = `
 ${momento}, ${nombre}
-ꜱᴏʏ 🪴 Shadow-BOT-MD 🪴, ʟɪꜱᴛᴏ ᴘᴀʀᴀ ᴀʏᴜᴅᴀʀᴛᴇ
+Soy 🪴 Shadow-BOT-MD 🪴, listo para ayudarte.
 
 *乂 ɪɴꜰᴏ ᴅᴇʟ ʙᴏᴛ*
-┌  ◦ ɢʀᴜᴘᴏꜱ: ${groupsCount}
-│  ◦ ᴛɪᴇᴍᴘᴏ ᴀᴄᴛɪᴠᴏ: ${muptime}
-└  ◦ ᴜsᴜᴀʀɪᴏs: ${totalreg}
+┌  ◦ Grupos: ${groupsCount}
+│  ◦ Tiempo activo: ${muptime}
+└  ◦ Usuarios: ${totalreg}
 `.trim()
 
   let commands = Object.values(global.plugins).filter(v => v.help && v.tags).map(v => ({
