@@ -1,5 +1,5 @@
 import fs from 'fs'
-const { prepareWAMessageMedia, generateWAMessageFromContent } = (await import("@whiskeysockets/baileys")).default;
+import { prepareWAMessageMedia, generateWAMessageFromContent } from "@whiskeysockets/baileys"
 
 let handler = async (m, { conn, usedPrefix }) => {
   const delay = ms => new Promise(res => setTimeout(res, ms))
