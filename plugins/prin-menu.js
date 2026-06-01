@@ -9,19 +9,12 @@ let handler = async (m, { conn, usedPrefix }) => {
 
   await conn.sendMessage(m.chat, { react: { text: '⏳', key: m.key } })
 
-  let frases = [
-    '✨ Has invocado el menú de las sombras...',
-    '⛧ Ya casi tenemos tu menú, sé paciente...',
-    '🌑 Espera… las sombras están respondiendo...',
-    '🌘 Aquí está, gracias por tu paciencia ✨'
-  ]
+  let loading = await conn.sendMessage(m.chat, { text: 'Loading.' }, { quoted: m })
+  let puntos = ['..', '...', '.....', '.']
 
-  let base = '⛧ Sombras: '
-  let loading = await conn.sendMessage(m.chat, { text: base + frases[0] }, { quoted: m })
-
-  for (let i = 1; i < frases.length; i++) {
-    await delay(900)
-    await conn.sendMessage(m.chat, { text: base + frases[i] }, { edit: loading.key })
+  for (let p of puntos) {
+    await delay(450)
+    await conn.sendMessage(m.chat, { text: `Loading${p}` }, { edit: loading.key })
   }
 
   let tags = {
