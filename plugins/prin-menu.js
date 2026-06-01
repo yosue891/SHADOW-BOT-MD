@@ -3,16 +3,14 @@ const { prepareWAMessageMedia, generateWAMessageFromContent } = (await import("@
 
 let handler = async (m, { conn, usedPrefix }) => {
 
-  const loadingFrames = [
-    "•",
-    "• •",
-    "• • •",
-    "• •",
-    "•"
-  ]
+  const frames = ["•", "• •", "• • •", "• •", "•"]
+  let loadMsg = await conn.sendMessage(m.chat, { text: "Loading •" }, { quoted: m })
 
-  for (let frame of loadingFrames) {
-    await conn.sendMessage(m.chat, { text: `Loading ${frame}` }, { quoted: m })
+  for (let frame of frames) {
+    await conn.sendMessage(m.chat, { 
+      text: `Loading ${frame}`, 
+      edit: loadMsg.key 
+    })
     await new Promise(res => setTimeout(res, 350))
   }
 
