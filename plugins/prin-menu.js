@@ -84,7 +84,7 @@ ${saludo}, ${nombre}
   }
 
   let finalMenu = infoUser + '\n\n' + menu.join('\n\n') + '\n' + after
-  let imagen = 'https://cdn.adoolab.xyz/dl/760d46e7.jpg'
+  let imagen = 'https://upload.yotsuba.giize.com/u/D0jgEr3D.jpg'
 
   let vcard = `BEGIN:VCARD
 VERSION:3.0
