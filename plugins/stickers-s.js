@@ -1,7 +1,6 @@
-import fs from 'fs'
+ import fs from 'fs'
 import sharp from 'sharp'
-// Ruta corregida para apuntar a la carpeta lib de tu bot
-import exif from '../lib/exif.js'
+import exif from '../../columbina/lib/exif.js'
 const { writeExif } = exif
 
 export default {
@@ -12,6 +11,7 @@ export default {
       if (args[0] === '-list') {
         let helpText = `❖ Lista de Formas y Efectos Disponibles para *imagen*:\n\n❑ *Formas:*\n- -c : Crea un sticker circular\n- -t : Crea un sticker triangular\n- -s : Crea un sticker con forma de estrella\n- -r : Crea un sticker con esquinas redondeadas\n- -h : Crea un sticker hexagonal\n- -d : Crea un sticker con forma de diamante\n- -f : Crea un sticker con un marco\n- -b : Crea un sticker con un borde\n- -w : Crea un sticker con forma de onda\n- -m : Crea un sticker espejado\n- -o : Crea un sticker octogonal\n- -y : Crea un sticker pentagonal\n- -e : Crea un sticker elíptico\n- -z : Crea un sticker en forma de cruz\n- -v : Crea un sticker con forma de corazón\n- -x : Crea un sticker expandido (cover)\n- -i : Crea un sticker expandido (contain)\n\n❑ *Efectos:*\n- -blur : Aplica un efecto de desenfoque\n- -sepia : Aplica un efecto sepia\n- -sharpen : Aplica un efecto de nitidez\n- -brighten : Aumenta el brillo\n- -darken : Disminuye el brillo\n- -invert : Invierte los colores\n- -grayscale : Aplica escala de grises\n- -rotate90 : Rota la imagen 90 grados\n- -rotate180 : Rota la imagen 180 grados\n- -flip : Invierte la imagen horizontalmente\n- -flop : Invierte la imagen verticalmente\n- -normalice : Normaliza la imagen\n- -negate : Negatiza la imagen\n- -tint : Aplica un tinte de color a la imagen (rojo por defecto)\n\n> Ejemplo: *${prefix + command} -c -blur Pack • Autor*`
         
+        // Invocamos columbina2 con quoted (m) activado
         return await columbina2(client, m, helpText, [], m)
       }      
 
@@ -97,7 +97,7 @@ export default {
           }
         }        
         return await image.webp().toBuffer()
-      }      
+      }        
 
       if (/image/.test(mime) || /webp/.test(mime)) {
         let buffer = await quoted.download()
@@ -110,7 +110,7 @@ export default {
           await fs.unlinkSync(stickerPath)
         } else {
           const processedBuffer = await processImage(buffer, false)
-          const tmpFile = `./columbina/lib/system/tmp/${Date.now()}.webp`
+          const tmpFile = `./tmp/${Date.now()}.webp`
           await fs.writeFileSync(tmpFile, processedBuffer)
           await client.sendImageAsSticker(m.chat, tmpFile, m, { packname: pack, author: author, ...global.rcanal })
           await fs.unlinkSync(tmpFile)
@@ -118,7 +118,7 @@ export default {
       } else if (/video/.test(mime)) {
         if ((quoted.msg || quoted).seconds > 20) return await columbina2(client, m, '❖ El video no puede ser muy largo', [], m)
         let buffer = await quoted.download()
-        const tmpFile = `./columbina/lib/system/tmp/video-${Date.now()}.mp4`
+        const tmpFile = `./tmp/video-${Date.now()}.mp4`
         await fs.writeFileSync(tmpFile, buffer)
         await client.sendVideoAsSticker(m.chat, tmpFile, m, { packname: pack, author: author, ...global.rcanal })
         await fs.unlinkSync(tmpFile)        
@@ -139,13 +139,13 @@ export default {
             await fs.unlinkSync(stickerPath)
           } else {
             const processedBuffer = await processImage(buffer, false)
-            const tmpFile = `./columbina/lib/system/tmp/url-${Date.now()}.webp`
+            const tmpFile = `./tmp/url-${Date.now()}.webp`
             await fs.writeFileSync(tmpFile, processedBuffer)
             await client.sendImageAsSticker(m.chat, tmpFile, m, { packname: pack, author: author, ...global.rcanal })
             await fs.unlinkSync(tmpFile)
           }
         } else if (url.match(/\.(mp4|mov|avi|mkv|webm)$/i)) {
-          const tmpFile = `./columbina/lib/system/tmp/video-url-${Date.now()}.mp4`
+          const tmpFile = `./tmp/video-url-${Date.now()}.mp4`
           await fs.writeFileSync(tmpFile, buffer)
           await client.sendVideoAsSticker(m.chat, tmpFile, m, { packname: pack, author: author, ...global.rcanal })
           await fs.unlinkSync(tmpFile)
