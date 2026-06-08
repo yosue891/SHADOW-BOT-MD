@@ -17,7 +17,6 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
       `𔓕 Ejemplo: \`${usedPrefix}reg shadow.18\``
     ].join('\n')
 
-    // Aquí está la estructura real de lo que llamas 'rcanal' para que pinte el "Ver canal" abajo
     return await conn.sendMessage(m.chat, { 
       text: txtRegistro, 
       contextInfo: {
@@ -25,18 +24,18 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         forwardingScore: 1,
         isForwarded: true,
         forwardedNewsletterMessageInfo: {
-          newsletterJid: '120363203027814474@newsletter', // ID del canal simulado o real
+          newsletterJid: '120363203027814474@newsletter',
           serverMessageId: 100,
-          newsletterName: 'COLUMBINA CANAL' // Nombre en verde arriba
+          newsletterName: 'SHADOW BOT MD CANAL' // Nombre modificado
         },
         externalAdReply: {
-          title: 'COLUMBINA MD',
-          body: '666 MB • PNG',
+          title: 'SHADOW-BOT-MD', // Título modificado
+          body: 'System • Verification',
           mediaType: 1,
           previewType: 0,
-          renderLargerThumbnail: true, // Forzar la imagen gigante que se ve en la captura
-          thumbnailUrl: 'https://files.catbox.moe/zxjxhd.jpg', // Tu miniatura grande clickeable
-          sourceUrl: 'https://whatsapp.com/channel/0029VaJxgwCCt9fduVKYi61A' // Al tocar la imagen los redirige aquí
+          renderLargerThumbnail: true,
+          thumbnailUrl: 'https://files.catbox.moe/n3bg2n.jpg',
+          sourceUrl: 'https://wa.me/584242773183'
         }
       }
     }, { quoted: m })
@@ -77,7 +76,6 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
   const isVideo = !!videoMessage
 
   if (!isImage && !isVideo) {
-    // Respuesta por defecto si no mandan nada, también estructurada como canal grande
     return await conn.sendMessage(
       from,
       {
@@ -91,15 +89,15 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
           forwardedNewsletterMessageInfo: {
             newsletterJid: '120363203027814474@newsletter',
             serverMessageId: 100,
-            newsletterName: 'COLUMBINA CANAL'
+            newsletterName: 'SHADOW BOT MD CANAL' // Nombre modificado
           },
           externalAdReply: {
-            title: "COLUMBINA MD",
-            body: "666 MB • PNG",
+            title: "SHADOW-BOT-MD", // Título modificado
+            body: "Sticker Generator",
             thumbnailUrl: "https://files.catbox.moe/zxjxhd.jpg", 
             mediaType: 1,
             renderLargerThumbnail: true,
-            sourceUrl: "https://whatsapp.com/channel/0029VaJxgwCCt9fduVKYi61A"
+            sourceUrl: "https://wa.me/584242773183"
           }
         }
       },
