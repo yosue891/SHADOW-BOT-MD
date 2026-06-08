@@ -1,6 +1,6 @@
 import fs from 'fs'
 import sharp from 'sharp'
-import exif from '../../columbina/lib/exif.js'
+import exif from '../lib/exif.js' // CORREGIDO: Apunta a la carpeta lib dentro de tu bot en /home/container
 const { writeExif } = exif
 
 export default {
