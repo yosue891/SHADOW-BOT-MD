@@ -1,4 +1,4 @@
- import fs from 'fs'
+import fs from 'fs'
 import sharp from 'sharp'
 import exif from '../../columbina/lib/exif.js'
 const { writeExif } = exif
@@ -97,7 +97,7 @@ export default {
           }
         }        
         return await image.webp().toBuffer()
-      }        
+      }      
 
       if (/image/.test(mime) || /webp/.test(mime)) {
         let buffer = await quoted.download()
@@ -110,7 +110,7 @@ export default {
           await fs.unlinkSync(stickerPath)
         } else {
           const processedBuffer = await processImage(buffer, false)
-          const tmpFile = `./tmp/${Date.now()}.webp`
+          const tmpFile = `./temp_${Date.now()}.webp`
           await fs.writeFileSync(tmpFile, processedBuffer)
           await client.sendImageAsSticker(m.chat, tmpFile, m, { packname: pack, author: author, ...global.rcanal })
           await fs.unlinkSync(tmpFile)
@@ -118,7 +118,7 @@ export default {
       } else if (/video/.test(mime)) {
         if ((quoted.msg || quoted).seconds > 20) return await columbina2(client, m, '❖ El video no puede ser muy largo', [], m)
         let buffer = await quoted.download()
-        const tmpFile = `./tmp/video-${Date.now()}.mp4`
+        const tmpFile = `./temp_video-${Date.now()}.mp4`
         await fs.writeFileSync(tmpFile, buffer)
         await client.sendVideoAsSticker(m.chat, tmpFile, m, { packname: pack, author: author, ...global.rcanal })
         await fs.unlinkSync(tmpFile)        
@@ -139,13 +139,13 @@ export default {
             await fs.unlinkSync(stickerPath)
           } else {
             const processedBuffer = await processImage(buffer, false)
-            const tmpFile = `./tmp/url-${Date.now()}.webp`
+            const tmpFile = `./temp_url-${Date.now()}.webp`
             await fs.writeFileSync(tmpFile, processedBuffer)
             await client.sendImageAsSticker(m.chat, tmpFile, m, { packname: pack, author: author, ...global.rcanal })
             await fs.unlinkSync(tmpFile)
           }
         } else if (url.match(/\.(mp4|mov|avi|mkv|webm)$/i)) {
-          const tmpFile = `./tmp/video-url-${Date.now()}.mp4`
+          const tmpFile = `./temp_video-url-${Date.now()}.mp4`
           await fs.writeFileSync(tmpFile, buffer)
           await client.sendVideoAsSticker(m.chat, tmpFile, m, { packname: pack, author: author, ...global.rcanal })
           await fs.unlinkSync(tmpFile)
