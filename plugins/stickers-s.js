@@ -1,4 +1,3 @@
-
 import fs from 'fs'
 import sharp from 'sharp'
 import exif from '../../columbina/lib/exif.js'
@@ -163,4 +162,3 @@ export default {
 const isUrl = (text) => {
   return text.match(new RegExp(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)(jpe?g|gif|png|webp|mp4|mov|avi|mkv|webm)/, 'gi'))
         }
-          
