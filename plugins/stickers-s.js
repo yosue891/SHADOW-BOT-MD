@@ -17,31 +17,29 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
       `𔓕 Ejemplo: \`${usedPrefix}reg shadow.18\``
     ].join('\n')
 
-    // Estructura idéntica a la captura usando simulación de Canal de WhatsApp para "Ver canal"
-    const msjCanal = {
-      text: txtRegistro,
+    // Aquí está la estructura real de lo que llamas 'rcanal' para que pinte el "Ver canal" abajo
+    return await conn.sendMessage(m.chat, { 
+      text: txtRegistro, 
       contextInfo: {
         mentionedJid: [m.sender],
         forwardingScore: 1,
         isForwarded: true,
         forwardedNewsletterMessageInfo: {
-          newsletterJid: '120363203027814474@newsletter', // ID interno para forzar la interfaz de Canal
+          newsletterJid: '120363203027814474@newsletter', // ID del canal simulado o real
           serverMessageId: 100,
-          newsletterName: 'Shadow Bot • Canal' // Nombre que aparece en la cabecera verde
+          newsletterName: 'COLUMBINA CANAL' // Nombre en verde arriba
         },
         externalAdReply: {
-          title: 'SHADOW-BOT-MD',
-          body: 'Sistema de Verificación',
+          title: 'COLUMBINA MD',
+          body: '666 MB • PNG',
           mediaType: 1,
           previewType: 0,
-          renderLargerThumbnail: true, // Esto hace que la imagen se vea grande y expandida
-          thumbnailUrl: 'https://files.catbox.moe/n3bg2n.jpg', // Tu imagen del registro
-          sourceUrl: 'https://wa.me/584242773183' // Enlace de redirección al interactuar
+          renderLargerThumbnail: true, // Forzar la imagen gigante que se ve en la captura
+          thumbnailUrl: 'https://files.catbox.moe/zxjxhd.jpg', // Tu miniatura grande clickeable
+          sourceUrl: 'https://whatsapp.com/channel/0029VaJxgwCCt9fduVKYi61A' // Al tocar la imagen los redirige aquí
         }
       }
-    }
-
-    return await conn.sendMessage(m.chat, msjCanal, { quoted: m })
+    }, { quoted: m })
   }
 
   const from = m?.chat || m?.key?.remoteJid
@@ -79,6 +77,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
   const isVideo = !!videoMessage
 
   if (!isImage && !isVideo) {
+    // Respuesta por defecto si no mandan nada, también estructurada como canal grande
     return await conn.sendMessage(
       from,
       {
@@ -87,13 +86,20 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
           `> ✐ Ejemplo » *${usedPrefix + command} circle*\n` +
           `> ✐ Lista » *${usedPrefix + command} list*`,
         contextInfo: {
+          forwardingScore: 1,
+          isForwarded: true,
+          forwardedNewsletterMessageInfo: {
+            newsletterJid: '120363203027814474@newsletter',
+            serverMessageId: 100,
+            newsletterName: 'COLUMBINA CANAL'
+          },
           externalAdReply: {
-            title: "sticker estilo Shadow-BOT-MD",
-            body: "uwu",
+            title: "COLUMBINA MD",
+            body: "666 MB • PNG",
             thumbnailUrl: "https://files.catbox.moe/zxjxhd.jpg", 
             mediaType: 1,
-            renderLargerThumbnail: false,
-            sourceUrl: null
+            renderLargerThumbnail: true,
+            sourceUrl: "https://whatsapp.com/channel/0029VaJxgwCCt9fduVKYi61A"
           }
         }
       },
