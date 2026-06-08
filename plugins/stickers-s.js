@@ -9,36 +9,60 @@ const execAsync = util.promisify(exec)
 let handler = async (m, { conn, args, usedPrefix, command }) => {
   const chat = global.db.data.users[m.sender] || {}
   if (!chat.registered) {
-    const txtRegistro = [
-      `➤ *\`REGISTRO\`*`,
-      `𔓕 Hola ${m.pushName || 'usuario'}`,
-      `𔓕 Para usar el comando necesitas registrarte`,
-      `𔓕 Comando: \`${usedPrefix}reg nombre.edad\``,
-      `𔓕 Ejemplo: \`${usedPrefix}reg shadow.18\``
-    ].join('\n')
+    const thumbBuffer = await (await fetch('https://iili.io/fXp3swb.jpg')).buffer()
 
-    return await conn.sendMessage(m.chat, { 
-      text: txtRegistro, 
+    const fkontak = {
+      key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'Shadow' },
+      message: {
+        locationMessage: {
+          name: 'Registro requerido',
+          jpegThumbnail: thumbBuffer,
+          vcard:
+            'BEGIN:VCARD\nVERSION:3.0\nN:;Shadow;;;\nFN:Shadow\nORG:Shadow Garden\nitem1.TEL;waid=584242773183:+58 424 2773183\nitem1.X-ABLabel:Shadow\nEND:VCARD'
+        }
+      },
+      participant: '0@s.whatsapp.net'
+    }
+
+    const productMessage = {
+      product: {
+        productImage: { url: 'https://files.catbox.moe/n3bg2n.jpg' },
+        productId: '999999999999999',
+        title: 'REGISTRO',
+        description: 'Registro requerido',
+        currencyCode: 'USD',
+        priceAmount1000: '0',
+        retailerId: '1677',
+        url: `https://wa.me/584242773183`,
+        productImageCount: 1
+      },
+      businessOwnerJid: '584242773183@s.whatsapp.net',
+      caption: [
+        `➤ *\`REGISTRO\`*`,
+        `𔓕 Hola ${m.pushName || 'usuario'}`,
+        `𔓕 Para usar el comando necesitas registrarte`,
+        `𔓕 Comando: \`${usedPrefix}reg nombre.edad\``,
+        `𔓕 Ejemplo: \`${usedPrefix}reg shadow.18\``
+      ].join('\n'),
+      footer: '🌌 Shadow Bot',
+      interactiveButtons: [
+        { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '📝 Registrarse', id: `${usedPrefix}reg` }) },
+        { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: '👑 Creador', url: 'https://wa.me/584242773183' }) }
+      ],
+      mentions: [m.sender],
       contextInfo: {
-        mentionedJid: [m.sender],
-        forwardingScore: 1,
-        isForwarded: true,
-        forwardedNewsletterMessageInfo: {
-          newsletterJid: '120363203027814474@newsletter',
-          serverMessageId: 100,
-          newsletterName: 'SHADOW BOT MD CANAL' // Nombre modificado
-        },
         externalAdReply: {
-          title: 'SHADOW-BOT-MD', // Título modificado
-          body: 'System • Verification',
+          showAdAttribution: true,
+          title: 'Shadow • Sistema de Registro',
+          body: 'Registro uwu',
           mediaType: 1,
-          previewType: 0,
-          renderLargerThumbnail: true,
           thumbnailUrl: 'https://files.catbox.moe/n3bg2n.jpg',
           sourceUrl: 'https://wa.me/584242773183'
         }
       }
-    }, { quoted: m })
+    }
+
+    return await conn.sendMessage(m.chat, productMessage, { quoted: fkontak })
   }
 
   const from = m?.chat || m?.key?.remoteJid
@@ -84,20 +108,13 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
           `> ✐ Ejemplo » *${usedPrefix + command} circle*\n` +
           `> ✐ Lista » *${usedPrefix + command} list*`,
         contextInfo: {
-          forwardingScore: 1,
-          isForwarded: true,
-          forwardedNewsletterMessageInfo: {
-            newsletterJid: '120363203027814474@newsletter',
-            serverMessageId: 100,
-            newsletterName: 'SHADOW BOT MD CANAL' // Nombre modificado
-          },
           externalAdReply: {
-            title: "SHADOW-BOT-MD", // Título modificado
-            body: "Sticker Generator",
+            title: "sticker estilo Shadow-BOT-MD",
+            body: "uwu",
             thumbnailUrl: "https://files.catbox.moe/zxjxhd.jpg", 
             mediaType: 1,
-            renderLargerThumbnail: true,
-            sourceUrl: "https://wa.me/584242773183"
+            renderLargerThumbnail: false,
+            sourceUrl: null
           }
         }
       },
@@ -114,8 +131,8 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
   for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk])
 
   const ts = Date.now()
-  const input = `./tmp/temp_${ts}.${isImage ? 'jpg' : 'mp4'}`
-  const output = `./tmp/temp_${ts}.webp`
+  const input = `./temp_${ts}.${isImage ? 'jpg' : 'mp4'}`
+  const output = `./temp_${ts}.webp`
 
   await fs.promises.writeFile(input, buffer)
 
