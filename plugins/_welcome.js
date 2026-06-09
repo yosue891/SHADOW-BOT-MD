@@ -63,19 +63,12 @@ export async function before(m, { conn, usedPrefix }) {
 > Usuario: ${taguser}
 > Miembros totales: ${totalMembers}
 > Fecha: ${date}
+
+📌 *Presiona el comando de abajo para registrarte:*
+${usedPrefix}reg user.19
 `.trim(),
 
         footer: `© ${botname} · Welcome`,
-
-        buttons: [
-          {
-            buttonId: `${usedPrefix}reg user.19`,
-            buttonText: {
-              displayText: '👤 Registrarme'
-            },
-            type: 1
-          }
-        ],
 
         mentions: [who]
       },
@@ -110,19 +103,12 @@ export async function before(m, { conn, usedPrefix }) {
 > Usuario: ${taguser}
 > Fecha: ${date}
 *se retira del reino de las sombras.*
+
+📌 *Presiona el comando de abajo para registrarte:*
+${usedPrefix}reg user.19
 `.trim(),
 
         footer: `© ${botname} · Goodbye`,
-
-        buttons: [
-          {
-            buttonId: `${usedPrefix}reg user.19`,
-            buttonText: {
-              displayText: '👤 Registrarme'
-            },
-            type: 1
-          }
-        ],
 
         mentions: [who]
       },
