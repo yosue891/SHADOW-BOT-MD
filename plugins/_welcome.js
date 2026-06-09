@@ -1,3 +1,5 @@
+import { prepareWAMessageMedia, generateWAMessageFromContent } from "@whiskeysockets/baileys"
+
 export async function before(m, { conn, usedPrefix }) {
   if (!m.isGroup) return
   if (!m.messageStubType) return
@@ -42,31 +44,46 @@ export async function before(m, { conn, usedPrefix }) {
       `&profile=${encodeURIComponent(profile)}` +
       '&background=https%3A%2F%2Fraw.githubusercontent.com%2FEl-brayan502%2Fimg%2Fupload%2Fuploads%2F837853-1770608354526.jpg'
 
-    await conn.sendMessage(
-      m.chat,
-      {
-        image: { url: welcomeImg },
-        caption: `
-*Bienvenido/a al reino de las sombras*
+    const media = await prepareWAMessageMedia({ image: { url: welcomeImg } }, { upload: conn.waUploadToServer })
 
-> Usuario: ${taguser}
-> Miembros totales: ${totalMembers}
-> Fecha: ${date}
-`.trim(),
-        footer: `© ${botname} · Welcome`,
-        buttons: [
-          {
-            buttonId: `${usedPrefix}reg user.19`,
-            buttonText: {
-              displayText: '👤 Registrarme'
+    const msg = generateWAMessageFromContent(m.chat, {
+      viewOnceMessage: {
+        message: {
+          interactiveMessage: {
+            body: {
+              text: `*Bienvenido/a al reino de las sombras*\n\n> Usuario: ${taguser}\n> Miembros totales: ${totalMembers}\n> Fecha: ${date}`.trim()
             },
-            type: 1
+            footer: {
+              text: `© ${botname} · Welcome`
+            },
+            header: {
+              hasMediaAttachment: true,
+              imageMessage: media.imageMessage
+            },
+            nativeFlowMessage: {
+              buttons: [
+                {
+                  name: "quick_reply",
+                  buttonParamsJson: JSON.stringify({
+                    display_text: "👤 Registrarme",
+                    id: `${usedPrefix}reg user.19`
+                  })
+                }
+              ]
+            },
+            messageContextInfo: {
+              deviceListMetadata: {},
+              deviceListMetadataVersion: 2
+            },
+            contextInfo: {
+              mentionedJid: [who]
+            }
           }
-        ],
-        mentions: [who]
-      },
-      { quoted: fkontak }
-    )
+        }
+      }
+    }, { quoted: fkontak })
+
+    await conn.relayMessage(m.chat, msg.message, {})
   }
 
   if (m.messageStubType === 28 || m.messageStubType === 32) {
@@ -77,28 +94,45 @@ export async function before(m, { conn, usedPrefix }) {
       `&profile=${encodeURIComponent(profile)}` +
       '&background=https%3A%2F%2Fraw.githubusercontent.com%2FEl-brayan502%2Fimg%2Fupload%2Fuploads%2Ff1daa4-1770608515673.jpg'
 
-    await conn.sendMessage(
-      m.chat,
-      {
-        image: { url: goodbyeImg },
-        caption: `
-> Usuario: ${taguser}
-> Fecha: ${date}
-*se retira del reino de las sombras.*
-`.trim(),
-        footer: `© ${botname} · Goodbye`,
-        buttons: [
-          {
-            buttonId: `${usedPrefix}reg user.19`,
-            buttonText: {
-              displayText: '👤 Registrarme'
+    const media = await prepareWAMessageMedia({ image: { url: goodbyeImg } }, { upload: conn.waUploadToServer })
+
+    const msg = generateWAMessageFromContent(m.chat, {
+      viewOnceMessage: {
+        message: {
+          interactiveMessage: {
+            body: {
+              text: `> Usuario: ${taguser}\n> Fecha: ${date}\n*se retira del reino de las sombras.*`.trim()
             },
-            type: 1
+            footer: {
+              text: `© ${botname} · Goodbye`
+            },
+            header: {
+              hasMediaAttachment: true,
+              imageMessage: media.imageMessage
+            },
+            nativeFlowMessage: {
+              buttons: [
+                {
+                  name: "quick_reply",
+                  buttonParamsJson: JSON.stringify({
+                    display_text: "👤 Registrarme",
+                    id: `${usedPrefix}reg user.19`
+                  })
+                }
+              ]
+            },
+            messageContextInfo: {
+              deviceListMetadata: {},
+              deviceListMetadataVersion: 2
+            },
+            contextInfo: {
+              mentionedJid: [who]
+            }
           }
-        ],
-        mentions: [who]
-      },
-      { quoted: fkontak }
-    )
+        }
+      }
+    }, { quoted: fkontak })
+
+    await conn.relayMessage(m.chat, msg.message, {})
   }
 }
