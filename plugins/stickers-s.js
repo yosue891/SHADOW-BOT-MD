@@ -32,7 +32,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         description: 'Registro requerido',
         currencyCode: 'USD',
         priceAmount1000: '0',
-        retailerId: '1677',
+        retailId: '1677',
         url: `https://wa.me/584242773183`,
         productImageCount: 1
       },
@@ -109,12 +109,13 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
           `> ✐ Lista » *${usedPrefix + command} list*`,
         contextInfo: {
           externalAdReply: {
-            title: "sticker estilo Shadow-BOT-MD",
-            body: "uwu",
-            thumbnailUrl: "https://upload.yotsuba.giize.com/u/2aD5xHwD.jpeg", 
+            title: 'sticker estilo Shadow-BOT-MD',
+            body: 'uwu',
             mediaType: 1,
+            previewType: 0,
             renderLargerThumbnail: false,
-            sourceUrl: null
+            thumbnailUrl: 'https://upload.yotsuba.giize.com/u/2aD5xHwD.jpeg',
+            sourceUrl: 'https://github.com'
           }
         }
       },
