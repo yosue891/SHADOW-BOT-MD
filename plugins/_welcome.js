@@ -43,7 +43,7 @@ END:VCARD`
     const welcomeImg =
       'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
       'title=Bienvenido+al+grupo' +
-      '&desc=Evita+no+ser+espulsado+por+las+sombras' +
+      '&desc=Evita+no+ser+espulsado' +
       `&profile=${encodeURIComponent(profile)}` +
       '&background=https%3A%2F%2Fraw.githubusercontent.com%2FEl-yosue891502%2Fimg%2Fupload%2Fuploads%2F837853-1770608354526.jpg'
 
