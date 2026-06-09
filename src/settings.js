@@ -55,7 +55,7 @@ delirius: { url: "https://api.delirius.store", key: null },
 zenzxz: { url: "https://api.zenzxz.my.id", key: null },
 siputzx: { url: "https://api.siputzx.my.id", key: null },
 adonix: { url: "https://api-adonix.ultraplus.click", key: null },
-gohan: { url: "https://api-gohan-kz6w.onrender.com", key: null }
+gohan: { url: "https://api-gohan-v1.onrender.com", key: null }
 }
 
 
