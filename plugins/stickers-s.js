@@ -100,6 +100,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
   const isVideo = !!videoMessage
 
   if (!isImage && !isVideo) {
+    const errorThumb = await (await fetch('https://upload.yotsuba.giize.com/u/2aD5xHwD.jpeg')).buffer()
     return await conn.sendMessage(
       from,
       {
@@ -114,7 +115,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
             mediaType: 1,
             previewType: 0,
             renderLargerThumbnail: false,
-            thumbnailUrl: 'https://upload.yotsuba.giize.com/u/2aD5xHwD.jpeg',
+            jpegThumbnail: errorThumb,
             sourceUrl: 'https://github.com'
           }
         }
