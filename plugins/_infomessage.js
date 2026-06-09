@@ -39,12 +39,13 @@ const rcanal = {
       mediaUrl: null, 
       description: null, 
       previewType: "PHOTO", 
-      thumbnail: iconBuffer || { url: icono },
-      jpegThumbnail: iconBuffer || null,
+      thumbnail: iconBuffer,
+      jpegThumbnail: iconBuffer,
       sourceUrl: redes, 
       mediaType: 1, 
       renderLargerThumbnail: false 
     }, 
+    matchedText: "",
     mentionedJid: null 
   }
 }
@@ -52,11 +53,12 @@ const rcanal = {
 const pp = await conn.profilePictureUrl(m.chat, 'image').catch(_ => null) || 'https://upload.yotsuba.giize.com/u/r2laVJy8.png'
 const nombre = `> ❀ @${usuario.split('@')[0]} Ha cambiado el nombre del grupo.\n> ✦ Ahora el grupo se llama:\n> *${m.messageStubParameters[0]}*.`
 const foto = `> ❀ Se ha cambiado la imagen del grupo.\n> ✦ Acción hecha por:\n> » @${usuario.split('@')[0]}`
-const edit = `> ❀ @${usuario.split('@')[0]} Ha permitido que ${m.messageStubParameters[0] == 'on' ? 'solo admins' : 'todos'} puedan configure el grupo.`
+const edit = `> ❀ @${usuario.split('@')[0]} Ha permitido que ${m.messageStubParameters[0] == 'on' ? 'solo admins' : 'todos'} puedan configurar el grupo.`
 const newlink = `> ❀ El enlace del grupo ha sido restablecido.\n> ✦ Acción hecha por:\n> » @${usuario.split('@')[0]}`
 const status = `> ❀ El grupo ha sido ${m.messageStubParameters[0] == 'on' ? '*cerrado*' : '*abierto*'} Por @${usuario.split('@')[0]}\n> ✦ Ahora ${m.messageStubParameters[0] == 'on' ? '*solo admins*' : '*todos*'} pueden enviar mensaje.`
 const admingp = `> ❀ @${users.split('@')[0]} Ahora es admin del grupo.\n> ✦ Acción hecha por:\n> » @${usuario.split('@')[0]}`
 const noadmingp = `> ❀ @${users.split('@')[0]} Deja de ser admin del grupo.\n> ✦ Acción hecha por:\n> » @${usuario.split('@')[0]}`
+
 if (chat.detect && m.messageStubType == 2) {
 const uniqid = (m.isGroup ? m.chat : m.sender).split('@')[0]
 const sessionPath = `./${sessions}/`
@@ -66,26 +68,26 @@ await fs.promises.unlink(path.join(sessionPath, file))
 console.log(`${chalk.yellow.bold('✎ Delete!')} ${chalk.greenBright(`'${file}'`)}\n${chalk.redBright('Que provoca el "undefined" en el chat.')}`)
 }}} if (chat.detect && m.messageStubType == 21) {
 rcanal.contextInfo.mentionedJid = [usuario, ...groupAdmins.map(v => v.id)]
-await this.sendMessage(m.chat, { text: nombre, ...rcanal }, { quoted: null })
+await this.sendMessage(m.chat, { text: nombre, contextInfo: rcanal.contextInfo }, { quoted: null })
 } if (chat.detect && m.messageStubType == 22) {
 rcanal.contextInfo.mentionedJid = [usuario, ...groupAdmins.map(v => v.id)]
-await this.sendMessage(m.chat, { image: { url: pp }, caption: foto, ...rcanal }, { quoted: null })
+await this.sendMessage(m.chat, { image: { url: pp }, caption: foto, contextInfo: rcanal.contextInfo }, { quoted: null })
 } if (chat.detect && m.messageStubType == 23) {
 rcanal.contextInfo.mentionedJid = [usuario, ...groupAdmins.map(v => v.id)]
-await this.sendMessage(m.chat, { text: newlink, ...rcanal }, { quoted: null })
+await this.sendMessage(m.chat, { text: newlink, contextInfo: rcanal.contextInfo }, { quoted: null })
 } if (chat.detect && m.messageStubType == 25) {
 rcanal.contextInfo.mentionedJid = [usuario, ...groupAdmins.map(v => v.id)]
-await this.sendMessage(m.chat, { text: edit, ...rcanal }, { quoted: null })
+await this.sendMessage(m.chat, { text: edit, contextInfo: rcanal.contextInfo }, { quoted: null })
 } if (chat.detect && m.messageStubType == 26) {
 rcanal.contextInfo.mentionedJid = [usuario, ...groupAdmins.map(v => v.id)]
-await this.sendMessage(m.chat, { text: status, ...rcanal }, { quoted: null })
+await this.sendMessage(m.chat, { text: status, contextInfo: rcanal.contextInfo }, { quoted: null })
 } if (chat.detect && m.messageStubType == 29) {
 rcanal.contextInfo.mentionedJid = [usuario, users, ...groupAdmins.map(v => v.id)].filter(Boolean)
-await this.sendMessage(m.chat, { text: admingp, ...rcanal }, { quoted: null })
+await this.sendMessage(m.chat, { text: admingp, contextInfo: rcanal.contextInfo }, { quoted: null })
 return
 } if (chat.detect && m.messageStubType == 30) {
 rcanal.contextInfo.mentionedJid = [usuario, users, ...groupAdmins.map(v => v.id)].filter(Boolean)
-await this.sendMessage(m.chat, { text: noadmingp, ...rcanal }, { quoted: null })
+await this.sendMessage(m.chat, { text: noadmingp, contextInfo: rcanal.contextInfo }, { quoted: null })
 } else { 
 if (m.messageStubType == 2) return
 console.log({messageStubType: m.messageStubType,
