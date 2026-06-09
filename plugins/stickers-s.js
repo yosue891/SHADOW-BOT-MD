@@ -111,7 +111,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
           externalAdReply: {
             title: "sticker estilo Shadow-BOT-MD",
             body: "uwu",
-            thumbnailUrl: "https://files.catbox.moe/zxjxhd.jpg", 
+            thumbnailUrl: "https://upload.yotsuba.giize.com/u/2aD5xHwD.jpeg", 
             mediaType: 1,
             renderLargerThumbnail: false,
             sourceUrl: null
