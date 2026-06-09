@@ -6,7 +6,7 @@ export async function before(m, { conn, usedPrefix }) {
   if (!who) return
 
   const taguser = `@${who.split('@')[0]}`
-  const botname = global.author
+  const botname = global.author || 'Shadow Bot'
 
   const metadata = await conn.groupMetadata(m.chat)
   const totalMembers = metadata.participants.length
@@ -45,31 +45,24 @@ export async function before(m, { conn, usedPrefix }) {
     await conn.sendMessage(
       m.chat,
       {
-        product: {
-          productImage: { url: welcomeImg },
-          productId: 'welcome-001',
-          title: `─ W E L C O M E ─🥷🏻`,
-          currencyCode: 'USD',
-          priceAmount1000: '0',
-          retailerId: 1677,
-          productImageCount: 1
-        },
-
-        businessOwnerJid: '0@s.whatsapp.net',
-
+        image: { url: welcomeImg },
         caption: `
 *Bienvenido/a al reino de las sombras*
 
 > Usuario: ${taguser}
 > Miembros totales: ${totalMembers}
 > Fecha: ${date}
-
-📌 *Presiona el comando de abajo para registrarte:*
-${usedPrefix}reg user.19
 `.trim(),
-
         footer: `© ${botname} · Welcome`,
-
+        buttons: [
+          {
+            buttonId: `${usedPrefix}reg user.19`,
+            buttonText: {
+              displayText: '👤 Registrarme'
+            },
+            type: 1
+          }
+        ],
         mentions: [who]
       },
       { quoted: fkontak }
@@ -87,29 +80,22 @@ ${usedPrefix}reg user.19
     await conn.sendMessage(
       m.chat,
       {
-        product: {
-          productImage: { url: goodbyeImg },
-          productId: 'goodbye-001',
-          title: '─Ａ Ｄ Ｉ Ō S─👋🏻',
-          currencyCode: 'USD',
-          priceAmount1000: '0',
-          retailerId: 1677,
-          productImageCount: 1
-        },
-
-        businessOwnerJid: '0@s.whatsapp.net',
-
+        image: { url: goodbyeImg },
         caption: `
 > Usuario: ${taguser}
 > Fecha: ${date}
 *se retira del reino de las sombras.*
-
-📌 *Presiona el comando de abajo para registrarte:*
-${usedPrefix}reg user.19
 `.trim(),
-
         footer: `© ${botname} · Goodbye`,
-
+        buttons: [
+          {
+            buttonId: `${usedPrefix}reg user.19`,
+            buttonText: {
+              displayText: '👤 Registrarme'
+            },
+            type: 1
+          }
+        ],
         mentions: [who]
       },
       { quoted: fkontak }
