@@ -101,12 +101,13 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
   if (!isImage && !isVideo) {
     const errorThumb = await (await fetch('https://upload.yotsuba.giize.com/u/2aD5xHwD.jpeg')).buffer()
-    
-    return await conn.sendMessage(from, {
-      extendedTextMessage: {
-        text: '「✦」Responde a una *imagen* o *video* para crear el sticker.\n' +
-              `> ✐ Ejemplo » *${usedPrefix + command} circle*\n` +
-              `> ✐ Lista » *${usedPrefix + command} list*`,
+    return await conn.sendMessage(
+      from,
+      {
+        text:
+          '「✦」Responde a una *imagen* o *video* para crear el sticker.\n' +
+          `> ✐ Ejemplo » *${usedPrefix + command} circle*\n` +
+          `> ✐ Lista » *${usedPrefix + command} list*`,
         contextInfo: {
           externalAdReply: {
             title: 'sticker estilo Shadow-BOT-MD',
@@ -114,12 +115,14 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
             mediaType: 1,
             previewType: 0,
             renderLargerThumbnail: false,
+            thumbnail: errorThumb,
             jpegThumbnail: errorThumb,
             sourceUrl: 'https://github.com'
           }
         }
-      }
-    }, { quoted: m })
+      },
+      { quoted: m }
+    )
   }
 
   const msg = isImage ? imageMessage : videoMessage
