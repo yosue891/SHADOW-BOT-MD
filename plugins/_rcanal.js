@@ -5,7 +5,7 @@ export async function before(m, { conn }) {
   try {
 
     let nombreBot = global.botname || 'Bot'
-    let bannerFinal = 'https://cdn.adoolab.xyz/dl/3e965739.webp'
+    let bannerFinal = 'https://upload.yotsuba.giize.com/u/r2laVJy8.png'
 
     const botActual = conn.user?.jid?.split('@')[0].replace(/\D/g, '')
     const configPath = path.join('./Sessions/SubBot', botActual, 'config.json')
