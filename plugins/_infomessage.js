@@ -42,7 +42,7 @@ const rcanal = {
   }
 }
 
-const pp = await conn.profilePictureUrl(m.chat, 'image').catch(_ => null) || 'https://cdn.adoolab.xyz/dl/3e965739.webp'
+const pp = await conn.profilePictureUrl(m.chat, 'image').catch(_ => null) || 'https://upload.yotsuba.giize.com/u/r2laVJy8.png'
 const nombre = `> ❀ @${usuario.split('@')[0]} Ha cambiado el nombre del grupo.\n> ✦ Ahora el grupo se llama:\n> *${m.messageStubParameters[0]}*.`
 const foto = `> ❀ Se ha cambiado la imagen del grupo.\n> ✦ Acción hecha por:\n> » @${usuario.split('@')[0]}`
 const edit = `> ❀ @${usuario.split('@')[0]} Ha permitido que ${m.messageStubParameters[0] == 'on' ? 'solo admins' : 'todos'} puedan configurar el grupo.`
