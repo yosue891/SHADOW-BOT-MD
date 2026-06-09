@@ -1,125 +1,121 @@
-import { execSync } from 'child_process'
+import { WAMessageStubType } from '@whiskeysockets/baileys'
+import chalk from 'chalk'
+import fs from 'fs'
+import path from 'path'
 import fetch from 'node-fetch'
 
-var handler = async (m, { conn, text, isMods }) => {
-  if (!isMods) return
-  await m.react('🕒')
-  try {
-    const stdout = execSync('git pull' + (m.fromMe && text ? ' ' + text : ''))
-    let messager = stdout.toString()
-    if (messager.includes('❀ Ya está cargada la actualización.'))
-      messager = '❀ Los datos ya están actualizados a la última versión.'
-    if (messager.includes('ꕥ Actualizando.'))
-      messager = '❀ Procesando, espere un momento mientras me actualizo.\n\n' + stdout.toString()
-    
-    const updateThumb = await (await fetch('https://upload.yotsuba.giize.com/u/r2laVJy8.png')).buffer()
-    
-    await m.react('✔️')
-    await conn.sendMessage(
-      m.chat,
-      {
-        text: messager,
-        contextInfo: {
-          externalAdReply: {
-            showAdAttribution: true,
-            title: 'Shadow • Update SHADOW-BOT-MD',
-            body: 'Actualización del bot',
-            mediaType: 1,
-            previewType: 0,
-            renderLargerThumbnail: false,
-            thumbnail: updateThumb,
-            jpegThumbnail: updateThumb,
-            sourceUrl: 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O'
-          }
-        }
-      },
-      { quoted: m }
-    )
-  } catch {
-    try {
-      const status = execSync('git status --porcelain')
-      if (status.length > 0) {
-        const conflictedFiles = status
-          .toString()
-          .split('\n')
-          .filter(line => line.trim() !== '')
-          .map(line => {
-            if (
-              line.includes('.npm/') ||
-              line.includes('.cache/') ||
-              line.includes('tmp/') ||
-              line.includes('database.json') ||
-              line.includes('sessions/Principal/') ||
-              line.includes('npm-debug.log')
-            ) {
-              return null
-            }
-            return '*→ ' + line.slice(3) + '*'
-          })
-          .filter(Boolean)
-        if (conflictedFiles.length > 0) {
-          const errorMessage = `\`⚠︎ No se pudo realizar la actualización:\`\n\n> *Se han encontrado cambios locales en los archivos del bot que entran en conflicto con las nuevas actualizaciones del repositorio.*\n\n${conflictedFiles.join('\n')}.`
-          
-          const conflictThumb = await (await fetch('https://files.catbox.moe/k45sr6.jpg')).buffer()
-          
-          await conn.sendMessage(
-            m.chat,
-            {
-              text: errorMessage,
-              contextInfo: {
-                externalAdReply: {
-                  showAdAttribution: true,
-                  title: 'Shadow • Update Error',
-                  body: 'Conflictos detectados',
-                  mediaType: 1,
-                  previewType: 0,
-                  renderLargerThumbnail: false,
-                  thumbnail: conflictThumb,
-                  jpegThumbnail: conflictThumb,
-                  sourceUrl: 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O'
-                }
-              }
-            },
-            { quoted: m }
-          )
-          await m.react('✖️')
-        }
-      }
-    } catch (error) {
-      console.error(error)
-      let errorMessage2 = '⚠︎ Ocurrió un error inesperado.'
-      if (error.message) {
-        errorMessage2 += '\n⚠︎ Mensaje de error: ' + error.message
-      }
-      
-      const errorThumb = await (await fetch('https://upload.yotsuba.giize.com/u/-PxXQ2UD.jpeg')).buffer()
-      
-      await conn.sendMessage(
-        m.chat,
-        {
-          text: errorMessage2,
-          contextInfo: {
-            externalAdReply: {
-              showAdAttribution: true,
-              title: 'Shadow • Update Error',
-              body: 'Error inesperado',
-              mediaType: 1,
-              previewType: 0,
-              renderLargerThumbnail: false,
-              thumbnail: errorThumb,
-              jpegThumbnail: errorThumb,
-              sourceUrl: 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O'
-            }
-          }
-        },
-        { quoted: m }
-      )
-    }
+const groupMetadataCache = new Map()
+const lidCache = new Map()
+const handler = m => m
+handler.before = async function (m, { conn, participants, groupMetadata }) {
+if (!m.messageStubType || !m.isGroup) return
+const primaryBot = global.db.data.chats[m.chat].primaryBot
+if (primaryBot && conn.user.jid !== primaryBot) throw !1
+const chat = global.db.data.chats[m.chat]
+const users = m.messageStubParameters[0]
+const usuario = await resolveLidToRealJid(m?.sender, conn, m?.chat)
+const groupAdmins = participants.filter(p => p.admin)
+
+const iconBuffer = await (await fetch(icono)).buffer()
+
+const rcanal = { 
+  contextInfo: { 
+    isForwarded: true, 
+    forwardedNewsletterMessageInfo: { 
+      newsletterJid: channelRD.id, 
+      serverMessageId: '', 
+      newsletterName: channelRD.name 
+    }, 
+    externalAdReply: { 
+      title: "𐔌 . ⋮ ᗩ ᐯ I Տ O .ᐟ ֹ ₊ ꒱", 
+      body: textbot, 
+      mediaUrl: null, 
+      description: null, 
+      previewType: "PHOTO", 
+      thumbnail: iconBuffer,
+      jpegThumbnail: iconBuffer,
+      sourceUrl: redes, 
+      mediaType: 1, 
+      renderLargerThumbnail: false 
+    }, 
+    mentionedJid: null 
   }
 }
 
-handler.help = ['update']
-handler.tags = ['owner']
-handler.command = ['update', 'fix', 'actualizar']
+const pp = await conn.profilePictureUrl(m.chat, 'image').catch(_ => null) || 'https://cdn.adoolab.xyz/dl/3e965739.webp'
+const nombre = `> ❀ @${usuario.split('@')[0]} Ha cambiado el nombre del grupo.\n> ✦ Ahora el grupo se llama:\n> *${m.messageStubParameters[0]}*.`
+const foto = `> ❀ Se ha cambiado la imagen del grupo.\n> ✦ Acción hecha por:\n> » @${usuario.split('@')[0]}`
+const edit = `> ❀ @${usuario.split('@')[0]} Ha permitido que ${m.messageStubParameters[0] == 'on' ? 'solo admins' : 'todos'} puedan configurar el grupo.`
+const newlink = `> ❀ El enlace del grupo ha sido restablecido.\n> ✦ Acción hecha por:\n> » @${usuario.split('@')[0]}`
+const status = `> ❀ El grupo ha sido ${m.messageStubParameters[0] == 'on' ? '*cerrado*' : '*abierto*'} Por @${usuario.split('@')[0]}\n> ✦ Ahora ${m.messageStubParameters[0] == 'on' ? '*solo admins*' : '*todos*'} pueden enviar mensaje.`
+const admingp = `> ❀ @${users.split('@')[0]} Ahora es admin del grupo.\n> ✦ Acción hecha por:\n> » @${usuario.split('@')[0]}`
+const noadmingp = `> ❀ @${users.split('@')[0]} Deja de ser admin del grupo.\n> ✦ Acción hecha por:\n> » @${usuario.split('@')[0]}`
+if (chat.detect && m.messageStubType == 2) {
+const uniqid = (m.isGroup ? m.chat : m.sender).split('@')[0]
+const sessionPath = `./${sessions}/`
+for (const file of await fs.promises.readdir(sessionPath)) {
+if (file.includes(uniqid)) {
+await fs.promises.unlink(path.join(sessionPath, file))
+console.log(`${chalk.yellow.bold('✎ Delete!')} ${chalk.greenBright(`'${file}'`)}\n${chalk.redBright('Que provoca el "undefined" en el chat.')}`)
+}}} if (chat.detect && m.messageStubType == 21) {
+rcanal.contextInfo.mentionedJid = [usuario, ...groupAdmins.map(v => v.id)]
+await this.sendMessage(m.chat, { text: nombre, ...rcanal }, { quoted: null })
+} if (chat.detect && m.messageStubType == 22) {
+rcanal.contextInfo.mentionedJid = [usuario, ...groupAdmins.map(v => v.id)]
+await this.sendMessage(m.chat, { image: { url: pp }, caption: foto, ...rcanal }, { quoted: null })
+} if (chat.detect && m.messageStubType == 23) {
+rcanal.contextInfo.mentionedJid = [usuario, ...groupAdmins.map(v => v.id)]
+await this.sendMessage(m.chat, { text: newlink, ...rcanal }, { quoted: null })
+} if (chat.detect && m.messageStubType == 25) {
+rcanal.contextInfo.mentionedJid = [usuario, ...groupAdmins.map(v => v.id)]
+await this.sendMessage(m.chat, { text: edit, ...rcanal }, { quoted: null })
+} if (chat.detect && m.messageStubType == 26) {
+rcanal.contextInfo.mentionedJid = [usuario, ...groupAdmins.map(v => v.id)]
+await this.sendMessage(m.chat, { text: status, ...rcanal }, { quoted: null })
+} if (chat.detect && m.messageStubType == 29) {
+rcanal.contextInfo.mentionedJid = [usuario, users, ...groupAdmins.map(v => v.id)].filter(Boolean)
+await this.sendMessage(m.chat, { text: admingp, ...rcanal }, { quoted: null })
+return
+} if (chat.detect && m.messageStubType == 30) {
+rcanal.contextInfo.mentionedJid = [usuario, users, ...groupAdmins.map(v => v.id)].filter(Boolean)
+await this.sendMessage(m.chat, { text: noadmingp, ...rcanal }, { quoted: null })
+} else { 
+if (m.messageStubType == 2) return
+console.log({messageStubType: m.messageStubType,
+messageStubParameters: m.messageStubParameters,
+type: WAMessageStubType[m.messageStubType], 
+})}}
 
 export default handler
+
+async function resolveLidToRealJid(lid, conn, groupChatId, maxRetries = 3, retryDelay = 60000) {
+const inputJid = lid.toString()
+if (!inputJid.endsWith("@lid") || !groupChatId?.endsWith("@g.us")) { return inputJid.includes("@") ? inputJid : `${inputJid}@s.whatsapp.net` }
+if (lidCache.has(inputJid)) { return lidCache.get(inputJid) }
+const lidToFind = inputJid.split("@")[0]
+let attempts = 0
+while (attempts < maxRetries) {
+try {
+const metadata = await conn?.groupMetadata(groupChatId)
+if (!metadata?.participants) { throw new Error("No se obtuvieron participantes") }
+for (const participant of metadata.participants) {
+try {
+if (!participant?.jid) continue
+const contactDetails = await conn?.onWhatsApp(participant.jid)
+if (!contactDetails?.[0]?.lid) continue
+const possibleLid = contactDetails[0].lid.split("@")[0]
+if (possibleLid === lidToFind) {
+lidCache.set(inputJid, participant.jid)
+return participant.jid
+}} catch (e) { continue }}
+lidCache.set(inputJid, inputJid)
+return inputJid
+} catch (e) {
+if (++attempts >= maxRetries) {
+lidCache.set(inputJid, inputJid)
+return inputJid
+}
+await new Promise((resolve) => setTimeout(resolve, retryDelay))
+}}
+return inputJid
+}
