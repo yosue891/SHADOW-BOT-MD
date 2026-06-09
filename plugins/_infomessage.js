@@ -25,29 +25,26 @@ if (chat.detect) {
   }
 }
 
-const rcanal = { 
-  contextInfo: { 
-    isForwarded: true, 
-    forwardedNewsletterMessageInfo: { 
-      newsletterJid: channelRD.id, 
-      serverMessageId: '', 
-      newsletterName: channelRD.name 
-    }, 
-    externalAdReply: { 
-      title: "𐔌 . ⋮ ᗩ ᐯ I Տ O .ᐟ ֹ ₊ ꒱", 
-      body: textbot, 
-      mediaUrl: null, 
-      description: null, 
-      previewType: "PHOTO", 
-      thumbnail: iconBuffer,
-      jpegThumbnail: iconBuffer,
-      sourceUrl: redes, 
-      mediaType: 1, 
-      renderLargerThumbnail: false 
-    }, 
-    matchedText: "",
-    mentionedJid: null 
-  }
+const rcanalBase = {
+  isForwarded: true,
+  forwardedNewsletterMessageInfo: {
+    newsletterJid: channelRD.id,
+    serverMessageId: '',
+    newsletterName: channelRD.name
+  },
+  externalAdReply: {
+    title: "𐔌 . ⋮ ᗩ ᐯ I Տ O .ᐟ ֹ ₊ ꒱",
+    body: textbot,
+    mediaUrl: null,
+    description: null,
+    previewType: "PHOTO",
+    thumbnail: iconBuffer,
+    jpegThumbnail: iconBuffer,
+    sourceUrl: redes,
+    mediaType: 1,
+    renderLargerThumbnail: false
+  },
+  matchedText: ""
 }
 
 const pp = await conn.profilePictureUrl(m.chat, 'image').catch(_ => null) || 'https://upload.yotsuba.giize.com/u/r2laVJy8.png'
@@ -67,29 +64,22 @@ if (file.includes(uniqid)) {
 await fs.promises.unlink(path.join(sessionPath, file))
 console.log(`${chalk.yellow.bold('✎ Delete!')} ${chalk.greenBright(`'${file}'`)}\n${chalk.redBright('Que provoca el "undefined" en el chat.')}`)
 }}} if (chat.detect && m.messageStubType == 21) {
-rcanal.contextInfo.mentionedJid = [usuario, ...groupAdmins.map(v => v.id)]
-await this.sendMessage(m.chat, { text: nombre, ...rcanal }, { quoted: null })
+await this.sendMessage(m.chat, { text: nombre, contextInfo: { ...rcanalBase, mentionedJid: [usuario, ...groupAdmins.map(v => v.id)] } }, { quoted: null })
 } if (chat.detect && m.messageStubType == 22) {
-const rcanalFoto = { contextInfo: { ...rcanal.contextInfo } }
-delete rcanalFoto.contextInfo.matchedText
-rcanalFoto.contextInfo.mentionedJid = [usuario, ...groupAdmins.map(v => v.id)]
-await this.sendMessage(m.chat, { image: { url: pp }, caption: foto, ...rcanalFoto }, { quoted: null })
+const rcanalFoto = { ...rcanalBase }
+delete rcanalFoto.matchedText
+await this.sendMessage(m.chat, { image: { url: pp }, caption: foto, contextInfo: { ...rcanalFoto, mentionedJid: [usuario, ...groupAdmins.map(v => v.id)] } }, { quoted: null })
 } if (chat.detect && m.messageStubType == 23) {
-rcanal.contextInfo.mentionedJid = [usuario, ...groupAdmins.map(v => v.id)]
-await this.sendMessage(m.chat, { text: newlink, ...rcanal }, { quoted: null })
+await this.sendMessage(m.chat, { text: newlink, contextInfo: { ...rcanalBase, mentionedJid: [usuario, ...groupAdmins.map(v => v.id)] } }, { quoted: null })
 } if (chat.detect && m.messageStubType == 25) {
-rcanal.contextInfo.mentionedJid = [usuario, ...groupAdmins.map(v => v.id)]
-await this.sendMessage(m.chat, { text: edit, ...rcanal }, { quoted: null })
+await this.sendMessage(m.chat, { text: edit, contextInfo: { ...rcanalBase, mentionedJid: [usuario, ...groupAdmins.map(v => v.id)] } }, { quoted: null })
 } if (chat.detect && m.messageStubType == 26) {
-rcanal.contextInfo.mentionedJid = [usuario, ...groupAdmins.map(v => v.id)]
-await this.sendMessage(m.chat, { text: status, ...rcanal }, { quoted: null })
+await this.sendMessage(m.chat, { text: status, contextInfo: { ...rcanalBase, mentionedJid: [usuario, ...groupAdmins.map(v => v.id)] } }, { quoted: null })
 } if (chat.detect && m.messageStubType == 29) {
-rcanal.contextInfo.mentionedJid = [usuario, users, ...groupAdmins.map(v => v.id)].filter(Boolean)
-await this.sendMessage(m.chat, { text: admingp, ...rcanal }, { quoted: null })
+await this.sendMessage(m.chat, { text: admingp, contextInfo: { ...rcanalBase, mentionedJid: [usuario, users, ...groupAdmins.map(v => v.id)].filter(Boolean) } }, { quoted: null })
 return
 } if (chat.detect && m.messageStubType == 30) {
-rcanal.contextInfo.mentionedJid = [usuario, users, ...groupAdmins.map(v => v.id)].filter(Boolean)
-await this.sendMessage(m.chat, { text: noadmingp, ...rcanal }, { quoted: null })
+await this.sendMessage(m.chat, { text: noadmingp, contextInfo: { ...rcanalBase, mentionedJid: [usuario, users, ...groupAdmins.map(v => v.id)].filter(Boolean) } }, { quoted: null })
 } else { 
 if (m.messageStubType == 2) return
 console.log({messageStubType: m.messageStubType,
