@@ -43,7 +43,7 @@ END:VCARD`
     const welcomeImg =
       'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
       'title=Bienvenido+al+grupo' +
-      '&desc=Evita+hacer+spam' +
+      '&desc=Evita+no+ser+espulsado+por+las+sombras' +
       `&profile=${encodeURIComponent(profile)}` +
       '&background=https%3A%2F%2Fraw.githubusercontent.com%2FEl-yosue891502%2Fimg%2Fupload%2Fuploads%2F837853-1770608354526.jpg'
 
@@ -63,7 +63,7 @@ END:VCARD`
         businessOwnerJid: '0@s.whatsapp.net',
 
         caption: `
-*Bienvenido/a al grupo*
+*Bienvenido/a al reino de las sombras*
 
 > Usuario: ${taguser}
 > Miembros totales: ${totalMembers}
@@ -92,7 +92,7 @@ END:VCARD`
     const goodbyeImg =
       'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
       'title=Se+fue+del+grupo' +
-      '&desc=No+vuelvas' +
+      '&desc=gracias+a+dios+se+fue' +
       `&profile=${encodeURIComponent(profile)}` +
       '&background=https%3A%2F%2Fraw.githubusercontent.com%2FEl-brayan502%2Fimg%2Fupload%2Fuploads%2Ff1daa4-1770608515673.jpg'
 
@@ -114,7 +114,7 @@ END:VCARD`
         caption: `
 > Usuario: ${taguser}
 > Fecha: ${date}
-*salió del grupo.*
+*se retira del reino de las sombras.*
 `.trim(),
 
         footer: `© ${botname} · Goodbye`,
