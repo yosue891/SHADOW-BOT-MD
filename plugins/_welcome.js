@@ -45,7 +45,7 @@ END:VCARD`
       'title=Bienvenido+al+grupo' +
       '&desc=Evita+no+ser+espulsado' +
       `&profile=${encodeURIComponent(profile)}` +
-      '&background=https%3A%2F%2Fraw.githubusercontent.com%2FEl-yosue891502%2Fimg%2Fupload%2Fuploads%2F837853-1770608354526.jpg'
+      '&background=https%3A%2F%2Fraw.githubusercontent.com%2FEl-brayan502%2Fimg%2Fupload%2Fuploads%2F837853-1770608354526.jpg'
 
     await conn.sendMessage(
       m.chat,
