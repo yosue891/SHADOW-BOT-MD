@@ -1,162 +1,137 @@
-import { WAMessageStubType } from '@whiskeysockets/baileys'
+export async function before(m, { conn, usedPrefix }) {
+  if (!m.isGroup) return
+  if (!m.messageStubType) return
 
-const packname = 'shadow-BOT-MD'
+  const who = m.messageStubParameters?.[0]
+  if (!who) return
 
-const participantCache = {}
+  const taguser = `@${who.split('@')[0]}`
+  const botname = global.author
 
-function resolvePhoneJid(raw = '') {
-  if (!raw) return ''
-  const stripped = raw.replace(/@.*/, '').replace(/\D/g, '')
-  return stripped ? `${stripped}@s.whatsapp.net` : ''
-}
+  const metadata = await conn.groupMetadata(m.chat)
+  const totalMembers = metadata.participants.length
+  const date = new Date().toLocaleDateString('es-ES')
 
-function resolveUserJid(rawId, participants, groupId) {
-  const found = participants.find(p => p.id === rawId || p.lid === rawId || p.jid === rawId)
-  if (found) {
-    const phoneSource = found.phoneNumber || found.pn || found.jid || ''
-    if (phoneSource && !phoneSource.endsWith('@lid')) return resolvePhoneJid(phoneSource)
-  }
-  const cached = participantCache[groupId]?.[rawId]
-  if (cached) return cached
-  if (!rawId.endsWith('@lid')) return rawId.includes('@') ? rawId : `${rawId}@s.whatsapp.net`
-  return rawId
-}
-
-function cacheParticipants(groupId, participants = []) {
-  if (!participantCache[groupId]) participantCache[groupId] = {}
-  for (const p of participants) {
-    const phoneJid = resolvePhoneJid(p.phoneNumber || p.pn || p.jid || '')
-    if (!phoneJid) continue
-    if (p.lid) participantCache[groupId][p.lid] = phoneJid
-    if (p.id) participantCache[groupId][p.id] = phoneJid
-    if (p.jid) participantCache[groupId][p.jid] = phoneJid
-  }
-}
-
-let handler = m => m
-
-handler.before = async function (m, { conn, groupMetadata }) {
-  if (!m.messageStubType || !m.isGroup) return !0
-
-  if (groupMetadata?.participants?.length) {
-    cacheParticipants(m.chat, groupMetadata.participants)
+  const fkontak = {
+    key: {
+      participants: '0@s.whatsapp.net',
+      remoteJid: 'status@broadcast',
+      fromMe: false,
+      id: 'shadow-bot'
+    },
+    message: {
+      contactMessage: {
+        displayName: botname,
+        vcard: `BEGIN:VCARD
+VERSION:3.0
+FN:${botname}
+ORG:${botname};
+TEL;type=CELL;type=VOICE;waid=0:+0
+END:VCARD`
+      }
+    }
   }
 
-  const chat = global.db?.data?.chats?.[m.chat]
-  if (!chat || !chat.welcome) return !0
-
-  const rawId = m.messageStubParameters[0]
-  const userJid = resolveUserJid(rawId, groupMetadata.participants, m.chat)
-
-  if (userJid.endsWith('@lid')) return !0
-
-  const userTag = userJid.split('@')[0]
-  const userName = conn.getName(userJid) || userTag
-  
-  let pp
+  let profile
   try {
-    pp = await conn.profilePictureUrl(userJid, 'image')
+    profile = await conn.profilePictureUrl(who, 'image')
   } catch {
-    pp = 'https://files.catbox.moe/gbp5x3.jpg'
+    profile = 'https://i.imgur.com/JP52fdP.png'
   }
 
-  const groupName = groupMetadata.subject
-  const groupSize = groupMetadata.participants.length
-  const groupDesc = groupMetadata.desc?.toString() || 'Sin descripción'
-  const fecha = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+  if (m.messageStubType === 27) {
+    const welcomeImg =
+      'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
+      'title=Bienvenido+al+grupo' +
+      '&desc=Evita+hacer+spam' +
+      `&profile=${encodeURIComponent(profile)}` +
+      '&background=https%3A%2F%2Fraw.githubusercontent.com%2FEl-brayan502%2Fimg%2Fupload%2Fuploads%2F837853-1770608354526.jpg'
 
-  if (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_ADD) {
+    await conn.sendMessage(
+      m.chat,
+      {
+        product: {
+          productImage: { url: welcomeImg },
+          productId: 'welcome-001',
+          title: `─ W E L C O M E ─🥷🏻`,
+          currencyCode: 'USD',
+          priceAmount1000: '0',
+          retailerId: 1677,
+          productImageCount: 1
+        },
 
-    const welcomeImg = `https://api.popcat.xyz/welcomecard?background=${encodeURIComponent('https://files.catbox.moe/gbp5x3.jpg')}&text1=${encodeURIComponent(userName)}&text2=Bienvenido+a+${encodeURIComponent(groupName)}&text3=Miembro+${groupSize}&avatar=${encodeURIComponent(pp)}`
+        businessOwnerJid: '0@s.whatsapp.net',
 
-    const caption = 
-`╭─「 👻 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍: 𝐈𝐍𝐈𝐂𝐈𝐎 」─╮
+        caption: `
+*Bienvenido/a al grupo*
 
-${userName} ha sido convocado por las sombras...
-Bienvenid@ al dominio secreto de ${groupName}.
+> Usuario: ${taguser}
+> Miembros totales: ${totalMembers}
+> Fecha: ${date}
+`.trim(),
 
-Tu llegada no es casual. Cada paso será observado.
-Tu poder será forjado en silencio. Tu lealtad, puesta a prueba.
+        footer: `© ${botname} · Welcome`,
 
-⚠️ Lee las reglas para no ser expulsado por las sombras, @${userTag}
+        interactiveButtons: [
+          {
+            name: 'quick_reply',
+            buttonParamsJson: JSON.stringify({
+              display_text: '👤 Registrarme',
+              id: `${usedPrefix}reg user.19`
+            })
+          }
+        ],
 
-╰─「 🌌 𝐈𝐍𝐅𝐎 𝐃𝐄𝐋 𝐆𝐑𝐔𝐏𝐎 」─╯
-🧿 Miembros: ${groupSize}
-📅 Fecha: ${fecha}
-
-📜 Descripción:
-${groupDesc}`
-
-    await conn.sendMessage(m.chat, {
-      image: { url: welcomeImg },
-      caption,
-      footer: `© ${packname} · Welcome`,
-      buttons: [
-        { buttonId: '#reg', buttonText: { displayText: '👤 Registrarme' }, type: 1 },
-        { buttonId: '#menu', buttonText: { displayText: '🌌 Menú' }, type: 1 }
-      ],
-      mentions: [userJid],
-      viewOnce: true,
-      contextInfo: {
-        externalAdReply: {
-          title: '─ W E L C O M E ─🥷🏻',
-          body: `Bienvenido a ${groupName}`,
-          thumbnailUrl: pp,
-          mediaType: 1,
-          showAdAttribution: true,
-          sourceUrl: 'https://wa.me/584242773183'
-        }
-      }
-    })
+        mentions: [who]
+      },
+      { quoted: fkontak }
+    )
   }
 
-  if (
-    m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_REMOVE ||
-    m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_LEAVE
-  ) {
+  if (m.messageStubType === 28 || m.messageStubType === 32) {
+    const goodbyeImg =
+      'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
+      'title=Se+fue+del+grupo' +
+      '&desc=No+vuelvas' +
+      `&profile=${encodeURIComponent(profile)}` +
+      '&background=https%3A%2F%2Fraw.githubusercontent.com%2FEl-brayan502%2Fimg%2Fupload%2Fuploads%2Ff1daa4-1770608515673.jpg'
 
-    const goodbyeImg = `https://api.popcat.xyz/welcomecard?background=${encodeURIComponent('https://files.catbox.moe/gbp5x3.jpg')}&text1=${encodeURIComponent(userName)}&text2=Se+fue+de+${encodeURIComponent(groupName)}&text3=Adiós+Sombra&avatar=${encodeURIComponent(pp)}`
-
-    const caption = 
-`╭─「 🌌 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍: 𝐑𝐄𝐓𝐈𝐑𝐀𝐃𝐀 」─╮
-
-${userName} ha abandonado el círculo de las sombras.
-Su presencia se desvanece... como todo lo que no deja huella.
-
-Grupo: ${groupName}
-
-Que su memoria permanezca en silencio.
-Las sombras no olvidan, pero tampoco lloran.
-
-╰─「 🌌 𝐄𝐒𝐓𝐀𝐃𝐎 𝐀𝐂𝐓𝐔𝐀𝐋 」─╯
-📉 Miembros: ${groupSize}
-📅 Fecha: ${fecha}
-
-📜 Descripción:
-${groupDesc}`
-
-    await conn.sendMessage(m.chat, {
-      image: { url: goodbyeImg },
-      caption,
-      footer: `© ${packname} · Goodbye`,
-      buttons: [
-        { buttonId: '#reg', buttonText: { displayText: '👤 Registrarme' }, type: 1 },
-        { buttonId: '#menu', buttonText: { displayText: '🌌 Menú' }, type: 1 }
-      ],
-      mentions: [userJid],
-      viewOnce: true,
-      contextInfo: {
-        externalAdReply: {
+    await conn.sendMessage(
+      m.chat,
+      {
+        product: {
+          productImage: { url: goodbyeImg },
+          productId: 'goodbye-001',
           title: '─Ａ Ｄ Ｉ Ō S─👋🏻',
-          body: `Se fue de ${groupName}`,
-          thumbnailUrl: pp,
-          mediaType: 1,
-          showAdAttribution: true,
-          sourceUrl: 'https://wa.me/584242773183'
-        }
-      }
-    })
+          currencyCode: 'USD',
+          priceAmount1000: '0',
+          retailerId: 1677,
+          productImageCount: 1
+        },
+
+        businessOwnerJid: '0@s.whatsapp.net',
+
+        caption: `
+> Usuario: ${taguser}
+> Fecha: ${date}
+*salió del grupo.*
+`.trim(),
+
+        footer: `© ${botname} · Goodbye`,
+
+        interactiveButtons: [
+          {
+            name: 'quick_reply',
+            buttonParamsJson: JSON.stringify({
+              display_text: '👤 Registrarme',
+              id: `${usedPrefix}reg user.19`
+            })
+          }
+        ],
+
+        mentions: [who]
+      },
+      { quoted: fkontak }
+    )
   }
 }
-
-export default handler
