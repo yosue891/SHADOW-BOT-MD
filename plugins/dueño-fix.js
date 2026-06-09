@@ -1,4 +1,5 @@
 import { execSync } from 'child_process'
+import fetch from 'node-fetch'
 
 var handler = async (m, { conn, text, isMods }) => {
   if (!isMods) return
@@ -10,6 +11,9 @@ var handler = async (m, { conn, text, isMods }) => {
       messager = '❀ Los datos ya están actualizados a la última versión.'
     if (messager.includes('ꕥ Actualizando.'))
       messager = '❀ Procesando, espere un momento mientras me actualizo.\n\n' + stdout.toString()
+    
+    const updateThumb = await (await fetch('https://upload.yotsuba.giize.com/u/r2laVJy8.png')).buffer()
+    
     await m.react('✔️')
     await conn.sendMessage(
       m.chat,
@@ -21,7 +25,10 @@ var handler = async (m, { conn, text, isMods }) => {
             title: 'Shadow • Update SHADOW-BOT-MD',
             body: 'Actualización del bot',
             mediaType: 1,
-            thumbnailUrl: 'https://upload.yotsuba.giize.com/u/r2laVJy8.png',
+            previewType: 0,
+            renderLargerThumbnail: false,
+            thumbnail: updateThumb,
+            jpegThumbnail: updateThumb,
             sourceUrl: 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O'
           }
         }
@@ -52,6 +59,9 @@ var handler = async (m, { conn, text, isMods }) => {
           .filter(Boolean)
         if (conflictedFiles.length > 0) {
           const errorMessage = `\`⚠︎ No se pudo realizar la actualización:\`\n\n> *Se han encontrado cambios locales en los archivos del bot que entran en conflicto con las nuevas actualizaciones del repositorio.*\n\n${conflictedFiles.join('\n')}.`
+          
+          const conflictThumb = await (await fetch('https://files.catbox.moe/k45sr6.jpg')).buffer()
+          
           await conn.sendMessage(
             m.chat,
             {
@@ -62,7 +72,10 @@ var handler = async (m, { conn, text, isMods }) => {
                   title: 'Shadow • Update Error',
                   body: 'Conflictos detectados',
                   mediaType: 1,
-                  thumbnailUrl: 'https://files.catbox.moe/k45sr6.jpg',
+                  previewType: 0,
+                  renderLargerThumbnail: false,
+                  thumbnail: conflictThumb,
+                  jpegThumbnail: conflictThumb,
                   sourceUrl: 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O'
                 }
               }
@@ -78,6 +91,9 @@ var handler = async (m, { conn, text, isMods }) => {
       if (error.message) {
         errorMessage2 += '\n⚠︎ Mensaje de error: ' + error.message
       }
+      
+      const errorThumb = await (await fetch('https://upload.yotsuba.giize.com/u/-PxXQ2UD.jpeg')).buffer()
+      
       await conn.sendMessage(
         m.chat,
         {
@@ -88,7 +104,10 @@ var handler = async (m, { conn, text, isMods }) => {
               title: 'Shadow • Update Error',
               body: 'Error inesperado',
               mediaType: 1,
-              thumbnailUrl: 'https://upload.yotsuba.giize.com/u/-PxXQ2UD.jpeg',
+              previewType: 0,
+              renderLargerThumbnail: false,
+              thumbnail: errorThumb,
+              jpegThumbnail: errorThumb,
               sourceUrl: 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O'
             }
           }
