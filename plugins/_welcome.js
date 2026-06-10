@@ -1,5 +1,3 @@
-import { prepareWAMessageMedia, generateWAMessageFromContent } from "@whiskeysockets/baileys"
-
 export async function before(m, { conn, usedPrefix }) {
   if (!m.isGroup) return
   if (!m.messageStubType) return
@@ -8,7 +6,7 @@ export async function before(m, { conn, usedPrefix }) {
   if (!who) return
 
   const taguser = `@${who.split('@')[0]}`
-  const botname = global.author || 'Shadow Bot'
+  const botname = global.author
 
   const metadata = await conn.groupMetadata(m.chat)
   const totalMembers = metadata.participants.length
@@ -24,7 +22,12 @@ export async function before(m, { conn, usedPrefix }) {
     message: {
       contactMessage: {
         displayName: botname,
-        vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:${botname}\nORG:${botname};\nTEL;type=CELL;type=VOICE;waid=0:+0\nEND:VCARD`
+        vcard: `BEGIN:VCARD
+VERSION:3.0
+FN:${botname}
+ORG:${botname};
+TEL;type=CELL;type=VOICE;waid=0:+0
+END:VCARD`
       }
     }
   }
@@ -40,50 +43,33 @@ export async function before(m, { conn, usedPrefix }) {
     const welcomeImg =
       'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
       'title=Bienvenido+al+grupo' +
-      '&desc=Evita+no+ser+espulsado' +
+      '&desc=Evita+no+ser+expulsado' +
       `&profile=${encodeURIComponent(profile)}` +
       '&background=https%3A%2F%2Fraw.githubusercontent.com%2FEl-brayan502%2Fimg%2Fupload%2Fuploads%2F837853-1770608354526.jpg'
 
-    const media = await prepareWAMessageMedia({ image: { url: welcomeImg } }, { upload: conn.waUploadToServer })
+    await conn.sendMessage(
+      m.chat,
+      {
+        image: { url: welcomeImg },
+        caption: `
+*Bienvenido/a al reino de las sombras*
 
-    const msg = generateWAMessageFromContent(m.chat, {
-      viewOnceMessage: {
-        message: {
-          interactiveMessage: {
-            body: {
-              text: `*Bienvenido/a al reino de las sombras*\n\n> Usuario: ${taguser}\n> Miembros totales: ${totalMembers}\n> Fecha: ${date}`.trim()
-            },
-            footer: {
-              text: `© ${botname} · Welcome`
-            },
-            header: {
-              hasMediaAttachment: true,
-              imageMessage: media.imageMessage
-            },
-            nativeFlowMessage: {
-              buttons: [
-                {
-                  name: "quick_reply",
-                  buttonParamsJson: JSON.stringify({
-                    display_text: "👤 Registrarme",
-                    id: `${usedPrefix}reg user.19`
-                  })
-                }
-              ]
-            }
+> Usuario: ${taguser}
+> Miembros totales: ${totalMembers}
+> Fecha: ${date}
+`.trim(),
+        footer: `© ${botname} · Welcome`,
+        buttons: [
+          {
+            buttonId: `${usedPrefix}reg user.19`,
+            buttonText: { displayText: '👤 Registrarme' },
+            type: 1
           }
-        }
+        ],
+        mentions: [who]
       },
-      messageContextInfo: {
-        deviceListMetadata: {},
-        deviceListMetadataVersion: 2
-      },
-      contextInfo: {
-        mentionedJid: [who]
-      }
-    }, { quoted: fkontak })
-
-    await conn.relayMessage(m.chat, msg.message, {})
+      { quoted: fkontak }
+    )
   }
 
   if (m.messageStubType === 28 || m.messageStubType === 32) {
@@ -94,45 +80,26 @@ export async function before(m, { conn, usedPrefix }) {
       `&profile=${encodeURIComponent(profile)}` +
       '&background=https%3A%2F%2Fraw.githubusercontent.com%2FEl-brayan502%2Fimg%2Fupload%2Fuploads%2Ff1daa4-1770608515673.jpg'
 
-    const media = await prepareWAMessageMedia({ image: { url: goodbyeImg } }, { upload: conn.waUploadToServer })
-
-    const msg = generateWAMessageFromContent(m.chat, {
-      viewOnceMessage: {
-        message: {
-          interactiveMessage: {
-            body: {
-              text: `> Usuario: ${taguser}\n> Fecha: ${date}\n*se retira del reino de las sombras.*`.trim()
-            },
-            footer: {
-              text: `© ${botname} · Goodbye`
-            },
-            header: {
-              hasMediaAttachment: true,
-              imageMessage: media.imageMessage
-            },
-            nativeFlowMessage: {
-              buttons: [
-                {
-                  name: "quick_reply",
-                  buttonParamsJson: JSON.stringify({
-                    display_text: "👤 Registrarme",
-                    id: `${usedPrefix}reg user.19`
-                  })
-                }
-              ]
-            }
+    await conn.sendMessage(
+      m.chat,
+      {
+        image: { url: goodbyeImg },
+        caption: `
+> Usuario: ${taguser}
+> Fecha: ${date}
+*se retira del reino de las sombras.*
+`.trim(),
+        footer: `© ${botname} · Goodbye`,
+        buttons: [
+          {
+            buttonId: `${usedPrefix}reg user.19`,
+            buttonText: { displayText: '👤 Registrarme' },
+            type: 1
           }
-        }
+        ],
+        mentions: [who]
       },
-      messageContextInfo: {
-        deviceListMetadata: {},
-        deviceListMetadataVersion: 2
-      },
-      contextInfo: {
-        mentionedJid: [who]
-      }
-    }, { quoted: fkontak })
-
-    await conn.relayMessage(m.chat, msg.message, {})
+      { quoted: fkontak }
+    )
   }
-}
+      }
