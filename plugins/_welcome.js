@@ -70,16 +70,16 @@ export async function before(m, { conn, usedPrefix }) {
                   })
                 }
               ]
-            },
-            messageContextInfo: {
-              deviceListMetadata: {},
-              deviceListMetadataVersion: 2
-            },
-            contextInfo: {
-              mentionedJid: [who]
             }
           }
         }
+      },
+      messageContextInfo: {
+        deviceListMetadata: {},
+        deviceListMetadataVersion: 2
+      },
+      contextInfo: {
+        mentionedJid: [who]
       }
     }, { quoted: fkontak })
 
@@ -120,16 +120,16 @@ export async function before(m, { conn, usedPrefix }) {
                   })
                 }
               ]
-            },
-            messageContextInfo: {
-              deviceListMetadata: {},
-              deviceListMetadataVersion: 2
-            },
-            contextInfo: {
-              mentionedJid: [who]
             }
           }
         }
+      },
+      messageContextInfo: {
+        deviceListMetadata: {},
+        deviceListMetadataVersion: 2
+      },
+      contextInfo: {
+        mentionedJid: [who]
       }
     }, { quoted: fkontak })
 
