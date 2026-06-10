@@ -82,7 +82,7 @@ const caption = `
 👁️ 𝑽𝒊𝒔𝒕𝒂𝒔: ${vistas}
 ⏳ 𝑫𝒖𝒓𝒂𝒄𝒊𝒐́𝒏: ${durationTimestamp}
 🌐 𝑬𝒏𝒍𝒂𝒄𝒆: ${url}
-🐉 _Api:_ https://api-gohan.onrender.com
+🐉 _Api:_ https://api-gohan-v1.onrender.com
 
 ✧━───『 𝑺𝒉𝒂𝒅𝒐𝒘 𝑩𝒐𝒕 』───━✧
 ⚡ 𝑷𝒐𝒘𝒆𝒓𝒆𝒅 𝒃𝒚 𝒀𝒐𝒔𝒖𝒆 ⚡
