@@ -1,3 +1,5 @@
+// Código Creado por Ryze echo Scraper echo código por DvWilkerOFC
+
 import yts from 'yt-search'
 import fetch from 'node-fetch'
 
