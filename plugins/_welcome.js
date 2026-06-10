@@ -39,6 +39,7 @@ END:VCARD`
     profile = 'https://i.imgur.com/JP52fdP.png'
   }
 
+  // Bienvenida
   if (m.messageStubType === 27) {
     const welcomeImg =
       'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
@@ -61,7 +62,7 @@ END:VCARD`
         footer: `© ${botname} · Welcome`,
         buttons: [
           {
-            buttonId: `${usedPrefix}reg user.19`,
+            buttonId: `${usedPrefix}registroinfo`,
             buttonText: { displayText: '👤 Registrarme' },
             type: 1
           }
@@ -72,6 +73,7 @@ END:VCARD`
     )
   }
 
+  // Despedida
   if (m.messageStubType === 28 || m.messageStubType === 32) {
     const goodbyeImg =
       'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
@@ -92,7 +94,7 @@ END:VCARD`
         footer: `© ${botname} · Goodbye`,
         buttons: [
           {
-            buttonId: `${usedPrefix}reg user.19`,
+            buttonId: `${usedPrefix}registroinfo`,
             buttonText: { displayText: '👤 Registrarme' },
             type: 1
           }
