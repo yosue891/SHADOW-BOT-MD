@@ -1,4 +1,4 @@
-import { Jimp } from 'jimp'
+import Jimp from 'jimp'
 import axios from 'axios'
 import FormData from 'form-data'
 import * as baileys from '@whiskeysockets/baileys'
