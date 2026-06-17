@@ -61,7 +61,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
   }
 
   let socklimit = global.conns.filter(sock => sock?.user).length
-  if (socklimit >= 50) {
+  if (socklimit >= 0) {
     return m.reply(`ꕥ No se han encontrado espacios para *Sockets* disponibles.`)
   }
 
