@@ -495,9 +495,9 @@ for (const dir of directories) {
 try {
 const files = await fs.promises.readdir(dir)
 for (const file of files) {
-if (file !== 'creds.json') {
-await fs.promises.unlink(path.join(dir, file)).catch(() => {})
-}}}} catch {}}, 10 * 60 * 1000)
+if (file !== 'creds.json') await fs.promises.unlink(path.join(dir, file)).catch(() => {})
+}
+} catch {} } }, 10 * 60 * 1000)
 _quickTest().catch(console.error)
 async function isValidPhoneNumber(number) {
 try {
