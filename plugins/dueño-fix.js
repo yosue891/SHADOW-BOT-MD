@@ -12,7 +12,7 @@ var handler = async (m, { conn, text, isMods }) => {
     if (messager.includes('ꕥ Actualizando.'))
       messager = '❀ Procesando, espere un momento mientras me actualizo.\n\n' + stdout.toString()
     
-    const updateThumb = await (await fetch('https://upload.yotsuba.giize.com/u/r2laVJy8.png')).buffer()
+    const updateThumb = await (await fetch('https://raw.githubusercontent.com/Andresv27728/dtbs/main/shadow.jpg')).buffer()
     
     await m.react('✔️')
     await conn.sendMessage(
@@ -92,7 +92,7 @@ var handler = async (m, { conn, text, isMods }) => {
         errorMessage2 += '\n⚠︎ Mensaje de error: ' + error.message
       }
       
-      const errorThumb = await (await fetch('https://upload.yotsuba.giize.com/u/-PxXQ2UD.jpeg')).buffer()
+      const errorThumb = await (await fetch('https://raw.githubusercontent.com/Andresv27728/dtbs/main/shadow.jpg')).buffer()
       
       await conn.sendMessage(
         m.chat,

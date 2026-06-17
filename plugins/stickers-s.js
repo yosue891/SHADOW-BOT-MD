@@ -100,7 +100,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
   const isVideo = !!videoMessage
 
   if (!isImage && !isVideo) {
-    const errorThumb = await (await fetch('https://upload.yotsuba.giize.com/u/2aD5xHwD.jpeg')).buffer()
+    const errorThumb = await (await fetch('https://raw.githubusercontent.com/Andresv27728/dtbs/main/shadow.jpg')).buffer()
     return await conn.sendMessage(
       from,
       {

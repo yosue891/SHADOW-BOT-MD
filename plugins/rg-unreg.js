@@ -1,6 +1,6 @@
 let handlerUnreg = async (m, { conn }) => {
   const user = global.db.data.users[m.sender]
-  const pp = await conn.profilePictureUrl(m.sender, 'image').catch(() => 'https://files.catbox.moe/xr2m6u.jpg')
+  const pp = await conn.profilePictureUrl(m.sender, 'image').catch(() => 'https://raw.githubusercontent.com/Andresv27728/dtbs/main/shadow.jpg')
 
   if (!user.registered) {
     return m.reply('『⚠️』 No tienes ningún pacto activo...')

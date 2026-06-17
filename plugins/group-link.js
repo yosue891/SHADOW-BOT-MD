@@ -25,7 +25,7 @@ var handler = async (m, { conn, args }) => {
     let group = m.chat
     
     try {
-        const pp = await conn.profilePictureUrl(group, 'image').catch((_) => 'https://files.catbox.moe/xr2m6u.jpg')
+        const pp = await conn.profilePictureUrl(group, 'image').catch((_) => 'https://raw.githubusercontent.com/Andresv27728/dtbs/main/shadow.jpg')
         let inviteCode = await conn.groupInviteCode(group)
         let link = 'https://chat.whatsapp.com/' + inviteCode
 
@@ -81,7 +81,7 @@ var handler = async (m, { conn, args }) => {
         console.error("Error al generar/enviar el enlace interactivo:", e);
         
         let fallbackLink = 'https://chat.whatsapp.com/' + (await conn.groupInviteCode(group).catch(() => ''))
-        let fallbackPP = await conn.profilePictureUrl(group, 'image').catch((_) => 'https://files.catbox.moe/xr2m6u.jpg')
+        let fallbackPP = await conn.profilePictureUrl(group, 'image').catch((_) => 'https://raw.githubusercontent.com/Andresv27728/dtbs/main/shadow.jpg')
         let fallbackMessage = `*❌ Falló al enviar el mensaje interactivo. Asegúrate que el bot sea administrador.*\n\n*➭ Aquí tienes el enlace de todas formas:*\n\n> \`Link:\` ${fallbackLink}`
         
         await conn.sendMessage(group, { image: { url: fallbackPP }, caption: fallbackMessage }, { quoted: m })

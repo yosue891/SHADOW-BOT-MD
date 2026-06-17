@@ -1,7 +1,7 @@
 import axios from "axios"
 
 let handler = async (m, { conn, args, usedPrefix }) => {
-const pp = await conn.profilePictureUrl(m.chat, 'image').catch((_) => 'https://files.catbox.moe/xr2m6u.jpg')
+const pp = await conn.profilePictureUrl(m.chat, 'image').catch((_) => 'https://raw.githubusercontent.com/Andresv27728/dtbs/main/shadow.jpg')
 try {
 let id = args?.[0]?.match(/\d+\-\d+@g.us/) || m.chat
 const participantesUnicos = Object.values(conn.chats[id]?.messages || {}).map((item) => item.key.participant).filter((value, index, self) => self.indexOf(value) === index)
