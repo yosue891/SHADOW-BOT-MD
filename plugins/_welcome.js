@@ -53,30 +53,18 @@ END:VCARD`
     profile = 'https://i.imgur.com/JP52fdP.png'
   }
 
-  if (m.messageStubType === 27) {
-    const welcomeImg =
-      'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
-      'title=Bienvenido+al+grupo' +
-      '&desc=Evita+no+ser+espulsado' +
-      `&profile=${encodeURIComponent(profile)}` +
-      '&background=https%3A%2F%2Fraw.githubusercontent.com%2FEl-brayan502%2Fimg%2Fupload%2Fuploads%2F837853-1770608354526.jpg'
+  if (m.messageStubType === 27) {
+    const fallbackImg = 'https://raw.githubusercontent.com/Andresv27728/dtbs/main/shadow.jpg'
 
-    await conn.sendMessage(
-      m.chat,
-      {
-        product: {
-          productImage: { url: welcomeImg },
-          productId: 'welcome-001',
-          title: `─ W E L C O M E ─🥷🏻`,
-          currencyCode: 'USD',
-          priceAmount1000: '0',
-          retailerId: 1677,
-          productImageCount: 1
-        },
+    await conn.sendMessage(
+      m.chat,
+      {
+        image: { url: fallbackImg },
+        caption: `
+┌─────────────────────────┐
+│   🥷 *W E L C O M E* 🥷  │
+└─────────────────────────┘
 
-        businessOwnerJid: '0@s.whatsapp.net',
-
-        caption: `
 *Bienvenido/a al reino de las sombras*
 
 > Usuario: ${taguser}
@@ -84,68 +72,56 @@ END:VCARD`
 > Fecha: ${date}
 `.trim(),
 
-        footer: `© ${botname} · Welcome`,
+        footer: `© ${botname} · Welcome`,
 
-        interactiveButtons: [
-          {
-            name: 'quick_reply',
-            buttonParamsJson: JSON.stringify({
-              display_text: '👤 Registrarme',
-              id: `${usedPrefix}reg user.19`
-            })
-          }
-        ],
+        interactiveButtons: [
+          {
+            name: 'quick_reply',
+            buttonParamsJson: JSON.stringify({
+              display_text: '👤 Registrarme',
+              id: `${usedPrefix}reg user.19`
+            })
+          }
+        ],
 
-        mentions: [who]
-      },
-      { quoted: fkontak }
-    )
-  }
+        mentions: [who]
+      },
+      { quoted: fkontak }
+    )
+  }
 
-  if (m.messageStubType === 28 || m.messageStubType === 32) {
-    const goodbyeImg =
-      'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
-      'title=Se+fue+del+grupo' +
-      '&desc=gracias+a+dios+se+fue' +
-      `&profile=${encodeURIComponent(profile)}` +
-      '&background=https%3A%2F%2Fraw.githubusercontent.com%2FEl-brayan502%2Fimg%2Fupload%2Fuploads%2Ff1daa4-1770608515673.jpg'
+  if (m.messageStubType === 28 || m.messageStubType === 32) {
+    const fallbackImg = 'https://raw.githubusercontent.com/Andresv27728/dtbs/main/shadow.jpg'
 
-    await conn.sendMessage(
-      m.chat,
-      {
-        product: {
-          productImage: { url: goodbyeImg },
-          productId: 'goodbye-001',
-          title: '─Ａ Ｄ Ｉ Ō S─👋🏻',
-          currencyCode: 'USD',
-          priceAmount1000: '0',
-          retailerId: 1677,
-          productImageCount: 1
-        },
+    await conn.sendMessage(
+      m.chat,
+      {
+        image: { url: fallbackImg },
+        caption: `
+┌─────────────────────────┐
+│   👋 *Ａ Ｄ Ｉ Ｏ S* 👋   │
+└─────────────────────────┘
 
-        businessOwnerJid: '0@s.whatsapp.net',
-
-        caption: `
 > Usuario: ${taguser}
 > Fecha: ${date}
 *se retira del reino de las sombras.*
 `.trim(),
 
-        footer: `© ${botname} · Goodbye`,
+        footer: `© ${botname} · Goodbye`,
 
-        interactiveButtons: [
-          {
-            name: 'quick_reply',
-            buttonParamsJson: JSON.stringify({
-              display_text: '👤 Registrarme',
-              id: `${usedPrefix}reg user.19`
-            })
-          }
-        ],
+        interactiveButtons: [
+          {
+            name: 'quick_reply',
+            buttonParamsJson: JSON.stringify({
+              display_text: '👤 Registrarme',
+              id: `${usedPrefix}reg user.19`
+            })
+          }
+        ],
 
-        mentions: [who]
-      },
-      { quoted: fkontak }
-    )
-  }
+        mentions: [who]
+      },
+      { quoted: fkontak }
+    )
+  }
         }
