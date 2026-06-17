@@ -454,79 +454,50 @@ Object.freeze(global.support);
 }
 // Limpieza automática de audios innecesarios de subbots cada 3 minutos
 setInterval(async () => {
-  console.log(chalk.cyan('[ ✿ ] Iniciando limpieza automática de SubBots...'));
   const baseDir = `./${jadi}/`;
   try {
-    if (!existsSync(baseDir)) {
-      console.log(chalk.yellow(`[ ✿ ] No existe la carpeta ${jadi}.`));
-      return;
-    }
+    if (!existsSync(baseDir)) return;
 
-    const subBots = readdirSync(baseDir);
+    const subBots = await fs.promises.readdir(baseDir);
     let totalDeleted = 0;
 
     for (const bot of subBots) {
       const botPath = join(baseDir, bot);
-      const stat = statSync(botPath);
-      if (!stat.isDirectory()) continue;
+      const stat = await fs.promises.stat(botPath).catch(() => null);
+      if (!stat?.isDirectory()) continue;
 
-      const files = readdirSync(botPath);
+      const files = await fs.promises.readdir(botPath);
       for (const file of files) {
         if (!['creds.json', 'config.json', 'config.js'].includes(file)) {
           const filePath = join(botPath, file);
-          const fileStat = statSync(filePath);
           try {
-            if (fileStat.isDirectory()) {
-              rmSync(filePath, { recursive: true, force: true });
-            } else {
-              unlinkSync(filePath);
-            }
+            await fs.promises.rm(filePath, { recursive: true, force: true });
             totalDeleted++;
-          } catch (err) {
-            console.error(chalk.red(`Error eliminando ${bot}/${file}: ${err.message}`));
-          }
+          } catch {}
         }
       }
     }
+  } catch {}
+}, 3 * 60 * 1000)
 
-    console.log(chalk.green(
-      totalDeleted
-        ? `[ ✿ ] Limpieza completa: ${totalDeleted} archivos eliminados`
-        : `[ ✿ ] No se eliminaron archivos, solo creds.json y config presentes`
-    ));
-
-  } catch (error) {
-    console.error(chalk.red(`Error en limpieza automática de subBots: ${error}`));
-  }
-}, 3 * 60 * 1000); // 3 minutos
 // Tmp
 setInterval(async () => {
 const tmpDir = join(__dirname, 'tmp')
 try {
-const filenames = readdirSync(tmpDir)
-filenames.forEach(file => {
-const filePath = join(tmpDir, file)
-unlinkSync(filePath)})
-console.log(chalk.gray(`→ Archivos de la carpeta TMP eliminados`))
-} catch {
-console.log(chalk.gray(`→ Los archivos de la carpeta TMP no se pudieron eliminar`));
-}}, 30 * 1000)
+const filenames = await fs.promises.readdir(tmpDir)
+await Promise.all(filenames.map(f => fs.promises.unlink(join(tmpDir, f)).catch(() => {})))
+} catch {}}, 30 * 1000)
+
 // Sessions Subs
 setInterval(async () => {
 const directories = [`./${sessions}/`, `./${jadi}/`]
-directories.forEach(dir => {
-readdirSync(dir, (err, files) => {
-if (err) throw err
-files.forEach(file => {
+for (const dir of directories) {
+try {
+const files = await fs.promises.readdir(dir)
+for (const file of files) {
 if (file !== 'creds.json') {
-const filePath = path.join(dir, file);
-unlinkSync(filePath, err => {
-if (err) {
-console.log(chalk.gray(`\n→ El archivo ${file} no se logró borrar.\n` + err))
-} else {
-console.log(chalk.gray(`\n→ ${file} fué eliminado correctamente.`))
-} }) }
-}) }) }) }, 10 * 60 * 1000)
+await fs.promises.unlink(path.join(dir, file)).catch(() => {})
+}}}} catch {}}, 10 * 60 * 1000)
 _quickTest().catch(console.error)
 async function isValidPhoneNumber(number) {
 try {

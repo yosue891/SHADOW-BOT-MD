@@ -8,8 +8,20 @@ export async function before(m, { conn, usedPrefix }) {
   const taguser = `@${who.split('@')[0]}`
   const botname = global.author
 
-  const metadata = await conn.groupMetadata(m.chat)
-  const totalMembers = metadata.participants.length
+  let metadata
+  for (let i = 0; i < 3; i++) {
+    try {
+      metadata = await conn.groupMetadata(m.chat)
+      break
+    } catch (e) {
+      if (e?.data === 429 || i === 2) {
+        console.error('groupMetadata rate-overlimit, skipping')
+        return
+      }
+      await new Promise(r => setTimeout(r, 3000 * (i + 1)))
+    }
+  }
+  const totalMembers = metadata.participants.length
   const date = new Date().toLocaleDateString('es-ES')
 
   const fkontak = {

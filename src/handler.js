@@ -9,6 +9,7 @@ import ws from "ws";
 import { proto } from "@whiskeysockets/baileys";
 const isNumber = x => typeof x === "number" && !isNaN(x);
 const delay = ms => isNumber(ms) && new Promise(resolve => setTimeout(resolve, ms));
+const printModule = await import("../lib/print.js").then(m => m.default).catch(() => null);
 
 const prefixCache = new Map();
 const groupMetadataCache = global.__shadowGroupMetadataCache || (global.__shadowGroupMetadataCache = new Map());
@@ -261,7 +262,9 @@ export async function handler(chatUpdate) {
 
     if (opts["queque"] && m.text && !(isMods || isPrems)) {
         this.msgqueque.push(m.id || m.key.id);
-        await delay(1000 * 5);
+        if (this.msgqueque.length > 1) {
+            await delay(1000 * 1.5);
+        }
         const quequeIndex = this.msgqueque.indexOf(m.id || m.key.id);
         if (quequeIndex !== -1) this.msgqueque.splice(quequeIndex, 1);
     }
@@ -460,7 +463,7 @@ export async function handler(chatUpdate) {
     }
 
     if (m.sender && user) user.exp += m.exp;
-    if (!opts["noprint"]) await (await import("../lib/print.js")).default(m, this).catch(err => console.warn(err));
+    if (!opts["noprint"]) await printModule?.(m, this).catch(err => console.warn(err));
 }
 
 global.dfail = (type, m, conn) => {
