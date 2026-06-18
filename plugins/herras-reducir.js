@@ -1,5 +1,6 @@
 import Jimp from 'jimp'
 import axios from 'axios'
+import FormData from 'form-data'
 import * as baileys from '@whiskeysockets/baileys'
 
 const { generateWAMessageFromContent, proto, prepareWAMessageMedia } = baileys
@@ -33,13 +34,13 @@ let handler = async (m, { conn, text, usedPrefix }) => {
     image.resize({ width: width, height: height })
     let buffer = await image.getBuffer('image/jpeg')
 
-    const params = new URLSearchParams()
-    params.append('image', buffer.toString('base64'))
+    let formData = new FormData()
+    formData.append('image', buffer, { filename: 'imagen.jpg', contentType: 'image/jpeg' })
 
     let uploadRes = await axios.post(
       `https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`,
-      params,
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+      formData,
+      { headers: formData.getHeaders() }
     )
 
     if (!uploadRes.data?.data?.url) {
