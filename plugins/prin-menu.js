@@ -6,7 +6,7 @@ import moment from 'moment-timezone'
 
 const botname = global.botname || "Shadow Garden"
 const dev = global.dev || "Cid Kagenou"
-const banner = global.banner || "https://raw.githubusercontent.com/Andresv27728/dtbs/main/shadow.jpg"
+const banner = global.banner || "https://cdn.adoolab.xyz/dl/d29aa177.mp4"
 const channelRD = global.channelRD || { id: "0@newsletter", name: "Shadow Channel" }
 
 let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
@@ -52,7 +52,7 @@ let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
       'tools': '𝐇𝐄𝐑𝐑𝐀𝐌𝐈𝐄𝐍𝐓𝐀𝐒 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
       'sticker': '𝐒𝐄𝐋𝐋𝐎𝐒 𝐀𝐑𝐂𝐀𝐍𝐎𝐒',
       'owner': '𝐌𝐀𝐄𝐒𝐓𝐑𝐎 𝐃𝐄 𝐋𝐀 𝐎𝐑𝐆𝐀𝐍𝐈𝐙𝐀𝐂𝐈𝐎𝐍',
-      'nsfw': '𝐙𝐎𝐍𝐀 𝐑𝐄𝐒𝐓𝐑𝐈𝐍𝐆𝐈𝐃𝐀 (+18)'
+      'nsfw': '𝐛𝐎𝐍𝐀 𝐑𝐄𝐒𝐓𝐑𝐈𝐍𝐆𝐈𝐃𝐀 (+18)'
     }
 
     let commands = Object.values(global.plugins)
@@ -66,7 +66,7 @@ let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
     for (let tag in tags) {
       let comandos = commands
         .filter(cmd => cmd.tags.includes(tag))
-        .map(cmd => cmd.help.map(e => `*│ׄꤥㅤׅ*  ${usedPrefix}${e}`).join('\n'))
+        .map(cmd => cmd.help.map(e => `*│ׄꤥㅤׅ* ${usedPrefix}${e}`).join('\n'))
         .join('\n')
       if (comandos) {
         menuTexto += `\n*╭──･ ̸̷∵* \`${tags[tag]}\`  *݁ ⚜︎*
@@ -83,15 +83,15 @@ ${comandos}
 > ﹙⚜︎﹚੭੭ ─ \`ɪ ɴ ғ ᴏ - ꜱʜᴀᴅᴏw ʙᴏᴛ\`
 > de ׄ 𓏸𓈒 ׅ *ɴᴏᴍʙʀᴇ ᴄʟᴀᴠᴇ ›* ${conn.user?.name || 'Shadow Unit'}
 > de ׄ 𓏸𓈒 ׅ *ᴄʟᴀꜱɪꜰɪᴄᴀᴄɪᴏɴ ›* ${(conn.user.jid == global.conn.user.jid ? ' can 𝐍𝐮́𝐜𝐥𝐞𝐨 𝐏𝐫𝐢𝐧𝐜𝐢𝐩𝐚𝐥' : ' can 𝐔𝐧𝐢𝐝𝐚𝐝 𝐒𝐮𝐛𝐨𝐫𝐝𝐢𝐧𝐚𝐝𝐚')}
-> de ׄ 𓏸𓈒 ׅ *ᴄᴏᴍᴀɴᴅᴏꜱ ›* ${totalCommands}
+> de ׄ 𓏸𓈒 ׅ * can ᴄᴏᴍᴀɴᴅᴏꜱ ›* ${totalCommands}
 > de ׄ 𓏸𓈒 ׅ *ᴛɪᴇᴍᴘᴏ ᴇɴ ʟᴀ ꜱᴏᴍʙʀᴀ ›* ${uptime}
-> de ׄ 𓏸𓈒 ׅ *ᴅᴏᴍɪɴɪᴏ ›* ${pais}
+> de ׄ 𓏸𓈒 ׅ *<b>ᴅᴏᴍɪɴɪᴏ</b> ›* ${pais}
 > de ׄ 𓏸𓈒 ׅ *ᴀʟᴍᴀꜱ ›* ${totalreg}
-> de ׄ 𓏸𓈒 ׅ * can ᴄᴇld𝐀𝐬 ›* ${groupsCount}
-> de ׄ 𓏸𓈒 ׅ * can ᴛɪᴇᴍᴘᴏ ›* ${date}
+> de ׄ 𓏸𓈒 ׅ * can <b>ᴄᴇld𝐀𝐬</b> ›* ${groupsCount}
+> de ׄ 𓏸𓈒 ׅ * can <b>ᴛɪᴇᴍᴘᴏ</b> ›* ${date}
 
 ${readMore}
-  乂 *ᴘʀᴏᴛᴏᴄᴏʟᴏ ᴅᴇ ᴄᴏᴍᴀɴᴅᴏꜱ ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ* 乂\n`.trim()
+  乂 *<b>ᴘʀᴏᴛᴏᴄᴏʟᴏ ᴅᴇ ᴄᴏᴍᴀɴᴅᴏꜱ ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ</b>* 乂\n`.trim()
 
     const icon = [
       'https://i.postimg.cc/rFfVL8Ps/image.jpg',
@@ -114,7 +114,7 @@ ${readMore}
               jpegThumbnail: Shadow_url
             },
             title: `⌗ֶㅤ𝐌𝐞𝐧𝐮 𝐝𝐞 𝐥𝐚 𝐒𝐨𝐦𝐛𝐫𝐚 - ${botname} 𝅄⚜︎`,
-            description: "« Sigue el canal de la organización en WhatsApp: https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O »",
+            description: "« No olvides seguir el canal ofc del bot https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O y unirte a la comunidad ofc del botsito https://chat.whatsapp.com/EwF9uSoLzsQ3o0DvycCiQz »",
             currencyCode: "USD",
             priceAmount1000: 0,
             retailId: "menu"
@@ -138,7 +138,7 @@ ${readMore}
         externalAdReply: {
           title: `${botname} ┊ Organización en las Sombras`,
           body: `Dirigido por ${dev}, el que juega a ser un simple mob.`,
-          mediaType: 1,
+          mediaType: 2,
           mediaUrl: null,
           sourceUrl: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O",
           thumbnail: await (await fetch(banner)).buffer(),
