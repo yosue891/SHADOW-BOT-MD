@@ -178,8 +178,8 @@ Inicia el bot nuevamente:
 <a href="https://github.com/DevZylJx">
   <img src="https://github.com/DevZylJx.png" width="80" height="80" style="border-radius:50%">
 </a>
-<a href="https://github.com/DevZylJx">
-  <img src="https://github.com/DevZylJx.png" width="80" height="80" style="border-radius:50%">
+<a href="https://github.com/Andresv27728">
+  <img src="https://github.com/Andresv27728.png" width="80" height="80" style="border-radius:50%">
 </a>
 </p>
 
