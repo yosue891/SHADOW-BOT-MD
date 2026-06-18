@@ -1,6 +1,7 @@
-import sharp from 'sharp'
+import Jimp from 'jimp'
 import axios from 'axios'
 import FormData from 'form-data'
+import { downloadMediaMessage } from '@whiskeysockets/baileys'
 import * as baileys from '@whiskeysockets/baileys'
 
 const { generateWAMessageFromContent, proto, prepareWAMessageMedia } = baileys
@@ -20,20 +21,31 @@ let handler = async (m, { conn, text, usedPrefix }) => {
   let width = parseInt(input[0])
   let height = parseInt(input[1])
 
-  let media
-  if (m.quoted && /image|sticker/.test(m.quoted.mtype)) {
-    media = await m.quoted.download()
-  } else if (/image|sticker/.test(m.mtype)) {
-    media = await m.download()
-  } else {
+  // Identificar correctamente si es un mensaje citado o el directo
+  let q = m.quoted ? m.quoted : m
+  let mime = (q.msg || q).mimetype || ''
+
+  if (!/image|sticker/.test(mime)) {
     return conn.reply(m.chat, `❍ Responde a una imagen/sticker para reducirlo.`, m)
   }
 
   try {
-    let buffer = await sharp(media)
-      .resize(width, height, { fit: 'fill' })
-      .toFormat('jpeg')
-      .toBuffer()
+    // DESCARGA CORRECTA USANDO EL MÉTODO NATIVO DE BAILEYS
+    let media = await downloadMediaMessage(
+      q,
+      'buffer',
+      {},
+      {
+        logger: console,
+        reconnectMode: 'on'
+      }
+    )
+
+    if (!media) throw new Error('No se pudo descargar el archivo de WhatsApp.')
+
+    let image = await Jimp.read(media)
+    image.resize({ width: width, height: height })
+    let buffer = await image.getBuffer('image/jpeg')
 
     let formData = new FormData()
     formData.append('image', buffer, { filename: 'imagen.jpg', contentType: 'image/jpeg' })
