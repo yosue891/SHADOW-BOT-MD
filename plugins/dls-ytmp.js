@@ -106,15 +106,13 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
     
     let sent = await conn.sendMessage(m.chat, { text: msg }, { quoted: m })
 
-    const apiUrl = type === "mp3"
-      ? `https://api-gohan-v1.onrender.com/download/ytaudio?url=${encodeURIComponent(url)}`
-      : `https://api-gohan.onrender.com/download/ytvideo?url=${encodeURIComponent(url)}`
+    const apiUrl = `https://yosoyyo-api-ofc.onrender.com/api/youtube?q=${encodeURIComponent(url)}&apiKey=yosoyyo_sk_2nbk5m69`
 
     const response = await fetch(apiUrl)
     const data = await response.json()
 
-    const downloadUrl = data?.result?.download_url
-    if (!downloadUrl) throw new Error("La API no devolvió un archivo válido.")
+    const downloadUrl = type === "mp3" ? data?.result?.audio : data?.result?.video
+    if (!downloadUrl) throw new Error("La API no devolvió un archivo válido para este formato.")
 
     const fileTitle = data?.result?.title || title
 
