@@ -89,6 +89,7 @@ ${comandos}
 > de ׄ 𓏸𓈒 ׅ *ᴀʟᴍᴀꜱ ›* ${totalreg}
 > de ׄ 𓏸𓈒 ׅ * can ᴄedit ᴀ𝐬 ›* ${groupsCount}
 > de ׄ 𓏸𓈒 ׅ * can ᴛɪᴇᴍᴘᴏ ›* ${date}
+
 > *No olvides seguir el canal ofc del bot:*
 https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
 > *Y unirte a la comunidad ofc del botsito:*
