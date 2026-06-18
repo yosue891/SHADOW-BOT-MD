@@ -1,6 +1,5 @@
 import Jimp from 'jimp'
 import axios from 'axios'
-import FormData from 'form-data'
 import * as baileys from '@whiskeysockets/baileys'
 
 const { generateWAMessageFromContent, proto, prepareWAMessageMedia } = baileys
@@ -8,7 +7,6 @@ const { generateWAMessageFromContent, proto, prepareWAMessageMedia } = baileys
 const IMGBB_KEY = '60b7b57c73586b5d915df1c3c378a458'
 
 let handler = async (m, { conn, text, usedPrefix }) => {
-
   if (!text) {
     return conn.reply(m.chat, `❍ Responde a una imagen/sticker y usa:\n*${usedPrefix}reducir 300×300*`, m)
   }
@@ -32,16 +30,16 @@ let handler = async (m, { conn, text, usedPrefix }) => {
 
   try {
     let image = await Jimp.read(media)
-    image.resize({ w: width, h: height })
+    image.resize({ width: width, height: height })
     let buffer = await image.getBuffer('image/jpeg')
 
-    let formData = new FormData()
-    formData.append('image', buffer.toString('base64'))
+    const params = new URLSearchParams()
+    params.append('image', buffer.toString('base64'))
 
     let uploadRes = await axios.post(
       `https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`,
-      formData,
-      { headers: formData.getHeaders() }
+      params,
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     )
 
     if (!uploadRes.data?.data?.url) {
