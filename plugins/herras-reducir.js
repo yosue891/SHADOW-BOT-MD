@@ -1,4 +1,4 @@
-import Jimp from 'jimp'
+import sharp from 'sharp'
 import axios from 'axios'
 import FormData from 'form-data'
 import * as baileys from '@whiskeysockets/baileys'
@@ -30,9 +30,10 @@ let handler = async (m, { conn, text, usedPrefix }) => {
   }
 
   try {
-    let image = await Jimp.read(media)
-    image.resize({ width: width, height: height })
-    let buffer = await image.getBuffer('image/jpeg')
+    let buffer = await sharp(media)
+      .resize(width, height, { fit: 'fill' })
+      .toFormat('jpeg')
+      .toBuffer()
 
     let formData = new FormData()
     formData.append('image', buffer, { filename: 'imagen.jpg', contentType: 'image/jpeg' })
