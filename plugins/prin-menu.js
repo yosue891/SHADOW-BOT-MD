@@ -6,7 +6,7 @@ import moment from 'moment-timezone'
 
 const botname = global.botname || "Shadow Garden"
 const dev = global.dev || "Cid Kagenou"
-const banner = global.banner || "https://cdn.adoolab.xyz/dl/d29aa177.mp4"
+const banner = "https://cdn.adoolab.xyz/dl/d29aa177.mp4"
 const channelRD = global.channelRD || { id: "0@newsletter", name: "Shadow Channel" }
 
 let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
@@ -44,14 +44,14 @@ let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
       'rpg': '𝐄𝐂𝐎𝐍𝐎𝐌𝐈𝐀 𝐎𝐂𝐔𝐋𝐓𝐀',
       'gacha': '𝐈𝐕𝐄𝐍𝐓𝐎𝐒 𝐆𝐀𝐂𝐇𝐀',
       'game': '𝐉𝐔𝐄𝐆𝐎𝐒 𝐀𝐑𝐂𝐀𝐍𝐎𝐒',
-      'grupos': '𝐂𝐈𝐑𝐂𝐔𝐋𝐎𝐒 𝐃𝐄 𝐒𝐎𝐌𝐁𝐑𝐀',
+      'grupos': '𝐂𝐈Ｒ𝐂𝐔𝐋𝐎𝐒 𝐃𝐄 𝐒𝐎𝐌𝐁𝐑𝐀',
       'nable': '𝐌𝐎𝐃𝐎 𝐎𝐍 / 𝐎𝐅𝐅',
       'ia': '𝐈𝐍𝐓𝐄𝐋𝐈𝐆𝐄𝐍𝐂𝐈𝐀 𝐀𝐑𝐂𝐀𝐍𝐀',
       'stalk': '𝐎𝐁𝐒𝐄𝐑𝐕𝐀𝐂𝐈𝐎𝐍 𝐒𝐈𝐋𝐄𝐍𝐂𝐈𝐎𝐒𝐀',
       'maker': '𝐀package 𝐕style 𝐀',
       'tools': '𝐇𝐄𝐑𝐑𝐀𝐌𝐈𝐄𝐍𝐓𝐀𝐒 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
       'sticker': '𝐒𝐄𝐋𝐋𝐎𝐒 𝐀𝐑𝐂𝐀𝐍𝐎𝐒',
-      'owner': '𝐌𝐀𝐄𝐒𝐓𝐑𝐎 𝐃𝐄 𝐋𝐀 𝐎𝐑𝐆𝐀𝐍𝐈𝐙𝐀𝐂𝐈𝐎𝐍',
+      'owner': '𝐌𝐀𝐄𝐒𝐓Ｒ𝐎 𝐃𝐄 𝐋𝐀 𝐎𝐑𝐆𝐀𝐍𝐈𝐙𝐀𝐂𝐈𝐎𝐍',
       'nsfw': '𝐛𝐎𝐍𝐀 𝐑𝐄𝐒𝐓𝐑𝐈𝐍𝐆𝐈𝐃𝐀 (+18)'
     }
 
@@ -85,21 +85,20 @@ ${comandos}
 > de ׄ 𓏸𓈒 ׅ *ᴄʟᴀꜱɪꜰɪᴄᴀᴄɪᴏɴ ›* ${(conn.user.jid == global.conn.user.jid ? ' can 𝐍𝐮́𝐜𝐥𝐞𝐨 𝐏𝐫𝐢𝐧𝐜𝐢𝐩𝐚𝐥' : ' can 𝐔𝐧𝐢𝐝𝐚𝐝 𝐒𝐮𝐛𝐨𝐫𝐝𝐢𝐧𝐚𝐝𝐚')}
 > de ׄ 𓏸𓈒 ׅ * can ᴄᴏᴍᴀɴᴅᴏꜱ ›* ${totalCommands}
 > de ׄ 𓏸𓈒 ׅ *ᴛɪᴇᴍᴘᴏ ᴇɴ ʟᴀ ꜱᴏᴍʙʀᴀ ›* ${uptime}
-> de ׄ 𓏸𓈒 ׅ *<b>ᴅᴏᴍɪɴɪᴏ</b> ›* ${pais}
+> de ׄ 𓏸𓈒 ׅ *ᴅᴏᴍɪɴɪᴏ ›* ${pais}
 > de ׄ 𓏸𓈒 ׅ *ᴀʟᴍᴀꜱ ›* ${totalreg}
-> de ׄ 𓏸𓈒 ׅ * can <b>ᴄᴇld𝐀𝐬</b> ›* ${groupsCount}
-> de ׄ 𓏸𓈒 ׅ * can <b>ᴛɪᴇᴍᴘᴏ</b> ›* ${date}
+> de ׄ 𓏸𓈒 ׅ * can ᴄᴇld𝐀𝐬 ›* ${groupsCount}
+> de ׄ 𓏸𓈒 ׅ * can ᴛɪᴇᴍᴘᴏ ›* ${date}
 
 ${readMore}
-  乂 *<b>ᴘʀᴏᴛᴏᴄᴏʟᴏ ᴅᴇ ᴄᴏᴍᴀɴᴅᴏꜱ ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ</b>* 乂\n`.trim()
+  乂 *ᴘʀᴏᴛᴏᴄᴏʟᴏ ᴅᴇ ᴄᴏᴍᴀɴᴅᴏส์ ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ* 乂\n`.trim()
 
     const icon = [
-      'https://i.postimg.cc/rFfVL8Ps/image.jpg',
       'https://i.postimg.cc/rFfVL8Ps/image.jpg'
     ]
     let icons = icon[Math.floor(Math.random() * icon.length)]
-
     const Shadow_url = await (await fetch(icons)).buffer()
+
     const fkontak = {
       key: {
         fromMe: false,
@@ -125,8 +124,11 @@ ${readMore}
     }
 
     await m.react('🔥')
+
     await conn.sendMessage(m.chat, { 
-      text: infoUser + menuTexto,
+      video: { url: banner },
+      gifPlayback: true,
+      caption: infoUser + menuTexto,
       contextInfo: {
         isForwarded: true,
         forwardingScore: 99,
@@ -138,10 +140,10 @@ ${readMore}
         externalAdReply: {
           title: `${botname} ┊ Organización en las Sombras`,
           body: `Dirigido por ${dev}, el que juega a ser un simple mob.`,
-          mediaType: 2,
+          mediaType: 1,
           mediaUrl: null,
           sourceUrl: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O",
-          thumbnail: await (await fetch(banner)).buffer(),
+          thumbnail: Shadow_url,
           showAdAttribution: false,
           containsAutoReply: true,
           renderLargerThumbnail: true
