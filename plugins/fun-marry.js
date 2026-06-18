@@ -150,9 +150,9 @@ const handler = async (m, { conn, command, usedPrefix, text }) => {
     users[suitorId].marry = userId
 
     const gifs = [
-      'https://upload.yotsuba.giize.com/u/z8dLTTgH.mp4',
-      'https://upload.yotsuba.giize.com/u/wNPbiKSM.mp4',
-      'https://upload.yotsuba.giize.com/u/Rop5fO1v.mp4'
+      'https://cdn.adoolab.xyz/dl/b74d5c58.mp4',
+      'https://cdn.adoolab.xyz/dl/d6a34e16.mp4',
+      'https://cdn.adoolab.xyz/dl/d6a34e16.mp4'
     ]
 
     const randomGif = gifs[Math.floor(Math.random() * gifs.length)]
