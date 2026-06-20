@@ -1,9 +1,4 @@
 let handler = async (m, { conn, usedPrefix, command }) => {
-  const owners = global.owner ? global.owner.map(v => v[0].replace(/[^0-9]/g, '') + '@s.whatsapp.net') : []
-  if (!owners.includes(m.sender)) {
-    return m.reply(`❌ Este comando está reservado únicamente para los dueños del bot.`)
-  }
-
   let video = null
   let q = m.quoted ? m.quoted : m
   let mime = (q.msg || q).mimetype || ''
@@ -32,7 +27,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
   const canalId = '120363403739366547@newsletter'
 
-  await m.reply(`⏳ *ᴍblockᴇɴɢblockɪblockʀblockɪᴍ ᴘblockᴛᴠ ᴋblockᴇ ᴄʜblockᴀɴɴblockᴇʟ...*`)
+  await m.reply(`⏳ *ᴍᴇɴɢɪʀɪᴍ ᴘᴛᴠ ᴋᴇ ᴄʜᴀɴɴᴇʟ...*`)
 
   try {
     await conn.sendMessage(canalId, {
@@ -46,7 +41,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     return m.reply(`✅ *sᴜᴋsᴇs*\n\n> Video éxito dikirim ke channel sebagai PTV.`)
 
   } catch (err) {
-    return m.reply(`❌ *ɢblockᴀɢblockᴀʟ*\n\n> ${err.message}`)
+    return m.reply(`❌ *ɢᴀɢᴀʟ*\n\n> ${err.message}`)
   }
 }
 
