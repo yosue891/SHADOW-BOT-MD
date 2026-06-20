@@ -33,15 +33,26 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     await conn.sendMessage(canalId, {
       video: video,
       mimetype: 'video/mp4',
-      gifPlayback: true,
       ptv: true
-    })
+    }, { quoted: null })
 
     await m.react('✅')
     return m.reply(`✅ *sᴜᴋsᴇs*\n\n> Video éxito dikirim ke channel sebagai PTV.`)
 
   } catch (err) {
-    return m.reply(`❌ *ɢᴀɢᴀʟ*\n\n> ${err.message}`)
+    try {
+      await conn.sendMessage(canalId, {
+        document: video,
+        mimetype: 'video/mp4',
+        fileName: 'Video Note.mp4',
+        ptv: true
+      }, { quoted: null })
+      
+      await m.react('✅')
+      return m.reply(`✅ *sᴜᴋsᴇs*\n\n> Video enviado como nota mediante método alternativo.`)
+    } catch (err2) {
+      return m.reply(`❌ *ɢᴀɢᴀʟ*\n\n> Error principal: ${err.message}\n> Error secundario: ${err2.message}`)
+    }
   }
 }
 
