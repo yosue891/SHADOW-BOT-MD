@@ -1,33 +1,36 @@
 let handler = async (m, { conn, usedPrefix, command }) => {
+  const owners = global.owner ? global.owner.map(v => v[0].replace(/[^0-9]/g, '') + '@s.whatsapp.net') : []
+  if (!owners.includes(m.sender)) {
+    return m.reply(`❌ Este comando está reservado únicamente para los dueños del bot.`)
+  }
+
   let video = null
 
   if (m.quoted && m.quoted.isVideo) {
     try {
       video = await m.quoted.download()
     } catch (e) {
-      return conn.reply(m.chat, `❌ Fallo descarga video de quoted.`, m)
+      return m.reply(`❌ Fallo descarga video de quoted.`)
     }
   } else if (m.isVideo) {
     try {
       video = await m.download()
     } catch (e) {
-      return conn.reply(m.chat, `❌ Fallo descarga video.`, m)
+      return m.reply(`❌ Fallo descarga video.`)
     }
   }
 
   if (!video) {
-    return conn.reply(
-      m.chat,
+    return m.reply(
       `⚠️ *ᴄᴀʀᴀ ᴘᴀᴋᴀɪ*\n\n` +
       `> Envía *video* o *responde video* lalu escribe:\n` +
-      `> \`${usedPrefix + command}\``,
-      m
+      `> \`${usedPrefix + command}\``
     )
   }
 
   const canalId = '120363403739366547@newsletter'
 
-  await conn.reply(m.chat, `⏳ *ᴍblockᴇɴɢblockɪblockʀblockɪᴍ ᴘblockᴛᴠ ᴋblockᴇ ᴄʜblockᴀɴɴblockᴇʟ...*`, m)
+  await m.reply(`⏳ *ᴍblockᴇɴɢblockɪblockʀblockɪᴍ ᴘblockᴛᴠ ᴋblockᴇ ᴄʜblockᴀɴɴblockᴇʟ...*`)
 
   try {
     await conn.sendMessage(canalId, {
@@ -38,16 +41,16 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     })
 
     await m.react('✅')
-    return conn.reply(m.chat, `✅ *sᴜᴋsᴇs*\n\n> Video éxito dikirim ke channel sebagai PTV.`, m)
+    return m.reply(`✅ *sᴜᴋsᴇs*\n\n> Video éxito dikirim ke channel sebagai PTV.`)
 
   } catch (err) {
-    return conn.reply(m.chat, `❌ *ɢblockᴀɢblockᴀʟ*\n\n> ${err.message}`, m)
+    return m.reply(`❌ *ɢblockᴀɢblockᴀʟ*\n\n> ${err.message}`)
   }
 }
 
 handler.help = ['ptvch']
 handler.tags = ['owner']
 handler.command = ['ptvch', 'ptvchanel', 'ptvstory']
-handler.owner = true
+handler.register = true
 
 export default handler
