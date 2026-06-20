@@ -7,7 +7,8 @@ import moment from 'moment-timezone'
 const botname = global.botname || "Shadow Garden"
 const dev = global.dev || "Cid Kagenou"
 const banner = "https://cdn.adoolab.xyz/dl/d29aa177.mp4"
-const channelRD = global.channelRD || { id: "0@newsletter", name: "Shadow Channel" }
+const canalId = '120363403739366547@newsletter'
+const canalName = 'SHADOW-BOT'
 
 let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
   let mentionedJid = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.sender
@@ -33,26 +34,26 @@ let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
 
     let tags = {
       'info': '𝐈𝐍𝐅𝐎 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
-      'main': '𝐄𝐒𝐓𝐀𝐃𝐎 𝐃𝐄|𝐋_𝐂𝐎𝐑𝐓𝐈𝐆𝐎',
+      'main': '𝐄𝐒𝐓𝐀𝐃𝐎 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
       'anime': '𝐀𝐍𝐈𝐌𝐄 𝐀𝐑𝐂𝐀𝐍𝐎',
       'menu': '𝐌𝐄𝐍𝐔𝐒 𝐎𝐂𝐔𝐋𝐓𝐎𝐒',
       'search': '𝐁𝐔𝐒𝐐𝐔𝐄𝐃𝐀𝐒 𝐄𝐒𝐎𝐓𝐄𝐑𝐈𝐂𝐀𝐒',
       'descargas': '𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀𝐒 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
-      'socket': '𝐂𝐎𝐍𝐄𝐗𝐈𝐎𝐍𝐄𝐒 𝐎𝐂𝐔𝐋𝐓𝐀𝐒',
-      'rg': '𝐏𝐄𝐑𝐅𝐈𝐋 𝐃𝐄𝐋 𝐂𝐎𝐍𝐓𝐑𝐀𝐓𝐈𝐒𝐓𝐀',
+      'socket': '𝐂𝐎𝐍𝐄𝐗block𝐈𝐎𝐍𝐄𝐒 𝐎𝐂𝐔𝐋𝐓𝐀𝐒',
+      'rg': '𝐏𝐄𝐑𝐅block𝐈𝐋 𝐃block𝐄𝐋 𝐂𝐎𝐍𝐓𝐑block𝐀𝐓𝐈𝐒𝐓𝐀',
       'fun': '𝐉𝐔𝐄𝐆𝐎𝐒 𝐃𝐄 𝐒𝐎𝐌𝐁𝐑𝐀',
-      'rpg': '𝐄𝐂𝐎𝐍𝐎𝐌𝐈𝐀 𝐎𝐂𝐔𝐋𝐓𝐀',
+      'rpg': '𝐄𝐂𝐎𝐍block𝐎𝐌𝐈𝐀 𝐎𝐂𝐔𝐋𝐓block𝐀',
       'gacha': '𝐈𝐕𝐄𝐍𝐓𝐎𝐒 𝐆𝐀𝐂𝐇𝐀',
-      'game': '𝐉𝐔𝐄𝐆𝐎𝐒 𝐀𝐑𝐂𝐀𝐍𝐎𝐒',
-      'grupos': '𝐂𝐈𝐑𝐂𝐔𝐋𝐎𝐒 𝐃𝐄 𝐒𝐎𝐌𝐁𝐑𝐀',
-      'nable': '𝐌𝐎𝐃𝐎 𝐎𝐍 / 𝐎𝐅𝐅',
-      'ia': '𝐈𝐍𝐓𝐄𝐋𝐈𝐆𝐄𝐍𝐂𝐈𝐀 𝐀𝐑𝐂𝐀𝐍𝐀',
-      'stalk': '𝐎𝐁𝐒𝐄𝐑𝐕𝐀𝐂𝐈𝐎𝐍 𝐒𝐈𝐋𝐄𝐍𝐂𝐈𝐎𝐒𝐀',
+      'game': '𝐉𝐔𝐄𝐆𝐎𝐒 𝐀𝐑𝐂𝐀block𝐍block𝐎𝐒',
+      'grupos': '𝐂block𝐈𝐑𝐂𝐔𝐋𝐎𝐒 𝐃𝐄 𝐒block𝐎𝐌𝐁𝐑𝐀',
+      'nable': '𝐌𝐎𝐃𝐎 𝐎block𝐍 / 𝐎𝐅𝐅',
+      'ia': '𝐈𝐍𝐓𝐄𝐋𝐈𝐆block𝐄𝐍𝐂𝐈𝐀 𝐀𝐑𝐂𝐀𝐍𝐀',
+      'stalk': '𝐎𝐁𝐒𝐄𝐑𝐕𝐀𝐂𝐈𝐎block𝐍 𝐒block𝐈𝐋𝐄𝐍𝐂𝐈𝐎𝐒𝐀',
       'maker': '𝐀package 𝐕style 𝐀',
-      'tools': '𝐇𝐄𝐑𝐑𝐀𝐌𝐈𝐄𝐍𝐓𝐀𝐒 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
+      'tools': '𝐇block𝐄𝐑𝐑𝐀𝐌𝐈𝐄𝐍𝐓𝐀𝐒 𝐃block𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
       'sticker': '𝐒𝐄𝐋𝐋𝐎𝐒 𝐀𝐑𝐂𝐀𝐍𝐎𝐒',
-      'owner': '𝐌𝐀𝐄𝐒𝐓𝐑𝐎 𝐃𝐄 𝐋𝐀 𝐎𝐑𝐆𝐀𝐍𝐈𝐙𝐀𝐂𝐈𝐎𝐍',
-      'nsfw': '𝐛𝐎𝐍𝐀 𝐑𝐄𝐒𝐓𝐑𝐈𝐍𝐆𝐈𝐃𝐀 (+18)'
+      'owner': '𝐌block𝐀𝐄𝐒𝐓𝐑𝐎 𝐃block𝐄 𝐋block𝐀 𝐎block𝐑𝐆block𝐀𝐍𝐈block𝐙𝐀𝐂block𝐈𝐎𝐍',
+      'nsfw': '𝐛𝐎𝐍𝐀 𝐑𝐄𝐒𝐓𝐑𝐈block𝐍𝐆𝐈𝐃𝐀 (+18)'
     }
 
     let commands = Object.values(global.plugins)
@@ -81,14 +82,14 @@ ${comandos}
 >    ʏᴀ ᴇꜱᴛᴀʙᴀ ᴇꜱᴄᴜᴄhᴀɴᴅᴏ ᴛᴜꜱ ᴘᴀꜱᴏꜱ...
 
 > ﹙⚜︎﹚੭੭ ─ \`ɪ ɴ ғ ᴏ - ꜱʜᴀᴅᴏw ʙᴏᴛ\`
-> de ׄ 𓏸𓈒 ׅ *ɴᴏᴍʙʀᴇ ᴄʟᴀᴠᴇ ›* ${conn.user?.name || 'Shadow Unit'}
+> de ׄ 𓏸𓈒 ׅ *ɴᴏᴍʙʀᴇ ᴄʟᴀᴠ ›* ${conn.user?.name || 'Shadow Unit'}
 > de ׄ 𓏸𓈒 ׅ *ᴄ•ʟ•ᴀ•ꜱ•ɪ•ꜰ•ɪ•ᴄ•ᴀ•ᴄ•ɪ•ᴏ•ɴ ›* ${(conn.user.jid == global.conn.user.jid ? ' can 𝐍𝐮́𝐜𝐥𝐞𝐨 𝐏𝐫𝐢𝐧𝐜𝐢𝐩𝐚𝐥' : ' can 𝐔𝐧𝐢𝐝𝐚𝐝 𝐒𝐮𝐛𝐨𝐫𝐝𝐢𝐧𝐚𝐝𝐚')}
-> de ׄ 𓏸𓈒 ׅ * can ᴄᴏᴍᴀɴᴅᴏꜱ ›* ${totalCommands}
-> de ׄ 𓏸𓈒 ׅ *ᴛɪᴇᴍᴘᴏ ᴇɴ ʟᴀ ꜱᴏᴍʙʀᴀ ›* ${uptime}
-> de ׄ 𓏸𓈒 ׅ *ᴅᴏᴍɪɴɪᴏ ›* ${pais}
-> de ׄ 𓏸𓈒 ׅ *ᴀʟᴍᴀꜱ ›* ${totalreg}
+> de ׄ 𓏸𓈒 ׅ * can ᴄᴏᴍᴀɴᴅᴏส์ ›* ${totalCommands}
+> de ׄ 𓏸𓈒 ׅ *boxᴛblockɪblockᴇᴍᴘᴏ ᴇɴ ʟᴀ ꜱᴏᴍʙblockʀᴀ ›* ${uptime}
+> de ׄ 𓏸𓈒 ׅ *ᴅblockᴏᴍɪblockɴɪᴏ ›* ${pais}
+> de ׄ 𓏸𓈒 ׅ *ᴀʟᴍblockᴀꜱ ›* ${totalreg}
 > de ׄ 𓏸𓈒 ׅ * can ᴄedit ᴀ𝐬 ›* ${groupsCount}
-> de ׄ 𓏸𓈒 ׅ * can ᴛɪᴇᴍᴘᴏ ›* ${date}
+> de ׄ 𓏸𓈒 ׅ * can ᴛɪblockᴇᴍᴘᴏ ›* ${date}
 
 > *No olvides seguir el canal ofc del bot:*
 https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
@@ -96,37 +97,7 @@ https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
 https://chat.whatsapp.com/EwF9uSoLzsQ3o0DvycCiQz
 
 ${readMore}
-  乂 *ᴘʀᴏᴛᴏᴄᴏʟᴏ ᴅᴇ ᴄᴏᴍᴀɴᴅᴏส์ ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ* 乂\n`.trim()
-
-    const icon = [
-      'https://i.postimg.cc/rFfVL8Ps/image.jpg'
-    ]
-    let icons = icon[Math.floor(Math.random() * icon.length)]
-    const Shadow_url = await (await fetch(icons)).buffer()
-
-    const fkontak = {
-      key: {
-        fromMe: false,
-        participant: "0@s.whatsapp.net",
-        remoteJid: "status@broadcast"
-      },
-      message: {
-        productMessage: {
-          product: {
-            productImage: {
-              mimetype: "image/jpeg",
-              jpegThumbnail: Shadow_url
-            },
-            title: `⌗ֶㅤ𝐌𝐞𝐧𝐮 𝐝𝐞 𝐥𝐚 𝐒𝐨𝐦𝐛𝐫𝐚 - ${botname} ⚜︎`,
-            description: "« No olvides seguir el canal ofc del bot https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O y unirte a la comunidad ofc del botsito https://chat.whatsapp.com/EwF9uSoLzsQ3o0DvycCiQz »",
-            currencyCode: "USD",
-            priceAmount1000: 0,
-            retailId: "menu"
-          },
-          businessOwnerJid: "584242773183@s.whatsapp.net"
-        }
-      }
-    }
+  乂 *ᴘʀᴏᴛᴏᴄᴏʟᴏ ᴅᴇ ᴄᴏᴍᴀblockɴᴅᴏส์ ᴅblockᴇ ʟᴀ ꜱᴏᴍʙʀᴀ* 乂\n`.trim()
 
     await m.react('🔥')
 
@@ -135,26 +106,27 @@ ${readMore}
       gifPlayback: true,
       caption: infoUser + menuTexto,
       contextInfo: {
+        mentionedJid: [m.sender],
         isForwarded: true,
         forwardingScore: 99,
         forwardedNewsletterMessageInfo: {
-          newsletterJid: channelRD.id,
-          serverMessageId: 100,
-          newsletterName: channelRD.name
+          newsletterJid: canalId,
+          serverMessageId: null,
+          newsletterName: canalName
         },
         externalAdReply: {
           title: `${botname} ┊ Organización en las Sombras`,
-          body: `Dirigido por ${dev}, el que juega a ser un simple mob.`,
+          body: `Dirigido por ${dev}, con amor de Yosue.`,
           mediaType: 1,
           mediaUrl: null,
           sourceUrl: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O",
-          thumbnail: Shadow_url,
+          thumbnailUrl: 'https://files.catbox.moe/7mpqeg.jpg',
           showAdAttribution: false,
           containsAutoReply: true,
           renderLargerThumbnail: true
         }
       }
-    }, { quoted: fkontak })
+    }, { quoted: m })
 
   } catch (e) {
     console.error(e)
