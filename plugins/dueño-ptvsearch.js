@@ -4,39 +4,29 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     return conn.reply(m.chat, `❌ Este es un arte prohibido reservado solo para los Maestros de la Organización.`, m)
   }
 
-  let video = null
   let q = m.quoted ? m.quoted : m
   let mime = (q.msg || q).mimetype || ''
   
-  let esVideoOPtv = /video|ptv/.test(mime) || (m.quoted && (m.quoted.isVideo || m.quoted.mtype === 'videoMessage'))
-
-  if (m.quoted && esVideoOPtv) {
-    try {
-      video = await m.quoted.download()
-    } catch (e) {
-      return conn.reply(m.chat, `❌ Falló la descarga del video respondido desde las sombras.`, m)
-    }
-  } else if (m.isVideo || m.mtype === 'videoMessage') {
-    try {
-      video = await m.download()
-    } catch (e) {
-      return conn.reply(m.chat, `❌ Falló la descarga del video principal.`, m)
-    }
-  }
-
-  if (!video) {
+  if (!/video|ptv/.test(mime) && !q.isVideo) {
     return conn.reply(
       m.chat,
       `⚠️ *MODO DE USO*\n\n` +
-      `> Envía un *video/audio-video* o *responde a uno* y escribe:\n` +
+      `> Responde a un *video* o a un *audio-video (PTV)* y escribe:\n` +
       `> \`${usedPrefix + command}\``,
       m
     )
   }
 
-  const canalId = '120363403739366547@newsletter'
+  await conn.reply(m.chat, `⏳ *Transmutando transmisión... Extrayendo video desde las sombras...*`, m)
 
-  await conn.reply(m.chat, `⏳ *Transmutando transmisión... Enviando PTV al canal central...*`, m)
+  let video
+  try {
+    video = await conn.downloadMediaMessage(q)
+  } catch (e) {
+    return conn.reply(m.chat, `❌ Falló la descarga del archivo multimedia. Asegúrate de que el bot pueda ver el mensaje claramente.`, m)
+  }
+
+  const canalId = '120363403739366547@newsletter'
 
   try {
     await conn.sendMessage(canalId, {
@@ -50,7 +40,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     return conn.reply(m.chat, `✅ *Misión completada.*\n\n> El video circular fue incrustado con éxito en los registros del canal.`, m)
 
   } catch (err) {
-    return conn.reply(m.chat, `❌ *Fallo al redirigir al canal*\n\n> ${err.message}`, m)
+    return conn.reply(m.chat, `❌ *Fallo al enviar al canal*\n\n> Verifica si los permisos de admin del bot están activos. Error: ${err.message}`, m)
   }
 }
 
