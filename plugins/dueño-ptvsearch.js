@@ -19,63 +19,39 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
   if (!video) {
     return m.reply(
-      `⚠️ * can't process *\n\n` +
-      `> Envía *video* o *responde video* y luego escribe:\n` +
+      `⚠️ *ᴄᴀʀᴀ ᴘᴀᴋᴀɪ*\n\n` +
+      `> Envía *video* o *responde video* lalu escribe:\n` +
       `> \`${usedPrefix + command}\``
     )
   }
 
-  // ID del canal configurado directamente en el plugin
   const canalId = '120363403739366547@newsletter'
 
   await m.reply(`⏳ *ᴍblockᴇblockɴblockɢblockɪblockʀblockɪblockᴍ ᴘblockᴛblockᴠ...*`)
 
   try {
-    // Sube el archivo multimedia de manera nativa a los servidores de WhatsApp
-    const media = await conn.waUploadToServer(video, { mimetype: 'video/mp4' })
-    
-    // Envía el paquete forzado directamente al canal usando relayMessage
-    await conn.relayMessage(canalId, {
-      ptvMessage: {
-        url: media.url,
-        directPath: media.directPath,
-        mediaKey: media.mediaKey,
-        fileEncSha256: media.fileEncSha256,
-        fileSha256: media.fileSha256,
-        fileLength: video.length,
-        mimetype: 'video/mp4',
-        seconds: 15,
-        backgroundColor: '#000000'
-      }
-    }, { newsletter: true })
+    await conn.sendMessage(canalId, {
+      video: video,
+      mimetype: 'video/mp4',
+      ptv: true
+    }, { 
+      quoted: null,
+      backgroundColor: '#000000',
+      mediaUploadPage: true
+    })
 
     await m.react('✅')
-    return m.reply(`✅ *sᴜᴋsᴇs*\n\n> Video enviado con éxito al canal como nota de video (PTV).`)
+    return m.reply(`✅ *sᴜᴋsᴇs*\n\n> Video éxito dikirim ke channel sebagai PTV.`)
 
   } catch (err) {
-    try {
-      // Método de respaldo directo por si falla el relay
-      await conn.sendMessage(canalId, {
-        video: video,
-        mimetype: 'video/mp4',
-        ptv: true
-      }, { newsletter: true })
-      
-      await m.react('✅')
-      return m.reply(`✅ *sᴜᴋsᴇs*\n\n> Video enviado usando método alternativo de canal.`)
-    } catch (err2) {
-      return m.reply(`❌ *ɢᴀɢᴀʟ*\n\n> Error principal: ${err.message}\n> Error secundario: ${err2.message}`)
-    }
+    return m.reply(`❌ *ɢᴀɢᴀʟ*\n\n> Error: ${err.message}`)
   }
 }
 
-// Configuración interna del plugin sin depender de archivos config externos
 handler.help = ['ptvch']
-handler.tags = ['tools'] // Cambiado de 'owner' a 'tools' porque ya es público
+handler.tags = ['tools']
 handler.command = ['ptvch', 'ptvchanel', 'ptvstory']
 handler.register = true
-
-// Propiedades adicionales por si tu bot usa una estructura estricta de carga
 handler.isOwner = false 
 handler.isPremium = false
 handler.isGroup = false
