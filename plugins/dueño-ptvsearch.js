@@ -19,56 +19,67 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
   if (!video) {
     return m.reply(
-      `⚠️ *ᴄᴀʀᴀ ᴘᴀᴋᴀɪ*\n\n` +
-      `> Envía *video* o *responde video* lalu escribe:\n` +
+      `⚠️ * can't process *\n\n` +
+      `> Envía *video* o *responde video* y luego escribe:\n` +
       `> \`${usedPrefix + command}\``
     )
   }
 
+  // ID del canal configurado directamente en el plugin
   const canalId = '120363403739366547@newsletter'
 
-  await m.reply(`⏳ *ᴍᴇɴɢɪʀɪᴍ ᴘᴛᴠ ᴋᴇ ᴄʜᴀɴɴᴇʟ...*`)
+  await m.reply(`⏳ *ᴍblockᴇblockɴblockɢblockɪblockʀblockɪblockᴍ ᴘblockᴛblockᴠ...*`)
 
   try {
-    await conn.sendMessage(canalId, {
-      video: video,
-      mimetype: 'video/mp4',
-      backgroundColor: '#001a33',
-      seconds: 15,
-      ptv: true
-    }, { 
-      mediaUploadPage: true,
-      backgroundColor: '#001a33'
-    })
+    // Sube el archivo multimedia de manera nativa a los servidores de WhatsApp
+    const media = await conn.waUploadToServer(video, { mimetype: 'video/mp4' })
+    
+    // Envía el paquete forzado directamente al canal usando relayMessage
+    await conn.relayMessage(canalId, {
+      ptvMessage: {
+        url: media.url,
+        directPath: media.directPath,
+        mediaKey: media.mediaKey,
+        fileEncSha256: media.fileEncSha256,
+        fileSha256: media.fileSha256,
+        fileLength: video.length,
+        mimetype: 'video/mp4',
+        seconds: 15,
+        backgroundColor: '#000000'
+      }
+    }, { newsletter: true })
 
     await m.react('✅')
-    return m.reply(`✅ *sᴜᴋsᴇs*\n\n> Video éxito dikirim ke channel sebagai PTV.`)
+    return m.reply(`✅ *sᴜᴋsᴇs*\n\n> Video enviado con éxito al canal como nota de video (PTV).`)
 
   } catch (err) {
     try {
-      await conn.query({
-        tag: 'message',
-        attrs: { to: canalId, type: 'text' },
-        content: [
-          {
-            tag: 'video',
-            attrs: { ptv: 'true', mimetype: 'video/mp4' },
-            content: video
-          }
-        ]
-      })
+      // Método de respaldo directo por si falla el relay
+      await conn.sendMessage(canalId, {
+        video: video,
+        mimetype: 'video/mp4',
+        ptv: true
+      }, { newsletter: true })
       
       await m.react('✅')
-      return m.reply(`✅ *sᴜᴋsᴇs*\n\n> Video enviado mediante query nativo de Baileys.`)
+      return m.reply(`✅ *sᴜᴋsᴇs*\n\n> Video enviado usando método alternativo de canal.`)
     } catch (err2) {
-      return m.reply(`❌ *ɢᴀɢᴀʟ*\n\n> Error 1: ${err.message}\n> Error 2: ${err2.message}`)
+      return m.reply(`❌ *ɢᴀɢᴀʟ*\n\n> Error principal: ${err.message}\n> Error secundario: ${err2.message}`)
     }
   }
 }
 
+// Configuración interna del plugin sin depender de archivos config externos
 handler.help = ['ptvch']
-handler.tags = ['owner']
+handler.tags = ['tools'] // Cambiado de 'owner' a 'tools' porque ya es público
 handler.command = ['ptvch', 'ptvchanel', 'ptvstory']
 handler.register = true
+
+// Propiedades adicionales por si tu bot usa una estructura estricta de carga
+handler.isOwner = false 
+handler.isPremium = false
+handler.isGroup = false
+handler.isPrivate = false
+handler.cooldown = 5
 
 export default handler
