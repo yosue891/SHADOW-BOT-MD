@@ -5,14 +5,18 @@ let handler = async (m, { conn, usedPrefix, command }) => {
   }
 
   let video = null
+  let q = m.quoted ? m.quoted : m
+  let mime = (q.msg || q).mimetype || ''
+  
+  let esVideoOPtv = /video|ptv/.test(mime) || (m.quoted && (m.quoted.isVideo || m.quoted.mtype === 'videoMessage'))
 
-  if (m.quoted && m.quoted.isVideo) {
+  if (m.quoted && esVideoOPtv) {
     try {
       video = await m.quoted.download()
     } catch (e) {
       return conn.reply(m.chat, `❌ Falló la descarga del video respondido desde las sombras.`, m)
     }
-  } else if (m.isVideo) {
+  } else if (m.isVideo || m.mtype === 'videoMessage') {
     try {
       video = await m.download()
     } catch (e) {
@@ -24,7 +28,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     return conn.reply(
       m.chat,
       `⚠️ *MODO DE USO*\n\n` +
-      `> Envía un *video* o *responde a un video* y escribe:\n` +
+      `> Envía un *video/audio-video* o *responde a uno* y escribe:\n` +
       `> \`${usedPrefix + command}\``,
       m
     )
