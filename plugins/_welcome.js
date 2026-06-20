@@ -43,7 +43,7 @@ END:VCARD`
     const welcomeImg =
       'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
       'title=Bienvenido+al+grupo' +
-      '&desc=Evita+no+ser+expulsado+por+las+sombras' +
+      '&desc=Evita+hacer+spam' +
       `&profile=${encodeURIComponent(profile)}` +
       '&background=https%3A%2F%2Fraw.githubusercontent.com%2FEl-brayan502%2Fimg%2Fupload%2Fuploads%2F837853-1770608354526.jpg'
 
@@ -63,7 +63,7 @@ END:VCARD`
         businessOwnerJid: '0@s.whatsapp.net',
 
         caption: `
-*Bienvenido/a al reino de las sombras*
+*Bienvenido/a al grupo*
 
 > Usuario: ${taguser}
 > Miembros totales: ${totalMembers}
@@ -77,7 +77,7 @@ END:VCARD`
             name: 'quick_reply',
             buttonParamsJson: JSON.stringify({
               display_text: '👤 Registrarme',
-              id: `${usedPrefix}reg user.18`
+              id: `${usedPrefix}reg user.19`
             })
           }
         ],
@@ -91,7 +91,7 @@ END:VCARD`
   if (m.messageStubType === 28 || m.messageStubType === 32) {
     const goodbyeImg =
       'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
-      'title=se+fue+del+reino+de+las+sombras' +
+      'title=Se+fue+del+grupo' +
       '&desc=No+vuelvas' +
       `&profile=${encodeURIComponent(profile)}` +
       '&background=https%3A%2F%2Fraw.githubusercontent.com%2FEl-brayan502%2Fimg%2Fupload%2Fuploads%2Ff1daa4-1770608515673.jpg'
@@ -114,7 +114,7 @@ END:VCARD`
         caption: `
 > Usuario: ${taguser}
 > Fecha: ${date}
-*salio del reino de las sombras.*
+*salió del grupo.*
 `.trim(),
 
         footer: `© ${botname} · Goodbye`,
@@ -124,7 +124,7 @@ END:VCARD`
             name: 'quick_reply',
             buttonParamsJson: JSON.stringify({
               display_text: '👤 Registrarme',
-              id: `${usedPrefix}reg user.18`
+              id: `${usedPrefix}reg user.19`
             })
           }
         ],
@@ -134,4 +134,4 @@ END:VCARD`
       { quoted: fkontak }
     )
   }
-}
+        }
