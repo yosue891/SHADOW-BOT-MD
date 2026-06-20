@@ -5,18 +5,16 @@ let handler = async (m, { conn, usedPrefix, command }) => {
   }
 
   let video = null
-  let q = m.quoted ? m.quoted : m
-  let mime = (q.msg || q).mimetype || ''
 
-  if (m.quoted && /video/.test(mime)) {
+  if (m.quoted && m.quoted.isVideo) {
     try {
-      video = await q.download()
+      video = await m.quoted.download()
     } catch (e) {
       return conn.reply(m.chat, `❌ Falló la descarga del video respondido desde las sombras.`, m)
     }
-  } else if (/video/.test(mime)) {
+  } else if (m.isVideo) {
     try {
-      video = await q.download()
+      video = await m.download()
     } catch (e) {
       return conn.reply(m.chat, `❌ Falló la descarga del video principal.`, m)
     }
@@ -40,6 +38,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     await conn.sendMessage(canalId, {
       video: video,
       mimetype: 'video/mp4',
+      gifPlayback: true,
       ptv: true
     })
 
