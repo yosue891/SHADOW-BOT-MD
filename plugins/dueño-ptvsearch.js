@@ -1,68 +1,53 @@
-import fs from 'fs'
-import crypto from 'crypto'
-import { join } from 'path'
-import { tmpdir } from 'os'
-
 let handler = async (m, { conn, usedPrefix, command }) => {
-  const owners = global.owner.map(v => v[0].replace(/[^0-9]/g, '') + '@s.whatsapp.net')
-  if (!owners.includes(m.sender)) {
-    return conn.reply(m.chat, `❌ Este es un arte prohibido reservado solo para los Maestros de la Organización.`, m)
-  }
+  let video = null
 
-  let videoBuffer = null
-
-  if (m.quoted && (m.quoted.isVideo || /video|ptv/.test(m.quoted.mimetype || m.quoted.msg?.mimetype || ''))) {
+  if (m.quoted && m.quoted.isVideo) {
     try {
-      videoBuffer = await m.quoted.download()
+      video = await m.quoted.download()
     } catch (e) {
-      return conn.reply(m.chat, `❌ Falló la descarga del video respondido desde las sombras.`, m)
+      return conn.reply(m.chat, `❌ Fallo descarga video de quoted.`, m)
     }
-  } else if (m.isVideo || /video|ptv/.test(m.mimetype || m.msg?.mimetype || '')) {
+  } else if (m.isVideo) {
     try {
-      videoBuffer = await m.download()
+      video = await m.download()
     } catch (e) {
-      return conn.reply(m.chat, `❌ Falló la descarga del video principal.`, m)
+      return conn.reply(m.chat, `❌ Fallo descarga video.`, m)
     }
   }
 
-  if (!videoBuffer) {
+  if (!video) {
     return conn.reply(
       m.chat,
-      `⚠️ *MODO DE USO*\n\n` +
-      `> Envía un *video* o *responde a un video/audio-video* y escribe:\n` +
+      `⚠️ *ᴄᴀʀᴀ ᴘᴀᴋᴀɪ*\n\n` +
+      `> Envía *video* o *responde video* lalu escribe:\n` +
       `> \`${usedPrefix + command}\``,
       m
     )
   }
 
   const canalId = '120363403739366547@newsletter'
-  await conn.reply(m.chat, `⏳ *Transmutando transmisión... Procesando PTV en la oscuridad...*`, m)
 
-  const filename = join(tmpdir(), `${crypto.randomBytes(6).readUIntLE(0, 6).toString(36)}.mp4`)
+  await conn.reply(m.chat, `⏳ *ᴍblockᴇɴɢblockɪblockʀblockɪᴍ ᴘblockᴛᴠ ᴋblockᴇ ᴄʜblockᴀɴɴblockᴇʟ...*`, m)
 
   try {
-    await fs.promises.writeFile(filename, videoBuffer)
-
     await conn.sendMessage(canalId, {
-      video: { url: filename },
+      video: video,
       mimetype: 'video/mp4',
       gifPlayback: true,
       ptv: true
     })
 
-    await fs.promises.unlink(filename).catch(() => {})
-    await m.react('🔥')
-    return conn.reply(m.chat, `✅ *Misión completada.*\n\n> El video circular fue incrustado con éxito en los registros del canal.`, m)
+    await m.react('✅')
+    return conn.reply(m.chat, `✅ *sᴜᴋsᴇs*\n\n> Video éxito dikirim ke channel sebagai PTV.`, m)
 
   } catch (err) {
-    if (fs.existsSync(filename)) await fs.promises.unlink(filename).catch(() => {})
-    return conn.reply(m.chat, `❌ *Fallo al redirigir al canal*\n\n> ${err.message}`, m)
+    return conn.reply(m.chat, `❌ *ɢblockᴀɢblockᴀʟ*\n\n> ${err.message}`, m)
   }
 }
 
 handler.help = ['ptvch']
 handler.tags = ['owner']
 handler.command = ['ptvch', 'ptvchanel', 'ptvstory']
-handler.register = true
+handler.owner = true
 
 export default handler
