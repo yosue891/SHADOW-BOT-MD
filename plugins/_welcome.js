@@ -17,7 +17,7 @@ export async function before(m, { conn, usedPrefix }) {
       participants: '0@s.whatsapp.net',
       remoteJid: 'status@broadcast',
       fromMe: false,
-      id: 'NagiBot'
+      id: 'Shadow-bot'
     },
     message: {
       contactMessage: {
