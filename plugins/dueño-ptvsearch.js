@@ -5,14 +5,16 @@ let handler = async (m, { conn, usedPrefix, command }) => {
   }
 
   let video = null
+  let q = m.quoted ? m.quoted : m
+  let mime = (q.msg || q).mimetype || ''
 
-  if (m.quoted && m.quoted.isVideo) {
+  if (m.quoted && (/video|ptv/.test(mime) || m.quoted.isVideo)) {
     try {
       video = await m.quoted.download()
     } catch (e) {
       return m.reply(`❌ Fallo descarga video de quoted.`)
     }
-  } else if (m.isVideo) {
+  } else if (/video|ptv/.test(mime) || m.isVideo) {
     try {
       video = await m.download()
     } catch (e) {
