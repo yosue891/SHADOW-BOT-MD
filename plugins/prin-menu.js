@@ -39,21 +39,21 @@ let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
       'menu': '𝐌𝐄𝐍𝐔𝐒 𝐎𝐂𝐔𝐋𝐓𝐎𝐒',
       'search': '𝐁𝐔𝐒𝐐𝐔𝐄𝐃𝐀𝐒 𝐄𝐒𝐎𝐓𝐄𝐑𝐈𝐂𝐀𝐒',
       'descargas': '𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀𝐒 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
-      'socket': '𝐂𝐎𝐍𝐄𝐗block𝐈𝐎𝐍𝐄𝐒 𝐎𝐂𝐔𝐋𝐓𝐀𝐒',
-      'rg': '𝐏𝐄𝐑𝐅block𝐈𝐋 𝐃block𝐄𝐋 𝐂𝐎𝐍𝐓𝐑block𝐀𝐓𝐈𝐒𝐓𝐀',
+      'socket': '𝐂𝐎𝐍block𝐈block𝐎block𝐍𝐄𝐒 𝐎block𝐂block𝐔𝐋𝐓block𝐀𝐒',
+      'rg': '𝐏𝐄block𝐑block𝐅block𝐈𝐋 𝐃block𝐄block𝐋 𝐂𝐎block𝐍𝐓block𝐑block𝐀𝐓block𝐈𝐒block𝐓𝐀',
       'fun': '𝐉𝐔𝐄𝐆𝐎𝐒 𝐃𝐄 𝐒𝐎𝐌𝐁𝐑𝐀',
-      'rpg': '𝐄𝐂𝐎𝐍block𝐎𝐌𝐈𝐀 𝐎𝐂𝐔𝐋𝐓block𝐀',
-      'gacha': '𝐈𝐕𝐄𝐍𝐓𝐎𝐒 𝐆𝐀𝐂𝐇𝐀',
-      'game': '𝐉𝐔𝐄𝐆𝐎𝐒 𝐀𝐑𝐂𝐀block𝐍block𝐎𝐒',
-      'grupos': '𝐂block𝐈𝐑𝐂𝐔𝐋𝐎𝐒 𝐃𝐄 𝐒block𝐎𝐌𝐁𝐑𝐀',
-      'nable': '𝐌𝐎𝐃𝐎 𝐎block𝐍 / 𝐎𝐅𝐅',
-      'ia': '𝐈𝐍𝐓𝐄𝐋𝐈𝐆block𝐄𝐍𝐂𝐈𝐀 𝐀𝐑𝐂𝐀𝐍𝐀',
-      'stalk': '𝐎𝐁𝐒𝐄𝐑𝐕𝐀𝐂𝐈𝐎block𝐍 𝐒block𝐈𝐋𝐄𝐍𝐂𝐈𝐎𝐒𝐀',
+      'rpg': '𝐄𝐂𝐎block𝐍block𝐎𝐌block𝐈𝐀 𝐎block𝐂block𝐔𝐋𝐓block𝐀',
+      'gacha': '𝐈block𝐕𝐄block𝐍block𝐓𝐎𝐒 𝐆block𝐀block𝐂𝐇block𝐀',
+      'game': '𝐉𝐔𝐄𝐆𝐎𝐒 𝐀𝐑block𝐂block𝐀block𝐍block𝐎block𝐒',
+      'grupos': '𝐂block𝐈block𝐑block𝐂𝐔block𝐋𝐎𝐒 𝐃block𝐄 𝐒block𝐎block𝐌block𝐁block𝐑𝐀',
+      'nable': '𝐌block𝐎block𝐃𝐎 𝐎block𝐍 / 𝐎𝐅block𝐅',
+      'ia': '𝐈block𝐍block𝐓𝐄block𝐋block𝐈block𝐆block𝐄𝐍block𝐂block𝐈𝐀 𝐀block𝐑block𝐂block𝐀block𝐍block𝐀',
+      'stalk': '𝐎𝐁𝐒𝐄block𝐑block𝐕block𝐀block𝐂block𝐈𝐎block𝐍 𝐒block𝐈block𝐋𝐄block𝐍block𝐂block𝐈𝐎block𝐒𝐀',
       'maker': '𝐀package 𝐕style 𝐀',
-      'tools': '𝐇block𝐄𝐑𝐑𝐀𝐌𝐈𝐄𝐍𝐓𝐀𝐒 𝐃block𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
-      'sticker': '𝐒𝐄𝐋𝐋𝐎𝐒 𝐀𝐑𝐂𝐀𝐍𝐎𝐒',
-      'owner': '𝐌block𝐀𝐄𝐒𝐓𝐑𝐎 𝐃block𝐄 𝐋block𝐀 𝐎block𝐑𝐆block𝐀𝐍𝐈block𝐙𝐀𝐂block𝐈𝐎𝐍',
-      'nsfw': '𝐛𝐎𝐍𝐀 𝐑𝐄𝐒𝐓𝐑𝐈block𝐍𝐆𝐈𝐃𝐀 (+18)'
+      'tools': '𝐇block𝐄block𝐑block𝐑block𝐀block𝐌block𝐈block𝐄block𝐍block𝐓block𝐀𝐒 𝐃blockblock𝐄 𝐋block𝐀 𝐒block𝐎block𝐌blockblock𝐁block𝐑𝐀',
+      'sticker': '𝐒𝐄block𝐋block𝐋𝐎𝐒 𝐀block𝐑block𝐂blockblock𝐀block𝐍block𝐎𝐒',
+      'owner': '𝐌block𝐀block𝐄block𝐒block𝐓block𝐑𝐎 𝐃block𝐄 𝐋block𝐀 𝐎block𝐑block𝐆block𝐀blockblock𝐍block𝐈block𝐙𝐀block𝐂block𝐈𝐎block𝐍',
+      'nsfw': '𝐛𝐎block𝐍block𝐀 𝐑block𝐄block𝐒block𝐓block𝐑block𝐈block𝐍block𝐆block𝐈block𝐃block𝐀 (+18)'
     }
 
     let commands = Object.values(global.plugins)
@@ -86,8 +86,8 @@ ${comandos}
 > de ׄ 𓏸𓈒 ׅ *ᴄ•ʟ•ᴀ•ꜱ•ɪ•ꜰ•ɪ•ᴄ•ᴀ•ᴄ•ɪ•ᴏ•ɴ ›* ${(conn.user.jid == global.conn.user.jid ? ' can 𝐍𝐮́𝐜𝐥𝐞𝐨 𝐏𝐫𝐢𝐧𝐜𝐢𝐩𝐚𝐥' : ' can 𝐔𝐧𝐢𝐝𝐚𝐝 𝐒𝐮𝐛𝐨𝐫𝐝𝐢𝐧𝐚𝐝𝐚')}
 > de ׄ 𓏸𓈒 ׅ * can ᴄᴏᴍᴀɴᴅᴏส์ ›* ${totalCommands}
 > de ׄ 𓏸𓈒 ׅ *boxᴛblockɪblockᴇᴍᴘᴏ ᴇɴ ʟᴀ ꜱᴏᴍʙblockʀᴀ ›* ${uptime}
-> de ׄ 𓏸𓈒 ׅ *ᴅblockᴏᴍɪblockɴɪᴏ ›* ${pais}
-> de ׄ 𓏸𓈒 ׅ *ᴀʟᴍblockᴀꜱ ›* ${totalreg}
+> de ׄ 𓏸𓈒 ׅ *...ᴅblockᴏᴍblockɴɪᴏ ›* ${pais}
+> de ׄ 𓏸𓈒 ׅ *ᴀʟᴍblockᴀ_𝐬 ›* ${totalreg}
 > de ׄ 𓏸𓈒 ׅ * can ᴄedit ᴀ𝐬 ›* ${groupsCount}
 > de ׄ 𓏸𓈒 ׅ * can ᴛɪblockᴇᴍᴘᴏ ›* ${date}
 
@@ -120,10 +120,9 @@ ${readMore}
           mediaType: 1,
           mediaUrl: null,
           sourceUrl: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O",
-          thumbnailUrl: 'https://files.catbox.moe/7mpqeg.jpg',
           showAdAttribution: false,
           containsAutoReply: true,
-          renderLargerThumbnail: true
+          renderLargerThumbnail: false
         }
       }
     }, { quoted: m })
