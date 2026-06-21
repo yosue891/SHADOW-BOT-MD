@@ -90,6 +90,20 @@ function extractPhone(jid = '') {
     .replace(/\D/g, '')
 }
 
+function resolveSenderToPhone(sender, m, conn) {
+  if (!sender) return ''
+  if (!sender.endsWith('@lid')) return extractPhone(sender)
+  const remoteJid = m?.key?.remoteJid
+  if (remoteJid && !remoteJid.endsWith('@lid') && !remoteJid.endsWith('@g.us') && !remoteJid.endsWith('@newsletter')) {
+    return extractPhone(remoteJid)
+  }
+  const lidUser = sender.split('@')[0]
+  for (const [jid, contact] of Object.entries(conn?.contacts || {})) {
+    if (String(contact?.lid) === lidUser) return extractPhone(jid)
+  }
+  return extractPhone(sender)
+}
+
 function getPairingPhoneNumber(m, args, fallbackJid) {
   const explicitArg = (args || []).find(arg => {
     const value = String(arg || '').trim()
@@ -130,10 +144,12 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
   const mentionedJid = m.mentionedJid || []
   const who = mentionedJid[0] || m.sender
+  const pairingNumber = resolveSenderToPhone(who, m, conn)
   console.log('m.sender =>', m.sender)
-console.log('who =>', who)
-console.log('mentionedJid =>', mentionedJid)
-  const id = who.split('@')[0]
+  console.log('who =>', who)
+  console.log('pairingNumber =>', pairingNumber)
+  console.log('mentionedJid =>', mentionedJid)
+  const id = pairingNumber || extractPhone(who)
   const pairingPhoneNumber = getPairingPhoneNumber(m, args, who)
   const jadiDir = global.jadi || 'Sessions/SubBot'
   const pathMichiJadiBot = path.join(jadiDir, id)
@@ -146,7 +162,7 @@ console.log('mentionedJid =>', mentionedJid)
   MichiJBOptions.args = [...args]
   MichiJBOptions.usedPrefix = usedPrefix
   MichiJBOptions.command = command
-  MichiJBOptions.pairingPhoneNumber = pairingPhoneNumber
+  MichiJBOptions.pairingPhoneNumber = pairingNumber
   MichiJBOptions.fromCommand = true
 
   if (isCodeCommand) userData.lastCodeRequest = now
@@ -233,10 +249,10 @@ export async function MichiJadiBot(options) {
     await delay(3000)
     try {
       const phoneNumber =
-  extractPhone(pairingPhoneNumber) ||
-  extractPhone(m?.sender) ||
-  extractPhone(m?.key?.participant) ||
-  extractPhone(m?.participant)
+  (pairingPhoneNumber && normalizePhoneNumber(pairingPhoneNumber).length >= 8 ? pairingPhoneNumber : '') ||
+  resolveSenderToPhone(m?.sender, m, conn) ||
+  resolveSenderToPhone(m?.key?.participant, m, conn) ||
+  resolveSenderToPhone(m?.participant, m, conn)
       if (!phoneNumber) throw new Error('No se pudo detectar el número del usuario para generar el código.')
 
 console.log('sender:', m.sender)
