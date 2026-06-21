@@ -1,181 +1,164 @@
-// Código Creado por Ryze echo Scraper echo código por DvWilkerOFC
+import yts from "yt-search"
+import fetch from "node-fetch"
+import { generateWAMessageContent, generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
 
-import yts from 'yt-search'
-import fetch from 'node-fetch'
+const handler = async (m, { conn, text, command, usedPrefix }) => {
+  if (!text) return m.reply(`💫 *Shadow invocando*\n\n🎶 Pronuncia el nombre del video o entrega el enlace de YouTube.`)
 
-let handler = async (m, { conn, args, usedPrefix, command }) => {
+  const isDirectAudio = ["ytmp3"].includes(command)
+  const isDirectVideo = ["playvid", "ytmp4", "play2"].includes(command)
+  const isSearchAction = ["yt", "ytv"].includes(command)
+
   try {
-    if (!args[0]) {
-      return m.reply('🖤🌑 *SHADOW BOT MD* 🌑🖤\n\n> Por favor, menciona el nombre o URL del video que deseas descargar')
-    }
+    if (isDirectAudio || isDirectVideo) {
+      await m.react("🕘")
+      let url = text.trim()
+      let title = "Video"
+      let thumb = ""
 
-    const input_text = args.join(' ').trim()
-    const video_id = getVideoId(input_text)
-    const query = video_id ? `https://youtu.be/${video_id}` : input_text
-
-    let url = query
-    let title = 'video'
-    let thumbnail = null
-
-    try {
-      const video_info = await getVideoInfo(query, video_id)
-
-      if (video_info) {
-        url = video_info.url || `https://youtu.be/${video_info.videoId}`
-        title = video_info.title || title
-        thumbnail = video_info.image || video_info.thumbnail || null
-
-        const views = (video_info.views || 0).toLocaleString()
-        const channel = video_info.author?.name || video_info.author || 'Desconocido'
-
-        const info_message = `
-🖤 *SHADOW BOT MD* 🌑
-
-⚡ *Descargando video...*
-
-> 🖤 Título: *${title}*
-> 🌑 Canal: *${channel}*
-> 🖤 Duración: *${video_info.timestamp || 'Desconocido'}*
-> 🌑 Vistas: *${views}*
-> 🖤 Calidad: *${shadow_format}*
-> 🌐 Enlace: *${url}*`
-
-        if (thumbnail) {
-          await conn.sendMessage(m.chat, {
-            image: { url: thumbnail },
-            caption: info_message
-          }, { quoted: m })
-        } else {
-          await m.reply(info_message)
-        }
+      if (!url.startsWith("https://")) {
+        const res = await yts(text)
+        if (!res?.videos?.length) return m.reply("❌ Nada fue encontrado…")
+        url = res.videos[0].url
+        title = res.videos[0].title
+        thumb = res.videos[0].thumbnail
       }
-    } catch {}
 
-    if (!isYTUrl(url)) {
-      return m.reply('🖤🌑 *SHADOW BOT MD* 🌑🖤\n\n> No encontré un video válido de YouTube.')
+      await downloadMedia(conn, m, url, title, thumb, isDirectAudio ? "mp3" : "mp4")
+      return
     }
 
-    const video = await getVideoFromShadow(url)
+    if (isSearchAction) {
+      await m.react("🕘")
+      const results = await yts(text)
+      const videos = results.videos.slice(0, 6)
+      if (!videos.length) return m.reply("❌ No se encontraron resultados.")
 
-    if (!video?.url) {
-      return m.reply('🖤🌑 *SHADOW BOT MD* 🌑🖤\n\n> No se pudo descargar el *video*, intenta más tarde.')
+      let cards = []
+      for (let video of videos) {
+        const imageBuffer = (await fetch(video.thumbnail).then(res => res.buffer()))
+        const { imageMessage } = await generateWAMessageContent({ image: imageBuffer }, { upload: conn.waUploadToServer })
+
+        cards.push({
+          body: proto.Message.InteractiveMessage.Body.fromObject({ 
+            text: `✨ *Título:* ${video.title}\n🔔 *Canal:* ${video.author.name}\n🎬 *Duración:* ${video.timestamp}\n👁️ *Vistas:* ${video.views.toLocaleString()}` 
+          }),
+          footer: proto.Message.InteractiveMessage.Footer.fromObject({ text: "Shadow Garden — YouTube" }),
+          header: proto.Message.InteractiveMessage.Header.fromObject({ 
+            title: "Resultados de Búsqueda", 
+            hasMediaAttachment: true, 
+            imageMessage 
+          }),
+          nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
+            buttons: [
+              {
+                name: 'quick_reply',
+                buttonParamsJson: JSON.stringify({
+                  display_text: "🎵 Audio",
+                  id: `${usedPrefix}ytmp3 ${video.url}`
+                })
+              },
+              {
+                name: 'quick_reply',
+                buttonParamsJson: JSON.stringify({
+                  display_text: "🎥 Video",
+                  id: `${usedPrefix}ytmp4 ${video.url}`
+                })
+              },
+              {
+                name: "cta_url",
+                buttonParamsJson: JSON.stringify({
+                  display_text: "🌐 Ver en YouTube",
+                  url: video.url
+                })
+              }
+            ]
+          })
+        })
+      }
+
+      const messageContent = generateWAMessageFromContent(m.chat, {
+        viewOnceMessage: {
+          message: {
+            interactiveMessage: proto.Message.InteractiveMessage.fromObject({
+              body: proto.Message.InteractiveMessage.Body.create({ text: `🌑✦ Resultados para: *${text}*` }),
+              footer: proto.Message.InteractiveMessage.Footer.create({ text: "Selecciona una opción del carrusel" }),
+              carouselMessage: proto.Message.InteractiveMessage.CarouselMessage.fromObject({ cards })
+            })
+          }
+        }
+      }, { quoted: m })
+
+      await conn.relayMessage(m.chat, messageContent.message, { messageId: messageContent.key.id })
+      await m.react("✅")
+    }
+
+  } catch (error) {
+    await m.reply(`❌ *Shadow — Error*\n\n${error.message}`)
+    await m.react("⚠️")
+  }
+}
+
+const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
+  try {
+    const cleanTitle = cleanName(title) + (type === "mp3" ? ".mp3" : ".mp4")
+    const msg = `🎶 *Shadow — Descarga en curso*\n\n✨ *Título:* ${title}\n🌌 Preparando tu ${type === "mp3" ? "audio..." : "video..."}`
+    
+    let sent = await conn.sendMessage(m.chat, { text: msg }, { quoted: m })
+
+    const apiUrl = type === "mp3"
+      ? `https://api-gohan-v1.onrender.com/download/ytaudio?url=${encodeURIComponent(url)}`
+      : `https://api-gohan-v1.onrender.com/download/ytvideo?url=${encodeURIComponent(url)}`
+
+    const response = await fetch(apiUrl)
+    const data = await response.json()
+
+    const downloadUrl = data?.result?.download_url
+    if (!downloadUrl) throw new Error("La API no devolvió un archivo válido.")
+
+    const fileTitle = data?.result?.title || title
+
+    if (type === "mp3") {
+      await conn.sendMessage(m.chat, {
+        audio: { url: downloadUrl },
+        mimetype: "audio/mpeg",
+        fileName: cleanTitle,
+        contextInfo: {
+          externalAdReply: {
+            title: fileTitle,
+            body: "Shadow Ultra 💚",
+            thumbnailUrl: thumbnail,
+            mediaType: 2,
+            mediaUrl: url,
+            sourceUrl: url,
+            showAdAttribution: true
+          }
+        }
+      }, { quoted: m })
+    } else {
+      await conn.sendMessage(m.chat, {
+        video: { url: downloadUrl },
+        mimetype: "video/mp4",
+        fileName: cleanTitle
+      }, { quoted: m })
     }
 
     await conn.sendMessage(m.chat, {
-      video: { url: video.url },
-      fileName: `${sanitizeFileName(video.title || title)}.mp4`,
-      mimetype: 'video/mp4',
-      caption: `🖤 *VIDEO DESCARGADO* 🌑
+      text: `🎶 *Shadow — Operación completada*\n\n✨ *Título:* ${fileTitle}\n🌌 Entregada completa uwu.`,
+      edit: sent.key
+    })
+    await m.react("✅")
 
-⚡ Calidad: *${video.quality || shadow_format}*
-🖤 Tamaño: *${video.size || 'Desconocido'}*
-
-*Shadow Power Activated* 🌑🖤`
-    }, { quoted: m })
-
-  } catch (e) {
-    console.error(e)
-    await m.reply(
-      `🖤🌑 *SHADOW BOT MD* 🌑🖤\n\n> Error al ejecutar el comando *${usedPrefix + command}*.\n⚡ [Error: *${e.message}*]`
-    )
+  } catch (error) {
+    await m.reply(`❌ *Shadow — Falla*\n\n${error.message}`)
+    await m.react("❌")
   }
 }
 
-handler.command = ['play2', 'mp4', 'ytmp4', 'ytvideo', 'playvideo', 'shadowplay']
-handler.help = ['playvideo']
-handler.tags = ['descargas']
+const cleanName = (name) => name.replace(/[^\w\s-_.]/gi, "").substring(0, 50)
+
+handler.command = ["ytmp3", "playvid", "ytv", "ytmp4", "play2", "yt"]
+handler.tags = ["descargas"]
 handler.register = true
 
 export default handler
-
-// Configuración Shadow Bot
-const shadow_api = 'https://ryzecodes.xyz/api/scrapers/36/run'
-const shadow_key = 'ryzk0cdn'
-const shadow_format = '480p'
-const shadow_attempts = 6
-const shadow_interval_ms = 1100
-
-const isYTUrl = (url = '') =>
-  /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/i.test(url)
-
-const getVideoId = (text = '') => {
-  const match = text.match(
-    /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([a-zA-Z0-9_-]{11})/
-  )
-  return match?.[1] || null
-}
-
-const sanitizeFileName = (name = 'video') =>
-  name
-    .replace(/[\\/:*?"<>|]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 120) || 'video'
-
-async function fetchJson(url, options = {}) {
-  const res = await fetch(url, options)
-  const json = await res.json().catch(() => null)
-
-  if (!res.ok) {
-    throw new Error(json?.message || json?.error || `HTTP ${res.status}`)
-  }
-
-  return json
-}
-
-async function getVideoInfo(input, video_id) {
-  if (video_id) {
-    try {
-      const info = await yts({ videoId: video_id })
-      if (info?.videoId) {
-        return {
-          ...info,
-          url: `https://youtu.be/${info.videoId}`,
-          image: info.thumbnail || info.image
-        }
-      }
-    } catch {}
-  }
-
-  const search = await yts(input)
-  const video = search.videos?.[0] || search.all?.find(v => v.type === 'video')
-  return video || null
-}
-
-async function getVideoFromShadow(url) {
-  const res = await fetchJson(shadow_api, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-API-Key': shadow_key
-    },
-    body: JSON.stringify({
-      input: {
-        url,
-        format: shadow_format,
-        attempts: shadow_attempts,
-        interval_ms: shadow_interval_ms
-      }
-    })
-  })
-
-  const result = res?.result
-
-  if (!res?.success || !result?.success) {
-    throw new Error(res?.error || result?.error || 'API sin resultado válido')
-  }
-
-  const video_url = result.file_url || result.download_urls?.[0] || null
-  if (!video_url) return null
-
-  return {
-    url: video_url,
-    title: result.title || null,
-    provider: result.provider || null,
-    format: result.format || shadow_format,
-    quality: result.selected_media?.quality || result.format || shadow_format,
-    extension: result.selected_media?.extension || 'MP4',
-    size: result.selected_media?.size || null,
-    worker_url: result.diagnostics?.worker_url || null
-  }
-}
