@@ -152,7 +152,7 @@ export async function MichiJadiBot(options) {
       const { connection, lastDisconnect, isNewLogin, qr } = update
       if (isNewLogin) sock.isInit = false
 
-      if (mcode && !sock.user && !codeBot && !sock.isPairingRequested) {
+      if (mcode && !sock.user && !sock.isPairingRequested) {
         sock.isPairingRequested = true
         await new Promise(resolve => setTimeout(resolve, 3000))
         try {
@@ -266,8 +266,8 @@ export async function MichiJadiBot(options) {
         try {
           await conn.sendMessage(targetChat, { text: msgTxt, mentions: [userSender] }, { quoted: m || null }).catch(() => {})
         } catch (e) {
-          console.error('Error enviando mensaje con conn, intentando con sock seguro...', e)
-          await sock.sendMessage(userJid, { text: `> ⚡︎ Conexión exitosa, ya eres un Sub-Bot activo.` }).catch(() => {})
+          console.error('Error enviando mensaje con conn, usando sock de respaldo...', e)
+          await sock.sendMessage(userJid, { text: `> ⚡︎ ¡Felicidades! Tu shadow-bot-md ya está corriendo de forma estable.` }).catch(() => {})
         }
       }
     }
