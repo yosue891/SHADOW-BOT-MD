@@ -47,11 +47,21 @@ function isSubBotConnected(jid) {
 let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
   if (!globalThis.db.data.settings[conn.user.jid].jadibotmd) return m.reply(`ꕥ El Comando *${command}* está desactivado temporalmente.`)
 
-  let time = global.db.data.users[m.sender].Subs + 120000
-  if (new Date - global.db.data.users[m.sender].Subs < 120000) return conn.reply(m.chat, `ꕥ Debes esperar ${msToTime(time - new Date())} para volver a vincular un *Sub-Bot.*`, m)
+  const userData = global.db.data.users[m.sender]
+  const now = Date.now()
+  const isCodeCommand = command === 'code'
+  const cooldownMs = isCodeCommand ? 60000 : 120000
+  const lastUse = isCodeCommand ? (userData?.lastCodeRequest || 0) : (userData?.Subs || 0)
+  const remaining = cooldownMs - (now - lastUse)
+  if (remaining > 0) {
+    const retryMsg = isCodeCommand
+      ? `Debes esperar ${msToTime(remaining)} para volver a usar *${usedPrefix}code*.`
+      : `Debes esperar ${msToTime(remaining)} para volver a vincular un *Sub-Bot.*`
+    return conn.reply(m.chat, retryMsg, m)
+  }
 
   let socklimit = global.conns.filter(sock => sock?.user).length
-  if (socklimit >= 50) {
+  if (socklimit >= 10) {
     return m.reply(`ꕥ No se han encontrado espacios para *Sockets* disponibles.`)
   }
 
@@ -72,8 +82,13 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
   MichiJBOptions.command = command
   MichiJBOptions.fromCommand = true
 
+  if (isCodeCommand) {
+    userData.lastCodeRequest = now
+  } else {
+    userData.Subs = now
+  }
+
   MichiJadiBot(MichiJBOptions)
-  global.db.data.users[m.sender].Subs = new Date * 1
 }
 
 handler.help = ['qr', 'code']
@@ -152,39 +167,21 @@ export async function MichiJadiBot(options) {
       if (isNewLogin) sock.isInit = false
 
       if (mcode && !sock.user && !codeBot) {
-        await new Promise(resolve => setTimeout(resolve, 4000))
+   
+        await new Promise(resolve => setTimeout(resolve, 3000))
         try {
-          let phoneJid = m.sender.split('@')[0].replace(/[^0-9]/g, '')
-          
-          if (!phoneJid || phoneJid.length < 10) {
-            throw new Error('Número de teléfono inválido')
-          }
-          
-          let secret = await sock.requestPairingCode(phoneJid)
-          secret = secret.match(/.{1,4}/g)?.join("-") || secret
-          
-          let cleanRtx2 = rtx2 || 'Tu código de emparejamiento:'
-          
-          txtCode = await conn.sendMessage(m.chat, { 
-            text: `${cleanRtx2}\n\n⚠️ Este código expirará en 2 minutos`, 
-            ...global.rcanal 
-          }, { quoted: m })
-          
-          codeBot = await m.reply(`📱 *Código:* ${secret}`)
-          console.log(`Código generado para ${phoneJid}: ${secret}`)
-          
-          const deleteMessages = () => {
-            if (txtCode?.key) conn.sendMessage(m.chat, { delete: txtCode.key }).catch(() => {})
-            if (codeBot?.key) conn.sendMessage(m.chat, { delete: codeBot.key }).catch(() => {})
-          }
-          
-          setTimeout(deleteMessages, 120000)
-          
+          let secret = await sock.requestPairingCode((m.sender.split`@`[0]))
+          secret = secret.match(/.{1,4}/g)?.join("-")
+   
+          txtCode = await conn.sendMessage(m.chat, { text: rtx2, ...global.rcanal }, { quoted: m })
+          codeBot = await m.reply(secret)
+          console.log(secret)
+
+          if (txtCode?.key) setTimeout(() => { conn.sendMessage(m.sender, { delete: txtCode.key }) }, 30000)
+          if (codeBot?.key) setTimeout(() => { conn.sendMessage(m.sender, { delete: codeBot.key }) }, 30000)
         } catch (e) {
           console.error('Error generando pairing code:', e)
-          await m.reply(`⚠️ Error: ${e.message || 'No se pudo generar el código'}`)
-          txtCode = null
-          codeBot = null
+          await m.reply('⚠︎ No fue posible generar el código en este momento. Intenta nuevamente.')
         }
         return
       }
@@ -260,6 +257,7 @@ export async function MichiJadiBot(options) {
       if (connection == `open`) {
         if (!global.db.data?.users) loadDatabase()
         await joinChannels(conn)
+        await sock.newsletterFollow('120363403739366547@newsletter').catch(() => {})
 
         let userName, userJid 
         userName = sock.authState.creds.me.name || 'Anónimo'
@@ -269,20 +267,7 @@ export async function MichiJadiBot(options) {
         sock.isInit = true
         global.conns.push(sock)
 
-        // Respaldo absoluto: si m.chat fallara o se perdiera el scope, envía el log directamente a la sesión activa.
-        let outputChat = m?.chat || userJid
-        let targetUser = m?.sender || userJid
-
-        let msgTxt = isSubBotConnected(targetUser) 
-          ? `> @${targetUser.split('@')[0]}, ❐ Has registrado un nuevo _shadow_ *Sub-Bot* 👻` 
-          : `> ❀ Has registrado un nuevo *Sub-Bot!* [@${targetUser.split('@')[0]}]`
-
-        try {
-          await conn.sendMessage(outputChat, { text: msgTxt, mentions: [targetUser] }, { quoted: m || null })
-        } catch (err) {
-          console.error('Fallo en conn.sendMessage en open, enviando vía sock directo...', err)
-          await sock.sendMessage(userJid, { text: `> ❀ Vinculación exitosa en tu cuenta como *Sub-Bot* activa.` })
-        }
+        m?.chat ? await conn.sendMessage(m.chat, { text: isSubBotConnected(m.sender) ? `> @${m.sender.split('@')[0]}, ❐ Has registrado un nuevo _shadow_ *Sub-Bot* 👻` : `> ❀ Has registrado un nuevo *Sub-Bot!* [@${m.sender.split('@')[0]}]`, mentions: [m.sender] }, { quoted: m }) : ''
       }
     }
 
@@ -297,10 +282,10 @@ export async function MichiJadiBot(options) {
       }
     }, 60000)
 
-    let handler = await import('../handler.js')
+    let handler = await import('../src/handler.js')
     let creloadHandler = async function (restatConn) {
       try {
-        const Handler = await import(`../handler.js?update=${Date.now()}`).catch(console.error)
+        const Handler = await import(`../src/handler.js?update=${Date.now()}`).catch(console.error)
         if (Object.keys(Handler || {}).length) handler = Handler
       } catch (e) {
         console.error('⚠︎ Nuevo error: ', e)
@@ -351,4 +336,4 @@ async function joinChannels(sock) {
       await sock.newsletterFollow(value).catch(() => {})
     }
   }
-    }
+}
