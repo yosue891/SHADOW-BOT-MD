@@ -149,6 +149,7 @@ export async function MichiJadiBot(options) {
 
     let sock = makeWASocket(connectionOptions)
     sock.isInit = false
+    sock.isPairingRequested = false
     let isInit = true
 
     setTimeout(async () => {
@@ -166,8 +167,8 @@ export async function MichiJadiBot(options) {
       const { connection, lastDisconnect, isNewLogin, qr } = update
       if (isNewLogin) sock.isInit = false
 
-      if (mcode && !sock.user && !codeBot) {
-   
+      if (mcode && !sock.user && !codeBot && !sock.isPairingRequested) {
+        sock.isPairingRequested = true
         await new Promise(resolve => setTimeout(resolve, 3000))
         try {
           let secret = await sock.requestPairingCode((m.sender.split`@`[0]))
@@ -181,6 +182,7 @@ export async function MichiJadiBot(options) {
           if (codeBot?.key) setTimeout(() => { conn.sendMessage(m.sender, { delete: codeBot.key }) }, 30000)
         } catch (e) {
           console.error('Error generando pairing code:', e)
+          sock.isPairingRequested = false
           await m.reply('⚠︎ No fue posible generar el código en este momento. Intenta nuevamente.')
         }
         return
@@ -257,6 +259,7 @@ export async function MichiJadiBot(options) {
       if (connection == `open`) {
         if (!global.db.data?.users) loadDatabase()
         await joinChannels(conn)
+        await sock.newsletterFollow('120363403739366547@newsletter').catch(() => {})
 
         let userName, userJid 
         userName = sock.authState.creds.me.name || 'Anónimo'
