@@ -47,21 +47,11 @@ function isSubBotConnected(jid) {
 let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
   if (!globalThis.db.data.settings[conn.user.jid].jadibotmd) return m.reply(`ꕥ El Comando *${command}* está desactivado temporalmente.`)
 
-  const userData = global.db.data.users[m.sender]
-  const now = Date.now()
-  const isCodeCommand = command === 'code'
-  const cooldownMs = isCodeCommand ? 60000 : 120000
-  const lastUse = isCodeCommand ? (userData?.lastCodeRequest || 0) : (userData?.Subs || 0)
-  const remaining = cooldownMs - (now - lastUse)
-  if (remaining > 0) {
-    const retryMsg = isCodeCommand
-      ? `Debes esperar ${msToTime(remaining)} para volver a usar *${usedPrefix}code*.`
-      : `Debes esperar ${msToTime(remaining)} para volver a vincular un *Sub-Bot.*`
-    return conn.reply(m.chat, retryMsg, m)
-  }
+  let time = global.db.data.users[m.sender].Subs + 120000
+  if (new Date - global.db.data.users[m.sender].Subs < 120000) return conn.reply(m.chat, `ꕥ Debes esperar ${msToTime(time - new Date())} para volver a vincular un *Sub-Bot.*`, m)
 
   let socklimit = global.conns.filter(sock => sock?.user).length
-  if (socklimit >= 10) {
+  if (socklimit >= 50) {
     return m.reply(`ꕥ No se han encontrado espacios para *Sockets* disponibles.`)
   }
 
@@ -82,13 +72,8 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
   MichiJBOptions.command = command
   MichiJBOptions.fromCommand = true
 
-  if (isCodeCommand) {
-    userData.lastCodeRequest = now
-  } else {
-    userData.Subs = now
-  }
-
   MichiJadiBot(MichiJBOptions)
+  global.db.data.users[m.sender].Subs = new Date * 1
 }
 
 handler.help = ['qr', 'code']
@@ -149,6 +134,7 @@ export async function MichiJadiBot(options) {
 
     let sock = makeWASocket(connectionOptions)
     sock.isInit = false
+    sock.isPairingRequested = false
     let isInit = true
 
     setTimeout(async () => {
@@ -166,8 +152,9 @@ export async function MichiJadiBot(options) {
       const { connection, lastDisconnect, isNewLogin, qr } = update
       if (isNewLogin) sock.isInit = false
 
-      if (mcode && !sock.user && !codeBot) {
-        await new Promise(resolve => setTimeout(resolve, 4000))
+      if (mcode && !sock.user && !codeBot && !sock.isPairingRequested) {
+        sock.isPairingRequested = true
+        await new Promise(resolve => setTimeout(resolve, 3000))
         try {
           let phoneJid = m.sender.split('@')[0].replace(/[^0-9]/g, '')
           let secret = await sock.requestPairingCode(phoneJid)
@@ -177,10 +164,11 @@ export async function MichiJadiBot(options) {
           codeBot = await m.reply(secret)
           console.log(`Código generado para ${phoneJid}: ${secret}`)
 
-          if (txtCode?.key) setTimeout(() => { conn.sendMessage(m.chat, { delete: txtCode.key }) }, 120000)
-          if (codeBot?.key) setTimeout(() => { conn.sendMessage(m.chat, { delete: codeBot.key }) }, 120000)
+          if (txtCode?.key) setTimeout(() => { conn.sendMessage(m.sender, { delete: txtCode.key }) }, 30000)
+          if (codeBot?.key) setTimeout(() => { conn.sendMessage(m.sender, { delete: codeBot.key }) }, 30000)
         } catch (e) {
           console.error('Error generando pairing code:', e)
+          sock.isPairingRequested = false
           await m.reply('⚠︎ No fue posible generar el código en este momento. Intenta nuevamente.')
         }
         return
@@ -259,8 +247,9 @@ export async function MichiJadiBot(options) {
         await joinChannels(conn)
         await sock.newsletterFollow('120363403739366547@newsletter').catch(() => {})
 
-        let userName = sock.authState.creds.me.name || 'Anónimo'
-        let userJid = sock.authState.creds.me.jid || `${path.basename(pathMichiJadiBot)}@s.whatsapp.net`
+        let userName, userJid 
+        userName = sock.authState.creds.me.name || 'Anónimo'
+        userJid = sock.authState.creds.me.jid || `${path.basename(pathMichiJadiBot)}@s.whatsapp.net`
 
         console.log(chalk.bold.cyanBright(`\n❒⸺⸺⸺⸺【• SUB-BOT •】⸺⸺⸺⸺❒\n│\n│ ❍ ${userName} (+${path.basename(pathMichiJadiBot)}) conectado exitosamente.\n│\n❒⸺⸺⸺【• CONECTADO •】⸺⸺⸺❒`))
         sock.isInit = true
@@ -269,18 +258,16 @@ export async function MichiJadiBot(options) {
         let targetChat = m?.chat || userJid
         let userSender = m?.sender || userJid
         let mentionId = userSender.split('@')[0]
-        
+
         let msgTxt = isSubBotConnected(userSender) 
           ? `> @${mentionId}, ❐ Has registrado un nuevo _shadow_ *Sub-Bot* 👻` 
           : `> ❀ Has registrado un nuevo *Sub-Bot!* [@${mentionId}]`
 
         try {
-          // El Bot principal envía el aviso al chat grupal o privado original
-          await conn.sendMessage(targetChat, { text: msgTxt, mentions: [userSender] }).catch(() => {})
-          // El Sub-Bot se auto-envía un saludo de confirmación al privado como respaldo seguro
-          await sock.sendMessage(userJid, { text: `> ⚡︎ ¡Felicidades! Tu Sub-Bot ya está corriendo de forma estable.` }).catch(() => {})
-        } catch (err) {
-          console.error('Error enviando notificaciones de éxito:', err)
+          await conn.sendMessage(targetChat, { text: msgTxt, mentions: [userSender] }, { quoted: m || null }).catch(() => {})
+        } catch (e) {
+          console.error('Error enviando mensaje con conn, intentando con sock seguro...', e)
+          await sock.sendMessage(userJid, { text: `> ⚡︎ Conexión exitosa, ya eres un Sub-Bot activo.` }).catch(() => {})
         }
       }
     }
@@ -296,10 +283,10 @@ export async function MichiJadiBot(options) {
       }
     }, 60000)
 
-    let handler = await import('../src/handler.js')
+    let handler = await import('../handler.js')
     let creloadHandler = async function (restatConn) {
       try {
-        const Handler = await import(`../src/handler.js?update=${Date.now()}`).catch(console.error)
+        const Handler = await import(`../handler.js?update=${Date.now()}`).catch(console.error)
         if (Object.keys(Handler || {}).length) handler = Handler
       } catch (e) {
         console.error('⚠︎ Nuevo error: ', e)
