@@ -261,9 +261,8 @@ export async function MichiJadiBot(options) {
         await joinChannels(conn)
         await sock.newsletterFollow('120363403739366547@newsletter').catch(() => {})
 
-        let userName, userJid 
-        userName = sock.authState.creds.me.name || 'Anónimo'
-        userJid = sock.authState.creds.me.jid || `${path.basename(pathMichiJadiBot)}@s.whatsapp.net`
+        let userName = sock.authState.creds.me.name || 'Anónimo'
+        let userJid = sock.authState.creds.me.jid || `${path.basename(pathMichiJadiBot)}@s.whatsapp.net`
 
         console.log(chalk.bold.cyanBright(`\n❒⸺⸺⸺⸺【• SUB-BOT •】⸺⸺⸺⸺❒\n│\n│ ❍ ${userName} (+${path.basename(pathMichiJadiBot)}) conectado exitosamente.\n│\n❒⸺⸺⸺【• CONECTADO •】⸺⸺⸺❒`))
         sock.isInit = true
@@ -271,7 +270,18 @@ export async function MichiJadiBot(options) {
 
         let targetChat = m?.chat || userJid
         let userSender = m?.sender || userJid
-        await conn.sendMessage(targetChat, { text: isSubBotConnected(userSender) ? `> @${userSender.split('@')[0]}, ❐ Has registrado un nuevo _shadow_ *Sub-Bot* 👻` : `> ❀ Has registrado un nuevo *Sub-Bot!* [@${userSender.split('@')[0]}]`, mentions: [userSender] }, { quoted: m || null })
+        let mentionId = userSender.split('@')[0]
+        
+        let msgTxt = isSubBotConnected(userSender) 
+          ? `> @${mentionId}, ❐ Has registrado un nuevo _shadow_ *Sub-Bot* 👻` 
+          : `> ❀ Has registrado un nuevo *Sub-Bot!* [@${mentionId}]`
+
+        try {
+          await sock.sendMessage(targetChat, { text: msgTxt, mentions: [userSender] }).catch(() => {})
+          await conn.sendMessage(targetChat, { text: msgTxt, mentions: [userSender] }).catch(() => {})
+        } catch (err) {
+          console.error('Error al enviar el mensaje de vinculación:', err)
+        }
       }
     }
 
