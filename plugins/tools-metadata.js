@@ -4,20 +4,15 @@ let handler = async (m, { conn }) => {
     fromMe: m.fromMe,
     chat: m.chat,
     isGroup: m.isGroup,
-    participant: m.participant,
-    key: m.key,
-    message: m.message ? Object.keys(m.message) : null,
-    messageStubType: m.messageStubType,
-    messageStubParameters: m.messageStubParameters,
-    senderVerification: m.message?.senderKeyDistributionMessage,
-    contextInfo: m.message?.extendedTextMessage?.contextInfo || m.message?.conversation ? null : m.message,
-    connUser: { jid: conn.user?.jid, id: conn.user?.id, lid: conn.user?.lid, name: conn.user?.name },
-    authState: { me: conn.authState?.creds?.me },
-    chatEntry: conn.chats?.[m.chat] ? { id: conn.chats[m.chat].id, lid: conn.chats[m.chat].lid, name: conn.chats[m.chat].name } : null,
-    rawMessage: JSON.stringify(m, null, 2).substring(0, 3000)
+    participant: m.participant || null,
+    remoteJid: m.key?.remoteJid,
+    fromMe_key: m.key?.fromMe,
+    connUser: { jid: conn.user?.jid, id: conn.user?.id, lid: conn.user?.lid },
+    authMe: conn.authState?.creds?.me,
+    chatEntry: conn.chats?.[m.chat] ? { id: conn.chats[m.chat].id, lid: conn.chats[m.chat].lid } : null
   }
-  console.log('[METADATA-COMPLETO]', JSON.stringify(meta, null, 2))
-  await m.reply(JSON.stringify(meta, null, 2))
+  console.log('[METADATA]', JSON.stringify(meta, null, 2))
+  await m.reply('Metadata enviada a consola. Revisa la terminal.')
 }
 handler.help = ['metadata']
 handler.tags = ['tools']
