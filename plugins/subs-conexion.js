@@ -149,7 +149,6 @@ export async function MichiJadiBot(options) {
 
     let sock = makeWASocket(connectionOptions)
     sock.isInit = false
-    sock.isPairingRequested = false
     let isInit = true
 
     setTimeout(async () => {
@@ -167,22 +166,21 @@ export async function MichiJadiBot(options) {
       const { connection, lastDisconnect, isNewLogin, qr } = update
       if (isNewLogin) sock.isInit = false
 
-      if (mcode && !sock.user && !codeBot && !sock.isPairingRequested) {
-        sock.isPairingRequested = true
-        await new Promise(resolve => setTimeout(resolve, 3000))
+      if (mcode && !sock.user && !codeBot) {
+        await new Promise(resolve => setTimeout(resolve, 4000))
         try {
-          let secret = await sock.requestPairingCode((m.sender.split`@`[0]))
+          let phoneJid = m.sender.split('@')[0].replace(/[^0-9]/g, '')
+          let secret = await sock.requestPairingCode(phoneJid)
           secret = secret.match(/.{1,4}/g)?.join("-")
    
           txtCode = await conn.sendMessage(m.chat, { text: rtx2, ...global.rcanal }, { quoted: m })
           codeBot = await m.reply(secret)
-          console.log(secret)
+          console.log(`Código generado para ${phoneJid}: ${secret}`)
 
-          if (txtCode?.key) setTimeout(() => { conn.sendMessage(m.sender, { delete: txtCode.key }) }, 30000)
-          if (codeBot?.key) setTimeout(() => { conn.sendMessage(m.sender, { delete: codeBot.key }) }, 30000)
+          if (txtCode?.key) setTimeout(() => { conn.sendMessage(m.chat, { delete: txtCode.key }) }, 120000)
+          if (codeBot?.key) setTimeout(() => { conn.sendMessage(m.chat, { delete: codeBot.key }) }, 120000)
         } catch (e) {
           console.error('Error generando pairing code:', e)
-          sock.isPairingRequested = false
           await m.reply('⚠︎ No fue posible generar el código en este momento. Intenta nuevamente.')
         }
         return
@@ -277,10 +275,12 @@ export async function MichiJadiBot(options) {
           : `> ❀ Has registrado un nuevo *Sub-Bot!* [@${mentionId}]`
 
         try {
-          await sock.sendMessage(targetChat, { text: msgTxt, mentions: [userSender] }).catch(() => {})
+          // El Bot principal envía el aviso al chat grupal o privado original
           await conn.sendMessage(targetChat, { text: msgTxt, mentions: [userSender] }).catch(() => {})
+          // El Sub-Bot se auto-envía un saludo de confirmación al privado como respaldo seguro
+          await sock.sendMessage(userJid, { text: `> ⚡︎ ¡Felicidades! Tu Sub-Bot ya está corriendo de forma estable.` }).catch(() => {})
         } catch (err) {
-          console.error('Error al enviar el mensaje de vinculación:', err)
+          console.error('Error enviando notificaciones de éxito:', err)
         }
       }
     }
