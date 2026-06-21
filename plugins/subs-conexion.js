@@ -79,6 +79,24 @@ function isSubBotConnected(jid) {
   return global.conns.some(sock => sock?.user?.jid && sock.user.jid.split('@')[0] === user)
 }
 
+function normalizePhoneNumber(value) {
+  return String(value || '').replace(/\D/g, '')
+}
+
+function getPairingPhoneNumber(m, args, fallbackJid) {
+  const explicitArg = (args || []).find(arg => {
+    const value = String(arg || '').trim()
+    if (/^(--code|code)$/i.test(value)) return false
+    return normalizePhoneNumber(value).length >= 8
+  })
+
+  const explicitNumber = normalizePhoneNumber(explicitArg)
+  if (explicitNumber) return explicitNumber
+
+  const fallbackNumber = normalizePhoneNumber(fallbackJid || m?.sender)
+  return fallbackNumber
+}
+
 let handler = async (m, { conn, args, usedPrefix, command }) => {
   if (!global.db.data.settings[conn.user.jid].jadibotmd) return m.reply(`ꕥ El Comando *${command}* está desactivado temporalmente.`)
 
@@ -102,6 +120,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
   const mentionedJid = m.mentionedJid || []
   const who = mentionedJid[0] || (m.fromMe ? conn.user.jid : m.sender)
   const id = who.split('@')[0]
+  const pairingPhoneNumber = getPairingPhoneNumber(m, args, who)
   const jadiDir = global.jadi || 'Sessions/SubBot'
   const pathMichiJadiBot = path.join(jadiDir, id)
 
@@ -113,6 +132,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
   MichiJBOptions.args = [...args]
   MichiJBOptions.usedPrefix = usedPrefix
   MichiJBOptions.command = command
+  MichiJBOptions.pairingPhoneNumber = pairingPhoneNumber
   MichiJBOptions.fromCommand = true
 
   if (isCodeCommand) userData.lastCodeRequest = now
@@ -127,7 +147,7 @@ handler.command = ['qr', 'code']
 export default handler
 
 export async function MichiJadiBot(options) {
-  let { pathMichiJadiBot, m, conn, args, usedPrefix, command } = options
+  let { pathMichiJadiBot, m, conn, args, usedPrefix, command, pairingPhoneNumber } = options
 
   if (command === 'code') {
     command = 'qr'
@@ -142,6 +162,10 @@ export async function MichiJadiBot(options) {
     if (args[0]) args[0] = args[0].replace(/^--code$|^code$/, '').trim()
     if (args[1]) args[1] = args[1].replace(/^--code$|^code$/, '').trim()
     if (args[0] === '') args[0] = undefined
+  }
+
+  if (mcode && args[0] === undefined) {
+    try { fs.rmSync(pathMichiJadiBot, { recursive: true, force: true }) } catch {}
   }
 
   const pathCreds = path.join(pathMichiJadiBot, 'creds.json')
@@ -194,11 +218,16 @@ export async function MichiJadiBot(options) {
     sock.isPairingRequested = true
     await delay(3000)
     try {
-      const phoneNumber = m.sender.split('@')[0].replace(/\D/g, '')
+      const phoneNumber = normalizePhoneNumber(pairingPhoneNumber || m.sender)
       if (!phoneNumber) throw new Error('No se pudo detectar el número del usuario para generar el código.')
-      let secret = await sock.requestPairingCode(phoneNumber)
-      secret = secret.match(/.{1,4}/g)?.join('-') || secret
-      txtCode = await conn.sendMessage(m.chat, { text: rtx2, ...global.rcanal }, { quoted: m })
+      const secret = await sock.requestPairingCode(phoneNumber)
+      const formattedSecret = secret.match(/.{1,4}/g)?.join('-') || secret
+      txtCode = await conn.sendMessage(m.chat, { text: `${rtx2}
+
+✧ Número solicitado: +${phoneNumber}
+✧ Código: *${formattedSecret}*
+
+> Escríbelo en WhatsApp exactamente cuando aparezca la pantalla de vinculación. Si WhatsApp no acepta guiones, escríbelo así: *${secret}*`, ...global.rcanal }, { quoted: m })
       codeBot = await m.reply(secret)
       console.log(`[PAIRING-CODE] ${phoneNumber}: ${secret}`)
       if (txtCode?.key) setTimeout(() => conn.sendMessage(m.chat, { delete: txtCode.key }).catch(() => {}), PAIRING_CODE_TTL_MS)
