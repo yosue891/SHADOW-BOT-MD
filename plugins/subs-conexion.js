@@ -3,10 +3,13 @@ import qrcode from 'qrcode'
 import NodeCache from 'node-cache'
 import fs from 'fs'
 import path from 'path'
+import { fileURLToPath, pathToFileURL } from 'url'
 import pino from 'pino'
 import chalk from 'chalk'
 import { makeWASocket } from '../lib/simple.js'
 
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 const PAIRING_CODE_TTL_MS = 45000
 const QR_TTL_MS = 45000
 
@@ -26,6 +29,46 @@ const rtx2 = `❐ *_Vincula via código de 8 digitos_*
 2 » Ve a *Dispositivos vinculados*
 3 » Vincular con el *número de teléfono*
 4 » Escribe el *código*`
+
+
+function resolveExistingModule(...relativePaths) {
+  for (const relativePath of relativePaths) {
+    const fullPath = path.resolve(__dirname, relativePath)
+    if (fs.existsSync(fullPath)) return pathToFileURL(fullPath).href
+  }
+  return null
+}
+
+function getNoopHandlerModule() {
+  return {
+    handler: async () => {}
+  }
+}
+
+async function loadHandlerModule(cacheBust = false) {
+  const handlerUrl = resolveExistingModule(
+    '../handler.js',
+    './handler.js',
+    '../../handler.js',
+    '../src/handler.js',
+    '../handler/index.js'
+  )
+
+  if (!handlerUrl) {
+    console.warn('[SUB-BOT] No se encontró handler.js; se conectará solo con connection.update/creds.update.')
+    return getNoopHandlerModule()
+  }
+
+  try {
+    const url = cacheBust ? `${handlerUrl}?update=${Date.now()}` : handlerUrl
+    const handlerModule = await import(url)
+    if (typeof handlerModule?.handler === 'function') return handlerModule
+  } catch (e) {
+    console.error('[SUB-BOT] No se pudo cargar handler.js:', e)
+  }
+
+  return getNoopHandlerModule()
+}
 
 const MichiJBOptions = {}
 if (!(global.conns instanceof Array)) global.conns = []
@@ -146,29 +189,34 @@ export async function MichiJadiBot(options) {
     }
   }, 60000)
 
+  async function sendPairingCode() {
+    if (!mcode || sock.user || codeBot || sock.isPairingRequested) return false
+    sock.isPairingRequested = true
+    await delay(3000)
+    try {
+      const phoneNumber = m.sender.split('@')[0].replace(/\D/g, '')
+      if (!phoneNumber) throw new Error('No se pudo detectar el número del usuario para generar el código.')
+      let secret = await sock.requestPairingCode(phoneNumber)
+      secret = secret.match(/.{1,4}/g)?.join('-') || secret
+      txtCode = await conn.sendMessage(m.chat, { text: rtx2, ...global.rcanal }, { quoted: m })
+      codeBot = await m.reply(secret)
+      console.log(`[PAIRING-CODE] ${phoneNumber}: ${secret}`)
+      if (txtCode?.key) setTimeout(() => conn.sendMessage(m.chat, { delete: txtCode.key }).catch(() => {}), PAIRING_CODE_TTL_MS)
+      if (codeBot?.key) setTimeout(() => conn.sendMessage(m.chat, { delete: codeBot.key }).catch(() => {}), PAIRING_CODE_TTL_MS)
+      return true
+    } catch (e) {
+      console.error('Error generando pairing code:', e)
+      sock.isPairingRequested = false
+      await m.reply('⚠︎ No fue posible generar el código en este momento. Intenta nuevamente.')
+      return false
+    }
+  }
+
   async function connectionUpdate(update) {
     const { connection, lastDisconnect, isNewLogin, qr } = update
     if (isNewLogin) sock.isInit = false
 
-    if (mcode && !sock.user && !codeBot && !sock.isPairingRequested) {
-      sock.isPairingRequested = true
-      await delay(3000)
-      try {
-        const phoneNumber = m.sender.split('@')[0].replace(/\D/g, '')
-        let secret = await sock.requestPairingCode(phoneNumber)
-        secret = secret.match(/.{1,4}/g)?.join('-') || secret
-        txtCode = await conn.sendMessage(m.chat, { text: rtx2, ...global.rcanal }, { quoted: m })
-        codeBot = await m.reply(secret)
-        console.log(secret)
-        if (txtCode?.key) setTimeout(() => conn.sendMessage(m.chat, { delete: txtCode.key }).catch(() => {}), PAIRING_CODE_TTL_MS)
-        if (codeBot?.key) setTimeout(() => conn.sendMessage(m.chat, { delete: codeBot.key }).catch(() => {}), PAIRING_CODE_TTL_MS)
-      } catch (e) {
-        console.error('Error generando pairing code:', e)
-        sock.isPairingRequested = false
-        await m.reply('⚠︎ No fue posible generar el código en este momento. Intenta nuevamente.')
-      }
-      return
-    }
+    if (await sendPairingCode()) return
 
     if (qr && !mcode) {
       if (!m?.chat) return
@@ -235,11 +283,11 @@ export async function MichiJadiBot(options) {
     }
   }, 60000)
 
-  let handlerModule = await import('../handler.js')
+  let handlerModule = await loadHandlerModule()
   const creloadHandler = async function (restatConn) {
     try {
-      const Handler = await import(`../handler.js?update=${Date.now()}`).catch(console.error)
-      if (Object.keys(Handler || {}).length) handlerModule = Handler
+      const Handler = await loadHandlerModule(true)
+      if (typeof Handler?.handler === 'function') handlerModule = Handler
     } catch (e) {
       console.error('⚠︎ Nuevo error: ', e)
     }
@@ -271,6 +319,7 @@ export async function MichiJadiBot(options) {
   }
 
   await creloadHandler(false)
+  if (mcode) setTimeout(() => sendPairingCode().catch(console.error), 1500)
 }
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
