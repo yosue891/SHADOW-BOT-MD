@@ -238,13 +238,16 @@ export async function MichiJadiBot(options) {
   extractPhone(m?.key?.participant) ||
   extractPhone(m?.participant)
       if (!phoneNumber) throw new Error('No se pudo detectar el número del usuario para generar el código.')
-      const secret = await sock.requestPairingCode(phoneNumber)
-      console.log('=== PAIRING DEBUG ===')
-console.log('sender:', m?.sender)
-console.log('participant:', m?.participant)
-console.log('key.participant:', m?.key?.participant)
-console.log('phoneNumber:', phoneNumber)
-console.log('=====================')
+      const phoneNumber =
+  extractPhone(pairingPhoneNumber) ||
+  extractPhone(m?.sender) ||
+  extractPhone(m?.key?.participant) ||
+  extractPhone(m?.participant)
+
+console.log('sender:', m.sender)
+console.log('contact:', conn.contacts?.[m.sender])
+
+const secret = await sock.requestPairingCode(phoneNumber)
       const formattedSecret = secret.match(/.{1,4}/g)?.join('-') || secret
       txtCode = await conn.sendMessage(m.chat, { text: `${rtx2}
 
