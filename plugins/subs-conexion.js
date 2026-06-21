@@ -257,7 +257,6 @@ export async function MichiJadiBot(options) {
       if (connection == `open`) {
         if (!global.db.data?.users) loadDatabase()
         await joinChannels(conn)
-        await sock.newsletterFollow('120363403739366547@newsletter').catch(() => {})
 
         let userName, userJid 
         userName = sock.authState.creds.me.name || 'Anónimo'
