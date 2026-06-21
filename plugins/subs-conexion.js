@@ -83,6 +83,13 @@ function normalizePhoneNumber(value) {
   return String(value || '').replace(/\D/g, '')
 }
 
+function extractPhone(jid = '') {
+  return String(jid || '')
+    .split('@')[0]
+    .split(':')[0]
+    .replace(/\D/g, '')
+}
+
 function getPairingPhoneNumber(m, args, fallbackJid) {
   const explicitArg = (args || []).find(arg => {
     const value = String(arg || '').trim()
@@ -93,10 +100,14 @@ function getPairingPhoneNumber(m, args, fallbackJid) {
   const explicitNumber = normalizePhoneNumber(explicitArg)
   if (explicitNumber) return explicitNumber
 
-  const fallbackNumber = normalizePhoneNumber(fallbackJid || m?.sender)
-  return fallbackNumber
-}
+  let number =
+    extractPhone(fallbackJid) ||
+    extractPhone(m?.sender) ||
+    extractPhone(m?.key?.participant) ||
+    extractPhone(m?.participant)
 
+  return number
+}
 let handler = async (m, { conn, args, usedPrefix, command }) => {
   if (!global.db.data.settings[conn.user.jid].jadibotmd) return m.reply(`ꕥ El Comando *${command}* está desactivado temporalmente.`)
 
@@ -218,9 +229,19 @@ export async function MichiJadiBot(options) {
     sock.isPairingRequested = true
     await delay(3000)
     try {
-      const phoneNumber = normalizePhoneNumber(pairingPhoneNumber || m.sender)
+      const phoneNumber =
+  extractPhone(pairingPhoneNumber) ||
+  extractPhone(m?.sender) ||
+  extractPhone(m?.key?.participant) ||
+  extractPhone(m?.participant)
       if (!phoneNumber) throw new Error('No se pudo detectar el número del usuario para generar el código.')
       const secret = await sock.requestPairingCode(phoneNumber)
+      console.log('=== PAIRING DEBUG ===')
+console.log('sender:', m?.sender)
+console.log('participant:', m?.participant)
+console.log('key.participant:', m?.key?.participant)
+console.log('phoneNumber:', phoneNumber)
+console.log('=====================')
       const formattedSecret = secret.match(/.{1,4}/g)?.join('-') || secret
       txtCode = await conn.sendMessage(m.chat, { text: `${rtx2}
 
