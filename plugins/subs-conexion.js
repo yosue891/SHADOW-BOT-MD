@@ -97,18 +97,26 @@ async function resolveSenderToPhone(sender, m, conn) {
   if (remoteJid && !remoteJid.endsWith('@lid') && !remoteJid.endsWith('@g.us') && !remoteJid.endsWith('@newsletter')) {
     return extractPhone(remoteJid)
   }
-  try {
-    const lidNumber = sender.split('@')[0]
-    const res = await conn.onWhatsApp(lidNumber).catch(() => [])
-    if (res?.[0]?.exists && res[0].jid && !res[0].jid.endsWith('@lid')) {
-      return extractPhone(res[0].jid)
-    }
-  } catch {}
-  const lidUser = sender.split('@')[0]
-  for (const [jid, contact] of Object.entries(conn?.contacts || {})) {
-    if (String(contact?.lid) === lidUser) return extractPhone(jid)
+  const lidToFind = sender.split('@')[0]
+  const groups = Object.keys(conn?.chats || {}).filter(jid => jid.endsWith('@g.us'))
+  for (const groupJid of groups) {
+    try {
+      const metadata = await conn.groupMetadata(groupJid).catch(() => null)
+      if (!metadata?.participants) continue
+      for (const participant of metadata.participants) {
+        if (participant.lid?.split('@')[0] === lidToFind && participant.phoneNumber) {
+          return extractPhone(participant.phoneNumber)
+        }
+        const participantJid = participant.phoneNumber || participant.jid || participant.id
+        if (!participantJid || participantJid.endsWith('@lid')) continue
+        const contactDetails = await conn.onWhatsApp(participantJid).catch(() => [])
+        if (contactDetails?.[0]?.lid?.split('@')[0] === lidToFind) {
+          return extractPhone(participantJid)
+        }
+      }
+    } catch {}
   }
-  return extractPhone(sender)
+  return ''
 }
 
 function getPairingPhoneNumber(m, args, fallbackJid) {
