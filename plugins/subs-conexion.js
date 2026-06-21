@@ -130,6 +130,9 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
   const mentionedJid = m.mentionedJid || []
   const who = mentionedJid[0] || (m.fromMe ? conn.user.jid : m.sender)
+  console.log('m.sender =>', m.sender)
+console.log('who =>', who)
+console.log('mentionedJid =>', mentionedJid)
   const id = who.split('@')[0]
   const pairingPhoneNumber = getPairingPhoneNumber(m, args, who)
   const jadiDir = global.jadi || 'Sessions/SubBot'
