@@ -134,7 +134,12 @@ export async function MichiJadiBot(options) {
 
     let sock = makeWASocket(connectionOptions)
     sock.isInit = false
-    sock.isPairingRequested = false
+    sock.pairingDelivered = false
+    
+    // Inyección de dependencias para asegurar persistencia en memoria asíncrona
+    sock.parentConn = conn
+    sock.originalMsg = m
+
     let isInit = true
 
     setTimeout(async () => {
@@ -152,36 +157,42 @@ export async function MichiJadiBot(options) {
       const { connection, lastDisconnect, isNewLogin, qr } = update
       if (isNewLogin) sock.isInit = false
 
-      if (mcode && !sock.user && !sock.isPairingRequested) {
-        sock.isPairingRequested = true
+      // Verificación blindada para la generación del código de 8 dígitos
+      if (mcode && !sock.user && !sock.pairingDelivered) {
+        sock.pairingDelivered = true
         await new Promise(resolve => setTimeout(resolve, 3000))
         try {
-          let phoneJid = m.sender.split('@')[0].replace(/[^0-9]/g, '')
+          let rawSender = sock.originalMsg?.sender || m.sender
+          let phoneJid = rawSender.split('@')[0].replace(/\D/g, '')
+          
           let secret = await sock.requestPairingCode(phoneJid)
           secret = secret.match(/.{1,4}/g)?.join("-")
    
-          txtCode = await conn.sendMessage(m.chat, { text: rtx2, ...global.rcanal }, { quoted: m })
-          codeBot = await m.reply(secret)
-          console.log(`Código generado para ${phoneJid}: ${secret}`)
+          txtCode = await sock.parentConn.sendMessage(sock.originalMsg.chat, { text: rtx2, ...global.rcanal }, { quoted: sock.originalMsg })
+          codeBot = await sock.parentConn.sendMessage(sock.originalMsg.chat, { text: secret }, { quoted: sock.originalMsg })
+          console.log(`[PAIRING] Código generado exitosamente para ${phoneJid}: ${secret}`)
 
-          if (txtCode?.key) setTimeout(() => { conn.sendMessage(m.sender, { delete: txtCode.key }) }, 30000)
-          if (codeBot?.key) setTimeout(() => { conn.sendMessage(m.sender, { delete: codeBot.key }) }, 30000)
+          if (txtCode?.key) setTimeout(() => { sock.parentConn.sendMessage(sock.originalMsg.chat, { delete: txtCode.key }).catch(() => {}) }, 30000)
+          if (codeBot?.key) setTimeout(() => { sock.parentConn.sendMessage(sock.originalMsg.chat, { delete: codeBot.key }).catch(() => {}) }, 30000)
         } catch (e) {
           console.error('Error generando pairing code:', e)
-          sock.isPairingRequested = false
-          await m.reply('⚠︎ No fue posible generar el código en este momento. Intenta nuevamente.')
+          sock.pairingDelivered = false
+          if (sock.originalMsg?.chat) {
+            await sock.parentConn.sendMessage(sock.originalMsg.chat, { text: '⚠︎ No fue posible generar el código en este momento. Intenta nuevamente.' }).catch(() => {})
+          }
         }
         return
       }
 
       if (qr && !mcode) {
-        if (m?.chat) {
-          txtQR = await conn.sendMessage(m.chat, { image: await qrcode.toBuffer(qr, { scale: 8 }), caption: rtx.trim() }, { quoted: m })
+        let currentChat = sock.originalMsg?.chat || m?.chat
+        if (currentChat) {
+          txtQR = await sock.parentConn.sendMessage(currentChat, { image: await qrcode.toBuffer(qr, { scale: 8 }), caption: rtx.trim() }, { quoted: sock.originalMsg || null })
         } else {
           return 
         }
         if (txtQR && txtQR.key) {
-          setTimeout(() => { conn.sendMessage(m.sender, { delete: txtQR.key }) }, 30000)
+          setTimeout(() => { sock.parentConn.sendMessage(currentChat, { delete: txtQR.key }).catch(() => {}) }, 30000)
         }
         return
       } 
@@ -212,7 +223,7 @@ export async function MichiJadiBot(options) {
         if (reason === 440) {
           console.log(chalk.bold.magentaBright(`\n╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡\n┆ La conexión (+${path.basename(pathMichiJadiBot)}) fue reemplazada por otra sesión activa.\n╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡`))
           try {
-            if (options.fromCommand) m?.chat ? await conn.sendMessage(`${path.basename(pathMichiJadiBot)}@s.whatsapp.net`, {text : '⚠︎ Hemos detectado una nueva sesión, borre la antigua sesión para continuar.\n\n> ☁︎ Si Hay algún problema vuelva a conectarse.' }, { quoted: m || null }) : ""
+            if (options.fromCommand) await sock.parentConn.sendMessage(`${path.basename(pathMichiJadiBot)}@s.whatsapp.net`, {text : '⚠︎ Hemos detectado una nueva sesión, borre la antigua sesión para continuar.\n\n> ☁︎ Si Hay algún problema vuelva a conectarse.' }).catch(() => {})
           } catch (error) {
             console.error(chalk.bold.yellow(`⚠︎ Error 440 no se pudo enviar mensaje a: +${path.basename(pathMichiJadiBot)}`))
           }
@@ -220,7 +231,7 @@ export async function MichiJadiBot(options) {
         if (reason == 405 || reason == 401) {
           console.log(chalk.bold.magentaBright(`\n╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡\n┆ La sesión (+${path.basename(pathMichiJadiBot)}) fue cerrada. Credenciales no válidas o dispositivo desconectado manualmente.\n╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡`))
           try {
-            if (options.fromCommand) m?.chat ? await conn.sendMessage(`${path.basename(pathMichiJadiBot)}@s.whatsapp.net`, {text : '⚠︎ Sesión pendiente.\n\n> ☁︎ Vuelva a intentar nuevamente volver a ser *SUB-BOT*.' }, { quoted: m || null }) : ""
+            if (options.fromCommand) await sock.parentConn.sendMessage(`${path.basename(pathMichiJadiBot)}@s.whatsapp.net`, {text : '⚠︎ Sesión pendiente.\n\n> ☁︎ Vuelva a intentar nuevamente volver a ser *SUB-BOT*.' }).catch(() => {})
           } catch (error) {
             console.error(chalk.bold.yellow(`⚠︎ Error 405 no se pudo enviar mensaje a: +${path.basename(pathMichiJadiBot)}`))
           }
@@ -228,7 +239,7 @@ export async function MichiJadiBot(options) {
         }
         if (reason === 500) {
           console.log(chalk.bold.magentaBright(`\n╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡\n┆ Conexión perdida en la sesión (+${path.basename(pathMichiJadiBot)}). Borrando datos...\n╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡`))
-          if (options.fromCommand) m?.chat ? await conn.sendMessage(`${path.basename(pathMichiJadiBot)}@s.whatsapp.net`, {text : '⚠︎ Conexión perdida.\n\n> ☁︎ Intenté conectarse manualmente para volver a ser *SUB-BOT*' }, { quoted: m || null }) : ""
+          if (options.fromCommand) await sock.parentConn.sendMessage(`${path.basename(pathMichiJadiBot)}@s.whatsapp.net`, {text : '⚠︎ Conexión perdida.\n\n> ☁︎ Intenté conectarse manualmente para volver a ser *SUB-BOT*' }).catch(() => {})
           return creloadHandler(true).catch(console.error)
         }
         if (reason === 515) {
@@ -255,19 +266,25 @@ export async function MichiJadiBot(options) {
         sock.isInit = true
         global.conns.push(sock)
 
-        let targetChat = m?.chat || userJid
-        let userSender = m?.sender || userJid
+        let targetChat = sock.originalMsg?.chat || m?.chat || userJid
+        let userSender = sock.originalMsg?.sender || m?.sender || userJid
         let mentionId = userSender.split('@')[0]
 
         let msgTxt = isSubBotConnected(userSender) 
           ? `> @${mentionId}, ❐ Has registrado un nuevo _shadow_ *Sub-Bot* 👻` 
           : `> ❀ Has registrado un nuevo *Sub-Bot!* [@${mentionId}]`
 
+        // Sistema de mensajería duplicado y asegurado en canales independientes
         try {
-          await conn.sendMessage(targetChat, { text: msgTxt, mentions: [userSender] }, { quoted: m || null }).catch(() => {})
+          await sock.parentConn.sendMessage(targetChat, { text: msgTxt, mentions: [userSender] }, { quoted: sock.originalMsg || null }).catch(() => {})
         } catch (e) {
-          console.error('Error enviando mensaje con conn, usando sock de respaldo...', e)
-          await sock.sendMessage(userJid, { text: `> ⚡︎ ¡Felicidades! Tu shadow-bot-md ya está corriendo de forma estable.` }).catch(() => {})
+          console.error('Fallo en conn principal al abrir conexión, enviando vía sock de respaldo...', e)
+        }
+
+        try {
+          await sock.sendMessage(userJid, { text: `> 👻 *shadow-bot-md* listo. Conexión establecida de forma nativa y exitosa.` }).catch(() => {})
+        } catch (e) {
+          console.error('No se pudo auto-enviar confirmación al Sub-bot:', e)
         }
       }
     }
@@ -296,6 +313,12 @@ export async function MichiJadiBot(options) {
         try { sock.ws.close() } catch { }
         sock.ev.removeAllListeners()
         sock = makeWASocket(connectionOptions, { chats: oldChats })
+        
+        // Mantener las dependencias vivas en el nuevo Socket reconstruido
+        sock.parentConn = conn
+        sock.originalMsg = m
+        sock.pairingDelivered = false
+        
         isInit = true
       }
       if (!isInit) {
