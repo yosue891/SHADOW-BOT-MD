@@ -129,7 +129,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
   if (socklimit >= 10) return m.reply('ꕥ No se han encontrado espacios para *Sockets* disponibles.')
 
   const mentionedJid = m.mentionedJid || []
-  const who = mentionedJid[0] || (m.fromMe ? conn.user.jid : m.sender)
+  const who = mentionedJid[0] || m.sender
   console.log('m.sender =>', m.sender)
 console.log('who =>', who)
 console.log('mentionedJid =>', mentionedJid)
@@ -238,11 +238,6 @@ export async function MichiJadiBot(options) {
   extractPhone(m?.key?.participant) ||
   extractPhone(m?.participant)
       if (!phoneNumber) throw new Error('No se pudo detectar el número del usuario para generar el código.')
-      const phoneNumber =
-  extractPhone(pairingPhoneNumber) ||
-  extractPhone(m?.sender) ||
-  extractPhone(m?.key?.participant) ||
-  extractPhone(m?.participant)
 
 console.log('sender:', m.sender)
 console.log('contact:', conn.contacts?.[m.sender])
