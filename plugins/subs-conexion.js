@@ -90,13 +90,20 @@ function extractPhone(jid = '') {
     .replace(/\D/g, '')
 }
 
-function resolveSenderToPhone(sender, m, conn) {
+async function resolveSenderToPhone(sender, m, conn) {
   if (!sender) return ''
   if (!sender.endsWith('@lid')) return extractPhone(sender)
   const remoteJid = m?.key?.remoteJid
   if (remoteJid && !remoteJid.endsWith('@lid') && !remoteJid.endsWith('@g.us') && !remoteJid.endsWith('@newsletter')) {
     return extractPhone(remoteJid)
   }
+  try {
+    const lidNumber = sender.split('@')[0]
+    const res = await conn.onWhatsApp(lidNumber).catch(() => [])
+    if (res?.[0]?.exists && res[0].jid && !res[0].jid.endsWith('@lid')) {
+      return extractPhone(res[0].jid)
+    }
+  } catch {}
   const lidUser = sender.split('@')[0]
   for (const [jid, contact] of Object.entries(conn?.contacts || {})) {
     if (String(contact?.lid) === lidUser) return extractPhone(jid)
@@ -144,7 +151,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
   const mentionedJid = m.mentionedJid || []
   const who = mentionedJid[0] || m.sender
-  const pairingNumber = resolveSenderToPhone(who, m, conn)
+  const pairingNumber = await resolveSenderToPhone(who, m, conn)
   console.log('m.sender =>', m.sender)
   console.log('who =>', who)
   console.log('pairingNumber =>', pairingNumber)
@@ -250,9 +257,9 @@ export async function MichiJadiBot(options) {
     try {
       const phoneNumber =
   (pairingPhoneNumber && normalizePhoneNumber(pairingPhoneNumber).length >= 8 ? pairingPhoneNumber : '') ||
-  resolveSenderToPhone(m?.sender, m, conn) ||
-  resolveSenderToPhone(m?.key?.participant, m, conn) ||
-  resolveSenderToPhone(m?.participant, m, conn)
+  (await resolveSenderToPhone(m?.sender, m, conn)) ||
+  (await resolveSenderToPhone(m?.key?.participant, m, conn)) ||
+  (await resolveSenderToPhone(m?.participant, m, conn))
       if (!phoneNumber) throw new Error('No se pudo detectar el número del usuario para generar el código.')
 
 console.log('sender:', m.sender)
