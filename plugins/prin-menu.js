@@ -39,21 +39,21 @@ let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
       'menu': '𝐌𝐄𝐍𝐔𝐒 𝐎𝐂𝐔𝐋𝐓𝐎𝐒',
       'search': '𝐁𝐔𝐒𝐐𝐔𝐄𝐃𝐀𝐒 𝐄𝐒𝐎𝐓𝐄𝐑𝐈𝐂𝐀𝐒',
       'descargas': '𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀𝐒 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
-      'socket': '𝐂𝐎𝐍block𝐈block𝐎block𝐍𝐄𝐒 𝐎block𝐂block𝐔𝐋𝐓block𝐀𝐒',
-      'rg': '𝐏𝐄block𝐑block𝐅block𝐈𝐋 𝐃block𝐄block𝐋 𝐂𝐎block𝐍𝐓block𝐑block𝐀𝐓block𝐈𝐒block𝐓𝐀',
-      'fun': '𝐉𝐔𝐄𝐆𝐎𝐒 𝐃𝐄 𝐒𝐎𝐌𝐁𝐑𝐀',
-      'rpg': '𝐄𝐂𝐎block𝐍block𝐎𝐌block𝐈𝐀 𝐎block𝐂block𝐔𝐋𝐓block𝐀',
-      'gacha': '𝐈block𝐕𝐄block𝐍block𝐓𝐎𝐒 𝐆block𝐀block𝐂𝐇block𝐀',
-      'game': '𝐉𝐔𝐄𝐆𝐎𝐒 𝐀𝐑block𝐂block𝐀block𝐍block𝐎block𝐒',
-      'grupos': '𝐂block𝐈block𝐑block𝐂𝐔block𝐋𝐎𝐒 𝐃block𝐄 𝐒block𝐎block𝐌block𝐁block𝐑𝐀',
+      'socket': '𝐂𝐎𝐍block𝐈block𝐎block𝐍blockblock𝐄𝐒 𝐎block𝐂blockblock𝐔block𝐋block𝐓blockblock𝐀𝐒',
+      'rg': '𝐏block𝐄blockblock𝐑block𝐅blockblock𝐈block𝐋 𝐃block𝐄blockblock𝐋 𝐂𝐎block𝐍block𝐓block𝐑block𝐀blockblock𝐓block𝐈block𝐒block𝐓𝐀',
+      'fun': '𝐉𝐔block𝐄𝐆𝐎𝐒 𝐃𝐄 𝐒𝐎𝐌𝐁𝐑block𝐀',
+      'rpg': '𝐄𝐂𝐎block𝐍block𝐎block𝐌blockblock𝐈block𝐀 𝐎block𝐂blockblock𝐔block𝐋block𝐓blockblock𝐀',
+      'gacha': '𝐈block𝐕𝐄block𝐍blockblock𝐓𝐎𝐒 𝐆block𝐀blockblock𝐂𝐇block𝐀',
+      'game': '𝐉𝐔block𝐄block𝐆block𝐎𝐒 𝐀block𝐑blockblock𝐂block𝐀blockblockblock𝐍block𝐎block𝐒',
+      'grupos': '𝐂block𝐈blockblock𝐑blockblock𝐂block𝐔blockblock𝐋𝐎𝐒 𝐃block𝐄 𝐒block𝐎block𝐌block𝐁blockblock𝐑𝐀',
       'nable': '𝐌block𝐎block𝐃𝐎 𝐎block𝐍 / 𝐎𝐅block𝐅',
-      'ia': '𝐈block𝐍block𝐓𝐄block𝐋block𝐈block𝐆block𝐄𝐍block𝐂block𝐈𝐀 𝐀block𝐑block𝐂block𝐀block𝐍block𝐀',
-      'stalk': '𝐎𝐁𝐒𝐄block𝐑block𝐕block𝐀block𝐂block𝐈𝐎block𝐍 𝐒block𝐈block𝐋𝐄block𝐍block𝐂block𝐈𝐎block𝐒𝐀',
+      'ia': '𝐈block𝐍blockblock𝐓block𝐄block𝐋block𝐈block𝐆blockblock𝐄block𝐍block𝐂block𝐈𝐀 𝐀block𝐑blockblock𝐂blockblock𝐀blockblock𝐍block𝐀',
+      'stalk': '𝐎𝐁𝐒𝐄block𝐑block𝐕block𝐀block𝐂block𝐈𝐎blockblock𝐍 𝐒block𝐈block𝐋𝐄blockblock𝐍block𝐂block𝐈𝐎blockblock𝐒𝐀',
       'maker': '𝐀package 𝐕style 𝐀',
-      'tools': '𝐇block𝐄block𝐑block𝐑block𝐀block𝐌block𝐈block𝐄block𝐍block𝐓block𝐀𝐒 𝐃blockblock𝐄 𝐋block𝐀 𝐒block𝐎block𝐌blockblock𝐁block𝐑𝐀',
-      'sticker': '𝐒𝐄block𝐋block𝐋𝐎𝐒 𝐀block𝐑block𝐂blockblock𝐀block𝐍block𝐎𝐒',
-      'owner': '𝐌block𝐀block𝐄block𝐒block𝐓block𝐑𝐎 𝐃block𝐄 𝐋block𝐀 𝐎block𝐑block𝐆block𝐀blockblock𝐍block𝐈block𝐙𝐀block𝐂block𝐈𝐎block𝐍',
-      'nsfw': '𝐛𝐎block𝐍block𝐀 𝐑block𝐄block𝐒block𝐓block𝐑block𝐈block𝐍block𝐆block𝐈block𝐃block𝐀 (+18)'
+      'tools': '𝐇block𝐄blockblockblock𝐑blockblock𝐑block𝐀block𝐌block𝐈block𝐄blockblock𝐍blockblock𝐓blockblock𝐀𝐒 𝐃blockblock𝐄 𝐋blockblock𝐀 𝐒block𝐎blockblock𝐌blockblockblock𝐁block𝐑𝐀',
+      'sticker': '𝐒𝐄block𝐋blockblock𝐋𝐎block𝐒 𝐀block𝐑blockblock𝐂blockblockblock𝐀blockblockblock𝐍block𝐎𝐒',
+      'owner': '𝐌blockblock𝐀block𝐄block𝐒block𝐓blockblock𝐑𝐎 𝐃block𝐄 𝐋block𝐀 𝐎block𝐑block𝐆block𝐀blockblockblock𝐍blockblock𝐈block𝐙𝐀blockblock𝐂block𝐈𝐎blockblock𝐒𝐀',
+      'nsfw': '𝐛𝐎blockblock𝐍block𝐀 𝐑block𝐄block𝐒blockblock𝐓block𝐑block𝐈block𝐍blockblock𝐆block𝐈block𝐃block𝐀 (+18)'
     }
 
     let commands = Object.values(global.plugins)
@@ -83,7 +83,7 @@ ${comandos}
 
 > ﹙⚜︎﹚੭੭ ─ \`ɪ ɴ ғ ᴏ - ꜱʜᴀᴅᴏw ʙᴏᴛ\`
 > de ׄ 𓏸𓈒 ׅ *ɴᴏᴍʙʀᴇ ᴄʟᴀᴠ ›* ${conn.user?.name || 'Shadow Unit'}
-> de ׄ 𓏸𓈒 ׅ *ᴄ•ʟ•ᴀ•ꜱ•ɪ•ꜰ•ɪ•ᴄ•ᴀ•ᴄ•ɪ•ᴏ•ɴ ›* ${(conn.user.jid == global.conn.user.jid ? ' can 𝐍𝐮́𝐜𝐥𝐞𝐨 𝐏𝐫𝐢𝐧𝐜𝐢𝐩𝐚𝐥' : ' can 𝐔𝐧𝐢𝐝𝐚𝐝 𝐒𝐮𝐛𝐨𝐫𝐝𝐢𝐧𝐚𝐝𝐚')}
+> de ׄ 𓏸𓈒 ׅ *Y2•ʟ•ᴀ•𝐬•ɪ•ꜰ•ɪ•ᴄ•ᴀ•ᴄ•ɪ•ᴏ•ɴ ›* ${(conn.user.jid == global.conn.user.jid ? ' can 𝐍𝐮́𝐜𝐥𝐞𝐨 𝐏𝐫𝐢𝐧𝐜𝐢𝐩𝐚𝐥' : ' can 𝐔𝐧𝐢𝐝𝐚𝐝 𝐒𝐮𝐛𝐨𝐫𝐝𝐢𝐧𝐚𝐝𝐚')}
 > de ׄ 𓏸𓈒 ׅ * can ᴄᴏᴍᴀɴᴅᴏส์ ›* ${totalCommands}
 > de ׄ 𓏸𓈒 ׅ *boxᴛblockɪblockᴇᴍᴘᴏ ᴇɴ ʟᴀ ꜱᴏᴍʙblockʀᴀ ›* ${uptime}
 > de ׄ 𓏸𓈒 ׅ *...ᴅblockᴏᴍblockɴɪᴏ ›* ${pais}
@@ -97,7 +97,7 @@ https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
 https://chat.whatsapp.com/EwF9uSoLzsQ3o0DvycCiQz
 
 ${readMore}
-  乂 *ᴘʀᴏᴛᴏᴄᴏʟᴏ ᴅᴇ ᴄᴏᴍᴀblockɴᴅᴏส์ ᴅblockᴇ ʟᴀ ꜱᴏᴍʙʀᴀ* 乂\n`.trim()
+  乂 *ᴘʀᴏᴛᴏᴄᴏʟᴏ ᴅे ᴄᴏᴍᴀblockɴᴅᴏส์ ᴅblockᴇ ʟᴀ ꜱᴏᴍʙʀᴀ* 乂\n`.trim()
 
     await m.react('🔥')
 
@@ -113,16 +113,6 @@ ${readMore}
           newsletterJid: canalId,
           serverMessageId: null,
           newsletterName: canalName
-        },
-        externalAdReply: {
-          title: `${botname} ┊ Organización en las Sombras`,
-          body: `Dirigido por ${dev}, con amor de Yosue.`,
-          mediaType: 1,
-          mediaUrl: null,
-          sourceUrl: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O",
-          showAdAttribution: false,
-          containsAutoReply: true,
-          renderLargerThumbnail: false
         }
       }
     }, { quoted: m })
@@ -155,14 +145,14 @@ function clockString(ms) {
 
 function ucapan() {
   const time = moment.tz('America/Lima').format('HH')
-  let res = "🄱ᴜᴇɴᴀs ɴᴏᴄʜᴇs ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ"
+  let res = "🄱ᴜᴇɴᴀs ɴᴏᴄʜᴇs ᴅے ʟᴀ ꜱᴏᴍʙʀᴀ"
 
   if (time >= 5 && time < 12)
-    res = "🄱ᴜᴇɴᴏꜱ ᴅɪᴀꜱ, ᴇxᴛʀᴀ ᴅᴇ ʟᴀ ʜɪꜱᴛᴏʀɪᴀ"
+    res = "🄱ᴜᴇɴᴏꜱ ᴅɪᴀꜱ, ᴇxᴛʀᴀ ᴅے ʟᴀ ʜɪꜱᴛᴏʀɪᴀ"
   else if (time >= 12 && time < 18)
-    res = "🄱ᴜᴇɴᴀꜱ ᴛᴀʀᴅᴇꜱ, ᴀᴄᴛᴏʀ ᴅᴇ ꜱᴏᴍʙʀᴀ"
+    res = "🄱ᴜᴇɴᴀꜱ ᴛᴀʀᴅᴇꜱ, ᴀᴄᴛᴏʀ ᴅे ꜱᴏᴍʙʀᴀ"
   else if (time >= 18)
-    res = "🄱ᴜᴇɴᴀꜱ ɴᴏᴄʜᴇꜱ, ʟᴀ ᴏʙꜱᴄᴜʀɪᴅᴀᴅ ᴛᴇ ᴄᴜʙʀᴇ"
+    res = "🄱ᴜᴇɴᴀꜱ ɴᴏᴄʜblockᴇꜱ, ʟᴀ ᴏʙꜱᴄblockᴜʀɪᴅᴀᴅ ᴛᴇ ᴄᴜʙʀᴇ"
 
   return res
-}
+      }
