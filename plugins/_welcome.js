@@ -83,17 +83,18 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
   const desc = groupMetadata.desc?.toString() || 'Sin descripción'
   const mensaje = (chat.sWelcome || 'Edita con el comando "setwelcome"').replace(/{usuario}/g, `${username}`).replace(/{grupo}/g, `*${groupName}*`).replace(/{desc}/g, `${desc}`)
   
-  const caption = `> ──･ ̸̷∵ \`𝐁𝐈𝐄𝐍𝐕𝐄𝐍𝐈𝐃𝐎 𝐀 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀\` *݁ ⚜︎*
+  const caption = `> ⚔ ── ── ── ── ── ── ⚔
+>  ── ── ✦ 𝔖𝔥𝔞𝔡𝔬𝔴 𝔊𝔞𝔯𝔡𝔢𝔫 ✦ ── ──
 > 
-> ﹙🌑﹚੭੭ *Las sombras te reciben...*
-> de ׄ 𓏸𓈒 ׅ *𝐎𝐫𝐠𝐚𝐧𝐢𝐳𝐚𝐜𝐢𝐨́𝐧 ›* _${groupName}_
-> de ׄ 𓏸𓈒 ׅ *𝐂𝐨𝐧𝐭𝐫𝐚𝐭𝐢𝐬𝐭𝐚 ›* ${username}
-> de ׄ 𓏸𓈒 ׅ *𝐏𝐫𝐨𝐭𝐨𝐜𝐨𝐥𝐨 ›* ${mensaje}
-> de ׄ 𓏸𓈒 ׅ *𝐀𝐥𝐦𝐚𝐬 𝐫𝐞𝐮𝐧𝐢𝐝𝐚𝐬 ›* ${groupSize} Miembros.
-> de ׄ 𓏸𓈒 ׅ *𝐅𝐞𝐜𝐡𝐚 𝐚𝐫𝐜𝐚𝐧𝐚 ›* ${fecha}
+> 𝔘𝔫 𝔫𝔲𝔢𝔳𝔬 𝔠𝔬𝔫𝔱𝔯𝔞𝔱𝔦𝔰𝔱𝔞 𝔰𝔢 𝔲𝔫𝔢 𝔞 𝔩𝔞𝔰 𝔰𝔬𝔪𝔟𝔯𝔞𝔰.
 > 
-> 乂 *ɪ ᴀᴍ ᴀᴛᴏᴍɪᴄ... ᴅɪsғʀᴜᴛᴀ ᴛᴜ sᴛᴀʏ.* 乂
-> ➮ _Puedes usar #help para desplegar los comandos ocultos._`.trim()
+> ❖ 𝔖𝔢𝔠𝔱𝔬𝔯 ⪢ _${groupName}_
+> ❖ ℑ𝔡𝔢𝔫𝔱𝔦𝔣𝔦𝔠𝔞𝔠𝔦𝔬́𝔫 ⪢ ${username}
+> ❖ 𝔇𝔦𝔠𝔱𝔞𝔪𝔢𝔫 ⪢ ${mensaje}
+> ❖ ℭ𝔬𝔫𝔱𝔢𝔫𝔠𝔦𝔬́𝔫 ⪢ ${groupSize} unidades reunidas.
+> ❖ ℭ𝔯𝔬𝔫𝔬𝔰 ⪢ ${fecha}
+> 
+> ⛓ ── ℑ 𝔞𝔪 𝔞𝔱𝔬𝔪𝔦𝔠... 𝔗𝔥𝔢 𝔢𝔪𝔦𝔫𝔢𝔫𝔢𝔢 𝔦𝔫 𝔰𝔥𝔞𝔡𝔬𝔴. ── ⛓`
   
   return { imageSource, caption, mentions: [userId] }
 }
@@ -151,16 +152,18 @@ export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
   const desc = groupMetadata.desc?.toString() || 'Sin descripción'
   const mensaje = (chat.sBye || 'Edita con el comando "setbye"').replace(/{usuario}/g, `${username}`).replace(/{grupo}/g, `${groupName}`).replace(/{desc}/g, `*${desc}*`)
   
-  const caption = `> ──･ ̸̷∵ \`𝐃𝐄𝐒𝐏𝐄𝐃𝐈𝐃𝐀 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀\` *݁ ⚜︎*
+  const caption = `> ⚔ ── ── ── ── ── ── ⚔
+>  ── ── ✦ 𝔖𝔥𝔞𝔡𝔬𝔴 𝔊𝔞𝔯𝔡𝔢𝔫 ✦ ── ──
 > 
-> ﹙🌑﹚੭੭ *Un miembro se ha desvanecido...*
-> de ׄ 𓏸𓈒 ׅ *𝐎𝐫𝐠𝐚𝐧𝐢𝐳𝐚𝐜𝐢𝐨́𝐧 ›* _${groupName}_
-> de ׄ 𓏸𓈒 ׅ *𝐂𝐨𝐧𝐭𝐫𝐚𝐭𝐢𝐬𝐭𝐚 ›* ${username}
-> de ׄ 𓏸𓈒 ׅ *𝐏𝐫𝐨𝐭𝐨𝐜𝐨𝐥𝐨 ›* ${mensaje}
-> de ׄ 𓏸𓈒 ׅ *𝐀𝐥𝐦𝐚𝐬 𝐫𝐞𝐬𝐭𝐚𝐧𝐭𝐞𝐬 ›* ${groupSize} Miembros.
-> de ׄ 𓏸𓈒 ׅ *𝐅e𝐜𝐡𝐚 𝐚𝐫𝐜𝐚𝐧𝐚 ›* ${fecha}
+> 𝔘𝔫𝔞 𝔭𝔯𝔢𝔰𝔢𝔫𝔠𝔦𝔞 𝔰𝔢 𝔥𝔞 𝔡𝔢𝔰𝔳𝔞𝔫𝔢𝔠𝔦𝔡𝔬.
 > 
-> 乂 *sᴜ sᴜᴇʀᴛᴇ sᴇ ʜᴀ ᴀɢᴏᴛᴀᴅᴏ ᴇɴ ʟᴀ ᴏsᴄᴜʀɪᴅᴀᴅ.* 乂`.trim()
+> ❖ 𝔖𝔢𝔠𝔱𝔬xr ⪢ _${groupName}_
+> ❖ ℑ𝔡𝔢𝔫𝔱𝔦𝔣𝔦𝔠𝔞𝔠𝔦𝔬́𝔫 ⪢ ${username}
+> ❖ 𝔇𝔦𝔠𝔱𝔞𝔪𝔢𝔫 ⪢ ${mensaje}
+> ❖ ℭ𝔬𝔫𝔱𝔢𝔫𝔠𝔦𝔬́𝔫 ⪢ ${groupSize} unidades restantes.
+> ❖ ℭ𝔯𝔬𝔫𝔬𝔰 ⪢ ${fecha}
+> 
+> ⛓ ── 𝔏𝔞 𝔬𝔰𝔠𝔲𝔯𝔦𝔡𝔞𝔡 𝔥𝔞 𝔟𝔬𝔯𝔯𝔞𝔡𝔬 𝔰𝔲 𝔯𝔞𝔰𝔱𝔯𝔬. ── ⛓`
   
   return { imageSource, caption, mentions: [userId] }
 }
