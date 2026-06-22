@@ -122,10 +122,18 @@ let handler = async (m, { conn, text }) => {
     if (!response.ok) throw new Error(`La API respondió con estado ${response.status}`)
     const imageBuffer = Buffer.from(await response.arrayBuffer())
 
+    const groupMetadata = m.isGroup ? await conn.groupMetadata(m.chat) : {}
+    const groupName = groupMetadata.subject || 'el Grupo'
+    const groupSize = groupMetadata.participants ? groupMetadata.participants.length : 'N/A'
+    const desc = groupMetadata.desc?.toString() || 'Sin descripción'
+    const chat = global.db?.data?.chats?.[m.chat]
+    const mensaje = (chat?.sWelcome || 'Edita con el comando "setwelcome"').replace(/{usuario}/g, `@${targetNumber}`).replace(/{grupo}/g, `*${groupName}*`).replace(/{desc}/g, `${desc}`)
+    const fecha = new Date().toLocaleDateString('es-ES', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'long', year: 'numeric' })
+
     // 7. Enviar el banner al chat
     await conn.sendMessage(m.chat, {
       image: imageBuffer,
-      caption: `👋 ¡Bienvenido/a @${targetNumber}!`,
+      caption: `❀ Bienvenido a *"_${groupName}_"*\n✰ _Usuario_ » @${targetNumber}\n● ${mensaje}\n◆ _Ahora somos ${groupSize} Miembros._\nꕥ Fecha » ${fecha}\n૮꒰ ˶• ᴗ •˶꒱a Disfruta tu estadía en el grupo!\n> *➮ Puedes usar _#help_ para ver la lista de comandos.*`,
       mentions: [targetJid]
     }, { quoted: m })
 
