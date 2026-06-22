@@ -90,37 +90,93 @@ function extractPhone(jid = '') {
     .replace(/\D/g, '')
 }
 
+function isLidUser(jid) {
+  if (!jid) return false
+  return jid.endsWith('@lid')
+}
+
+function isLidConverted(jid) {
+  if (!jid || !jid.endsWith('@s.whatsapp.net')) return false
+  const number = jid.replace('@s.whatsapp.net', '')
+  if (number.length > 14) return true
+  const codes = ["1","7","20","27","30","31","32","33","34","36","39","40","41","43","44","45","46","47","48","49","51","52","53","54","55","56","57","58","60","61","62","63","64","65","66","81","82","84","86","90","91","92","93","94","95","98","212","213","216","218","220","221","234","249","254","255","256","260","263","351","352","353","354","355","356","357","358","359","370","371","372","373","374","375","376","377","378","380","381","382","383","385","386","387","389","420","421","423","852","853","855","856","880","886","960","961","962","963","964","965","966","967","968","970","971","972","973","974","975","976","977","992","993","994","995","996","998"]
+  for (const c of codes) {
+    if (number.startsWith(c) && number.length >= c.length + 6 && number.length <= c.length + 12) return false
+  }
+  return true
+}
+
+function resolveAnyLidToJid(jid, participants = []) {
+  if (!jid || !participants.length) return jid
+  const lidNumber = jid.replace(/@.*$/, '')
+  const lidFormat = lidNumber + '@lid'
+  for (const p of participants) {
+    let pLid = '', pJid = ''
+    if (p.lid && p.lid.endsWith('@lid')) { pLid = p.lid; pJid = p.id || p.jid || '' }
+    else if (p.phoneNumber) { pLid = p.id || ''; pJid = p.phoneNumber }
+    else if (p.id && p.id.endsWith('@lid')) { pLid = p.id; pJid = p.jid || '' }
+    else { pLid = p.lid || ''; pJid = p.id || p.jid || '' }
+    const pLidNum = pLid.replace('@lid', '')
+    if (pLid === lidFormat || pLid === jid || pLidNum === lidNumber) {
+      if (pJid && !pJid.endsWith('@lid') && !isLidConverted(pJid)) return pJid
+    }
+  }
+  return jid
+}
+
+const _lidCache = new Map()
+
 async function resolveSenderToPhone(sender, m, conn) {
   if (!sender) return ''
   if (!sender.endsWith('@lid')) return extractPhone(sender)
   console.log('[LID-RESOLVE] Resolviendo LID:', sender)
 
+  const cached = _lidCache.get(sender)
+  if (cached && !cached.endsWith('@lid')) {
+    console.log('[LID-RESOLVE] Encontrado en cache:', cached)
+    return extractPhone(cached)
+  }
+
   try {
-    const { resolveFromSock, cacheParticipantLids, getCachedJid } = await import('../ourin-lid.js')
-    const cached = getCachedJid(sender)
-    if (cached && !cached.endsWith('@lid')) {
-      console.log('[LID-RESOLVE] Encontrado en cache:', cached)
-      return extractPhone(cached)
+    const repo = conn.signalRepository || conn.repository
+    if (repo?.lidMapping?.getPNForLID) {
+      const pn = await repo.lidMapping.getPNForLID(sender)
+      if (pn && !pn.endsWith('@lid') && !isLidConverted(pn)) {
+        console.log('[LID-RESOLVE] Resuelto via signalRepository:', pn)
+        _lidCache.set(sender, pn)
+        return extractPhone(pn)
+      }
     }
-    const resolved = await resolveFromSock(sender, conn)
-    if (resolved && resolved !== sender && !resolved.endsWith('@lid')) {
-      console.log('[LID-RESOLVE] Resuelto via resolveFromSock:', resolved)
-      return extractPhone(resolved)
-    }
-    const chatJid = m?.chat || m?.key?.remoteJid
-    if (chatJid && chatJid.endsWith('@g.us')) {
-      const metadata = await conn.groupMetadata(chatJid).catch(() => null)
-      if (metadata?.participants) {
-        cacheParticipantLids(metadata.participants)
-        const { resolveAnyLidToJid } = await import('../ourin-lid.js')
-        const fromParticipants = resolveAnyLidToJid(sender, metadata.participants)
-        if (fromParticipants && fromParticipants !== sender && !fromParticipants.endsWith('@lid')) {
-          console.log('[LID-RESOLVE] Resuelto via participants:', fromParticipants)
-          return extractPhone(fromParticipants)
+  } catch (e) { console.log('[LID-RESOLVE] signalRepository error:', e.message) }
+
+  try {
+    if (conn.store?.contacts) {
+      for (const [pnJid, contact] of Object.entries(conn.store.contacts)) {
+        if (contact.lid === sender || contact.id === sender) {
+          if (pnJid && !pnJid.endsWith('@lid') && !isLidConverted(pnJid) && pnJid !== 'status@broadcast') {
+            console.log('[LID-RESOLVE] Resuelto via store.contacts:', pnJid)
+            _lidCache.set(sender, pnJid)
+            return extractPhone(pnJid)
+          }
         }
       }
     }
-  } catch (e) { console.error('[LID-RESOLVE] Error:', e.message) }
+  } catch (e) { console.log('[LID-RESOLVE] store.contacts error:', e.message) }
+
+  const chatJid = m?.chat || m?.key?.remoteJid
+  if (chatJid && chatJid.endsWith('@g.us')) {
+    try {
+      const metadata = await conn.groupMetadata(chatJid).catch(() => null)
+      if (metadata?.participants) {
+        const resolved = resolveAnyLidToJid(sender, metadata.participants)
+        if (resolved && resolved !== sender && !resolved.endsWith('@lid')) {
+          console.log('[LID-RESOLVE] Resuelto via group participants:', resolved)
+          _lidCache.set(sender, resolved)
+          return extractPhone(resolved)
+        }
+      }
+    } catch (e) { console.log('[LID-RESOLVE] groupMetadata error:', e.message) }
+  }
 
   console.log('[LID-RESOLVE] No se pudo resolver LID:', sender)
   return ''
