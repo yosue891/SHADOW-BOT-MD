@@ -54,6 +54,32 @@ async function getProfileUrl(conn, userId) {
   }
 }
 
+const WELCOME_STUB_TYPES = new Set([
+  WAMessageStubType.GROUP_PARTICIPANT_ADD,
+  WAMessageStubType.GROUP_PARTICIPANT_INVITE,
+  WAMessageStubType.GROUP_PARTICIPANT_ACCEPT,
+  WAMessageStubType.GROUP_PARTICIPANT_LINKED_GROUP_JOIN,
+  WAMessageStubType.GROUP_PARTICIPANT_JOINED_GROUP_AND_PARENT_GROUP,
+  WAMessageStubType.SUB_GROUP_PARTICIPANT_ADD_RICH,
+  27,
+  31,
+  140,
+  141,
+  151,
+  166
+])
+
+const GOODBYE_STUB_TYPES = new Set([
+  WAMessageStubType.GROUP_PARTICIPANT_REMOVE,
+  WAMessageStubType.GROUP_PARTICIPANT_LEAVE,
+  28,
+  32
+])
+
+function getStubType(m) {
+  return Number(m?.messageStubType)
+}
+
 export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
   const username = `@${userId.split('@')[0]}`
   const pp = getWelcomeBannerUrl()
@@ -122,75 +148,19 @@ export async function before(m, { conn, usedPrefix }) {
   }
 
   const profile = await getProfileUrl(conn, who)
+  const stubType = getStubType(m)
 
-  if (m.messageStubType === WAMessageStubType.GROUP_PARTICIPANT_ADD || m.messageStubType === 27) {
+  if (WELCOME_STUB_TYPES.has(stubType)) {
     const welcomeImg = getWelcomeBannerUrl()
+    const welcomeCaption = `\n*Bienvenido/a al grupo*\n\n> Usuario: ${taguser}\n> Miembros totales: ${totalMembers}\n> Fecha: ${date}\n`.trim()
 
-    await conn.sendMessage(
-      m.chat,
-      {
-        image: { url: welcomeImg },
-        caption: `\n*Bienvenido/a al grupo*\n\n> Usuario: ${taguser}\n> Miembros totales: ${totalMembers}\n> Fecha: ${date}\n`.trim(),
-        footer: `© ${botname} · Welcome`,
-        interactiveButtons: [
-          {
-            name: 'quick_reply',
-            buttonParamsJson: JSON.stringify({
-              display_text: '👤 Registrarme',
-              id: `${usedPrefix}reg user.19`
-            })
-          }
-        ],
-        mentions: [who]
-      },
-      { quoted: fkontak }
-    )
+    try {
+      await conn.sendMessage(m.chat, { image: { url: welcomeImg }, caption: welcomeCaption, mentions: [who] }, { quoted: fkontak })
+    } catch (e) {
+      console.error('Error enviando bienvenida con imagen:', e)
+      await conn.sendMessage(m.chat, { text: welcomeCaption, mentions: [who] }, { quoted: fkontak }).catch(() => {})
+    }
   }
 
-  if (m.messageStubType === WAMessageStubType.GROUP_PARTICIPANT_REMOVE || m.messageStubType === WAMessageStubType.GROUP_PARTICIPANT_LEAVE || m.messageStubType === 28 || m.messageStubType === 32) {
-    const goodbyeImg =
-      'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
-      'title=Se+fue+del+grupo' +
-      '&desc=No+vuelvas' +
-      `&profile=${encodeURIComponent(profile)}` +
-      '&background=https%3A%2F%2Fraw.githubusercontent.com%2FEl-brayan502%2Fimg%2Fupload%2Fuploads%2Ff1daa4-1770608515673.jpg'
-
-    await conn.sendMessage(
-      m.chat,
-      {
-        product: {
-          productImage: { url: goodbyeImg },
-          productId: 'goodbye-001',
-          title: '─Ａ Ｄ Ｉ Ō S─👋🏻',
-          currencyCode: 'USD',
-          priceAmount1000: '0',
-          retailId: 1677,
-          productImageCount: 1
-        },
-
-        businessOwnerJid: '0@s.whatsapp.net',
-
-        caption: `\n> Usuario: ${taguser}\n> Fecha: ${date}\n*salió del grupo.*\n`.trim(),
-
-        footer: `© ${botname} · Goodbye`,
-
-        interactiveButtons: [
-          {
-            name: 'quick_reply',
-            buttonParamsJson: JSON.stringify({
-              display_text: '👤 Registrarme',
-              id: `${usedPrefix}reg user.19`
-            })
-          }
-        ],
-
-        mentions: [who]
-      },
-      { quoted: fkontak }
-    )
-  }
-}
-
-let handler = m => m
-handler.before = before
-export default handler
+  if (GOODBYE_STUB_TYPES.has(stubType)) {
+    const goodbyeImg
