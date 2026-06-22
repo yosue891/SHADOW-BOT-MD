@@ -163,4 +163,49 @@ export async function before(m, { conn, usedPrefix }) {
   }
 
   if (GOODBYE_STUB_TYPES.has(stubType)) {
-    const goodbyeImg
+    const goodbyeImg =
+      'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
+      'title=Se+fue+del+grupo' +
+      '&desc=No+vuelvas' +
+      `&profile=${encodeURIComponent(profile)}` +
+      '&background=https%3A%2F%2Fraw.githubusercontent.com%2FEl-brayan502%2Fimg%2Fupload%2Fuploads%2Ff1daa4-1770608515673.jpg'
+
+    await conn.sendMessage(
+      m.chat,
+      {
+        product: {
+          productImage: { url: goodbyeImg },
+          productId: 'goodbye-001',
+          title: '─Ａ Ｄ Ｉ Ō S─👋🏻',
+          currencyCode: 'USD',
+          priceAmount1000: '0',
+          retailId: 1677,
+          productImageCount: 1
+        },
+
+        businessOwnerJid: '0@s.whatsapp.net',
+
+        caption: `\n> Usuario: ${taguser}\n> Fecha: ${date}\n*salió del grupo.*\n`.trim(),
+
+        footer: `© ${botname} · Goodbye`,
+
+        interactiveButtons: [
+          {
+            name: 'quick_reply',
+            buttonParamsJson: JSON.stringify({
+              display_text: '👤 Registrarme',
+              id: `${usedPrefix}reg user.19`
+            })
+          }
+        ],
+
+        mentions: [who]
+      },
+      { quoted: fkontak }
+    )
+  }
+}
+
+let handler = m => m
+handler.before = before
+export default handler
