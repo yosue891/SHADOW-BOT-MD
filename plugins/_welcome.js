@@ -52,13 +52,18 @@ async function getProfileUrl(conn, userId) {
 
 export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
   const username = `@${userId.split('@')[0]}`
-  const profile = await getProfileUrl(conn, userId)
-  
-  const pp = 'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
-    'title=Bienvenido+Usuario' +
-    '&desc=Disfruta+tu+estancia' +
-    `&profile=${encodeURIComponent(profile)}` +
-    `&background=${encodeURIComponent(YOSOYYO_WELCOME_BANNER.data.backgroundUrl)}`
+  let pp = YOSOYYO_WELCOME_BANNER.data.backgroundUrl
+
+  try {
+    const profile = await getProfileUrl(conn, userId)
+    pp = 'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
+      'title=Bienvenido+Usuario' +
+      '&desc=Disfruta+tu+estancia' +
+      `&profile=${encodeURIComponent(profile)}` +
+      `&background=${encodeURIComponent(YOSOYYO_WELCOME_BANNER.data.backgroundUrl)}`
+  } catch (e) {
+    console.error('[WELCOME PLUGIN] Error generando imagen dinámica, usando fondo por defecto:', e)
+  }
 
   const fecha = new Date().toLocaleDateString('es-ES', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'long', year: 'numeric' })
   const groupSize = groupMetadata.participants.length + 1
@@ -70,13 +75,18 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
 
 export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
   const username = `@${userId.split('@')[0]}`
-  const profile = await getProfileUrl(conn, userId)
-  
-  const pp = 'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
-    'title=Se+fue+del+grupo' +
-    '&desc=No+vuelvas' +
-    `&profile=${encodeURIComponent(profile)}` +
-    '&background=https%3A%2F%2Fraw.githubusercontent.com%2FEl-brayan502%2Fimg%2Fupload%2Fuploads%2Ff1daa4-1770608515673.jpg'
+  let pp = 'https://raw.githubusercontent.com/El-brayan502/img/upload/uploads/f1daa4-1770608515673.jpg'
+
+  try {
+    const profile = await getProfileUrl(conn, userId)
+    pp = 'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
+      'title=Se+fue+del+grupo' +
+      '&desc=No+vuelvas' +
+      `&profile=${encodeURIComponent(profile)}` +
+      '&background=https%3A%2F%2Fraw.githubusercontent.com%2FEl-brayan502%2Fimg%2Fupload%2Fuploads%2Ff1daa4-1770608515673.jpg'
+  } catch (e) {
+    console.error('[WELCOME PLUGIN] Error generando imagen de despedida, usando fondo por defecto:', e)
+  }
   
   const fecha = new Date().toLocaleDateString('es-ES', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'long', year: 'numeric' })
   const groupSize = groupMetadata.participants.length - 1
@@ -115,13 +125,21 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
   }
 
   if (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_ADD || m.messageStubType == 27 || m.messageStubType == 31) {
-    const { pp, caption, mentions } = await generarBienvenida({ conn, userId, groupMetadata, chat })
-    await conn.sendMessage(m.chat, { image: { url: pp }, caption, mentions }, { quoted: null })
+    try {
+      const { pp, caption, mentions } = await generarBienvenida({ conn, userId, groupMetadata, chat })
+      await conn.sendMessage(m.chat, { image: { url: pp }, caption, mentions }, { quoted: null })
+    } catch (err) {
+      console.error('[WELCOME PLUGIN] Fallo total al enviar mensaje de bienvenida:', err)
+    }
   }
 
   if (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_REMOVE || m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_LEAVE || m.messageStubType == 28 || m.messageStubType == 32) {
-    const { pp, caption, mentions } = await generarDespedida({ conn, userId, groupMetadata, chat })
-    await conn.sendMessage(m.chat, { image: { url: pp }, caption, mentions }, { quoted: null })
+    try {
+      const { pp, caption, mentions } = await generarDespedida({ conn, userId, groupMetadata, chat })
+      await conn.sendMessage(m.chat, { image: { url: pp }, caption, mentions }, { quoted: null })
+    } catch (err) {
+      console.error('[WELCOME PLUGIN] Fallo total al enviar mensaje de despedida:', err)
+    }
   }
 }
 
