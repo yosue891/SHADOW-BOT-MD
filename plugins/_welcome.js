@@ -102,18 +102,22 @@ export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
   return { pp, caption, mentions: [userId] }
 }
 
-export async function before(m, { conn, usedPrefix }) {
-  if (!m.isGroup) return
-  if (!m.messageStubType) return
+export async function before(m, { conn, participants, usedPrefix }) {
+  if (!m.isGroup) return !0
+  if (!m.messageStubType) return !0
+
+  // Validación de subbots / bot primario para evitar spam o errores si se ejecutan funciones paralelas
+  const primaryBot = global.db?.data?.chats?.[m.chat]?.primaryBot
+  if (primaryBot && conn.user.jid !== primaryBot) return !1
 
   const chat = global.db?.data?.chats?.[m.chat]
-  if (!chat?.welcome) return
+  if (!chat?.welcome) return !0
 
   const who = m.messageStubParameters?.[0]
-  if (!who) return
+  if (!who) return !0
 
   const taguser = `@${who.split('@')[0]}`
-  const botname = global.author
+  const botname = global.author || 'Shadow-Bot'
 
   let metadata = null
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -125,10 +129,10 @@ export async function before(m, { conn, usedPrefix }) {
         await new Promise(r => setTimeout(r, 3000 * (attempt + 1)))
         continue
       }
-      return
+      return !0
     }
   }
-  if (!metadata) return
+  if (!metadata) return !0
   const totalMembers = metadata.participants.length
   const date = new Date().toLocaleDateString('es-ES')
 
@@ -194,7 +198,7 @@ export async function before(m, { conn, usedPrefix }) {
             name: 'quick_reply',
             buttonParamsJson: JSON.stringify({
               display_text: '👤 Registrarme',
-              id: `${usedPrefix}reg user.19`
+              id: `${usedPrefix || '#'}reg user.19`
             })
           }
         ],
