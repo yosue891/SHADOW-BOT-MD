@@ -15,7 +15,7 @@ const YOSOYYO_WELCOME_BANNER = {
     profileSize: 200,
     profileX: 500,
     profileY: 200,
-    borderColor: '#37148a',
+    borderColor: '#03138c',
     borderWidth: 8,
     texts: [
       {
@@ -29,7 +29,7 @@ const YOSOYYO_WELCOME_BANNER = {
         align: 'center'
       },
       {
-        text: 'las sombras te reciben',
+        text: 'Disfruta tu estancia',
         x: 500,
         y: 420,
         size: 30,
@@ -61,7 +61,7 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
   const groupSize = groupMetadata.participants.length + 1
   const desc = groupMetadata.desc?.toString() || 'Sin descripción'
   const mensaje = (chat.sWelcome || 'Edita con el comando "setwelcome"').replace(/{usuario}/g, `${username}`).replace(/{grupo}/g, `*${groupMetadata.subject}*`).replace(/{desc}/g, `${desc}`)
-  const caption = `❀ Bienvenido a *"_${groupMetadata.subject}_"*\n✰ _Usuario_ » ${username}\n● ${mensaje}\n◆ _Ahora somos ${groupSize} Miembros._\nꕥ Fecha » ${fecha}\n૮꒰ ˶• ᴗ •˶꒱ა Disfruta tu estadía en el grupo!\n> *➮ Puedes usar _#help_ para ver la lista de comandos.*`
+  const caption = `❀ Bienvenido a *"_${groupMetadata.subject}_"*\n✰ _Usuario_ » ${username}\n● ${mensaje}\n◆ _Ahora somos ${groupSize} Miembros._\nꕥ Fecha » ${fecha}\n૮꒰ ˶• ᴗ •˶꒱a Disfruta tu estadía en el grupo!\n> *➮ Puedes usar _#help_ para ver la lista de comandos.*`
   return { pp, caption, mentions: [userId] }
 }
 
