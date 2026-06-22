@@ -102,16 +102,26 @@ export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
   return { pp, caption, mentions: [userId] }
 }
 
-export async function before(m, { conn, participants, usedPrefix }) {
+export async function before(m, { conn, usedPrefix }) {
   if (!m.isGroup) return !0
   if (!m.messageStubType) return !0
 
-  // Validación de subbots / bot primario para evitar spam o errores si se ejecutan funciones paralelas
-  const primaryBot = global.db?.data?.chats?.[m.chat]?.primaryBot
-  if (primaryBot && conn.user.jid !== primaryBot) return !1
+  const stubType = getStubType(m)
+  
+  // Si no es un tipo de evento que nos interese, salimos rápido sin procesar
+  if (!WELCOME_STUB_TYPES.has(stubType) && !GOODBYE_STUB_TYPES.has(stubType)) return !0
+
+  // Log para revisar en la consola si el evento está llegando al archivo
+  console.log(`[WELCOME PLUGIN] Evento detectado. Tipo: ${stubType} en el grupo: ${m.chat}`)
 
   const chat = global.db?.data?.chats?.[m.chat]
-  if (!chat?.welcome) return !0
+  if (!chat?.welcome) {
+    console.log(`[WELCOME PLUGIN] Las bienvenidas están apagadas en este grupo en la base de datos.`)
+    return !0
+  }
+
+  const primaryBot = chat?.primaryBot
+  if (primaryBot && conn.user.jid !== primaryBot) return !1
 
   const who = m.messageStubParameters?.[0]
   if (!who) return !0
@@ -152,7 +162,6 @@ export async function before(m, { conn, participants, usedPrefix }) {
   }
 
   const profile = await getProfileUrl(conn, who)
-  const stubType = getStubType(m)
 
   if (WELCOME_STUB_TYPES.has(stubType)) {
     const welcomeImg = getWelcomeBannerUrl()
@@ -160,8 +169,9 @@ export async function before(m, { conn, participants, usedPrefix }) {
 
     try {
       await conn.sendMessage(m.chat, { image: { url: welcomeImg }, caption: welcomeCaption, mentions: [who] }, { quoted: fkontak })
+      console.log(`[WELCOME PLUGIN] Mensaje de bienvenida enviado con éxito a ${taguser}`)
     } catch (e) {
-      console.error('Error enviando bienvenida con imagen:', e)
+      console.error('[WELCOME PLUGIN] Error enviando bienvenida con imagen:', e)
       await conn.sendMessage(m.chat, { text: welcomeCaption, mentions: [who] }, { quoted: fkontak }).catch(() => {})
     }
   }
@@ -207,6 +217,7 @@ export async function before(m, { conn, participants, usedPrefix }) {
       },
       { quoted: fkontak }
     )
+    console.log(`[WELCOME PLUGIN] Mensaje de despedida enviado con éxito a ${taguser}`)
   }
 }
 
