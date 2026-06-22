@@ -42,28 +42,9 @@ const YOSOYYO_WELCOME_BANNER = {
   }
 }
 
-async function getProfileUrl(conn, userId) {
-  try {
-    return await conn.profilePictureUrl(userId, 'image')
-  } catch {
-    return 'https://i.imgur.com/JP52fdP.png'
-  }
-}
-
 export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
   const username = `@${userId.split('@')[0]}`
-  let pp = YOSOYYO_WELCOME_BANNER.data.backgroundUrl
-
-  try {
-    const profile = await getProfileUrl(conn, userId)
-    pp = 'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
-      'title=Bienvenido+Usuario' +
-      '&desc=Disfruta+tu+estancia' +
-      `&profile=${encodeURIComponent(profile)}` +
-      `&background=${encodeURIComponent(YOSOYYO_WELCOME_BANNER.data.backgroundUrl)}`
-  } catch (e) {
-    console.error('[WELCOME PLUGIN] Error generando imagen dinámica, usando fondo por defecto:', e)
-  }
+  const pp = YOSOYYO_WELCOME_BANNER.data.backgroundUrl
 
   const fecha = new Date().toLocaleDateString('es-ES', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'long', year: 'numeric' })
   const groupSize = groupMetadata.participants.length + 1
@@ -75,18 +56,7 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
 
 export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
   const username = `@${userId.split('@')[0]}`
-  let pp = 'https://raw.githubusercontent.com/El-brayan502/img/upload/uploads/f1daa4-1770608515673.jpg'
-
-  try {
-    const profile = await getProfileUrl(conn, userId)
-    pp = 'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
-      'title=Se+fue+del+grupo' +
-      '&desc=No+vuelvas' +
-      `&profile=${encodeURIComponent(profile)}` +
-      '&background=https%3A%2F%2Fraw.githubusercontent.com%2FEl-brayan502%2Fimg%2Fupload%2Fuploads%2Ff1daa4-1770608515673.jpg'
-  } catch (e) {
-    console.error('[WELCOME PLUGIN] Error generando imagen de despedida, usando fondo por defecto:', e)
-  }
+  const pp = 'https://raw.githubusercontent.com/El-brayan502/img/upload/uploads/f1daa4-1770608515673.jpg'
   
   const fecha = new Date().toLocaleDateString('es-ES', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'long', year: 'numeric' })
   const groupSize = groupMetadata.participants.length - 1
@@ -115,9 +85,7 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
     try {
       const parsed = JSON.parse(rawUser)
       userId = parsed.phoneNumber || parsed.id || rawUser
-    } catch (e) {
-      console.error('[WELCOME PLUGIN] Error parseando JSON de usuario:', e)
-    }
+    } catch (e) {}
   }
 
   if (!userId.includes('@')) {
@@ -129,7 +97,7 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
       const { pp, caption, mentions } = await generarBienvenida({ conn, userId, groupMetadata, chat })
       await conn.sendMessage(m.chat, { image: { url: pp }, caption, mentions }, { quoted: null })
     } catch (err) {
-      console.error('[WELCOME PLUGIN] Fallo total al enviar mensaje de bienvenida:', err)
+      console.error('[WELCOME PLUGIN] Error enviando bienvenida:', err)
     }
   }
 
@@ -138,7 +106,7 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
       const { pp, caption, mentions } = await generarDespedida({ conn, userId, groupMetadata, chat })
       await conn.sendMessage(m.chat, { image: { url: pp }, caption, mentions }, { quoted: null })
     } catch (err) {
-      console.error('[WELCOME PLUGIN] Fallo total al enviar mensaje de despedida:', err)
+      console.error('[WELCOME PLUGIN] Error enviando despedida:', err)
     }
   }
 }
