@@ -8,7 +8,20 @@ export async function before(m, { conn, usedPrefix }) {
   const taguser = `@${who.split('@')[0]}`
   const botname = global.author
 
-  const metadata = await conn.groupMetadata(m.chat)
+  let metadata = null
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      metadata = await conn.groupMetadata(m.chat)
+      break
+    } catch (e) {
+      if (e?.data === 429 || e?.output?.statusCode === 429 || e?.message?.includes('rate-overlimit')) {
+        await new Promise(r => setTimeout(r, 3000 * (attempt + 1)))
+        continue
+      }
+      return
+    }
+  }
+  if (!metadata) return
   const totalMembers = metadata.participants.length
   const date = new Date().toLocaleDateString('es-ES')
 
