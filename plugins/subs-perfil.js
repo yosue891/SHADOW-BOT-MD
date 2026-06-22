@@ -21,7 +21,7 @@ const handler = async (m, { conn, command, usedPrefix, text }) => {
         if (!media) return conn.reply(m.chat, `ꕥ No se pudo obtener la imagen.`, m);
 
         const image = await Jimp.read(media);
-        const buffer = await image.getBuffer('image/jpeg');
+        const buffer = await image.getBufferAsync('image/jpeg');
         await conn.updateProfilePicture(conn.user.jid, buffer);
 
         conn.reply(m.chat, `❒ La foto de tu perfil ha sido actualizada correctamente.`, m);

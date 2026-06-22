@@ -25,7 +25,7 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
     async function resizeImage(buffer, width, height) {
       try {
         const img = await Jimp.read(buffer)
-        return await img.resize(width, height).getBufferAsync(Jimp.MIME_JPEG)
+        return await img.resize({ width, height }).getBufferAsync(Jimp.MIME_JPEG)
       } catch {
         return buffer
       }

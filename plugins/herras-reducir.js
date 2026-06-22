@@ -45,7 +45,7 @@ let handler = async (m, { conn, text, usedPrefix }) => {
 
     let image = await Jimp.read(media)
     image.resize({ width: width, height: height })
-    let buffer = await image.getBuffer('image/jpeg')
+    let buffer = await image.getBufferAsync('image/jpeg')
 
     let formData = new FormData()
     formData.append('image', buffer, { filename: 'imagen.jpg', contentType: 'image/jpeg' })
