@@ -93,25 +93,22 @@ function extractPhone(jid = '') {
 async function resolveSenderToPhone(sender, m, conn) {
   if (!sender) return ''
   if (!sender.endsWith('@lid')) return extractPhone(sender)
-  const remoteJid = m?.key?.remoteJid
-  if (remoteJid && !remoteJid.endsWith('@lid') && !remoteJid.endsWith('@g.us') && !remoteJid.endsWith('@newsletter')) {
-    return extractPhone(remoteJid)
-  }
-  const lidToFind = sender.split('@')[0]
-  const groups = Object.keys(conn?.chats || {}).filter(jid => jid.endsWith('@g.us'))
-  for (const groupJid of groups) {
+  const chatJid = m?.chat || m?.key?.remoteJid
+  if (chatJid && chatJid.endsWith('@g.us')) {
+    const lidToFind = sender.split('@')[0]
     try {
-      const metadata = await conn.groupMetadata(groupJid).catch(() => null)
-      if (!metadata?.participants) continue
-      for (const participant of metadata.participants) {
-        if (participant.lid?.split('@')[0] === lidToFind && participant.phoneNumber) {
-          return extractPhone(participant.phoneNumber)
-        }
-        const participantJid = participant.phoneNumber || participant.jid || participant.id
-        if (!participantJid || participantJid.endsWith('@lid')) continue
-        const contactDetails = await conn.onWhatsApp(participantJid).catch(() => [])
-        if (contactDetails?.[0]?.lid?.split('@')[0] === lidToFind) {
-          return extractPhone(participantJid)
+      const metadata = await conn.groupMetadata(chatJid).catch(() => null)
+      if (metadata?.participants) {
+        for (const participant of metadata.participants) {
+          if (participant.lid?.split('@')[0] === lidToFind && participant.phoneNumber) {
+            return extractPhone(participant.phoneNumber)
+          }
+          const participantJid = participant.phoneNumber || participant.jid || participant.id
+          if (!participantJid || participantJid.endsWith('@lid')) continue
+          const contactDetails = await conn.onWhatsApp(participantJid).catch(() => [])
+          if (contactDetails?.[0]?.lid?.split('@')[0] === lidToFind) {
+            return extractPhone(participantJid)
+          }
         }
       }
     } catch {}
