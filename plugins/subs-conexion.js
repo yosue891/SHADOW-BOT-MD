@@ -96,22 +96,31 @@ async function resolveSenderToPhone(sender, m, conn) {
   const chatJid = m?.chat || m?.key?.remoteJid
   if (chatJid && chatJid.endsWith('@g.us')) {
     const lidToFind = sender.split('@')[0]
+    console.log('[LID-RESOLVE] Buscando LID:', lidToFind, 'en grupo:', chatJid)
     try {
       const metadata = await conn.groupMetadata(chatJid).catch(() => null)
       if (metadata?.participants) {
+        console.log('[LID-RESOLVE] Total participantes:', metadata.participants.length)
         for (const participant of metadata.participants) {
-          if (participant.lid?.split('@')[0] === lidToFind && participant.phoneNumber) {
-            return extractPhone(participant.phoneNumber)
+          const pJid = participant.jid || participant.id || ''
+          const pLid = participant.lid || ''
+          const pPhone = participant.phoneNumber || participant.pn || participant.phone || ''
+          if (pLid.split('@')[0] === lidToFind) {
+            console.log('[LID-RESOLVE] Match por lid field! phoneNumber:', pPhone, 'jid:', pJid)
+            if (pPhone) return extractPhone(pPhone)
+            if (pJid && !pJid.endsWith('@lid')) return extractPhone(pJid)
           }
-          const participantJid = participant.phoneNumber || participant.jid || participant.id
-          if (!participantJid || participantJid.endsWith('@lid')) continue
-          const contactDetails = await conn.onWhatsApp(participantJid).catch(() => [])
-          if (contactDetails?.[0]?.lid?.split('@')[0] === lidToFind) {
-            return extractPhone(participantJid)
+          if (pJid && !pJid.endsWith('@lid')) {
+            const contactDetails = await conn.onWhatsApp(pJid).catch(() => [])
+            if (contactDetails?.[0]?.lid?.split('@')[0] === lidToFind) {
+              console.log('[LID-RESOLVE] Match por onWhatsApp! jid:', pJid)
+              return extractPhone(pJid)
+            }
           }
         }
       }
-    } catch {}
+      console.log('[LID-RESOLVE] No se encontro match para LID:', lidToFind)
+    } catch (e) { console.error('[LID-RESOLVE] Error:', e.message) }
   }
   return ''
 }
