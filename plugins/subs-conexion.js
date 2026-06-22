@@ -105,6 +105,7 @@ async function resolveSenderToPhone(sender, m, conn) {
           const pJid = participant.jid || participant.id || ''
           const pLid = participant.lid || ''
           const pPhone = participant.phoneNumber || participant.pn || participant.phone || ''
+          console.log('[LID-RESOLVE] Participante:', JSON.stringify({ jid: pJid, lid: pLid, phone: pPhone, keys: Object.keys(participant) }))
           if (pLid.split('@')[0] === lidToFind) {
             console.log('[LID-RESOLVE] Match por lid field! phoneNumber:', pPhone, 'jid:', pJid)
             if (pPhone) return extractPhone(pPhone)
