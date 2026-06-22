@@ -102,6 +102,7 @@ async function resolveSenderToPhone(sender, m, conn) {
       if (metadata?.participants) {
         console.log('[LID-RESOLVE] Total participantes:', metadata.participants.length)
         for (const participant of metadata.participants) {
+          console.log('[LID-RESOLVE] Participante COMPLETO:', JSON.stringify(participant))
           const pJid = participant.jid || participant.id || ''
           const pLid = participant.lid || ''
           const pPhone = participant.phoneNumber || participant.pn || participant.phone || ''
