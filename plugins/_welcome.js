@@ -82,7 +82,18 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
   const groupSize = groupMetadata.participants.length + 1
   const desc = groupMetadata.desc?.toString() || 'Sin descripción'
   const mensaje = (chat.sWelcome || 'Edita con el comando "setwelcome"').replace(/{usuario}/g, `${username}`).replace(/{grupo}/g, `*${groupName}*`).replace(/{desc}/g, `${desc}`)
-  const caption = `❀ Bienvenido a *"_${groupName}_"*\n✰ _Usuario_ » ${username}\n● ${mensaje}\n◆ _Ahora somos ${groupSize} Miembros._\nꕥ Fecha » ${fecha}\n૮꒰ ˶• ᴗ •˶꒱a Disfruta tu estadía en el grupo!\n> *➮ Puedes usar _#help_ para ver la lista de comandos.*`
+  
+  const caption = `> ──･ ̸̷∵ \`𝐁𝐈𝐄𝐍𝐕𝐄𝐍𝐈𝐃𝐎 𝐀 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀\` *݁ ⚜︎*
+> 
+> ﹙🌑﹚੭੭ *Las sombras te reciben...*
+> de ׄ 𓏸𓈒 ׅ *𝐎𝐫𝐠𝐚𝐧𝐢𝐳𝐚𝐜𝐢𝐨́𝐧 ›* _${groupName}_
+> de ׄ 𓏸𓈒 ׅ *𝐂𝐨𝐧𝐭𝐫𝐚𝐭𝐢𝐬𝐭𝐚 ›* ${username}
+> de ׄ 𓏸𓈒 ׅ *𝐏𝐫𝐨𝐭𝐨𝐜𝐨𝐥𝐨 ›* ${mensaje}
+> de ׄ 𓏸𓈒 ׅ *𝐀𝐥𝐦𝐚𝐬 𝐫𝐞𝐮𝐧𝐢𝐝𝐚𝐬 ›* ${groupSize} Miembros.
+> de ׄ 𓏸𓈒 ׅ *𝐅𝐞𝐜𝐡𝐚 𝐚𝐫𝐜𝐚𝐧𝐚 ›* ${fecha}
+> 
+> 乂 *ɪ ᴀᴍ ᴀᴛᴏᴍɪᴄ... ᴅɪsғʀᴜᴛᴀ ᴛᴜ sᴛᴀʏ.* 乂
+> ➮ _Puedes usar #help para desplegar los comandos ocultos._`.trim()
   
   return { imageSource, caption, mentions: [userId] }
 }
@@ -139,7 +150,17 @@ export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
   const groupSize = groupMetadata.participants.length - 1
   const desc = groupMetadata.desc?.toString() || 'Sin descripción'
   const mensaje = (chat.sBye || 'Edita con el comando "setbye"').replace(/{usuario}/g, `${username}`).replace(/{grupo}/g, `${groupName}`).replace(/{desc}/g, `*${desc}*`)
-  const caption = `❀ Adiós de *"_${groupName}_"*\n✰ _Usuario_ » ${username}\n● ${mensaje}\n◆ _Ahora somos ${groupSize} Miembros._\nꕥ Fecha » ${fecha}\n(˶˃⤙˂˶) Te esperamos pronto!\n> *➮ Puedes usar _#help_ para ver la lista de comandos.*`
+  
+  const caption = `> ──･ ̸̷∵ \`𝐃𝐄𝐒𝐏𝐄𝐃𝐈𝐃𝐀 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀\` *݁ ⚜︎*
+> 
+> ﹙🌑﹚੭੭ *Un miembro se ha desvanecido...*
+> de ׄ 𓏸𓈒 ׅ *𝐎𝐫𝐠𝐚𝐧𝐢𝐳𝐚𝐜𝐢𝐨́𝐧 ›* _${groupName}_
+> de ׄ 𓏸𓈒 ׅ *𝐂𝐨𝐧𝐭𝐫𝐚𝐭𝐢𝐬𝐭𝐚 ›* ${username}
+> de ׄ 𓏸𓈒 ׅ *𝐏𝐫𝐨𝐭𝐨𝐜𝐨𝐥𝐨 ›* ${mensaje}
+> de ׄ 𓏸𓈒 ׅ *𝐀𝐥𝐦𝐚𝐬 𝐫𝐞𝐬𝐭𝐚𝐧𝐭𝐞𝐬 ›* ${groupSize} Miembros.
+> de ׄ 𓏸𓈒 ׅ *𝐅e𝐜𝐡𝐚 𝐚𝐫𝐜𝐚𝐧𝐚 ›* ${fecha}
+> 
+> 乂 *sᴜ sᴜᴇʀᴛᴇ sᴇ ʜᴀ ᴀɢᴏᴛᴀᴅᴏ ᴇɴ ʟᴀ ᴏsᴄᴜʀɪᴅᴀᴅ.* 乂`.trim()
   
   return { imageSource, caption, mentions: [userId] }
 }
