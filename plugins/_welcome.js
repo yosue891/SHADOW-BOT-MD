@@ -4,6 +4,8 @@ import { WAMessageStubType } from '@whiskeysockets/baileys'
 
 const API_BASE = 'https://yosoyyo-api-ofc.onrender.com/api/image/welcome-banner'
 const API_KEY = 'Andresv27728'
+const canalId = '120363403739366547@newsletter'
+const canalName = 'SHADOW-BOT'
 
 const YOSOYYO_WELCOME_BANNER = {
   status: 200,
@@ -168,10 +170,21 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
     userId = `${userId.split(':')[0]}@s.whatsapp.net`
   }
 
+  const contextInfo = {
+    mentionedJid: [userId],
+    isForwarded: true,
+    forwardingScore: 99,
+    forwardedNewsletterMessageInfo: {
+      newsletterJid: canalId,
+      serverMessageId: null,
+      newsletterName: canalName
+    }
+  }
+
   if (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_ADD || m.messageStubType == 27 || m.messageStubType == 31) {
     try {
       const { imageSource, caption, mentions } = await generarBienvenida({ conn, userId, groupMetadata, chat })
-      const messageOptions = { caption, mentions }
+      const messageOptions = { caption, mentions, contextInfo }
       if (Buffer.isBuffer(imageSource)) {
         messageOptions.image = imageSource
       } else {
@@ -186,7 +199,7 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
   if (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_REMOVE || m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_LEAVE || m.messageStubType == 28 || m.messageStubType == 32) {
     try {
       const { imageSource, caption, mentions } = await generarDespedida({ conn, userId, groupMetadata, chat })
-      const messageOptions = { caption, mentions }
+      const messageOptions = { caption, mentions, contextInfo }
       if (Buffer.isBuffer(imageSource)) {
         messageOptions.image = imageSource
       } else {
