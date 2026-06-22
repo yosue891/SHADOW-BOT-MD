@@ -92,16 +92,33 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
   const primaryBot = chat.primaryBot
   if (primaryBot && conn.user.jid !== primaryBot) return !1
 
-  const userId = m.messageStubParameters?.[0]
-  if (!userId) return !0
+  let rawUser = m.messageStubParameters?.[0]
+  if (!rawUser) return !0
 
-  // Evento de Bienvenida
+  let userId = rawUser
+  
+  // Procesar si Baileys manda el usuario dentro de un string JSON (como sale en tu consola)
+  if (rawUser.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(rawUser)
+      userId = parsed.phoneNumber || parsed.id || rawUser
+    } catch (e) {
+      console.error('[WELCOME PLUGIN] Error parseando JSON de usuario:', e)
+    }
+  }
+
+  // Forzar que tenga la terminación correcta si solo viene el número
+  if (!userId.includes('@')) {
+    userId = `${userId.split(':')[0]}@s.whatsapp.net`
+  }
+
+  // Evento de Bienvenida (Tipos: ADD = 27, INVITE = 31)
   if (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_ADD || m.messageStubType == 27 || m.messageStubType == 31) {
     const { pp, caption, mentions } = await generarBienvenida({ conn, userId, groupMetadata, chat })
     await conn.sendMessage(m.chat, { image: { url: pp }, caption, mentions }, { quoted: null })
   }
 
-  // Evento de Despedida
+  // Evento de Despedida (Tipos: REMOVE = 28, LEAVE = 32)
   if (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_REMOVE || m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_LEAVE || m.messageStubType == 28 || m.messageStubType == 32) {
     const { pp, caption, mentions } = await generarDespedida({ conn, userId, groupMetadata, chat })
     await conn.sendMessage(m.chat, { image: { url: pp }, caption, mentions }, { quoted: null })
