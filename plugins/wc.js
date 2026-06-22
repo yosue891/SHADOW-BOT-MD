@@ -8,8 +8,9 @@
  *   .welcome
  *   .welcome @usuario
  *
+ * Por defecto el fondo se elige al azar entre varias imágenes predefinidas.
  * Personalización (todo opcional, se puede combinar):
- *   .welcome --bg=https://imagen-de-fondo.jpg
+ *   .welcome --bg=https://imagen-de-fondo.jpg   (fuerza un fondo específico)
  *   .welcome --texto1="Bienvenido crack" --texto2="Pasa y disfruta"
  *   .welcome --colorTexto1=#ff0000 --colorBorde=#00ff00
  *   .welcome --tamTexto1=60 --tamTexto2=28
@@ -26,6 +27,16 @@ import fetch from 'node-fetch'
 
 const API_BASE = 'https://yosoyyo-api-ofc.onrender.com/api/image/welcome-banner'
 const API_KEY = 'Andresv27728' // key gratuita, cámbiala si tienes una propia
+
+// Fondos por defecto: si el usuario no pasa --bg=, se elige uno al azar de esta lista.
+// Puedes agregar/quitar URLs aquí cuando quieras.
+const DEFAULT_BACKGROUNDS = [
+  'https://raw.githubusercontent.com/El-brayan502/img/upload/uploads/f1daa4-1770608515673.jpg',
+  'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1000&h=500&q=80'
+]
+
+const getRandomBackground = () =>
+  DEFAULT_BACKGROUNDS[Math.floor(Math.random() * DEFAULT_BACKGROUNDS.length)]
 
 const escapeXml = (str = '') =>
   String(str)
@@ -79,7 +90,7 @@ let handler = async (m, { conn, text }) => {
     const params = {
       width: opts.ancho || 1000,
       height: opts.alto || 500,
-      backgroundUrl: opts.bg || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1000&h=500&q=80',
+      backgroundUrl: opts.bg || getRandomBackground(),
       profileUrl: profileUrl,
       profileSize: opts.tamPerfil || 200,
       profileX: opts.xPerfil || 500,
