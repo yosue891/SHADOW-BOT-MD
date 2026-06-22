@@ -93,37 +93,54 @@ function extractPhone(jid = '') {
 async function resolveSenderToPhone(sender, m, conn) {
   if (!sender) return ''
   if (!sender.endsWith('@lid')) return extractPhone(sender)
+  const lidToFind = sender.split('@')[0]
+  console.log('[LID-RESOLVE] Buscando LID:', lidToFind)
+
   const chatJid = m?.chat || m?.key?.remoteJid
   if (chatJid && chatJid.endsWith('@g.us')) {
-    const lidToFind = sender.split('@')[0]
-    console.log('[LID-RESOLVE] Buscando LID:', lidToFind, 'en grupo:', chatJid)
     try {
       const metadata = await conn.groupMetadata(chatJid).catch(() => null)
       if (metadata?.participants) {
-        console.log('[LID-RESOLVE] Total participantes:', metadata.participants.length)
+        console.log('[LID-RESOLVE] Participantes en grupo:', metadata.participants.length)
         for (const participant of metadata.participants) {
-          console.log('[LID-RESOLVE] Participante COMPLETO:', JSON.stringify(participant))
-          const pJid = participant.jid || participant.id || ''
-          const pLid = participant.lid || ''
-          const pPhone = participant.phoneNumber || participant.pn || participant.phone || ''
-          console.log('[LID-RESOLVE] Participante:', JSON.stringify({ jid: pJid, lid: pLid, phone: pPhone, keys: Object.keys(participant) }))
-          if (pLid.split('@')[0] === lidToFind) {
-            console.log('[LID-RESOLVE] Match por lid field! phoneNumber:', pPhone, 'jid:', pJid)
-            if (pPhone) return extractPhone(pPhone)
-            if (pJid && !pJid.endsWith('@lid')) return extractPhone(pJid)
+          console.log('[LID-RESOLVE] Participante:', JSON.stringify(participant))
+          if (participant.lid?.split('@')[0] === lidToFind) {
+            const phone = participant.phoneNumber || participant.jid || participant.id
+            if (phone && !phone.endsWith('@lid')) {
+              console.log('[LID-RESOLVE] Match por lid field!')
+              return extractPhone(phone)
+            }
           }
+          const pJid = participant.jid || participant.id || ''
           if (pJid && !pJid.endsWith('@lid')) {
             const contactDetails = await conn.onWhatsApp(pJid).catch(() => [])
             if (contactDetails?.[0]?.lid?.split('@')[0] === lidToFind) {
-              console.log('[LID-RESOLVE] Match por onWhatsApp! jid:', pJid)
+              console.log('[LID-RESOLVE] Match por onWhatsApp!')
               return extractPhone(pJid)
             }
           }
         }
       }
-      console.log('[LID-RESOLVE] No se encontro match para LID:', lidToFind)
-    } catch (e) { console.error('[LID-RESOLVE] Error:', e.message) }
+    } catch (e) { console.error('[LID-RESOLVE] Error grupo:', e.message) }
   }
+
+  console.log('[LID-RESOLVE] Buscando en conn.chats...')
+  for (const [jid, chat] of Object.entries(conn?.chats || {})) {
+    if (chat?.lid === lidToFind || jid.includes(lidToFind)) {
+      console.log('[LID-RESOLVE] Match en chats:', jid)
+      return extractPhone(jid)
+    }
+  }
+
+  console.log('[LID-RESOLVE] Buscando en conn.contacts...')
+  for (const [jid, contact] of Object.entries(conn?.contacts || {})) {
+    if (contact?.lid === lidToFind || contact?.id?.includes(lidToFind)) {
+      console.log('[LID-RESOLVE] Match en contacts:', jid)
+      return extractPhone(jid)
+    }
+  }
+
+  console.log('[LID-RESOLVE] No se encontro match para LID:', lidToFind)
   return ''
 }
 
