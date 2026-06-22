@@ -1,4 +1,5 @@
 import fs from 'fs'
+import { WAMessageStubType } from '@whiskeysockets/baileys'
 
 const YOSOYYO_WELCOME_BANNER = {
   status: 200,
@@ -122,28 +123,15 @@ export async function before(m, { conn, usedPrefix }) {
 
   const profile = await getProfileUrl(conn, who)
 
-  if (m.messageStubType === 27) {
+  if (m.messageStubType === WAMessageStubType.GROUP_PARTICIPANT_ADD || m.messageStubType === 27) {
     const welcomeImg = getWelcomeBannerUrl()
 
     await conn.sendMessage(
       m.chat,
       {
-        product: {
-          productImage: { url: welcomeImg },
-          productId: 'welcome-001',
-          title: `─ W E L C O M E ─🥷🏻`,
-          currencyCode: 'USD',
-          priceAmount1000: '0',
-          retailId: 1677,
-          productImageCount: 1
-        },
-
-        businessOwnerJid: '0@s.whatsapp.net',
-
+        image: { url: welcomeImg },
         caption: `\n*Bienvenido/a al grupo*\n\n> Usuario: ${taguser}\n> Miembros totales: ${totalMembers}\n> Fecha: ${date}\n`.trim(),
-
         footer: `© ${botname} · Welcome`,
-
         interactiveButtons: [
           {
             name: 'quick_reply',
@@ -153,14 +141,13 @@ export async function before(m, { conn, usedPrefix }) {
             })
           }
         ],
-
         mentions: [who]
       },
       { quoted: fkontak }
     )
   }
 
-  if (m.messageStubType === 28 || m.messageStubType === 32) {
+  if (m.messageStubType === WAMessageStubType.GROUP_PARTICIPANT_REMOVE || m.messageStubType === WAMessageStubType.GROUP_PARTICIPANT_LEAVE || m.messageStubType === 28 || m.messageStubType === 32) {
     const goodbyeImg =
       'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
       'title=Se+fue+del+grupo' +
