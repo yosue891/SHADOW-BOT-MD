@@ -42,10 +42,6 @@ const YOSOYYO_WELCOME_BANNER = {
   }
 }
 
-function getWelcomeBannerUrl() {
-  return YOSOYYO_WELCOME_BANNER.data.backgroundUrl
-}
-
 async function getProfileUrl(conn, userId) {
   try {
     return await conn.profilePictureUrl(userId, 'image')
@@ -56,7 +52,14 @@ async function getProfileUrl(conn, userId) {
 
 export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
   const username = `@${userId.split('@')[0]}`
-  const pp = getWelcomeBannerUrl()
+  const profile = await getProfileUrl(conn, userId)
+  
+  const pp = 'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
+    'title=Bienvenido+Usuario' +
+    '&desc=Disfruta+tu+estancia' +
+    `&profile=${encodeURIComponent(profile)}` +
+    `&background=${encodeURIComponent(YOSOYYO_WELCOME_BANNER.data.backgroundUrl)}`
+
   const fecha = new Date().toLocaleDateString('es-ES', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'long', year: 'numeric' })
   const groupSize = groupMetadata.participants.length + 1
   const desc = groupMetadata.desc?.toString() || 'Sin descripción'
@@ -68,6 +71,7 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
 export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
   const username = `@${userId.split('@')[0]}`
   const profile = await getProfileUrl(conn, userId)
+  
   const pp = 'https://api.ryuu-dev.offc.my.id/tools/WelcomeLeave?' +
     'title=Se+fue+del+grupo' +
     '&desc=No+vuelvas' +
