@@ -156,10 +156,19 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
   const mentionedJid = m.mentionedJid || []
   const who = mentionedJid[0] || m.sender
-  const pairingNumber = await resolveSenderToPhone(who, m, conn)
+  let pairingNumber = await resolveSenderToPhone(who, m, conn)
   console.log('m.sender =>', m.sender)
   console.log('who =>', who)
   console.log('pairingNumber =>', pairingNumber)
+
+  if (!pairingNumber && who.endsWith('@lid')) {
+    const argNumber = args.find(a => normalizePhoneNumber(a).length >= 8)
+    if (argNumber) {
+      pairingNumber = normalizePhoneNumber(argNumber)
+    } else {
+      return conn.reply(m.chat, `ꕥ No pude detectar tu número real porque estás en un dispositivo vinculado.\n\nUsa el comando así:\n*${usedPrefix}code <tu número>*\n\nEjemplo: *${usedPrefix}code 573001234567*`, m)
+    }
+  }
   console.log('mentionedJid =>', mentionedJid)
   const id = pairingNumber || extractPhone(who)
   const pairingPhoneNumber = getPairingPhoneNumber(m, args, who)
