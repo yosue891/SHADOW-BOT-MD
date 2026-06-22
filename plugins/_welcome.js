@@ -86,7 +86,7 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
   const caption = `> ⚔ ── ── ── ── ── ── ⚔
 >  ── ── ✦ 𝔖𝔥𝔞𝔡𝔬𝔴 𝔊𝔞𝔯𝔡𝔢𝔫 ✦ ── ──
 > 
-> 𝔘𝔫 𝔫𝔲𝔢𝔳𝔬 𝔠𝔬𝔫𝔱𝔯𝔞𝔱𝔦𝔰𝔱𝔞 𝔰𝔢 𝔲𝔫𝔢 𝔞 𝔩𝔞𝔰 𝔰𝔬𝔪𝔟𝔯𝔞𝔰.
+> 𝔘𝔫 𝔫𝔲𝔢𝔳𝔬 𝔠𝔬𝔫𝔱... Escuchando órdenes...
 > 
 > ❖ 𝔖𝔢𝔠𝔱𝔬𝔯 ⪢ _${groupName}_
 > ❖ ℑ𝔡𝔢𝔫𝔱𝔦𝔣𝔦𝔠𝔞𝔠𝔦𝔬́𝔫 ⪢ ${username}
@@ -208,12 +208,25 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
   if (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_ADD || m.messageStubType == 27 || m.messageStubType == 31) {
     try {
       const { imageSource, caption, mentions } = await generarBienvenida({ conn, userId, groupMetadata, chat })
-      const messageOptions = { caption, mentions, contextInfo }
-      if (Buffer.isBuffer(imageSource)) {
-        messageOptions.image = imageSource
-      } else {
-        messageOptions.image = { url: imageSource }
+      
+      const imgLocation = Buffer.isBuffer(imageSource) ? imageSource : { url: imageSource }
+      
+      const messageOptions = {
+        product: {
+          productImage: imgLocation,
+          productId: 'welcome-001',
+          title: `─ W E L C O M E ─🥷🏻`,
+          currencyCode: 'USD',
+          priceAmount1000: '0',
+          retailerId: 1677,
+          productImageCount: 1
+        },
+        businessOwnerJid: '0@s.whatsapp.net',
+        caption,
+        mentions,
+        contextInfo
       }
+      
       await conn.sendMessage(m.chat, messageOptions, { quoted: null })
     } catch (err) {
       console.error('[WELCOME PLUGIN] Error enviando bienvenida:', err)
@@ -223,12 +236,25 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
   if (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_REMOVE || m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_LEAVE || m.messageStubType == 28 || m.messageStubType == 32) {
     try {
       const { imageSource, caption, mentions } = await generarDespedida({ conn, userId, groupMetadata, chat })
-      const messageOptions = { caption, mentions, contextInfo }
-      if (Buffer.isBuffer(imageSource)) {
-        messageOptions.image = imageSource
-      } else {
-        messageOptions.image = { url: imageSource }
+      
+      const imgLocation = Buffer.isBuffer(imageSource) ? imageSource : { url: imageSource }
+      
+      const messageOptions = {
+        product: {
+          productImage: imgLocation,
+          productId: 'goodbye-001',
+          title: '─Ａ Ｄ Ｉ Ō S─👋🏻',
+          currencyCode: 'USD',
+          priceAmount1000: '0',
+          retailerId: 1677,
+          productImageCount: 1
+        },
+        businessOwnerJid: '0@s.whatsapp.net',
+        caption,
+        mentions,
+        contextInfo
       }
+      
       await conn.sendMessage(m.chat, messageOptions, { quoted: null })
     } catch (err) {
       console.error('[WELCOME PLUGIN] Error enviando despedida:', err)
