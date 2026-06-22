@@ -129,11 +129,8 @@ const _lidCache = new Map()
 async function resolveSenderToPhone(sender, m, conn) {
   if (!sender) return ''
   if (!sender.endsWith('@lid')) return extractPhone(sender)
-  console.log('[LID-RESOLVE] Resolviendo LID:', sender)
-
   const cached = _lidCache.get(sender)
   if (cached && !cached.endsWith('@lid')) {
-    console.log('[LID-RESOLVE] Encontrado en cache:', cached)
     return extractPhone(cached)
   }
 
@@ -142,26 +139,24 @@ async function resolveSenderToPhone(sender, m, conn) {
     if (repo?.lidMapping?.getPNForLID) {
       const pn = await repo.lidMapping.getPNForLID(sender)
       if (pn && !pn.endsWith('@lid') && !isLidConverted(pn)) {
-        console.log('[LID-RESOLVE] Resuelto via signalRepository:', pn)
         _lidCache.set(sender, pn)
         return extractPhone(pn)
       }
     }
-  } catch (e) { console.log('[LID-RESOLVE] signalRepository error:', e.message) }
+  } catch {}
 
   try {
     if (conn.store?.contacts) {
       for (const [pnJid, contact] of Object.entries(conn.store.contacts)) {
         if (contact.lid === sender || contact.id === sender) {
           if (pnJid && !pnJid.endsWith('@lid') && !isLidConverted(pnJid) && pnJid !== 'status@broadcast') {
-            console.log('[LID-RESOLVE] Resuelto via store.contacts:', pnJid)
             _lidCache.set(sender, pnJid)
             return extractPhone(pnJid)
           }
         }
       }
     }
-  } catch (e) { console.log('[LID-RESOLVE] store.contacts error:', e.message) }
+  } catch {}
 
   const chatJid = m?.chat || m?.key?.remoteJid
   if (chatJid && chatJid.endsWith('@g.us')) {
@@ -170,15 +165,13 @@ async function resolveSenderToPhone(sender, m, conn) {
       if (metadata?.participants) {
         const resolved = resolveAnyLidToJid(sender, metadata.participants)
         if (resolved && resolved !== sender && !resolved.endsWith('@lid')) {
-          console.log('[LID-RESOLVE] Resuelto via group participants:', resolved)
           _lidCache.set(sender, resolved)
           return extractPhone(resolved)
         }
       }
-    } catch (e) { console.log('[LID-RESOLVE] groupMetadata error:', e.message) }
+    } catch {}
   }
 
-  console.log('[LID-RESOLVE] No se pudo resolver LID:', sender)
   return ''
 }
 
@@ -223,9 +216,6 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
   const mentionedJid = m.mentionedJid || []
   const who = mentionedJid[0] || m.sender
   let pairingNumber = await resolveSenderToPhone(who, m, conn)
-  console.log('m.sender =>', m.sender)
-  console.log('who =>', who)
-  console.log('pairingNumber =>', pairingNumber)
 
   if (!pairingNumber && who.endsWith('@lid')) {
     const argNumber = args.find(a => normalizePhoneNumber(a).length >= 8)
@@ -235,7 +225,6 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
       return conn.reply(m.chat, `ꕥ No pude detectar tu número real porque estás en un dispositivo vinculado.\n\nUsa el comando así:\n*${usedPrefix}code <tu número>*\n\nEjemplo: *${usedPrefix}code 573001234567*`, m)
     }
   }
-  console.log('mentionedJid =>', mentionedJid)
   const id = pairingNumber || extractPhone(who)
   const pairingPhoneNumber = getPairingPhoneNumber(m, args, who)
   const jadiDir = global.jadi || 'Sessions/SubBot'
@@ -341,9 +330,6 @@ export async function MichiJadiBot(options) {
   (await resolveSenderToPhone(m?.key?.participant, m, conn)) ||
   (await resolveSenderToPhone(m?.participant, m, conn))
       if (!phoneNumber) throw new Error('No se pudo detectar el número del usuario para generar el código.')
-
-console.log('sender:', m.sender)
-console.log('contact:', conn.contacts?.[m.sender])
 
 const secret = await sock.requestPairingCode(phoneNumber)
       const formattedSecret = secret.match(/.{1,4}/g)?.join('-') || secret
