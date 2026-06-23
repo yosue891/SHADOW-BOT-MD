@@ -29,21 +29,12 @@ const fkontak = {
         description: "« Las lenguas del mundo se inclinan ante la Sombra. »",
         currencyCode: "USD",
         priceAmount1000: '0',
-        retailerId: "traductor"
+        retailId: "traductor"
       },
       businessOwnerJid: "584242773183@s.whatsapp.net"
     }
   }
 }
-
-const buttons = [
-  { buttonId: `${usedPrefix + command} en ${text}`, buttonText: { displayText: '🇺🇸 Inglés' }, type: 1 },
-  { buttonId: `${usedPrefix + command} es ${text}`, buttonText: { displayText: '🇪🇸 Español' }, type: 1 },
-  { buttonId: `${usedPrefix + command} pt ${text}`, buttonText: { displayText: '🇧🇷 Portugués' }, type: 1 },
-  { buttonId: `${usedPrefix + command} fr ${text}`, buttonText: { displayText: '🇫🇷 Francés' }, type: 1 },
-  { buttonId: `${usedPrefix + command} it ${text}`, buttonText: { displayText: '🇮🇹 Italiano' }, type: 1 },
-  { buttonId: `${usedPrefix + command} de ${text}`, buttonText: { displayText: '🇩🇪 Alemán' }, type: 1 }
-]
 
 if (args[0] && args[0].length === 2) {
   let lang = args[0]
@@ -54,27 +45,40 @@ if (args[0] && args[0].length === 2) {
   return await m.react('✔️')
 }
 
-await conn.sendMessage(
-  m.chat,
+const sections = [
   {
-    text: '✦ Selecciona el idioma al que deseas traducir:',
-    footer: 'Sʜᴀᴅᴏᴡ Gᴀʀᴅᴇɴ ⚜',
-    buttons,
-    headerType: 1,
-    contextInfo: {
-      externalAdReply: {
-        title: "Shadow Garden ┊ Traductor Arcano",
-        body: "El conocimiento se somete a la Sombra.",
-        mediaType: 1,
-        thumbnail: bigBuffer,
-        renderLargerThumbnail: true,
-        showAdAttribution: false,
-        sourceUrl: "https://google.com"
-      }
+    title: 'Idiomas Disponibles',
+    rows: [
+      { title: '🇺🇸 Inglés', rowId: `${usedPrefix + command} en ${text}`, description: 'Traducir texto a Inglés' },
+      { title: '🇪🇸 Español', rowId: `${usedPrefix + command} es ${text}`, description: 'Traducir texto a Español' },
+      { title: '🇧🇷 Portugués', rowId: `${usedPrefix + command} pt ${text}`, description: 'Traducir texto a Portugués' },
+      { title: '🇫🇷 Francés', rowId: `${usedPrefix + command} fr ${text}`, description: 'Traducir texto a Francés' },
+      { title: '🇮🇹 Italiano', rowId: `${usedPrefix + command} it ${text}`, description: 'Traducir texto a Italiano' },
+      { title: '🇩🇪 Alemán', rowId: `${usedPrefix + command} de ${text}`, description: 'Traducir texto a Alemán' }
+    ]
+  }
+]
+
+const listMessage = {
+  text: '✦ Selecciona el idioma al que deseas traducir:',
+  footer: 'Sʜᴀᴅᴏᴡ Gᴀʀᴅᴇɴ ⚜',
+  title: '✦ Traductor Arcano',
+  buttonText: 'Seleccionar Idioma ⚔',
+  sections,
+  contextInfo: {
+    externalAdReply: {
+      title: "Shadow Garden ┊ Traductor Arcano",
+      body: "El conocimiento se somete a la Sombra.",
+      mediaType: 1,
+      thumbnail: bigBuffer,
+      renderLargerThumbnail: true,
+      showAdAttribution: false,
+      sourceUrl: "https://google.com"
     }
-  },
-  { quoted: fkontak }
-)
+  }
+}
+
+await conn.sendMessage(m.chat, listMessage, { quoted: fkontak })
 
 } catch (e) {
 await m.react('✖️')
