@@ -45,40 +45,44 @@ if (args[0] && args[0].length === 2) {
   return await m.react('✔️')
 }
 
-const sections = [
+const menuTexto = `✦ *𝐓𝐫𝐚𝐝𝐮𝐜𝐭𝐨𝐫 𝐀𝐫𝐜𝐚𝐧𝐨* ✦
+
+Responde a este mensaje con el número del idioma al que deseas traducir el texto:
+
+1 ── 🇺🇸 Inglés
+2 ── 🇪🇸 Español
+3 ── 🇧🇷 Portugués
+4 ── 🇫🇷 Francés
+5 ── 🇮🇹 Italiano
+6 ── 🇩🇪 Alemán
+
+_Sʜᴀᴅᴏᴡ Gᴀʀᴅᴇɴ ⚜_`
+
+// Guardamos el texto original en la base de datos temporal del chat para recuperarlo al responder
+global.db = global.db || { data: {} }
+global.db.data = global.db.data || {}
+global.db.data.chats = global.db.data.chats || {}
+global.db.data.chats[m.chat] = global.db.data.chats[m.chat] || {}
+global.db.data.chats[m.chat].traductorTexto = text
+
+await conn.sendMessage(
+  m.chat,
   {
-    title: 'Idiomas Disponibles',
-    rows: [
-      { title: '🇺🇸 Inglés', rowId: `${usedPrefix + command} en ${text}`, description: 'Traducir texto a Inglés' },
-      { title: '🇪🇸 Español', rowId: `${usedPrefix + command} es ${text}`, description: 'Traducir texto a Español' },
-      { title: '🇧🇷 Portugués', rowId: `${usedPrefix + command} pt ${text}`, description: 'Traducir texto a Portugués' },
-      { title: '🇫🇷 Francés', rowId: `${usedPrefix + command} fr ${text}`, description: 'Traducir texto a Francés' },
-      { title: '🇮🇹 Italiano', rowId: `${usedPrefix + command} it ${text}`, description: 'Traducir texto a Italiano' },
-      { title: '🇩🇪 Alemán', rowId: `${usedPrefix + command} de ${text}`, description: 'Traducir texto a Alemán' }
-    ]
-  }
-]
-
-const listMessage = {
-  text: '✦ Selecciona el idioma al que deseas traducir:',
-  footer: 'Sʜᴀᴅᴏᴡ Gᴀʀᴅᴇɴ ⚜',
-  title: '✦ Traductor Arcano',
-  buttonText: 'Seleccionar Idioma ⚔',
-  sections,
-  contextInfo: {
-    externalAdReply: {
-      title: "Shadow Garden ┊ Traductor Arcano",
-      body: "El conocimiento se somete a la Sombra.",
-      mediaType: 1,
-      thumbnail: bigBuffer,
-      renderLargerThumbnail: true,
-      showAdAttribution: false,
-      sourceUrl: "https://google.com"
+    text: menuTexto,
+    contextInfo: {
+      externalAdReply: {
+        title: "Shadow Garden ┊ Traductor Arcano",
+        body: "El conocimiento se somete a la Sombra.",
+        mediaType: 1,
+        thumbnail: bigBuffer,
+        renderLargerThumbnail: true,
+        showAdAttribution: false,
+        sourceUrl: "https://google.com"
+      }
     }
-  }
-}
-
-await conn.sendMessage(m.chat, listMessage, { quoted: fkontak })
+  },
+  { quoted: fkontak }
+)
 
 } catch (e) {
 await m.react('✖️')
@@ -88,6 +92,40 @@ conn.reply(
   m
 )
 }}
+
+// Handler secundario para detectar las respuestas numéricas al menú
+handler.before = async function (m, { conn }) {
+  if (!m.quoted || !m.text) return !0
+  if (!m.quoted.text || !m.quoted.text.includes('𝐓&zwj;𝐫&zwj;𝐚&zwj;𝐝&zwj;𝐮&zwj;𝐜&zwj;𝐭&zwj;𝐨&zwj;𝐫&zwj; 𝐀&zwj;𝐫&zwj;𝐜&zwj;𝐚&zwj;𝐧&zwj;𝐨')) {
+    if (!m.quoted.text || !m.quoted.text.includes('Traductor Arcano')) return !0
+  }
+
+  const textSaved = global.db?.data?.chats?.[m.chat]?.traductorTexto
+  if (!textSaved) return !0
+
+  let lang = ''
+  if (m.text === '1') lang = 'en'
+  if (m.text === '2') lang = 'es'
+  if (m.text === '3') lang = 'pt'
+  if (m.text === '4') lang = 'fr'
+  if (m.text === '5') lang = 'it'
+  if (m.text === '6') lang = 'de'
+
+  if (lang) {
+    try {
+      await m.react('🕒')
+      const result = await translate(textSaved, { to: lang, autoCorrect: true })
+      await conn.reply(m.chat, `✦ Traducción (${lang}):\n\n${result.text}`, m)
+      await m.react('✔️')
+      // Limpiamos el texto guardado
+      global.db.data.chats[m.chat].traductorTexto = null
+    } catch (e) {
+      await m.react('✖️')
+      console.error(e)
+    }
+  }
+  return !0
+}
 
 handler.help = ['traducir']
 handler.tags = ['utils']
