@@ -1,11 +1,11 @@
 import translate from '@vitalets/google-translate-api'
 
-var handler = async (m, { conn, usedPrefix, command, args }) => {
+let handler = async (m, { conn, usedPrefix, command, args }) => {
 try {
 let text = args.join(' ') || m.quoted?.text
 if (!text) return conn.reply(m.chat, '《✧》 Escribe o responde un texto para traducirlo.', m)
 
-const imagenUrl = "https://i.ibb.co/b50eeb86ca86.jpg" // URL corregida/directa si es necesario
+const imagenUrl = "https://i.ibb.co/b50eeb86ca86.jpg"
 
 const fkontak = {
   key: {
@@ -18,7 +18,7 @@ const fkontak = {
       product: {
         productImage: {
           mimetype: "image/jpeg",
-          jpegThumbnail: null // Evita crasheos por buffer corrupto o fetch caído
+          jpegThumbnail: null
         },
         title: `⌗ֶㅤ𝐓𝐫𝐚𝐝𝐮𝐜𝐭𝐨𝐫 𝐝𝐞 𝐥𝐚 𝐒𝐨𝐦𝐛𝐫𝐚 ⚜`,
         description: "« Las lenguas del mundo se inclinan ante la Sombra. »",
@@ -72,7 +72,6 @@ const enviado = await conn.sendMessage(
   { quoted: fkontak }
 )
 
-// Guardamos los datos usando el ID del mensaje enviado para un match perfecto
 global.db = global.db || { data: {} }
 global.db.data = global.db.data || {}
 global.db.data.chats = global.db.data.chats || {}
@@ -82,9 +81,7 @@ global.db.data.chats[m.chat].traductorTexto = text
 
 } catch (e) {
   console.error('[TRANSLATE ERROR]', e)
-  try {
-    await m.react('✖️')
-  } catch (err) {}
+  try { await m.react('✖️') } catch (err) {}
   return conn.reply(
     m.chat,
     `⚠︎ Ocurrió un error ejecutando *${usedPrefix + command}*.\n\n${e.message || e}`,
@@ -98,7 +95,6 @@ handler.before = async function (m, { conn }) {
   const chatData = global.db?.data?.chats?.[m.chat]
   if (!chatData || !chatData.traductorMenuId || !chatData.traductorTexto) return !0
 
-  // Validamos con total seguridad que esté respondiendo exactamente al menú del traductor
   if (m.quoted.id !== chatData.traductorMenuId) return !0
 
   let lang = ''
@@ -116,7 +112,6 @@ handler.before = async function (m, { conn }) {
       await conn.reply(m.chat, `✦ Traducción (${lang}):\n\n${result.text}`, m)
       await m.react('✔️')
       
-      // Limpiamos la base temporal de este chat tras una traducción exitosa
       chatData.traductorMenuId = null
       chatData.traductorTexto = null
     } catch (e) {
