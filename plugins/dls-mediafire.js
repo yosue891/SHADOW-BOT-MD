@@ -9,18 +9,18 @@ let handler = async (m, { conn, text, usedPrefix }) => {
   try {
     await m.react('🕒')
 
-    const apiURL = `https://apiaxi.i11.eu/down/mediafire?url=${encodeURIComponent(text)}`
+    const apiURL = `https://yosoyyo-api-ofc.onrender.com/api/mediafire?url=${encodeURIComponent(text)}&apiKey=yosoyyo_sk_2nbk5m69`
     const res = await fetch(apiURL)
     const json = await res.json()
 
-    if (!json.status || !json.result) {
+    if (!json.result) {
       throw 'ꕥ No se pudo obtener el archivo desde la API.'
     }
 
     const file = json.result
-    const filename = file.filename || 'archivo'
-    const filesize = file.filesize || 'desconocido'
-    const dl_url = file.url
+    const filename = file.title || 'archivo'
+    const filesize = file.size || 'desconocido'
+    const dl_url = file.link
 
     const mimetype =
       lookup(filename.split('.').pop().toLowerCase()) ||
