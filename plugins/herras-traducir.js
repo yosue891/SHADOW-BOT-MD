@@ -1,16 +1,11 @@
 import translate from '@vitalets/google-translate-api'
-import fetch from 'node-fetch'
 
 var handler = async (m, { conn, usedPrefix, command, args }) => {
 try {
 let text = args.join(' ') || m.quoted?.text
 if (!text) return conn.reply(m.chat, '《✧》 Escribe o responde un texto para traducirlo.', m)
 
-const iconUrl = "https://i.ibb.co/JWjZXhNX/b50eeb86ca86.jpg"
-const bigUrl = "https://i.ibb.co/JWjZXhNX/b50eeb86ca86.jpg"
-
-const iconBuffer = await (await fetch(iconUrl)).buffer()
-const bigBuffer = await (await fetch(bigUrl)).buffer()
+const imagenUrl = "https://i.ibb.co/b50eeb86ca86.jpg" // URL corregida/directa si es necesario
 
 const fkontak = {
   key: {
@@ -23,7 +18,7 @@ const fkontak = {
       product: {
         productImage: {
           mimetype: "image/jpeg",
-          jpegThumbnail: iconBuffer
+          jpegThumbnail: null // Evita crasheos por buffer corrupto o fetch caído
         },
         title: `⌗ֶㅤ𝐓𝐫𝐚𝐝𝐮𝐜𝐭𝐨𝐫 𝐝𝐞 𝐥𝐚 𝐒𝐨𝐦𝐛𝐫𝐚 ⚜`,
         description: "« Las lenguas del mundo se inclinan ante la Sombra. »",
@@ -67,7 +62,7 @@ const enviado = await conn.sendMessage(
         title: "Shadow Garden ┊ Traductor Arcano",
         body: "El conocimiento se somete a la Sombra.",
         mediaType: 1,
-        thumbnail: bigBuffer,
+        thumbnailUrl: imagenUrl,
         renderLargerThumbnail: true,
         showAdAttribution: false,
         sourceUrl: "https://google.com"
@@ -86,12 +81,15 @@ global.db.data.chats[m.chat].traductorMenuId = enviado.key.id
 global.db.data.chats[m.chat].traductorTexto = text
 
 } catch (e) {
-await m.react('✖️')
-conn.reply(
-  m.chat,
-  `⚠︎ Ocurrió un error ejecutando *${usedPrefix + command}*.\n\n${e.message}`,
-  m
-)
+  console.error('[TRANSLATE ERROR]', e)
+  try {
+    await m.react('✖️')
+  } catch (err) {}
+  return conn.reply(
+    m.chat,
+    `⚠︎ Ocurrió un error ejecutando *${usedPrefix + command}*.\n\n${e.message || e}`,
+    m
+  )
 }}
 
 handler.before = async function (m, { conn }) {
@@ -122,7 +120,7 @@ handler.before = async function (m, { conn }) {
       chatData.traductorMenuId = null
       chatData.traductorTexto = null
     } catch (e) {
-      await m.react('✖️')
+      try { await m.react('✖️') } catch (err) {}
       console.error(e)
     }
   }
