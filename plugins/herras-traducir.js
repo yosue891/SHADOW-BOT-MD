@@ -14,20 +14,7 @@ let handler = async (m, { conn, usedPrefix, command, args }) => {
         remoteJid: "status@broadcast"
       },
       message: {
-        productMessage: {
-          product: {
-            productImage: {
-              mimetype: "image/jpeg",
-              jpegThumbnail: null
-            },
-            title: `⌗ֶㅤ𝐓𝐫𝐚𝐝𝐮𝐜𝐭𝐨𝐫 𝐝𝐞 𝐥𝐚 𝐒𝐨𝐦𝐛𝐫𝐚 ⚜`,
-            description: "« Las lenguas del mundo se inclinan ante la Sombra. »",
-            currencyCode: "USD",
-            priceAmount1000: '0',
-            retailId: "traductor"
-          },
-          businessOwnerJid: "584242773183@s.whatsapp.net"
-        }
+        conversation: `⌗ֶㅤ𝐓𝐫𝐚𝐝𝐮𝐜𝐭𝐨𝐫 𝐝𝐞 𝐥𝐚 𝐒𝐨𝐦𝐛𝐫𝐚 ⚜`
       }
     }
 
