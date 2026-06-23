@@ -24,8 +24,8 @@ const YOSOYYO_WELCOME_BANNER = {
     borderColor: '#03138c',
     borderWidth: 8,
     texts: [
-      { text: 'Bienvenido Usuario', x: 500, y: 350, size: 50, color: '#ffffff', font: 'Arial', bold: true, align: 'center' },
-      { text: 'Disfruta tu estancia', x: 500, y: 420, size: 30, color: '#ffffff', font: 'Arial', bold: false, align: 'center' }
+      { text: 'Bienvenido Usuario', x: 500, y: 350, size: 65, color: '#000000', font: 'Arial', bold: true, align: 'center' },
+      { text: 'Disfruta tu estancia', x: 500, y: 430, size: 40, color: '#000000', font: 'Arial', bold: false, align: 'center' }
     ]
   }
 }
@@ -122,15 +122,15 @@ export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
     borderColor: '#03138c',
     borderWidth: 8,
     text1: `Adiós ${targetNumber}`,
-    text1Size: 50,
-    text1Color: '#ffffff',
+    text1Size: 65,
+    text1Color: '#000000',
     text1X: 500,
     text1Y: 350,
     text2: 'No vuelvas',
-    text2Size: 30,
-    text2Color: '#ffffff',
+    text2Size: 40,
+    text2Color: '#000000',
     text2X: 500,
-    text2Y: 420,
+    text2Y: 430,
     apiKey: API_KEY
   }
 
