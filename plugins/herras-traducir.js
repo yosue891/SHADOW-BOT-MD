@@ -1,4 +1,4 @@
-import translate from '@vitalets/google-translate-api'
+import { translate } from '@vitalets/google-translate-api'
 
 let handler = async (m, { conn, usedPrefix, command, args }) => {
   try {
@@ -7,25 +7,14 @@ let handler = async (m, { conn, usedPrefix, command, args }) => {
 
     const imagenUrl = "https://i.ibb.co/b50eeb86ca86.jpg"
 
-    const fkontak = {
-      key: {
-        fromMe: false,
-        participant: "0@s.whatsapp.net",
-        remoteJid: "status@broadcast"
-      },
-      message: {
-        conversation: `⌗ֶㅤ𝐓𝐫𝐚𝐝𝐮𝐜𝐭𝐨𝐫 𝐝𝐞 𝐥𝐚 𝐒𝐨𝐦𝐛𝐫𝐚 ⚜`
-      }
-    }
-
     if (args[0] && args[0].length === 2) {
       let lang = args[0]
       let content = args.slice(1).join(' ') || m.quoted?.text
       if (!content) return conn.reply(m.chat, '《✧》 Escribe el texto que deseas traducir al lado del código de idioma.', m)
       
       await m.react('🕒')
-      const result = await translate(content, { to: lang, autoCorrect: true })
-      await conn.reply(m.chat, `✦ Traducción (${lang}):\n\n${result.text}`, m)
+      const { text: translated } = await translate(content, { to: lang, autoCorrect: true })
+      await conn.reply(m.chat, `✦ Traducción (${lang}):\n\n${translated}`, m)
       return await m.react('✔️')
     }
 
@@ -42,24 +31,20 @@ Responde a este mensaje con el número del idioma al que deseas traducir el text
 
 _Sʜᴀᴅᴏᴡ Gᴀʀᴅᴇɴ ⚜_`
 
-    const enviado = await conn.sendMessage(
-      m.chat,
-      {
-        text: menuTexto,
-        contextInfo: {
-          externalAdReply: {
-            title: "Shadow Garden ┊ Traductor Arcano",
-            body: "El conocimiento se somete a la Sombra.",
-            mediaType: 1,
-            thumbnailUrl: imagenUrl,
-            renderLargerThumbnail: true,
-            showAdAttribution: false,
-            sourceUrl: "https://google.com"
-          }
+    const enviado = await conn.sendMessage(m.chat, {
+      text: menuTexto,
+      contextInfo: {
+        externalAdReply: {
+          title: "Shadow Garden ┊ Traductor Arcano",
+          body: "El conocimiento se somete a la Sombra.",
+          mediaType: 1,
+          thumbnailUrl: imagenUrl,
+          renderLargerThumbnail: true,
+          showAdAttribution: false,
+          sourceUrl: "https://google.com"
         }
-      },
-      { quoted: fkontak }
-    )
+      }
+    }, { quoted: m })
 
     global.db = global.db || { data: {} }
     global.db.data = global.db.data || {}
@@ -72,15 +57,11 @@ _Sʜᴀᴅᴏᴡ Gᴀʀᴅᴇɴ ⚜_`
   } catch (e) {
     console.error('[TRANSLATE ERROR]', e)
     try { await m.react('✖️') } catch (err) {}
-    return conn.reply(
-      m.chat,
-      `⚠︎ Ocurrió un error ejecutando *${usedPrefix + command}*.\n\n${e.message || e}`,
-      m
-    )
+    return conn.reply(m.chat, `⚠︎ Ocurrió un error ejecutando *${usedPrefix + command}*.\n\n${e.message || e}`, m)
   }
 }
 
-const before = async function (m, { conn }) {
+let before = async function (m, { conn }) {
   if (!m.text || !m.quoted) return true
   
   const chatData = global.db?.data?.chats?.[m.chat]
@@ -100,8 +81,8 @@ const before = async function (m, { conn }) {
   if (lang) {
     try {
       await m.react('🕒')
-      const result = await translate(chatData.traductorTexto, { to: lang, autoCorrect: true })
-      await conn.reply(m.chat, `✦ Traducción (${lang}):\n\n${result.text}`, m)
+      const { text: translated } = await translate(chatData.traductorTexto, { to: lang, autoCorrect: true })
+      await conn.reply(m.chat, `✦ Traducción (${lang}):\n\n${translated}`, m)
       await m.react('✔️')
       
       chatData.traductorMenuId = null
@@ -116,7 +97,7 @@ const before = async function (m, { conn }) {
 
 handler.help = ['traducir']
 handler.tags = ['utils']
-handler.command = ['traducir']
+handler.command = /^(traducir)$/i
 
 handler.before = before
 
