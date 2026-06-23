@@ -24,8 +24,8 @@ const YOSOYYO_WELCOME_BANNER = {
     borderColor: '#03138c',
     borderWidth: 8,
     texts: [
-      { text: 'Bienvenido Usuario', x: 500, y: 350, size: 65, color: '#ffffff', font: 'Arial', bold: true, align: 'center' },
-      { text: 'Disfruta tu estancia', x: 500, y: 430, size: 40, color: '#ffffff', font: 'Arial', bold: false, align: 'center' }
+      { text: 'Bienvenido Usuario', x: 500, y: 350, size: 65, color: '#ff0000', font: 'Arial', bold: true, align: 'center' },
+      { text: 'Disfruta tu estancia', x: 500, y: 430, size: 40, color: '#ff0000', font: 'Arial', bold: false, align: 'center' }
     ]
   }
 }
@@ -84,11 +84,11 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
   const mensaje = (chat.sWelcome || 'Edita con el comando "setwelcome"').replace(/{usuario}/g, `${username}`).replace(/{grupo}/g, `*${groupName}*`).replace(/{desc}/g, `${desc}`)
   
   const caption = `> ⚔ ── ── ── ── ── ── ⚔
->  ── ── ✦ 𝔖𝔥𝔞𝔡𝔬𝔴 𝔊𝔞𝔯𝔡𝔢𝔫 ✦ ── ──
+>  ── ── ✦ 🔖𝔥𝔞𝔡𝔬𝔴 𝔊𝔞𝔯𝔡𝔢𝔫 ✦ ── ──
 > 
 > 𝔘𝔫 𝔫𝔲𝔢𝔳𝔬 𝔠𝔬𝔫𝔱𝔯𝔞𝔱𝔦𝔰𝔱𝔞 𝔰𝔢 𝔲𝔫𝔢 𝔞 𝔩𝔞𝔰 𝔰𝔬𝔪𝔟𝔯𝔞𝔰.
 > 
-> ❖ 𝔖𝔢𝔠𝔱𝔬r ⪢ _${groupName}_
+> ❖ 𝔖𝔢𝔠𝔱𝔬𝔯 ⪢ _${groupName}_
 > ❖ ℑ𝔡𝔢𝔫𝔱𝔦𝔣𝔦𝔠𝔞𝔠𝔦𝔬́𝔫 ⪢ ${username}
 > ❖ 𝔇𝔦𝔠𝔱𝔞𝔪𝔢𝔫 ⪢ ${mensaje}
 > ❖ ℭ𝔬𝔫𝔱𝔢𝔫𝔠𝔦𝔬́𝔫 ⪢ ${groupSize} unidades reunidas.
@@ -123,12 +123,12 @@ export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
     borderWidth: 8,
     text1: `Adiós ${targetNumber}`,
     text1Size: 65,
-    text1Color: '#ffffff',
+    text1Color: '#ff0000',
     text1X: 500,
     text1Y: 350,
     text2: 'No vuelvas',
     text2Size: 40,
-    text2Color: '#ffffff',
+    text2Color: '#ff0000',
     text2X: 500,
     text2Y: 430,
     apiKey: API_KEY
