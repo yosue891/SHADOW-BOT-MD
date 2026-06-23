@@ -5,8 +5,6 @@ let handler = async (m, { conn, usedPrefix, command, args }) => {
     let text = args.join(' ') || m.quoted?.text
     if (!text) return conn.reply(m.chat, '《✧》 Escribe o responde un texto para traducirlo.', m)
 
-    const imagenUrl = "https://i.ibb.co/b50eeb86ca86.jpg"
-
     if (args[0] && args[0].length === 2) {
       let lang = args[0]
       let content = args.slice(1).join(' ') || m.quoted?.text
@@ -31,20 +29,7 @@ Responde a este mensaje con el número del idioma al que deseas traducir el text
 
 _Sʜᴀᴅᴏᴡ Gᴀʀᴅᴇɴ ⚜_`
 
-    const enviado = await conn.sendMessage(m.chat, {
-      text: menuTexto,
-      contextInfo: {
-        externalAdReply: {
-          title: "Shadow Garden ┊ Traductor Arcano",
-          body: "El conocimiento se somete a la Sombra.",
-          mediaType: 1,
-          thumbnailUrl: imagenUrl,
-          renderLargerThumbnail: true,
-          showAdAttribution: false,
-          sourceUrl: "https://google.com"
-        }
-      }
-    }, { quoted: m })
+    const enviado = await conn.reply(m.chat, menuTexto, m)
 
     global.db = global.db || { data: {} }
     global.db.data = global.db.data || {}
