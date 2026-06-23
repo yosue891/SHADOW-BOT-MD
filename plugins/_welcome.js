@@ -16,7 +16,7 @@ const YOSOYYO_WELCOME_BANNER = {
   data: {
     width: 1000,
     height: 500,
-    backgroundUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1000&h=500&q=80',
+    backgroundUrl: 'https://litter.catbox.moe/8v75uh.jpg',
     profileUrl: 'https://unavatar.io/github/yosue891',
     profileSize: 200,
     profileX: 500,
@@ -86,7 +86,7 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
   const caption = `> ⚔ ── ── ── ── ── ── ⚔
 >  ── ── ✦ 𝔖𝔥𝔞𝔡𝔬𝔴 𝔊𝔞𝔯𝔡𝔢𝔫 ✦ ── ──
 > 
-> 𝔘𝔫 𝔫𝔲𝔢𝔳𝔬 𝔠𝔬𝔫𝔱... Escuchando órdenes...
+> 𝔘𝔫 𝔫𝔲𝔢𝔳𝔬 𝔠𝔬𝔫𝔱𝔯𝔞𝔱𝔦𝔰𝔱𝔞 𝔰𝔢 𝔲𝔫𝔢 𝔞 𝔩𝔞𝔰 𝔰𝔬𝔪𝔟𝔯𝔞𝔰.
 > 
 > ❖ 𝔖𝔢𝔠𝔱𝔬𝔯 ⪢ _${groupName}_
 > ❖ ℑ𝔡𝔢𝔫𝔱𝔦𝔣𝔦𝔠𝔞𝔠𝔦𝔬́𝔫 ⪢ ${username}
@@ -94,7 +94,7 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
 > ❖ ℭ𝔬𝔫𝔱𝔢𝔫𝔠𝔦𝔬́𝔫 ⪢ ${groupSize} unidades reunidas.
 > ❖ ℭ𝔯𝔬𝔫𝔬𝔰 ⪢ ${fecha}
 > 
-> ⛓ ── ℑ 𝔞𝔪 𝔞𝔱𝔬𝔪𝔦𝔠... 𝔗𝔥𝔢 𝔢𝔪𝔦𝔫𝔢𝔫𝔢𝔢 𝔦𝔫 𝔰𝔥𝔞𝔡𝔬𝔴. ── ⛓`
+> ⛓ ── ℑ 𝔞𝔪 𝔞𝔱𝔬𝔪𝔦𝔠... 𝔗𝔥𝔢 𝔢𝔪𝔦𝔫𝔢𝔢 𝔦𝔫 𝔰𝔥𝔞𝔡𝔬𝔴. ── ⛓`
   
   return { imageSource, caption, mentions: [userId] }
 }
@@ -114,7 +114,7 @@ export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
   const params = {
     width: 1000,
     height: 500,
-    backgroundUrl: 'https://raw.githubusercontent.com/El-brayan502/img/upload/uploads/f1daa4-1770608515673.jpg',
+    backgroundUrl: 'https://litter.catbox.moe/8v75uh.jpg',
     profileUrl: profileUrl,
     profileSize: 200,
     profileX: 500,
@@ -137,7 +137,7 @@ export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
   const query = new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)])).toString()
   const finalUrl = `${API_BASE}?${query}`
 
-  let imageSource = 'https://raw.githubusercontent.com/El-brayan502/img/upload/uploads/f1daa4-1770608515673.jpg'
+  let imageSource = 'https://litter.catbox.moe/8v75uh.jpg'
   try {
     const response = await fetch(finalUrl)
     if (response.ok) {
@@ -208,25 +208,12 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
   if (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_ADD || m.messageStubType == 27 || m.messageStubType == 31) {
     try {
       const { imageSource, caption, mentions } = await generarBienvenida({ conn, userId, groupMetadata, chat })
-      
-      const imgLocation = Buffer.isBuffer(imageSource) ? imageSource : { url: imageSource }
-      
-      const messageOptions = {
-        product: {
-          productImage: imgLocation,
-          productId: 'welcome-001',
-          title: `─ W E L C O M E ─🥷🏻`,
-          currencyCode: 'USD',
-          priceAmount1000: '0',
-          retailerId: 1677,
-          productImageCount: 1
-        },
-        businessOwnerJid: '0@s.whatsapp.net',
-        caption,
-        mentions,
-        contextInfo
+      const messageOptions = { caption, mentions, contextInfo }
+      if (Buffer.isBuffer(imageSource)) {
+        messageOptions.image = imageSource
+      } else {
+        messageOptions.image = { url: imageSource }
       }
-      
       await conn.sendMessage(m.chat, messageOptions, { quoted: null })
     } catch (err) {
       console.error('[WELCOME PLUGIN] Error enviando bienvenida:', err)
@@ -236,25 +223,12 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
   if (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_REMOVE || m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_LEAVE || m.messageStubType == 28 || m.messageStubType == 32) {
     try {
       const { imageSource, caption, mentions } = await generarDespedida({ conn, userId, groupMetadata, chat })
-      
-      const imgLocation = Buffer.isBuffer(imageSource) ? imageSource : { url: imageSource }
-      
-      const messageOptions = {
-        product: {
-          productImage: imgLocation,
-          productId: 'goodbye-001',
-          title: '─Ａ Ｄ Ｉ Ō S─👋🏻',
-          currencyCode: 'USD',
-          priceAmount1000: '0',
-          retailerId: 1677,
-          productImageCount: 1
-        },
-        businessOwnerJid: '0@s.whatsapp.net',
-        caption,
-        mentions,
-        contextInfo
+      const messageOptions = { caption, mentions, contextInfo }
+      if (Buffer.isBuffer(imageSource)) {
+        messageOptions.image = imageSource
+      } else {
+        messageOptions.image = { url: imageSource }
       }
-      
       await conn.sendMessage(m.chat, messageOptions, { quoted: null })
     } catch (err) {
       console.error('[WELCOME PLUGIN] Error enviando despedida:', err)
