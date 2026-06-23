@@ -34,6 +34,8 @@ let handler = async (m, { conn, usedPrefix, command, args }) => {
     if (args[0] && args[0].length === 2) {
       let lang = args[0]
       let content = args.slice(1).join(' ') || m.quoted?.text
+      if (!content) return conn.reply(m.chat, '《✧》 Escribe el texto que deseas traducir al lado del código de idioma.', m)
+      
       await m.react('🕒')
       const result = await translate(content, { to: lang, autoCorrect: true })
       await conn.reply(m.chat, `✦ Traducción (${lang}):\n\n${result.text}`, m)
@@ -92,12 +94,13 @@ _Sʜᴀᴅᴏᴡ Gᴀʀᴅᴇɴ ⚜_`
 }
 
 const before = async function (m, { conn }) {
-  if (!m.quoted || !m.text) return true
+  if (!m.text || !m.quoted) return true
   
   const chatData = global.db?.data?.chats?.[m.chat]
   if (!chatData || !chatData.traductorMenuId || !chatData.traductorTexto) return true
 
-  if (m.quoted.id !== chatData.traductorMenuId) return true
+  const quotedId = m.quoted.id || m.quoted.key?.id
+  if (quotedId !== chatData.traductorMenuId) return true
 
   let lang = ''
   if (m.text === '1') lang = 'en'
@@ -128,7 +131,6 @@ handler.help = ['traducir']
 handler.tags = ['utils']
 handler.command = ['traducir']
 
-// Vinculamos explícitamente el "before" al objeto handler para que el bot lo detecte al cargar el plugin
 handler.before = before
 
 export default handler
