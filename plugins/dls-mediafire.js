@@ -13,18 +13,21 @@ let handler = async (m, { conn, text, usedPrefix }) => {
     const res = await fetch(apiURL)
     const json = await res.json()
 
-    if (!json.result) {
-      throw 'ꕥ No se pudo obtener el archivo desde la API.'
+    if (!json || !json.result) {
+      throw 'ꕥ La API no devolvió un resultado válido. Verifica tu enlace o la apiKey.'
     }
 
     const file = json.result
-    const filename = file.title || 'archivo'
+    const filename = file.title || 'archivo_desconocido'
     const filesize = file.size || 'desconocido'
     const dl_url = file.link
 
-    const mimetype =
-      lookup(filename.split('.').pop().toLowerCase()) ||
-      'application/octet-stream'
+    if (!dl_url) {
+      throw 'ꕥ No se encontró el enlace de descarga directa en el resultado de la API.'
+    }
+
+    const fileExtension = filename.includes('.') ? filename.split('.').pop().toLowerCase() : ''
+    const mimetype = lookup(fileExtension) || 'application/octet-stream'
 
     const caption = `乂 MEDIAFIRE - DESCARGA 乂
 
@@ -50,7 +53,7 @@ let handler = async (m, { conn, text, usedPrefix }) => {
     await m.react('✖️')
     return conn.reply(
       m.chat,
-      `⚠︎ Se ha producido un problema.\n> Usa *${usedPrefix}report* para informarlo.\n\n${e}`,
+      `⚠︎ Se ha producido un problema.\n> Usa *${usedPrefix}report* para informarlo.\n\nError: ${e.message || e}`,
       m
     )
   }
