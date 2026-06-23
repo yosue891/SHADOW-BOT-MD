@@ -58,14 +58,7 @@ Responde a este mensaje con el número del idioma al que deseas traducir el text
 
 _Sʜᴀᴅᴏᴡ Gᴀʀᴅᴇɴ ⚜_`
 
-// Guardamos el texto original en la base de datos temporal del chat para recuperarlo al responder
-global.db = global.db || { data: {} }
-global.db.data = global.db.data || {}
-global.db.data.chats = global.db.data.chats || {}
-global.db.data.chats[m.chat] = global.db.data.chats[m.chat] || {}
-global.db.data.chats[m.chat].traductorTexto = text
-
-await conn.sendMessage(
+const enviado = await conn.sendMessage(
   m.chat,
   {
     text: menuTexto,
@@ -84,6 +77,14 @@ await conn.sendMessage(
   { quoted: fkontak }
 )
 
+// Guardamos los datos usando el ID del mensaje enviado para un match perfecto
+global.db = global.db || { data: {} }
+global.db.data = global.db.data || {}
+global.db.data.chats = global.db.data.chats || {}
+global.db.data.chats[m.chat] = global.db.data.chats[m.chat] || {}
+global.db.data.chats[m.chat].traductorMenuId = enviado.key.id
+global.db.data.chats[m.chat].traductorTexto = text
+
 } catch (e) {
 await m.react('✖️')
 conn.reply(
@@ -93,15 +94,14 @@ conn.reply(
 )
 }}
 
-// Handler secundario para detectar las respuestas numéricas al menú
 handler.before = async function (m, { conn }) {
   if (!m.quoted || !m.text) return !0
-  if (!m.quoted.text || !m.quoted.text.includes('𝐓&zwj;𝐫&zwj;𝐚&zwj;𝐝&zwj;𝐮&zwj;𝐜&zwj;𝐭&zwj;𝐨&zwj;𝐫&zwj; 𝐀&zwj;𝐫&zwj;𝐜&zwj;𝐚&zwj;𝐧&zwj;𝐨')) {
-    if (!m.quoted.text || !m.quoted.text.includes('Traductor Arcano')) return !0
-  }
+  
+  const chatData = global.db?.data?.chats?.[m.chat]
+  if (!chatData || !chatData.traductorMenuId || !chatData.traductorTexto) return !0
 
-  const textSaved = global.db?.data?.chats?.[m.chat]?.traductorTexto
-  if (!textSaved) return !0
+  // Validamos con total seguridad que esté respondiendo exactamente al menú del traductor
+  if (m.quoted.id !== chatData.traductorMenuId) return !0
 
   let lang = ''
   if (m.text === '1') lang = 'en'
@@ -114,11 +114,13 @@ handler.before = async function (m, { conn }) {
   if (lang) {
     try {
       await m.react('🕒')
-      const result = await translate(textSaved, { to: lang, autoCorrect: true })
+      const result = await translate(chatData.traductorTexto, { to: lang, autoCorrect: true })
       await conn.reply(m.chat, `✦ Traducción (${lang}):\n\n${result.text}`, m)
       await m.react('✔️')
-      // Limpiamos el texto guardado
-      global.db.data.chats[m.chat].traductorTexto = null
+      
+      // Limpiamos la base temporal de este chat tras una traducción exitosa
+      chatData.traductorMenuId = null
+      chatData.traductorTexto = null
     } catch (e) {
       await m.react('✖️')
       console.error(e)
