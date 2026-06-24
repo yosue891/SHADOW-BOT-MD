@@ -1,34 +1,34 @@
-import crypto from 'crypto'
-import { sticker } from '../lib/sticker.js'
-
 let handler = async (m, { conn }) => {
-  const stickers = [
-    'https://iili.io/K030s44.jpg',
-    'https://iili.io/K030s44.jpg',
-    'https://iili.io/K030s44.jpg'
-  ]
+  await (async () => {
+    const crypto = await import('crypto');
+    const { sticker } = await import('../lib/sticker.js');
 
-  const stickerBuffers = []
+    const stickers = [
+      'https://iili.io/K030s44.jpg',
+      'https://iili.io/K030s44.jpg',
+      'https://iili.io/K030s44.jpg'
+    ];
 
-  for (const url of stickers) {
-    const stikerBuffer = await sticker(false, url, 'Pack', 'Bot')
-    if (stikerBuffer) stickerBuffers.push(stikerBuffer)
-  }
+    const stickerBuffers = [];
 
-  if (stickerBuffers.length === 0) return
-
-  await conn.sendMessage(m.chat, {
-    stickerPack: {
-      name: 'Pack',
-      publisher: 'Bot',
-      packId: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
-      description: 'Imágenes',
-      cover: stickerBuffers[0],
-      stickers: stickerBuffers.map((buf) => ({
-        sticker: buf
-      }))
+    for (const url of stickers) {
+      const stikerBuffer = await sticker(false, url, "Pack", "Bot");
+      if (stikerBuffer) stickerBuffers.push(stikerBuffer);
     }
-  }, { quoted: m })
+
+    await conn.sendMessage(m.chat, {
+      stickerPack: {
+        name: "Pack",
+        publisher: "Bot",
+        packId: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
+        description: "Imágenes",
+        cover: stickerBuffers[0],
+        stickers: stickerBuffers.map((buf) => ({
+          sticker: buf
+        }))
+      }
+    }, { quoted: m });
+  })();
 }
 
 handler.command = ['pack', 'stickerpack']
