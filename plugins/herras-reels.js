@@ -6,10 +6,10 @@ const handler = async (m, { conn }) => {
 
   const reelItems = [
     {
-      title: "Gian Pool",
+      title: "SHADOW-bot-MD",
       profileIconUrl: "https://cdn.russellxz.click/37046e86.jpg",
       thumbnailUrl: "https://.catbox.moe/9tkstm.jpg", 
-      videoUrl: "https://litter.catbox.moe/163cqr.mp4"
+      videoUrl: ""
     }
   ]
 
