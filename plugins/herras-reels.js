@@ -8,8 +8,8 @@ const handler = async (m, { conn }) => {
     {
       title: "Gian Pool",
       profileIconUrl: "https://cdn.russellxz.click/37046e86.jpg",
-      thumbnailUrl: "https://iili.io/KTnEx7S.jpg", 
-      videoUrl: ""
+      thumbnailUrl: "https://.catbox.moe/9tkstm.jpg", 
+      videoUrl: "https://litter.catbox.moe/163cqr.mp4"
     }
   ]
 
