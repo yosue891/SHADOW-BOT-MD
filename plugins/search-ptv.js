@@ -12,13 +12,12 @@ const handler = async (m, { conn, text, usedPrefix }) => {
 
   const isUrl = /(?:https?:\/\/)?(?:www\.|vm\.|vt\.|t\.)?tiktok\.com\/[^\s&]+/i.test(text)
 
-  // Función mágica que genera el mensaje de video con los parámetros de PTV para el carrusel
   async function createVideoMessage(url) {
     const { videoMessage } = await generateWAMessageContent(
       { 
         video: { url },
         mimetype: 'video/mp4',
-        ptv: true // Forzamos que se procese como nota de video circular
+        ptv: true
       },
       { upload: conn.waUploadToServer }
     )
@@ -35,7 +34,6 @@ const handler = async (m, { conn, text, usedPrefix }) => {
   try {
     if (m.react) await m.react('🕒')
 
-    // --- MODO ENLACE DIRECTO ---
     if (isUrl) {
       const res = await axios.get(
         `https://www.tikwm.com/api/?url=${encodeURIComponent(text)}&hd=1`
@@ -73,7 +71,6 @@ const handler = async (m, { conn, text, usedPrefix }) => {
       }
 
       if (play) {
-        // Enlace directo también se manda en PTV por si acaso
         await conn.sendMessage(
           m.chat,
           {
@@ -91,7 +88,6 @@ const handler = async (m, { conn, text, usedPrefix }) => {
       return conn.reply(m.chat, 'ꕥ No se encontró video descargable en ese enlace.', m)
     }
 
-    // --- MODO BÚSQUEDA EN CARRUSEL (ptvsearch) ---
     conn.reply(m.chat, '✧ *PREPARANDO SU CARRUSEL DE NOTAS DE VIDEO...* 🎬', m)
 
     const form = new URLSearchParams()
@@ -119,7 +115,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
     }
 
     shuffleArray(results)
-    const topResults = results.slice(0, 6) // Máximo 6 tarjetas para balancear velocidad y peso
+    const topResults = results.slice(0, 6)
 
     const cards = []
     for (const v of topResults) {
@@ -137,10 +133,10 @@ const handler = async (m, { conn, text, usedPrefix }) => {
         header: proto.Message.InteractiveMessage.Header.fromObject({
           title: 'Nota de Video',
           hasMediaAttachment: true,
-          videoMessage: await createVideoMessage(v.play) // Adjuntamos el video procesado como PTV
+          videoMessage: await createVideoMessage(v.play)
         }),
         nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
-          buttons: [] // Sin botones extra para mantenerlo estético y directo
+          buttons: []
         })
       })
     }
@@ -156,7 +152,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
             },
             interactiveMessage: proto.Message.InteractiveMessage.fromObject({
               body: proto.Message.InteractiveMessage.Body.create({
-                text: `✧ ` + '`RESULTADOS PTV PARA:`' + ` *${text.toUpperCase()}*`
+                text: `✧ RESULTADOS PTV PARA: *${text.toUpperCase()}*`
               }),
               footer: proto.Message.InteractiveMessage.Footer.create({
                 text: 'Desliza para ver más vídeos circulares ➔'
