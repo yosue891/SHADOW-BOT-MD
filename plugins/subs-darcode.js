@@ -53,7 +53,6 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
 handler.help = ['darcode <@user|number>']
 handler.tags = ['owner']
 handler.command = ['darcode']
-handler.owner = true
 export default handler 
 
 export async function ShadowJadiBot(options) {
