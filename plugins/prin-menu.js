@@ -6,7 +6,7 @@ import moment from 'moment-timezone'
 
 const botname = global.botname || "Shadow Garden"
 const dev = global.dev || "Cid Kagenou"
-const banner = "https://cdn.adoolab.xyz/dl/d29aa177.mp4"
+const banner = "https://litter.catbox.moe/kk0nhb.mp4"
 const canalId = '120363403739366547@newsletter'
 const canalName = 'SHADOW-BOT'
 
