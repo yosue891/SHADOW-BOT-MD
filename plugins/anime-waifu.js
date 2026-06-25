@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+import axios from 'axios';
 
 const newsletterJid  = '120363403739366547@newsletter';
 const newsletterName = '👑 SHADOW-BOT-MD uwu👑 ';
@@ -45,12 +45,15 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     await m.react('❤️');
     await conn.reply(m.chat, '🌌 *Buscando una waifu para ti...*', m, { contextInfo });
 
-    let res = await fetch('https://nekos.best/api/v2/waifu');
-    let json = await res.json();
+    const res = await axios.get('https://api.waifu.pics/sfw/waifu', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+      }
+    });
 
-    if (!json?.results?.length) throw new Error('No se pudo obtener la waifu.');
+    if (!res.data?.url) throw new Error('No se pudo obtener la waifu.');
 
-    let url = json.results[0].url;
+    let url = res.data.url;
 
     const caption = `🌌 *Aquí tienes tu waifu, ${await conn.getName(m.sender)}* 👑\n\n💫 ¿Quieres otra? Solo toca el botón.`;
 
@@ -71,7 +74,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     );
 
   } catch (e) {
-    await conn.reply(m.chat, '❌ Error al buscar la waifu.', m);
+    await conn.reply(m.chat, `❌ Error al buscar la waifu.\n> Detalles: ${e.message}`, m);
   }
 };
 
