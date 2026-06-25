@@ -44,7 +44,7 @@ messageContextInfo: {
                     sale_price: "S/50",
                     product_url: "https://wa.me/p/25697885489797403/51900373696",
                     image: {
-                      url: "https://iili.io/K030s44.jpg"
+                      url: "https://litter.catbox.moe/163cqr.mp4"
                     },
                     additional_images: [
                       {
