@@ -45,15 +45,27 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     await m.react('❤️');
     await conn.reply(m.chat, '🌌 *Buscando una waifu para ti...*', m, { contextInfo });
 
-    const res = await axios.get('https://api.waifu.pics/sfw/waifu', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+    let url = null;
+
+    try {
+      const res = await axios.get('https://api.waifu.pics/sfw/waifu', {
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+        timeout: 5000
+      });
+      if (res.data?.url) url = res.data.url;
+    } catch {
+      try {
+        const resBackup = await axios.get('https://nekos.life/api/v2/img/waifu', {
+          headers: { 'User-Agent': 'Mozilla/5.0' },
+          timeout: 5000
+        });
+        if (resBackup.data?.url) url = resBackup.data.url;
+      } catch (err) {
+        throw new Error('Fallo total de red o DNS (ENOTFOUND).');
       }
-    });
+    }
 
-    if (!res.data?.url) throw new Error('No se pudo obtener la waifu.');
-
-    let url = res.data.url;
+    if (!url) throw new Error('No se pudo obtener el enlace de la imagen.');
 
     const caption = `🌌 *Aquí tienes tu waifu, ${await conn.getName(m.sender)}* 👑\n\n💫 ¿Quieres otra? Solo toca el botón.`;
 
@@ -74,7 +86,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     );
 
   } catch (e) {
-    await conn.reply(m.chat, `❌ Error al buscar la waifu.\n> Detalles: ${e.message}`, m);
+    await conn.reply(m.chat, `⚠️ *Error de conexión en el servidor*\n\n> El Bot no tiene acceso estable a Internet o las DNS de tu Hosting fallaron.\n\n🜸 Detalles: ${e.message}`, m);
   }
 };
 
