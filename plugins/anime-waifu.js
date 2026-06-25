@@ -33,12 +33,18 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     await m.react('❤️');
     await conn.reply(m.chat, '🌌 *Buscando una waifu hermosa para ti...*', m, { contextInfo });
 
-    const res = await axios.get('https://nekos.best/api/v2/waifu');
-    
-    if (!res.data?.results?.[0]?.url) throw new Error('No se pudo obtener la waifu.');
+    const res = await axios.get('https://nekos.best/api/v2/waifu', { timeout: 10000 });
+    if (!res.data?.results?.[0]?.url) throw new Error('La API no devolvió una imagen válida.');
 
     let url = res.data.results[0].url;
+
+    const imgRes = await axios.get(url, { responseType: 'arraybuffer', timeout: 10000 });
+    const buffer = Buffer.from(imgRes.data);
+
     const caption = `🌌 *Aquí tienes tu waifu, ${await conn.getName(m.sender)}* 👑\n\n💫 ¿Quieres otra? Solo toca el botón de abajo.`;
+
+    const { imageMessage } = await conn.sendMessage(m.chat, { image: buffer }, { contextInfo });
+    if (!imageMessage) throw new Error('No se pudo generar el componente de la imagen.');
 
     const msg = generateWAMessageFromContent(
       m.chat,
@@ -54,10 +60,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
               footer: { text: '👑 SHADOW BOT MD' },
               header: {
                 hasMediaAttachment: true,
-                imageMessage: await (async () => {
-                  const { imageMessage } = await conn.sendMessage(m.chat, { image: { url } }, { contextInfo });
-                  return imageMessage;
-                })()
+                imageMessage: imageMessage
               },
               nativeFlowMessage: {
                 buttons: [
@@ -87,7 +90,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id });
 
   } catch (e) {
-    await conn.reply(m.chat, `❌ Error al buscar la waifu.\n> Detalles: ${e.message}`, m);
+    await conn.reply(m.chat, `❌ Error al procesar el comando.\n> Detalles: ${e.message}`, m);
   }
 };
 
