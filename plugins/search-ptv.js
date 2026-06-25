@@ -1,9 +1,4 @@
 import axios from 'axios'
-import {
-  proto,
-  generateWAMessageFromContent,
-  generateWAMessageContent
-} from '@whiskeysockets/baileys'
 
 const handler = async (m, { conn, text, usedPrefix }) => {
   if (!text) {
@@ -11,18 +6,6 @@ const handler = async (m, { conn, text, usedPrefix }) => {
   }
 
   const isUrl = /(?:https?:\/\/)?(?:www\.|vm\.|vt\.|t\.)?tiktok\.com\/[^\s&]+/i.test(text)
-
-  async function createVideoMessage(url) {
-    const { videoMessage } = await generateWAMessageContent(
-      { 
-        video: { url },
-        mimetype: 'video/mp4',
-        ptv: true
-      },
-      { upload: conn.waUploadToServer }
-    )
-    return videoMessage
-  }
 
   function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
@@ -88,7 +71,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
       return conn.reply(m.chat, 'ꕥ No se encontró video descargable en ese enlace.', m)
     }
 
-    conn.reply(m.chat, '✧ *PREPARANDO SU CARRUSEL DE NOTAS DE VIDEO...* 🎬', m)
+    await conn.reply(m.chat, `✧ *ENVIANDO VIDEOS EN FORMATO PTV PARA:* *${text.toUpperCase()}* 🎬`, m)
 
     const form = new URLSearchParams()
     form.append('keywords', text)
@@ -109,68 +92,25 @@ const handler = async (m, { conn, text, usedPrefix }) => {
     })
 
     let results = res.data?.data?.videos?.filter(v => v.play) || []
-    if (results.length < 2) {
+    if (results.length < 1) {
       if (m.react) await m.react('✖️')
-      return conn.reply(m.chat, 'ꕥ Se requieren al menos 2 resultados válidos para armar el carrusel.', m)
+      return conn.reply(m.chat, 'ꕥ No se encontraron resultados válidos.', m)
     }
 
     shuffleArray(results)
-    const topResults = results.slice(0, 6)
+    const topResults = results.slice(0, 4)
 
-    const cards = []
     for (const v of topResults) {
-      const title = v.title || 'Video TikTok'
-      const author = v.author?.nickname || v.author?.unique_id || 'Desconocido'
-      const duration = v.duration ?? 'No disponible'
-
-      cards.push({
-        body: proto.Message.InteractiveMessage.Body.fromObject({
-          text: `✐ ${title}\nⴵ Autor » ${author}\n✰ Duración » ${duration} s`
-        }),
-        footer: proto.Message.InteractiveMessage.Footer.fromObject({
-          text: 'TikTok PTV Search'
-        }),
-        header: proto.Message.InteractiveMessage.Header.fromObject({
-          title: 'Nota de Video',
-          hasMediaAttachment: true,
-          videoMessage: await createVideoMessage(v.play)
-        }),
-        nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
-          buttons: []
-        })
-      })
+      await conn.sendMessage(
+        m.chat,
+        {
+          video: { url: v.play },
+          mimetype: 'video/mp4',
+          ptv: true
+        },
+        { quoted: m }
+      )
     }
-
-    const msg = generateWAMessageFromContent(
-      m.chat,
-      {
-        viewOnceMessage: {
-          message: {
-            messageContextInfo: {
-              deviceListMetadata: {},
-              deviceListMetadataVersion: 2
-            },
-            interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-              body: proto.Message.InteractiveMessage.Body.create({
-                text: `✧ RESULTADOS PTV PARA: *${text.toUpperCase()}*`
-              }),
-              footer: proto.Message.InteractiveMessage.Footer.create({
-                text: 'Desliza para ver más vídeos circulares ➔'
-              }),
-              header: proto.Message.InteractiveMessage.Header.create({
-                hasMediaAttachment: false
-              }),
-              carouselMessage: proto.Message.InteractiveMessage.CarouselMessage.fromObject({
-                cards
-              })
-            })
-          }
-        }
-      },
-      { quoted: m }
-    )
-
-    await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
 
     if (m.react) await m.react('🔥')
   } catch (e) {
