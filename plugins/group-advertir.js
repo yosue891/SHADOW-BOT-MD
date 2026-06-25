@@ -41,10 +41,12 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
   if (m.mentionedJid?.length) {
     who = m.mentionedJid[0];
   } else if (m.quoted) {
-    who = m.quoted.key?.participant || m.quoted.sender;
+    who = m.quoted.participant || m.quoted.sender || m.quoted.key?.participant || m.quoted.key?.remoteJid;
   }
 
-  if (!who) return conn.reply(m.chat, `${emoji} responde a un mensaje para poder advertirlo en las sombras.`, m);
+  if (!who || who.includes('@g.us')) {
+    return conn.reply(m.chat, `${emoji} Responde al mensaje de alguien o menciónalo para poder advertirlo.`, m);
+  }
 
   const userName = global.db.data.users[who]?.name || conn.getName(who) || 'Usuario';
 
@@ -82,7 +84,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
     return await conn.relayMessage(m.chat, msgUnwarn.message, { messageId: msgUnwarn.key.id });
   }
 
-  const botJid = conn.user.jid;
+  const botJid = conn.user.jid || conn.user.id.split(':')[0] + '@s.whatsapp.net';
   if (who === botJid) return conn.reply(m.chat, `${emoji} No puedo advertirme a mí mismo.`, m);
   if (who === m.sender) return conn.reply(m.chat, `${emoji} No puedes advertirte a ti mismo.`, m);
 
@@ -118,7 +120,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
     }
   };
 
-  const msgWarn = generateWAMessageFromContent(m.chat, { orderMessage: orderMessageWarn }, { quoted: m });
+  const msgWarn = generateWAMessageFromContent(m.chat, { orderMessage: orderMessageWarn }, { quoted: m.quoted ? m.quoted : m });
   await conn.relayMessage(m.chat, msgWarn.message, { messageId: msgWarn.key.id });
 
   if (user.warn >= maxWarn) {
