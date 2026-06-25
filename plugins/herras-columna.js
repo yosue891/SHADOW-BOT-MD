@@ -2,14 +2,14 @@ let handler = async (m, { conn }) => {
   await conn.sendTable(
     m.chat,
     '',
-    ['Columna 1', 'Columna 2'],
+    ['owner 1', 'owner 2'],
     [
-      ['Fila 1', 'Fila 2']
+      ['yosue', 'ado']
     ],
     m,
     {
       headerText: 'Title',
-      footer: 'Pie'
+      footer: 'canal:https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O'
     }
   )
 }
