@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { generateWAMessageFromContent } from '@whiskeysockets/baileys';
 
 const newsletterJid  = '120363403739366547@newsletter';
 const newsletterName = '👑 SHADOW-BOT-MD uwu👑 ';
@@ -26,67 +27,67 @@ let handler = async (m, { conn, usedPrefix, command }) => {
         sourceUrl: redes,
         mediaType: 1,
         renderLargerThumbnail: true
-      },
-      nativeFlowMessage: {
-        buttons: [
-          {
-            name: "cta_url",
-            buttonParamsJson: JSON.stringify({
-              display_text: "🌐 Canal de Shadow",
-              url: redes,
-              merchant_url: redes
-            })
-          }
-        ],
-        messageParamsJson: ""
       }
     };
 
     await m.react('❤️');
-    await conn.reply(m.chat, '🌌 *Buscando una waifu para ti...*', m, { contextInfo });
+    await conn.reply(m.chat, '🌌 *Buscando una waifu en alta definición...*', m, { contextInfo });
 
-    let url = null;
+    const res = await axios.get('https://api.waifu.im/search?is_nsfw=false');
+    
+    if (!res.data?.images?.[0]?.url) throw new Error('No se pudo obtener la waifu.');
 
-    try {
-      const res = await axios.get('https://api.waifu.pics/sfw/waifu', {
-        headers: { 'User-Agent': 'Mozilla/5.0' },
-        timeout: 5000
-      });
-      if (res.data?.url) url = res.data.url;
-    } catch {
-      try {
-        const resBackup = await axios.get('https://nekos.life/api/v2/img/waifu', {
-          headers: { 'User-Agent': 'Mozilla/5.0' },
-          timeout: 5000
-        });
-        if (resBackup.data?.url) url = resBackup.data.url;
-      } catch (err) {
-        throw new Error('Fallo total de red o DNS (ENOTFOUND).');
-      }
-    }
+    let url = res.data.images[0].url;
+    const caption = `🌌 *Aquí tienes tu waifu, ${await conn.getName(m.sender)}* 👑\n\n💫 ¿Quieres otra? Solo toca el botón de abajo.`;
 
-    if (!url) throw new Error('No se pudo obtener el enlace de la imagen.');
-
-    const caption = `🌌 *Aquí tienes tu waifu, ${await conn.getName(m.sender)}* 👑\n\n💫 ¿Quieres otra? Solo toca el botón.`;
-
-    const buttons = [
-      { buttonId: usedPrefix + command, buttonText: { displayText: '🔁 Siguiente waifu' }, type: 1 }
-    ];
-
-    await conn.sendMessage(
+    const msg = generateWAMessageFromContent(
       m.chat,
       {
-        image: { url },
-        caption,
-        footer: '👑 SHADOW BOT MD',
-        buttons,
-        headerType: 4
+        viewOnceMessage: {
+          message: {
+            messageContextInfo: {
+              deviceListMetadata: {},
+              deviceListMetadataVersion: 2
+            },
+            interactiveMessage: {
+              body: { text: caption },
+              footer: { text: '👑 SHADOW BOT MD' },
+              header: {
+                hasMediaAttachment: true,
+                imageMessage: await (async () => {
+                  const { imageMessage } = await conn.sendMessage(m.chat, { image: { url } }, { contextInfo });
+                  return imageMessage;
+                })()
+              },
+              nativeFlowMessage: {
+                buttons: [
+                  {
+                    name: 'quick_reply',
+                    buttonParamsJson: JSON.stringify({
+                      display_text: '🔁 Siguiente waifu',
+                      id: `${usedPrefix}${command}`
+                    })
+                  },
+                  {
+                    name: 'cta_url',
+                    buttonParamsJson: JSON.stringify({
+                      display_text: '🌐 Canal de Shadow',
+                      url: redes
+                    })
+                  }
+                ]
+              }
+            }
+          }
+        }
       },
       { quoted: m, contextInfo }
     );
 
+    await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id });
+
   } catch (e) {
-    await conn.reply(m.chat, `⚠️ *Error de conexión en el servidor*\n\n> El Bot no tiene acceso estable a Internet o las DNS de tu Hosting fallaron.\n\n🜸 Detalles: ${e.message}`, m);
+    await conn.reply(m.chat, `❌ Error al buscar la waifu.\n> Detalles: ${e.message}`, m);
   }
 };
 
