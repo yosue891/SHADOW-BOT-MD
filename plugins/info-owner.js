@@ -17,7 +17,7 @@ END:VCARD`
   const canalInfo = {
     title: '⚔️ Canal Oficial de SHADOW ⚔️',
     body: 'Sumérgete en las sombras. Únete al canal oficial.',
-    thumbnailUrl: 'https://cdn.adoolab.xyz/dl/5ac25528.jpg',
+    thumbnailUrl: 'https://u.pne.rs/plyqbqyl.jpg',
     sourceUrl: 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O',
     mediaType: 1,
     renderLargerThumbnail: true
