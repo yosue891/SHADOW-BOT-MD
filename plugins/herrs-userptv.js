@@ -25,9 +25,9 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
       `> Responde o envía un video con el formato:\n` +
       `> \`${usedPrefix + command} | DESTINO\`\n\n` +
       `*Ejemplos de destinos válidos:*\n` +
-      `> 📱 *Privado:* \`58412xxxxxxx\`\n` +
+      `> 📱 *Privado:* \`58412xxxxxxx\` o \`0412xxxxxxx\`\n` +
       `> 📢 *Link Canal:* \`https://whatsapp.com/channel/xxxxxx\`\n` +
-      `> 👥 *Link Grupo:* \`https://chat.whatsapp.com/xxxxxx\`\n` +
+      `> 👥 *Link Grupo/Comunidad:* \`https://chat.whatsapp.com/xxxxxx\`\n` +
       `> 🆔 *ID Directa:* \`120363xxx@newsletter\` o \`120363xxx@g.us\``
     )
   }
@@ -99,6 +99,13 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
   } 
   else if (/^\d+$/.test(target.replace(/[-+()\s]/g, ''))) {
     let cleanNumber = target.replace(/[-+()\s]/g, '')
+    
+    if (cleanNumber.startsWith('0')) {
+      cleanNumber = '58' + cleanNumber.substring(1)
+    } else if (!cleanNumber.startsWith('58') && cleanNumber.length === 10) {
+      cleanNumber = '58' + cleanNumber
+    }
+    
     chatId = `${cleanNumber}@s.whatsapp.net`
   }
 
