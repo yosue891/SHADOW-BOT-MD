@@ -31,11 +31,20 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
   if (!target) return m.reply(`❌ Especifica una ID o enlace de canal válido después de la barra vertical ( | ).`)
 
   let canalId = target
+
   if (target.includes('whatsapp.com/channel/')) {
-    canalId = target.split('channel/')[1]?.split('/')[0]?.trim()
+    let code = target.split('channel/')[1]?.split('/')[0]?.trim()
+    if (!code) return m.reply(`❌ Enlace de canal inválido o mal estructurado.`)
+    
+    try {
+      let res = await conn.newsletterMetadata('invite', code)
+      if (res?.id) canalId = res.id
+    } catch (e) {
+      return m.reply(`❌ No se pudo resolver el enlace del canal. Asegúrate de que el bot esté dentro o tenga acceso.\n> Detalles: ${e.message}`)
+    }
   }
 
-  if (!canalId.endsWith('@newsletter') && !target.includes('whatsapp.com/channel/')) {
+  if (!canalId.endsWith('@newsletter') && !canalId.includes('@')) {
     canalId = `${canalId}@newsletter`
   }
 
