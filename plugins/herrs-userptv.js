@@ -25,9 +25,8 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
       `> Responde o envía un video con el formato:\n` +
       `> \`${usedPrefix + command} | DESTINO\`\n\n` +
       `*Ejemplos de destinos válidos:*\n` +
-      `> 📱 *Privado:* \`58412xxxxxxx\` o \`+58412xxxxxxx\`\n` +
       `> 📢 *Link Canal:* \`https://whatsapp.com/channel/xxxxxx\`\n` +
-      `> 👥 *Link Grupo/Comunidad:* \`https://chat.whatsapp.com/xxxxxx\`\n` +
+      `> 👥 *Link Grupo:* \`https://chat.whatsapp.com/xxxxxx\`\n` +
       `> 🆔 *ID Directa:* \`120363xxx@newsletter\` o \`120363xxx@g.us\``
     )
   }
@@ -59,58 +58,45 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
   } 
   else if (target.includes('chat.whatsapp.com/')) {
     try {
-      let code = target.split('chat.whatsapp.com/')[1]?.split('/')[0]?.trim()
-      if (code === 'invite') {
-        code = target.split('chat.whatsapp.com/invite/')[1]?.split('/')[0]?.trim()
-      }
+      const htmlRes = await axios.get(target, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
+        timeout: 10000
+      })
       
-      if (!code) throw new Error('No se pudo extraer el código de invitación del enlace.')
+      const matchUrl = htmlRes.data.match(/whatsapp:\/\/chat\?code=([a-zA-Z0-9_-]+)/)
+      const matchId = htmlRes.data.match(/"g\.us.*?id":"(\d+@g\.us)"/) || htmlRes.data.match(/"chat_jid":"(\d+@g\.us)"/)
 
-      try {
-        let queryGroup = await conn.query({
-          tag: 'iq',
-          attrs: { type: 'get', xmlns: 'w:g2', to: '@g.us' },
-          content: [{ tag: 'invite', attrs: { code } }]
-        })
+      if (matchId && matchId[1]) {
+        chatId = matchId[1]
+      } else {
+        let code = target.match(/chat\.whatsapp\.com\/([a-zA-Z0-9]{20,24})/)?.[1]
+        if (!code) throw new Error('No se pudo extraer el código de invitación del enlace.')
         
-        let groupNode = queryGroup?.content?.[0]
-        if (groupNode && groupNode.attrs?.id) {
-          chatId = `${groupNode.attrs.id}@g.us`
-        } else {
-          throw new Error('La consulta estructural no devolvió una ID válida.')
-        }
-      } catch {
-        const htmlRes = await axios.get(target, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-          },
-          timeout: 10000
-        })
-        const matchId = htmlRes.data.match(/"g\.us.*?id":"(\d+@g\.us)"/) || htmlRes.data.match(/"chat_jid":"(\d+@g\.us)"/)
-        if (matchId && matchId[1]) {
-          chatId = matchId[1]
-        } else {
-          throw new Error('El enlace de grupo o comunidad es inválido o inaccesible.')
+        try {
+          let queryGroup = await conn.query({
+            tag: 'iq',
+            attrs: { type: 'get', xmlns: 'w:g2', to: '@g.us' },
+            content: [{ tag: 'invite', attrs: { code } }]
+          })
+          let groupNode = queryGroup?.content?.[0]
+          if (groupNode && groupNode.attrs?.id) {
+            chatId = `${groupNode.attrs.id}@g.us`
+          } else {
+            throw new Error('La consulta nativa directa no devolvió ID.')
+          }
+        } catch {
+          throw new Error('El enlace es inválido, expiró o no se pudo extraer la ID de forma externa.')
         }
       }
     } catch (e) {
-      return m.reply(`❌ No se pudo obtener la ID del destino (Grupo/Comunidad).\n> Detalles: ${e.message}`)
+      return m.reply(`❌ No se pudo obtener la ID del grupo.\n> Detalles: ${e.message}`)
     }
   } 
-  else {
-    let cleanNumber = target.replace(/[@s.whatsapp.net]/g, '').replace(/[-+()\s]/g, '')
-    
-    if (/^\d+$/.test(cleanNumber)) {
-      if (cleanNumber.startsWith('0')) {
-        cleanNumber = '58' + cleanNumber.substring(1)
-      }
-      chatId = `${cleanNumber}@s.whatsapp.net`
-      
-      try {
-        let [result] = await conn.onWhatsApp(cleanNumber)
-        if (result && result.exists) chatId = result.jid
-      } catch {}
-    }
+  else if (/^\d+$/.test(target.replace(/[-+()\s]/g, ''))) {
+    let cleanNumber = target.replace(/[-+()\s]/g, '')
+    chatId = `${cleanNumber}@s.whatsapp.net`
   }
 
   if (!chatId.includes('@')) {
@@ -129,16 +115,14 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
   await m.reply(`⏳ *ENVIANDO PTV AL DESTINO...*`)
 
   try {
-    const videoBuffer = Buffer.isBuffer(video) ? video : Buffer.from(video)
-
     await conn.sendMessage(chatId, {
-      video: videoBuffer,
+      video: video,
       mimetype: 'video/mp4',
-      ptv: true,
-      seconds: 15,
-      gifPlayback: false
+      ptv: true
     }, { 
-      quoted: isNewsletter ? null : m
+      quoted: isNewsletter ? null : m,
+      backgroundColor: '#000000',
+      mediaUploadPage: true
     })
 
     await m.react('✅')
