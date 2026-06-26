@@ -58,15 +58,38 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
     }
   } 
   else if (target.includes('chat.whatsapp.com/')) {
-    let match = target.match(/chat\.whatsapp\.com\/([a-zA-Z0-9]{20,24})/)
-    let code = match ? match[1] : null
-    if (!code) return m.reply(`❌ Enlace de grupo inválido o mal estructurado.`)
     try {
-      let res = await conn.groupInviteInfo(code)
-      if (res?.id) {
-        chatId = res.id
+      const htmlRes = await axios.get(target, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
+        timeout: 10000
+      })
+      
+      const matchUrl = htmlRes.data.match(/whatsapp:\/\/chat\?code=([a-zA-Z0-9_-]+)/)
+      const matchId = htmlRes.data.match(/"g\.us.*?id":"(\d+@g\.us)"/) || htmlRes.data.match(/"chat_jid":"(\d+@g\.us)"/)
+
+      if (matchId && matchId[1]) {
+        chatId = matchId[1]
       } else {
-        throw new Error('La función nativa no devolvió una ID válida.')
+        let code = target.match(/chat\.whatsapp\.com\/([a-zA-Z0-9]{20,24})/)?.[1]
+        if (!code) throw new Error('No se pudo extraer el código de invitación del enlace.')
+        
+        try {
+          let queryGroup = await conn.query({
+            tag: 'iq',
+            attrs: { type: 'get', xmlns: 'w:g2', to: '@g.us' },
+            content: [{ tag: 'invite', attrs: { code } }]
+          })
+          let groupNode = queryGroup?.content?.[0]
+          if (groupNode && groupNode.attrs?.id) {
+            chatId = `${groupNode.attrs.id}@g.us`
+          } else {
+            throw new Error('La consulta nativa directa no devolvió ID.')
+          }
+        } catch {
+          throw new Error('El enlace es inválido, expiró o no se pudo extraer la ID de forma externa.')
+        }
       }
     } catch (e) {
       return m.reply(`❌ No se pudo obtener la ID del grupo.\n> Detalles: ${e.message}`)
