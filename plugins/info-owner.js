@@ -57,7 +57,9 @@ https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
     m.chat,
     {
       text: txt,
-      ...rcanal
+      contextInfo: {
+        externalAdReply: canalInfo
+      }
     },
     { quoted: m }
   )
