@@ -1,7 +1,9 @@
+
 import fetch from 'node-fetch'
 
 let handler = async (m, { conn }) => {
   await m.react('👑') 
+  
   let list = [
     {
       displayName: ' Shadow Creator ',
@@ -14,10 +16,18 @@ END:VCARD`
     }
   ]
 
+  let imageBuffer
+  try {
+    let res = await fetch('https://u.pne.rs/plyqbqyl.jpg')
+    imageBuffer = await res.buffer()
+  } catch {
+    imageBuffer = Buffer.alloc(0)
+  }
+
   const canalInfo = {
     title: '⚔️ Canal Oficial de SHADOW ⚔️',
     body: 'Sumérgete en las sombras. Únete al canal oficial.',
-    thumbnailUrl: 'https://u.pne.rs/plyqbqyl.jpg',
+    thumbnail: imageBuffer,
     sourceUrl: 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O',
     mediaType: 1,
     renderLargerThumbnail: true
@@ -57,7 +67,9 @@ https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
     m.chat,
     {
       text: txt,
-      ...rcanal
+      contextInfo: {
+        externalAdReply: canalInfo
+      }
     },
     { quoted: m }
   )
