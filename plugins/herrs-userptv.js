@@ -77,7 +77,7 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
         if (groupNode && groupNode.attrs?.id) {
           chatId = `${groupNode.attrs.id}@g.us`
         } else {
-          throw new Error('La consulta estructural no devolvió una ID válida para este enlace.')
+          throw new Error('La consulta estructural no devolvió una ID válida.')
         }
       } catch {
         const htmlRes = await axios.get(target, {
@@ -90,7 +90,7 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
         if (matchId && matchId[1]) {
           chatId = matchId[1]
         } else {
-          throw new Error('El enlace de grupo o comunidad es inválido o el bot no tiene acceso.')
+          throw new Error('El enlace de grupo o comunidad es inválido o inaccesible.')
         }
       }
     } catch (e) {
@@ -118,14 +118,14 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
   await m.reply(`⏳ *ENVIANDO PTV AL DESTINO...*`)
 
   try {
+    const videoBuffer = Buffer.isBuffer(video) ? video : Buffer.from(video)
+
     await conn.sendMessage(chatId, {
-      video: video,
+      video: videoBuffer,
       mimetype: 'video/mp4',
       ptv: true
     }, { 
-      quoted: isNewsletter ? null : m,
-      backgroundColor: '#000000',
-      mediaUploadPage: true
+      quoted: isNewsletter ? null : m
     })
 
     await m.react('✅')
