@@ -134,7 +134,9 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
     await conn.sendMessage(chatId, {
       video: videoBuffer,
       mimetype: 'video/mp4',
-      ptv: true
+      ptv: true,
+      seconds: 15,
+      gifPlayback: false
     }, { 
       quoted: isNewsletter ? null : m
     })
