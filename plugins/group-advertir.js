@@ -7,7 +7,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
 
   const userSender = global.db.data.users[m.sender];
   if (!userSender || !userSender.registered) {
-    const img = 'https://files.catbox.moe/88n20k.jpg';
+    const img = 'https://u.pone.rs/pnksaqyp.jpg';
     const res = await axios.get(img, { responseType: 'arraybuffer' });
     const imgBuffer = Buffer.from(res.data);
 
@@ -50,7 +50,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
 
   const userName = global.db.data.users[who]?.name || conn.getName(who) || 'Usuario';
 
-  const imgPath = 'https://files.catbox.moe/88n20k.jpg';
+  const imgPath = 'https://u.pone.rs/pnksaqyp.jpg';
   const resImg = await axios.get(imgPath, { responseType: 'arraybuffer' });
   const imgBuffer = Buffer.from(resImg.data);
 
