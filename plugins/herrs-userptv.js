@@ -27,7 +27,7 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
       `*Ejemplos de destinos válidos:*\n` +
       `> 📱 *Privado:* \`58412xxxxxxx\`\n` +
       `> 📢 *Link Canal:* \`https://whatsapp.com/channel/xxxxxx\`\n` +
-      `> 👥 *Link Grupo/Comunidad:* \`https://chat.whatsapp.com/xxxxxx\`\n` +
+      `> 👥 *Link Grupo:* \`https://chat.whatsapp.com/xxxxxx\`\n` +
       `> 🆔 *ID Directa:* \`120363xxx@newsletter\` o \`120363xxx@g.us\``
     )
   }
