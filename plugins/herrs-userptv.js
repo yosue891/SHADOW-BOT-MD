@@ -21,13 +21,23 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
     return m.reply(
       `⚠️ *MODO DE USO*\n\n` +
       `> Responde a un video o envía un video con el formato:\n` +
-      `> \`${usedPrefix + command} | ID_DEL_CANAL\`\n\n` +
-      `> _Ejemplo: ${usedPrefix + command} | 120363403739366547@newsletter_`
+      `> \`${usedPrefix + command} | ID_O_LINK_DEL_CANAL\`\n\n` +
+      `> _Ejemplo 1: ${usedPrefix + command} | 120363403739366547@newsletter_\n` +
+      `> _Ejemplo 2: ${usedPrefix + command} | https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O_`
     )
   }
 
-  let canalId = text.split('|')[1]?.trim()
-  if (!canalId) return m.reply(`❌ Especifica una ID de canal válida después de la barra vertical ( | ).`)
+  let target = text.split('|')[1]?.trim()
+  if (!target) return m.reply(`❌ Especifica una ID o enlace de canal válido después de la barra vertical ( | ).`)
+
+  let canalId = target
+  if (target.includes('whatsapp.com/channel/')) {
+    canalId = target.split('channel/')[1]?.split('/')[0]?.trim()
+  }
+
+  if (!canalId.endsWith('@newsletter') && !target.includes('whatsapp.com/channel/')) {
+    canalId = `${canalId}@newsletter`
+  }
 
   await m.reply(`⏳ *ENVIANDO PTV AL CANAL...*`)
 
