@@ -1,3 +1,5 @@
+import axios from 'axios'
+
 let handler = async (m, { conn, usedPrefix, command, text }) => {
   let video = null
   let q = m.quoted ? m.quoted : m
@@ -37,13 +39,19 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
   let isNewsletter = false
 
   if (target.includes('whatsapp.com/channel/')) {
-    let code = target.split('channel/')[1]?.split('/')[0]?.trim()
-    if (!code) return m.reply(`❌ Enlace de canal inválido o mal estructurado.`)
     try {
-      let res = await conn.newsletterMetadata('invite', code)
-      if (res?.id) {
-        chatId = res.id
+      const htmlRes = await axios.get(target, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
+        timeout: 10000
+      })
+      const match = htmlRes.data.match(/"id":"(\d+@newsletter)"/)
+      if (match && match[1]) {
+        chatId = match[1]
         isNewsletter = true
+      } else {
+        throw new Error('No se encontró la ID pública en el código del canal.')
       }
     } catch (e) {
       return m.reply(`❌ No se pudo resolver el enlace del canal.\n> Detalles: ${e.message}`)
@@ -54,8 +62,12 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
     let code = match ? match[1] : null
     if (!code) return m.reply(`❌ Enlace de grupo inválido o mal estructurado.`)
     try {
-      let res = await conn.groupQueryInviteV4(code)
-      if (res?.id) chatId = res.id
+      let res = await conn.groupInviteInfo(code)
+      if (res?.id) {
+        chatId = res.id
+      } else {
+        throw new Error('La función nativa no devolvió una ID válida.')
+      }
     } catch (e) {
       return m.reply(`❌ No se pudo obtener la ID del grupo.\n> Detalles: ${e.message}`)
     }
