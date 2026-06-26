@@ -34,28 +34,30 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
   if (!target) return m.reply(`❌ Especifica un destino válido después de la barra vertical ( | ).`)
 
   let chatId = target
+  let isNewsletter = false
 
   if (target.includes('whatsapp.com/channel/')) {
     let code = target.split('channel/')[1]?.split('/')[0]?.trim()
     if (!code) return m.reply(`❌ Enlace de canal inválido o mal estructurado.`)
     try {
       let res = await conn.newsletterMetadata('invite', code)
-      if (res?.id) chatId = res.id
+      if (res?.id) {
+        chatId = res.id
+        isNewsletter = true
+      }
     } catch (e) {
       return m.reply(`❌ No se pudo resolver el enlace del canal.\n> Detalles: ${e.message}`)
     }
   } 
   else if (target.includes('chat.whatsapp.com/')) {
-    let code = target.split('chat.whatsapp.com/')[1]?.trim()
-    if (!code) return m.reply(`❌ Enlace de grupo inválido.`)
+    let match = target.match(/chat\.whatsapp\.com\/([a-zA-Z0-9]{20,24})/)
+    let code = match ? match[1] : null
+    if (!code) return m.reply(`❌ Enlace de grupo inválido o mal estructurado.`)
     try {
-      chatId = await conn.groupGetInviteInfo(code)
+      let res = await conn.groupQueryInviteV4(code)
+      if (res?.id) chatId = res.id
     } catch (e) {
-      try {
-        chatId = await conn.groupAcceptInvite(code)
-      } catch (err) {
-        return m.reply(`❌ No se pudo obtener la ID del grupo. Asegúrate de que el enlace sea válido.\n> Detalles: ${err.message}`)
-      }
+      return m.reply(`❌ No se pudo obtener la ID del grupo.\n> Detalles: ${e.message}`)
     }
   } 
   else if (/^\d+$/.test(target.replace(/[-+()\s]/g, ''))) {
@@ -65,8 +67,15 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
 
   if (!chatId.includes('@')) {
     if (chatId.endsWith('g.us')) chatId = `${chatId}@g.us`
-    else if (chatId.endsWith('newsletter')) chatId = `${chatId}@newsletter`
+    else if (chatId.endsWith('newsletter')) {
+      chatId = `${chatId}@newsletter`
+      isNewsletter = true
+    }
     else chatId = `${chatId}@s.whatsapp.net`
+  }
+
+  if (chatId.endsWith('@newsletter')) {
+    isNewsletter = true
   }
 
   await m.reply(`⏳ *ENVIANDO PTV AL DESTINO...*`)
@@ -77,7 +86,7 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
       mimetype: 'video/mp4',
       ptv: true
     }, { 
-      quoted: null,
+      quoted: isNewsletter ? null : m,
       backgroundColor: '#000000',
       mediaUploadPage: true
     })
