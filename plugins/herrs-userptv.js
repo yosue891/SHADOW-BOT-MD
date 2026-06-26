@@ -19,39 +19,60 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
 
   if (!video || !text || !text.includes('|')) {
     return m.reply(
-      `⚠️ *MODO DE USO*\n\n` +
-      `> Responde a un video o envía un video con el formato:\n` +
-      `> \`${usedPrefix + command} | ID_O_LINK_DEL_CANAL\`\n\n` +
-      `> _Ejemplo 1: ${usedPrefix + command} | 120363403739366547@newsletter_\n` +
-      `> _Ejemplo 2: ${usedPrefix + command} | https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O_`
+      `⚠️ *MODO DE USO MULTIFUNCIONAL*\n\n` +
+      `> Responde o envía un video con el formato:\n` +
+      `> \`${usedPrefix + command} | DESTINO\`\n\n` +
+      `*Ejemplos de destinos válidos:*\n` +
+      `> 📱 *Privado:* \`58412xxxxxxx\`\n` +
+      `> 📢 *Link Canal:* \`https://whatsapp.com/channel/xxxxxx\`\n` +
+      `> 👥 *Link Grupo:* \`https://chat.whatsapp.com/xxxxxx\`\n` +
+      `> 🆔 *ID Directa:* \`120363xxx@newsletter\` o \`120363xxx@g.us\``
     )
   }
 
   let target = text.split('|')[1]?.trim()
-  if (!target) return m.reply(`❌ Especifica una ID o enlace de canal válido después de la barra vertical ( | ).`)
+  if (!target) return m.reply(`❌ Especifica un destino válido después de la barra vertical ( | ).`)
 
-  let canalId = target
+  let chatId = target
 
   if (target.includes('whatsapp.com/channel/')) {
     let code = target.split('channel/')[1]?.split('/')[0]?.trim()
     if (!code) return m.reply(`❌ Enlace de canal inválido o mal estructurado.`)
-    
     try {
       let res = await conn.newsletterMetadata('invite', code)
-      if (res?.id) canalId = res.id
+      if (res?.id) chatId = res.id
     } catch (e) {
-      return m.reply(`❌ No se pudo resolver el enlace del canal. Asegúrate de que el bot esté dentro o tenga acceso.\n> Detalles: ${e.message}`)
+      return m.reply(`❌ No se pudo resolver el enlace del canal.\n> Detalles: ${e.message}`)
     }
+  } 
+  else if (target.includes('chat.whatsapp.com/')) {
+    let code = target.split('chat.whatsapp.com/')[1]?.trim()
+    if (!code) return m.reply(`❌ Enlace de grupo inválido.`)
+    try {
+      chatId = await conn.groupGetInviteInfo(code)
+    } catch (e) {
+      try {
+        chatId = await conn.groupAcceptInvite(code)
+      } catch (err) {
+        return m.reply(`❌ No se pudo obtener la ID del grupo. Asegúrate de que el enlace sea válido.\n> Detalles: ${err.message}`)
+      }
+    }
+  } 
+  else if (/^\d+$/.test(target.replace(/[-+()\s]/g, ''))) {
+    let cleanNumber = target.replace(/[-+()\s]/g, '')
+    chatId = `${cleanNumber}@s.whatsapp.net`
   }
 
-  if (!canalId.endsWith('@newsletter') && !canalId.includes('@')) {
-    canalId = `${canalId}@newsletter`
+  if (!chatId.includes('@')) {
+    if (chatId.endsWith('g.us')) chatId = `${chatId}@g.us`
+    else if (chatId.endsWith('newsletter')) chatId = `${chatId}@newsletter`
+    else chatId = `${chatId}@s.whatsapp.net`
   }
 
-  await m.reply(`⏳ *ENVIANDO PTV AL CANAL...*`)
+  await m.reply(`⏳ *ENVIANDO PTV AL DESTINO...*`)
 
   try {
-    await conn.sendMessage(canalId, {
+    await conn.sendMessage(chatId, {
       video: video,
       mimetype: 'video/mp4',
       ptv: true
@@ -62,7 +83,7 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
     })
 
     await m.react('✅')
-    return m.reply(`✅ *ÉXITO*\n\n> El video fue enviado correctamente al canal como PTV.`)
+    return m.reply(`✅ *ÉXITO*\n\n> El video fue enviado correctamente como PTV al destino indicado.`)
 
   } catch (err) {
     return m.reply(`❌ *FALLO*\n\n> Error: ${err.message}`)
