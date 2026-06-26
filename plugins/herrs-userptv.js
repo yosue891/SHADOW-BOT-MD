@@ -106,7 +106,16 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
       cleanNumber = '58' + cleanNumber
     }
     
-    chatId = `${cleanNumber}@s.whatsapp.net`
+    try {
+      let [result] = await conn.onWhatsApp(cleanNumber)
+      if (result && result.exists) {
+        chatId = result.jid
+      } else {
+        chatId = `${cleanNumber}@s.whatsapp.net`
+      }
+    } catch {
+      chatId = `${cleanNumber}@s.whatsapp.net`
+    }
   }
 
   if (!chatId.includes('@')) {
