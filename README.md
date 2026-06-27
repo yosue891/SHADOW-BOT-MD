@@ -234,14 +234,14 @@ Inicia el bot nuevamente:
    ```bash
    npm start
    ```
-  - **Instalación rápida (opcional)**  
+  - **Instalación rápida en CMD (opcional)**  
      ```bash
     git clone https://github.com/Ado-rgb/Michi-WaBot.git & cd Michi-WaBot & npm install & npm start
      ```
-
->⚠️ Nota importante:  
->Si usas **PowerShell**, separa los comandos con `;`.  
->Si usas **CMD**, separa los comandos con `&` o simplemente copia los comandos tal como aparecen en la sección de **instalación rápida opcional**.
+  - **Instalación rápida en PowerShell (opcional)**  
+     ```bash
+    git clone https://github.com/Ado-rgb/Michi-WaBot.git & cd Michi-WaBot & npm install & npm start
+     ```
 
 </details>
 
