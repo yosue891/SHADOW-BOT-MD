@@ -217,12 +217,12 @@ Inicia el bot nuevamente:
 
 5. **Clona el Repositorio del Bot**
    ```bash
-   git clone https://github.com/Ado-rgb/Michi-WaBot.git
+   git clone https://github.com/yosue891/SHADOW-BOT-MD
    ```
 
 6. **Accede al Directorio del Proyecto**
    ```bash
-   cd Michi-WaBot
+   cd SHADOW-BOT-MD
    ```
 
 7. **Instala las Dependencias de Node.js**
@@ -236,11 +236,11 @@ Inicia el bot nuevamente:
    ```
   - **Instalación rápida en CMD (opcional)**  
      ```bash
-    git clone https://github.com/Ado-rgb/Michi-WaBot.git & cd Michi-WaBot & npm install & npm start
+    git clone https://github.com/yosue891/SHADOW-BOT-MD & cd SHADOW-BOT-MD & npm install & npm start
      ```
   - **Instalación rápida en PowerShell (opcional)**  
      ```bash
-    git clone https://github.com/Ado-rgb/Michi-WaBot.git & cd Michi-WaBot & npm install & npm start
+    git clone https://github.com/yosue891/SHADOW-BOT-MD & cd SHADOW-BOT-MD & npm install & npm start
      ```
 
 </details>
