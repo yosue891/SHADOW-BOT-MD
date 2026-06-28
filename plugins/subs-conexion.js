@@ -299,8 +299,10 @@ export async function MichiJadiBot(options) {
     browser: ['Ubuntu', 'Chrome', '20.0.04'],
     version,
     generateHighQualityLinkPreview: true,
-    markOnlineOnConnect: false,
-    syncFullHistory: false
+    markOnlineOnConnect: true,
+    syncFullHistory: false,
+    keepAliveIntervalMs: 25000,
+    maxIdleTimeMs: 0
   }
 
   let sock = makeWASocket(connectionOptions)
@@ -309,7 +311,8 @@ export async function MichiJadiBot(options) {
   let isInit = true
 
   setTimeout(async () => {
-    if (!sock.user) {
+    const wsClosed = !sock.ws || sock.ws.readyState === 3
+    if (!sock.user && wsClosed) {
       try { fs.rmSync(pathMichiJadiBot, { recursive: true, force: true }) } catch {}
       try { sock.ws?.close() } catch {}
       try { sock.ev.removeAllListeners() } catch {}
@@ -415,13 +418,13 @@ const secret = await sock.requestPairingCode(phoneNumber)
   }
 
   setInterval(async () => {
-    if (!sock.user) {
-      try { sock.ws.close() } catch {}
+    const wsClosed = !sock.ws || sock.ws.readyState === 3
+    if (!sock.user && wsClosed) {
       try { sock.ev.removeAllListeners() } catch {}
       const i = global.conns.indexOf(sock)
       if (i >= 0) global.conns.splice(i, 1)
     }
-  }, 60000)
+  }, 120000)
 
   let handlerModule = await loadHandlerModule()
   const creloadHandler = async function (restatConn) {
