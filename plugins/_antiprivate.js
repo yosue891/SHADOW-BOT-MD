@@ -10,11 +10,15 @@ export async function before(m, { conn, isOwner, isROwner }) {
 
   if (m.chat === '120363416409380841@newsletter') return true;
 
-  const creador = '+5804242773183';
+  const creador = '+584242773183';
   if (m.sender.includes(creador.replace('+', ''))) return true;
 
   if (bot.antiPrivate && !isOwner && !isROwner) {
-    await conn.updateBlockStatus(m.sender, 'block');
+    try {
+      await conn.updateBlockStatus(m.sender, 'block');
+    } catch (e) {
+      console.error(`[AntiPrivate Error] No se pudo bloquear a ${m.sender}:`, e.message);
+    }
     return true;
   }
 
