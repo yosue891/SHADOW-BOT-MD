@@ -16,7 +16,7 @@ const YOSOYYO_WELCOME_BANNER = {
   data: {
     width: 1000,
     height: 500,
-    backgroundUrl: 'https://litter.catbox.moe/8v75uh.jpg',
+    backgroundUrl: 'https://u.pone.rs/pjyqbqyl.jpg',
     profileUrl: 'https://unavatar.io/github/yosue891',
     profileSize: 200,
     profileX: 500,
@@ -114,7 +114,7 @@ export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
   const params = {
     width: 1000,
     height: 500,
-    backgroundUrl: 'https://litter.catbox.moe/8v75uh.jpg',
+    backgroundUrl: 'https://u.pone.rs/pjyqbqyl.jpg',
     profileUrl: profileUrl,
     profileSize: 200,
     profileX: 500,
@@ -137,7 +137,7 @@ export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
   const query = new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)])).toString()
   const finalUrl = `${API_BASE}?${query}`
 
-  let imageSource = 'https://litter.catbox.moe/8v75uh.jpg'
+  let imageSource = 'https://u.pone.rs/pjyqbqyl.jpg'
   try {
     const response = await fetch(finalUrl)
     if (response.ok) {
