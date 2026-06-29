@@ -1,4 +1,4 @@
-function handler(m, { text }) {
+function handler(m, { conn, text }) {
   const emoji = "🌑🎄"
 
   if (!text) return conn.reply(m.chat, `${emoji} *Invoca tu nombre al Jardín de las Sombras.*\nUsa el comando junto a tu nombre para recibir tu identidad secreta...`, m)

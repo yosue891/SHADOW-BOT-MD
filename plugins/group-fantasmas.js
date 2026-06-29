@@ -1,12 +1,12 @@
 import { areJidsSameUser } from '@whiskeysockets/baileys'
 
-var handler = async (m, { conn, text, participants, args, command }) => {
+var handler = async (m, { conn, text, participants, args, command, usedPrefix }) => {
 try {
 let member = participants.map(u => u.id)
 if (!text) {
 var sum = member.length
 } else {
-var sum = text
+var sum = parseInt(text)
 }
 var total = 0
 var sider = []
@@ -36,7 +36,7 @@ let chat = global.db.data.chats[m.chat]
 chat.welcome = false
 try {
 let users = m.mentionedJid.filter(u => !areJidsSameUser(u, conn.user.id))
-let kickedGhost = sider.map(v => v.id).filter(v => v !== conn.user.jid)
+let kickedGhost = sider.filter(v => v !== conn.user.jid)
 for (let user of users)
 if (user.endsWith('@s.whatsapp.net') && !(participants.find(v => areJidsSameUser(v.id, user)) || { admin: true }).admin) {
 let res = await conn.groupParticipantsUpdate(m.chat, [user], 'remove')

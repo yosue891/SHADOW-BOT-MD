@@ -18,7 +18,7 @@ export async function before(m, { conn, isAdmin, isBotAdmin, isMods, isROwner, p
       await conn.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: m.key.id, participant: m.key.participant }})
       await conn.reply(
         m.chat,
-        `> ⏤͟͟͞͞☆ Se ha eliminado a *${global.db.data.users[m.key.participant].name || 'Usuario'}* jajaja este we por qué manda links de otros grupos si sabe que está prohibido 🌌👑 ¿quién más quiere ser eliminado para que lo acompañe uwu?`,
+        `> ⏤͟͟͞͞☆ Se ha eliminado a *${(global.db.data.users[m.key.participant]?.name) || 'Usuario'}* jajaja este we por qué manda links de otros grupos si sabe que está prohibido 🌌👑 ¿quién más quiere ser eliminado para que lo acompañe uwu?`,
         null
       )
       await conn.groupParticipantsUpdate(m.chat, [m.key.participant], 'remove')

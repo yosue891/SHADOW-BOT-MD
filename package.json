@@ -21,7 +21,7 @@
   "bugs": {
     "url": "https://github.com/yosue891/SHADOW-BOT-MD.git/issues"
   },
-  "homepage": "https://github.com/yosue891/SHADOW-BOT-MD.gitt#readme",
+  "homepage": "https://github.com/yosue891/SHADOW-BOT-MD.git#readme",
   "dependencies": {
     "@bochilteam/scraper": "^4.2.4",
     "@hapi/boom": "^10.0.1",
@@ -55,7 +55,6 @@
     "node-webpmux": "^3.1.3",
     "performance-now": "^2.1.0",
     "pino": "^8.6.1",
-    "perf_hooks": "^0.0.1",
     "qrcode": "^1.5.1",
     "qs": "^6.13.0",
     "ruhend-scraper": "^7.0.4",

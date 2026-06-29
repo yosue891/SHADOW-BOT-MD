@@ -30,7 +30,7 @@ continue
 if (plugin.disabled) {
 continue
 }
-if (!opts['restrict']) {
+if (!(typeof globalThis.opts !== 'undefined' && globalThis.opts['restrict'])) {
 if (plugin.tags && plugin.tags.includes('admin')) {
 continue
 }}

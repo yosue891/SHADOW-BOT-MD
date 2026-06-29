@@ -4,7 +4,7 @@ let handler = m => m
 handler.before = async function (m, { conn }) {
 let user = global.db.data.users[m.sender]
 let before = user.level
-while (canLevelUp(user.level, user.exp, global.multiplier)) { user.level++ }
+while (canLevelUp(user.level, user.exp, global.multiplier || 1)) { user.level++ }
 if (before !== user.level) {
 let especial = 'coin'
 let especial2 = 'exp'
@@ -14,7 +14,7 @@ if (user.level % 5 === 0) {
 user[especial] += especialCant
 user[especial2] += especialCant2
 }
-let { min, max } = xpRange(user.level, global.multiplier)
+let { min, max } = xpRange(user.level, global.multiplier || 1)
 }
 return !0
 }

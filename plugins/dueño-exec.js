@@ -4,11 +4,10 @@ import { promisify } from 'util'
 const exec = promisify(_exec).bind(cp)
 const handler = async (m, { conn, isOwner, isROwner, command, text, usedPrefix, args }) => {
 if (!isROwner) return
-if (conn.user.jid != conn.user.jid) return
 let o
 try {
 await m.react('🕒')
-o = await exec(command.trimStart() + ' ' + text.trimEnd())
+o = await exec(command + (text ? ' ' + text : ''))
 await m.react('✔️')
 } catch (e) {
 o = e

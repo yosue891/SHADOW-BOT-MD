@@ -1,7 +1,7 @@
 const handler = async (m, { conn, command, text, usedPrefix }) => {
   if (!text) return conn.reply(m.chat, `En las sombras debes mencionar a un Usuario para invocar su destino.`, m);
 
-  const percentages = (500).getRandom();
+  const percentages = Math.floor(Math.random() * 500);
   let emoji = '';
   let description = '';
 
@@ -117,7 +117,7 @@ ${description}
     let { key } = await conn.sendMessage(
       m.chat,
       { text: `🤍 Las sombras están calculando tu destino...`, mentions: conn.parseMention(cal) },
-      { quoted: fkontak }
+      { quoted: global.fkontak }
     );
 
     for (let i = 0; i < hawemod.length; i++) {
@@ -125,14 +125,14 @@ ${description}
       await conn.sendMessage(
         m.chat,
         { text: hawemod[i], edit: key, mentions: conn.parseMention(cal) },
-        { quoted: fkontak }
+        { quoted: global.fkontak }
       );
     }
 
     await conn.sendMessage(
       m.chat,
       { text: cal, edit: key, mentions: conn.parseMention(cal) },
-      { quoted: fkontak }
+      { quoted: global.fkontak }
     );
   }
 

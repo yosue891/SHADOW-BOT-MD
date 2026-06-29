@@ -1,5 +1,5 @@
 let handler = async (m, { conn, usedPrefix }) => {
-if (!db.data.chats[m.chat].economy && m.isGroup) {
+if (!global.db.data.chats[m.chat].economy && m.isGroup) {
 return m.reply(`《✦》Los comandos de *Economía* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con el comando:\n» *${usedPrefix}economy on*`)
 }
 let mentionedJid = await m.mentionedJid
@@ -13,9 +13,9 @@ let total = (user.coin || 0) + (user.bank || 0)
 const texto = `> ✿ » Economia -  Balance « ✿
  
 ᰔᩚ Usuario » *${name}*   
-⛀ Cartera » *¥${coin.toLocaleString()} ${currency}*
-⚿ Banco » *¥${bank.toLocaleString()} ${currency}*
-⛁ Total » *¥${total.toLocaleString()} ${currency}*
+⛀ Cartera » *¥${coin.toLocaleString()} ${global.currency}*
+⚿ Banco » *¥${bank.toLocaleString()} ${global.currency}*
+⛁ Total » *¥${total.toLocaleString()} ${global.currency}*
 
 > *Para proteger tu dinero, ¡depósitalo en el banco usando #deposit!*`
 await conn.reply(m.chat, texto, m)

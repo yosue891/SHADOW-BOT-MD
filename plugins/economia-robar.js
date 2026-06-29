@@ -1,5 +1,5 @@
 const handler = async (m, { conn, usedPrefix, command }) => {
-if (!db.data.chats[m.chat].economy && m.isGroup) {
+if (!global.db.data.chats[m.chat].economy && m.isGroup) {
 return m.reply(`《✦》Los comandos de *Economía* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con el comando:\n» *${usedPrefix}economy on*`)
 }
 const user = global.db.data.users[m.sender]
@@ -18,16 +18,16 @@ let name = await (async () => global.db.data.users[who].name || (async () => { t
 const target = global.db.data.users[who]
 const tiempoInactivo = Date.now() - (target.lastwork || 0)
 if (tiempoInactivo < 3600000) {
-return conn.reply(m.chat, `ꕥ Solo puedes robarle *${currency}* a un usuario si estuvo más de 1 hora inactivo.`, m)
+return conn.reply(m.chat, `ꕥ Solo puedes robarle *${global.currency}* a un usuario si estuvo más de 1 hora inactivo.`, m)
 }
 const rob = Math.floor(Math.random() * 1001) + 2000
 if (target.coin < rob) {
-return conn.reply(m.chat, `ꕥ *${name}* no tiene suficientes *${currency}* fuera del banco como para que valga la pena intentar robar.`, m, { mentions: [who] })
+return conn.reply(m.chat, `ꕥ *${name}* no tiene suficientes *${global.currency}* fuera del banco como para que valga la pena intentar robar.`, m, { mentions: [who] })
 }
 user.coin += rob
 target.coin -= rob
 user.lastrob = Date.now() + 7200000
-conn.reply(m.chat, `❀ Le robaste *¥${rob.toLocaleString()} ${currency}* a *${name}*`, m, { mentions: [who] })
+conn.reply(m.chat, `❀ Le robaste *¥${rob.toLocaleString()} ${global.currency}* a *${name}*`, m, { mentions: [who] })
 }
 
 handler.help = ['robar']

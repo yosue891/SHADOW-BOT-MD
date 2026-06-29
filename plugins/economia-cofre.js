@@ -1,5 +1,5 @@
 var handler = async (m, { conn, usedPrefix, command }) => {
-if (!db.data.chats[m.chat].economy && m.isGroup) {
+if (!global.db.data.chats[m.chat].economy && m.isGroup) {
 return m.reply(`《✦》Los comandos de *Economía* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con el comando:\n» *${usedPrefix}economy on*`)
 }
 let user = global.db.data.users[m.sender]
@@ -17,7 +17,7 @@ let expGain = Math.floor(Math.random() * (111)) + 50
 user.coin += reward
 user.exp += expGain
 user.lastcofre = now + gap
-conn.reply(m.chat, `「✿」 ${pickRandom(cofres)}\n> Has recibido *¥${reward.toLocaleString()} ${currency}*.`, m)
+conn.reply(m.chat, `「✿」 ${pickRandom(cofres)}\n> Has recibido *¥${reward.toLocaleString()} ${global.currency}*.`, m)
 }
 
 handler.help = ['cofre']

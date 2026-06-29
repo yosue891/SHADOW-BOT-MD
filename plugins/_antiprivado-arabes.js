@@ -40,7 +40,7 @@ export async function before(m, { conn, isOwner, isROwner}) {
 
 🧩 Registro sellado. Acceso denegado.
 ══════════════════════`);
-        await conn.updateBlockStatus(m.chat, 'block');
+        await conn.updateBlockStatus(m.sender, 'block');
         console.log(`[☠️ ENTIDAD BLOQUEADA] ${numero}`);
         delete global.advertenciasArabes[numero];
 } else {

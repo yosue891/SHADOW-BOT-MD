@@ -19,7 +19,7 @@ const groupAdmins = participants.filter(p => p.admin)
 let iconBuffer = null
 if (chat.detect) {
   try {
-    iconBuffer = await (await fetch(icono)).buffer()
+    iconBuffer = await (await fetch(global.icono)).buffer()
   } catch {
     iconBuffer = null
   }
@@ -28,19 +28,19 @@ if (chat.detect) {
 const rcanalBase = {
   isForwarded: true,
   forwardedNewsletterMessageInfo: {
-    newsletterJid: channelRD.id,
+    newsletterJid: global.channelRD?.id || '',
     serverMessageId: '',
-    newsletterName: channelRD.name
+    newsletterName: global.channelRD?.name || ''
   },
   externalAdReply: {
     title: "𐔌 . ⋮ ᗩ ᐯ I Տ O .ᐟ ֹ ₊ ꒱",
-    body: textbot,
+    body: global.textbot || '',
     mediaUrl: null,
     description: null,
     previewType: "PHOTO",
     thumbnail: iconBuffer,
     jpegThumbnail: iconBuffer,
-    sourceUrl: redes,
+    sourceUrl: global.redes,
     mediaType: 1,
     renderLargerThumbnail: false
   },
@@ -58,7 +58,7 @@ const noadmingp = `> ❀ @${users.split('@')[0]} Deja de ser admin del grupo.\n>
 
 if (chat.detect && m.messageStubType == 2) {
 const uniqid = (m.isGroup ? m.chat : m.sender).split('@')[0]
-const sessionPath = `./${sessions}/`
+const sessionPath = `./${global.sessions}/`
 for (const file of await fs.promises.readdir(sessionPath)) {
 if (file.includes(uniqid)) {
 await fs.promises.unlink(path.join(sessionPath, file))

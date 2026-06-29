@@ -11,7 +11,7 @@ handler.all = async function (m) {
   global.canalNombreM = ["SHADOW-BOT-MD canal uwu", "yosue canal uwu"]
   global.channelRD = await getRandomChannel()
 
-  global.d = new Date(new Date + 3600000)
+  global.d = new Date(Date.now() + 3600000)
   global.locale = 'es'
   global.dia = d.toLocaleDateString(locale, { weekday: 'long' })
   global.fecha = d.toLocaleDateString('es', { day: 'numeric', month: 'numeric', year: 'numeric' })

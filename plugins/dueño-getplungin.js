@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import path from 'path'; 
 
 const handler = async (m, {conn, isROwner, usedPrefix, command, text}) => {
-  const ar = Object.keys(plugins);
+  const ar = Object.keys(global.plugins);
   const ar1 = ar.map((v) => v.replace('.js', ''));
   
   if (!text) {

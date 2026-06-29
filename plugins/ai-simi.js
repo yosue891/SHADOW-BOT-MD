@@ -7,13 +7,7 @@ let handler = async (m, { conn, text }) => {
 
   let extraPrefix = ''
   try {
-    const mathExpression = text.replace(/[^0-9+\-*/().]/g, '')
-    if (mathExpression) {
-      const result = eval(mathExpression)
-      if (result === 13 || text.includes('13')) {
-        extraPrefix = "si mmvg y yo nací ayer 🤨🖕, "
-      }
-    } else if (text.includes('13')) {
+    if (text.includes('13')) {
       extraPrefix = "si mmvg y yo nací ayer 🤨🖕, "
     }
   } catch (e) {

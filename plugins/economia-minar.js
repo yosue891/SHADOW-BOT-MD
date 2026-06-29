@@ -1,5 +1,5 @@
 var handler = async (m, { conn, usedPrefix, command }) => {
-if (!db.data.chats[m.chat].economy && m.isGroup) {
+if (!global.db.data.chats[m.chat].economy && m.isGroup) {
 return m.reply(`《✦》Los comandos de *Economía* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con el comando:\n» *${usedPrefix}economy on*`)
 }
 const user = global.db.data.users[m.sender]
@@ -38,7 +38,7 @@ if (user.coin < 0) user.coin = 0
 if (user.exp < 0) user.exp = 0
 }
 if (user.health < 0) user.health = 0
-const mensaje = `❀ ${evento.mensaje} *¥${monedas.toLocaleString()} ${currency}*`
+const mensaje = `❀ ${evento.mensaje} *¥${monedas.toLocaleString()} ${global.currency}*`
 await conn.reply(m.chat, mensaje, m)
 }
 

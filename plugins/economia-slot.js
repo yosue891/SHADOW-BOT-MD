@@ -1,7 +1,7 @@
 import { delay } from "@whiskeysockets/baileys"
 
 const handler = async (m, { args, usedPrefix, command, conn }) => {
-if (!db.data.chats[m.chat].economy && m.isGroup) {
+if (!global.db.data.chats[m.chat].economy && m.isGroup) {
 return m.reply(`《✦》Los comandos de *Economía* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con el comando:\n» *${usedPrefix}economy on*`)
 }
 const users = global.db.data.users[m.sender]
@@ -13,8 +13,8 @@ if (Date.now() - users.lastslot < 10000) {
 const restante = users.lastslot + 10000 - Date.now()
 return m.reply(`ꕥ Debes esperar *${formatTime(restante)}* para usar *${usedPrefix + command}* nuevamente.`)
 }
-if (apuesta < 100) return m.reply(`ꕥ El mínimo para apostar es de 100 *${currency}*.`)
-if (users.coin < apuesta) return m.reply(`ꕥ Tus *${currency}* no son suficientes para apostar esa cantidad.`)
+if (apuesta < 100) return m.reply(`ꕥ El mínimo para apostar es de 100 *${global.currency}*.`)
+if (users.coin < apuesta) return m.reply(`ꕥ Tus *${global.currency}* no son suficientes para apostar esa cantidad.`)
 const emojis = ['✾', '❃', '❁']
 const getRandomEmojis = () => {
 const x = Array.from({ length: 3 }, () => emojis[Math.floor(Math.random() * emojis.length)])
@@ -40,13 +40,13 @@ await animateSlots()
 const { x, y, z } = getRandomEmojis()
 let resultado
 if (x[0] === y[0] && y[0] === z[0]) {
-resultado = `❀ Ganaste! *¥${(apuesta * 2).toLocaleString()} ${currency}*.`
+resultado = `❀ Ganaste! *¥${(apuesta * 2).toLocaleString()} ${global.currency}*.`
 users.coin += apuesta
 } else if (x[0] === y[0] || x[0] === z[0] || y[0] === z[0]) {
-resultado = `❀ Casi lo logras. *Toma ¥10 ${currency}* por intentarlo.`
+resultado = `❀ Casi lo logras. *Toma ¥10 ${global.currency}* por intentarlo.`
 users.coin += 10
 } else {
-resultado = `❀ Perdiste *¥${apuesta.toLocaleString()} ${currency}*.`
+resultado = `❀ Perdiste *¥${apuesta.toLocaleString()} ${global.currency}*.`
 users.coin -= apuesta
 }
 users.lastslot = Date.now()

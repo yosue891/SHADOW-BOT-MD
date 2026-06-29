@@ -1,5 +1,5 @@
 var handler = async (m, { conn, usedPrefix }) => {
-if (!db.data.chats[m.chat].economy && m.isGroup) return m.reply(`《✦》Los comandos de *Economía* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con el comando:\n» *${usedPrefix}economy on*`)
+if (!global.db.data.chats[m.chat].economy && m.isGroup) return m.reply(`《✦》Los comandos de *Economía* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con el comando:\n» *${usedPrefix}economy on*`)
 let user = global.db.data.users[m.sender]
 const gap = 604800000
 const now = Date.now()
@@ -27,7 +27,7 @@ user.lastweekly = now + gap
 let nextReward = Math.min(40000 + user.weeklyStreak * 5000, 185000).toLocaleString()
 let msg = `> Semana *${user.weeklyStreak + 1}* » *+¥${nextReward}*`
 if (lost) msg += `\n> ☆ ¡Has perdido tu racha de semanas!`
-conn.reply(m.chat, `「❁」 Has reclamado tu recompensa semanal de *¥${coins.toLocaleString()} ${currency}* (Semana *${user.weeklyStreak}*)\n${msg}`, m)
+conn.reply(m.chat, `「❁」 Has reclamado tu recompensa semanal de *¥${coins.toLocaleString()} ${global.currency}* (Semana *${user.weeklyStreak}*)\n${msg}`, m)
 }
 
 handler.help = ['weekly', 'semanal']
