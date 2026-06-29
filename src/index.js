@@ -99,7 +99,7 @@ const userDevicesCache = new NodeCache({ stdTTL: 0, checkperiod: 0 })
 const { version } = await fetchLatestBaileysVersion()
 let phoneNumber = global.botNumber
 const methodCodeQR = process.argv.includes("qr")
-const methodCode = !!phoneNumber || process.argv.includes("code")
+const methodCode = process.argv.includes("code")
 const MethodMobile = process.argv.includes("mobile")
 const colors = chalk.bold.white
 const qrOption = chalk.blueBright
@@ -153,7 +153,6 @@ global.conn = makeWASocket(connectionOptions)
 if (!fs.existsSync(`./${sessions}/creds.json`)) {
 if (opcion === '2' || methodCode) {
 opcion = '2'
-if (!conn.authState.creds.registered) {
 let addNumber
 if (!!phoneNumber) {
 addNumber = phoneNumber.replace(/[^0-9]/g, '')
@@ -166,12 +165,25 @@ phoneNumber = `+${phoneNumber}`
 }} while (!await isValidPhoneNumber(phoneNumber))
 rl.close()
 addNumber = phoneNumber.replace(/\D/g, '')
-setTimeout(async () => {
-let codeBot = await conn.requestPairingCode(addNumber)
+}
+const requestPairingWithRetry = async (retries = 3) => {
+for (let i = 0; i < retries; i++) {
+try {
+if (!global.conn?.authState?.creds?.registered) {
+let codeBot = await global.conn.requestPairingCode(addNumber)
 codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
 console.log(chalk.bold.white(chalk.bgMagenta(`[ ✿ ]  Código:`)), chalk.bold.white(chalk.white(codeBot)))
-}, 3000)
-}}}}
+return
+}
+} catch (e) {
+console.log(chalk.bold.yellowBright(`\n⚠︎ Reintentando solicitar código de vinculación (${i + 1}/${retries})...`))
+await delay(5000)
+}
+}
+console.log(chalk.bold.redBright(`\n⚠︎ No se pudo solicitar el código de vinculación.`))
+}
+setTimeout(() => requestPairingWithRetry(), 3000)
+}}
 conn.isInit = false
 conn.well = false
 conn.logger.info(`[ 🍐 ]  H E C H O\n`)
@@ -293,13 +305,16 @@ console.log(chalk.green.bold(`[ ✿ ]  Conectado a: ${userName}`))
 }
 let reason = new Boom(lastDisconnect?.error)?.output?.statusCode
 if (connection === 'close') {
-if (reason === DisconnectReason.badSession) {
+    const isAuthenticated = !!(conn?.user?.id)
+    if (reason === DisconnectReason.badSession) {
 console.log(chalk.bold.cyanBright(`\n⚠︎ Sesión incorrecta, borra la session principal del Bot, y conectate nuevamente.`))
 } else if (reason === DisconnectReason.connectionClosed) {
+if (!isAuthenticated) return
 console.log(chalk.bold.magentaBright(`\n♻ Reconectando la conexión del Bot...`))
 await delay(3000)
 await global.reloadHandler(true).catch(console.error)
 } else if (reason === DisconnectReason.connectionLost) {
+if (!isAuthenticated) return
 console.log(chalk.bold.blueBright(`\n⚠︎ Conexión perdida con el servidor, reconectando el Bot...`))
 await delay(3000)
 await global.reloadHandler(true).catch(console.error)
@@ -308,16 +323,21 @@ console.log(chalk.bold.yellowBright(`\nꕥ La conexión del Bot ha sido reemplaz
 } else if (reason === DisconnectReason.loggedOut) {
 console.log(chalk.bold.redBright(`\n⚠︎ Sesión cerrada, borra la session principal del Bot, y conectate nuevamente.`))
 } else if (reason === DisconnectReason.restartRequired) {
+if (!isAuthenticated) return
 console.log(chalk.bold.cyanBright(`\n♻ Conectando el Bot con el servidor...`))
 await delay(3000)
 await global.reloadHandler(true).catch(console.error)
 } else if (reason === DisconnectReason.timedOut) {
+if (!isAuthenticated) return
 console.log(chalk.bold.yellowBright(`\n♻ Conexión agotada, reconectando el Bot...`))
 await delay(5000)
 await global.reloadHandler(true).catch(console.error)
-} else {
-console.log(chalk.bold.redBright(`\n⚠︎ Conexión cerrada, conectese nuevamente.`))
-}}}
+    } else {
+        if (!isAuthenticated) return
+        console.log(chalk.bold.redBright(`\n⚠︎ Conexión cerrada (razón: ${reason}), reconectando...`))
+        await delay(3000)
+        await global.reloadHandler(true).catch(console.error)
+    }}}
 process.on('uncaughtException', console.error)
 let isInit = true
 let handler = await import('./handler.js')
@@ -490,6 +510,21 @@ for (const file of files) {
 if (file !== 'creds.json') await fs.promises.unlink(path.join(dir, file)).catch(() => {})
 }
 } catch {} } }, 10 * 60 * 1000)
+// Health check - cada 60s verifica que el WebSocket esté vivo (solo si autenticado)
+setInterval(async () => {
+    try {
+        if (global.conn?.user?.id) {
+            const wsClosed = !global.conn.ws || global.conn.ws.readyState === 3
+            if (wsClosed) {
+                console.log(chalk.bold.yellowBright(`\n⚠︎ Health check: WebSocket cerrado. Reconectando...`))
+                await global.reloadHandler(true).catch(console.error)
+            }
+        }
+    } catch (e) {
+        console.error('Error en health check:', e)
+    }
+}, 60000)
+
 _quickTest().catch(console.error)
 async function isValidPhoneNumber(number) {
 try {
