@@ -16,7 +16,10 @@ const handler = async (m, { args, conn }) => {
     const res = await fetch(api)
     const json = await res.json()
 
-    let videoUrl = json.resultado?.video_hd || json.resultado?.video_sd || json.resultado?.url
+    console.log('Respuesta completa de la API:', JSON.stringify(json, null, 2))
+
+    const resultado = json.resultado || json.result || json
+    let videoUrl = resultado?.video_hd || resultado?.video_sd || resultado?.url || resultado?.urls?.[0]?.url
 
     if (!videoUrl) {
       if (m.react) await m.react('✖️')
@@ -27,11 +30,18 @@ const handler = async (m, { args, conn }) => {
       )
     }
 
+    let titulo = resultado?.titulo || resultado?.title || resultado?.descripcion || resultado?.description || 'Video de Facebook'
+    let duracion = resultado?.duracion || resultado?.duration ? `\n⏱️ *Duración:* ${resultado.duracion || resultado.duration}` : ''
+
+    let txt = `*✦ Descarga de Facebook ✦*\n\n`
+    txt += `📝 *Título:* ${titulo}${duracion}\n\n`
+    txt += `> ✩ Aqui tienes tu pedido.`
+
     await conn.sendFile(
       m.chat,
       videoUrl,
       'facebook.mp4',
-      '> ✩ Aqui tienes tu pedido.',
+      txt,
       m
     )
 
