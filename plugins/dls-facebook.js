@@ -1,6 +1,7 @@
-const handler = async (m, { args, conn, usedPrefix }) => {
-  try {
+import fetch from 'node-fetch'
 
+const handler = async (m, { args, conn }) => {
+  try {
     if (!args[0]) {
       return conn.reply(
         m.chat,
@@ -9,59 +10,35 @@ const handler = async (m, { args, conn, usedPrefix }) => {
       )
     }
 
-    let data = []
-
     if (m.react) await m.react('🕒')
 
-    try {
-      const api = `${global.APIs.delirius.url}/download/facebook?url=${encodeURIComponent(args[0])}`
-      const res = await fetch(api)
-      const json = await res.json()
+    const api = `https://yosoyyo-api-ofc.onrender.com/api/facebook?url=${encodeURIComponent(args[0])}&apiKey=yosoyyo_sk_2nbk5m69`
+    const res = await fetch(api)
+    const json = await res.json()
 
-      if (Array.isArray(json?.data)) {
-        data = json.data.map(v => v.url)
-      }
+    let videoUrl = json.resultado?.video_hd || json.resultado?.video_sd || json.resultado?.url
 
-    } catch (e) {
-      console.log('Delirius FB error:', e.message)
-    }
-
-    if (!data.length) {
-      try {
-        const api = `${global.APIs.vreden.url}/api/fbdownload?url=${encodeURIComponent(args[0])}`
-        const res = await fetch(api)
-        const json = await res.json()
-
-        if (Array.isArray(json?.resultado?.respuesta?.datos)) {
-          data = json.resultado.respuesta.datos.map(v => v.url)
-        }
-
-      } catch (e) {
-        console.log('Vreden FB error:', e.message)
-      }
-    }
-
-    if (!data.length) {
+    if (!videoUrl) {
+      if (m.react) await m.react('✖️')
       return conn.reply(
         m.chat,
-        'No se pudo obtener el contenido del enlace.',
+        'No se pudo obtener el contenido del enlace. Verifica que el video sea público.',
         m
       )
     }
 
-    for (let media of data) {
-      await conn.sendFile(
-        m.chat,
-        media,
-        'facebook.mp4',
-        '> ✩ Aqui tienes tu pedido.',
-        m
-      )
+    await conn.sendFile(
+      m.chat,
+      videoUrl,
+      'facebook.mp4',
+      '> ✩ Aqui tienes tu pedido.',
+      m
+    )
 
-      if (m.react) await m.react('✔️')
-    }
+    if (m.react) await m.react('✔️')
 
   } catch (error) {
+    console.log('Facebook API Error:', error.message)
     if (m.react) await m.react('✖️')
     await m.reply(`Error: ${error.message}`)
   }
