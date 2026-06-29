@@ -399,6 +399,11 @@ const secret = await sock.requestPairingCode(phoneNumber)
         if (options.fromCommand && m?.chat) await conn.sendMessage(`${path.basename(pathMichiJadiBot)}@s.whatsapp.net`, { text: '⚠︎ Conexión perdida.\n\n> ☁︎ Intente conectarse manualmente para volver a ser *SUB-BOT*' }, { quoted: m || null })
         return creloadHandler(true).catch(console.error)
       }
+
+      if (!reason || ![428, 408, 440, 405, 401, 403, 500, 515].includes(reason)) {
+        console.log(chalk.bold.yellowBright(`\n┆ Conexión cerrada en sesión (+${path.basename(pathMichiJadiBot)}), razón: ${reason}. Reconectando...`))
+        return creloadHandler(true).catch(console.error)
+      }
     }
 
     if (global.db.data == null) loadDatabase()
@@ -419,12 +424,15 @@ const secret = await sock.requestPairingCode(phoneNumber)
 
   setInterval(async () => {
     const wsClosed = !sock.ws || sock.ws.readyState === 3
-    if (!sock.user && wsClosed) {
+    if (sock.user && wsClosed) {
+      console.log(chalk.bold.yellowBright(`\n⚠︎ Health check Sub-Bot (+${path.basename(pathMichiJadiBot)}): WebSocket cerrado. Reconectando...`))
+      await creloadHandler(true).catch(console.error)
+    } else if (!sock.user && wsClosed) {
       try { sock.ev.removeAllListeners() } catch {}
       const i = global.conns.indexOf(sock)
       if (i >= 0) global.conns.splice(i, 1)
     }
-  }, 120000)
+  }, 60000)
 
   let handlerModule = await loadHandlerModule()
   const creloadHandler = async function (restatConn) {

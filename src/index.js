@@ -150,6 +150,7 @@ maxIdleTimeMs: 0,
 }
 
 global.conn = makeWASocket(connectionOptions)
+conn.ev.on('creds.update', saveCreds.bind(global.conn, true))
 if (!fs.existsSync(`./${sessions}/creds.json`)) {
 if (opcion === '2' || methodCode) {
 opcion = '2'
@@ -298,23 +299,42 @@ if (opcion == '1' || methodCodeQR) {
 console.log(chalk.green.bold(`[ ✿ ]  Escanea este código QR`))}
 }
 if (connection === "open") {
+if (conn.user?.id) {
+global._pairingRetries = 0
 const userJid = jidNormalizedUser(conn.user.id)
 const userName = conn.user.name || conn.user.verifiedName || "Desconocido"
 await joinChannels(conn)
 console.log(chalk.green.bold(`[ ✿ ]  Conectado a: ${userName}`))
-}
+}}
 let reason = new Boom(lastDisconnect?.error)?.output?.statusCode
 if (connection === 'close') {
     const isAuthenticated = !!(conn?.user?.id)
     if (reason === DisconnectReason.badSession) {
 console.log(chalk.bold.cyanBright(`\n⚠︎ Sesión incorrecta, borra la session principal del Bot, y conectate nuevamente.`))
 } else if (reason === DisconnectReason.connectionClosed) {
-if (!isAuthenticated) return
+if (!isAuthenticated) {
+if (opcion === '2' || methodCode) {
+if ((global._pairingRetries || 0) >= 8) return
+global._pairingRetries = (global._pairingRetries || 0) + 1
+console.log(chalk.bold.magentaBright(`\n♻ Reconectando (${global._pairingRetries}/8)...`))
+await delay(5000)
+await global.reloadHandler(true).catch(console.error)
+}
+return
+}
 console.log(chalk.bold.magentaBright(`\n♻ Reconectando la conexión del Bot...`))
 await delay(3000)
 await global.reloadHandler(true).catch(console.error)
 } else if (reason === DisconnectReason.connectionLost) {
-if (!isAuthenticated) return
+if (!isAuthenticated) {
+if (opcion === '2' || methodCode) {
+if ((global._pairingRetries || 0) >= 8) return
+global._pairingRetries = (global._pairingRetries || 0) + 1
+await delay(5000)
+await global.reloadHandler(true).catch(console.error)
+}
+return
+}
 console.log(chalk.bold.blueBright(`\n⚠︎ Conexión perdida con el servidor, reconectando el Bot...`))
 await delay(3000)
 await global.reloadHandler(true).catch(console.error)
@@ -323,17 +343,41 @@ console.log(chalk.bold.yellowBright(`\nꕥ La conexión del Bot ha sido reemplaz
 } else if (reason === DisconnectReason.loggedOut) {
 console.log(chalk.bold.redBright(`\n⚠︎ Sesión cerrada, borra la session principal del Bot, y conectate nuevamente.`))
 } else if (reason === DisconnectReason.restartRequired) {
-if (!isAuthenticated) return
+if (!isAuthenticated) {
+if (opcion === '2' || methodCode) {
+if ((global._pairingRetries || 0) >= 8) return
+global._pairingRetries = (global._pairingRetries || 0) + 1
+await delay(5000)
+await global.reloadHandler(true).catch(console.error)
+}
+return
+}
 console.log(chalk.bold.cyanBright(`\n♻ Conectando el Bot con el servidor...`))
 await delay(3000)
 await global.reloadHandler(true).catch(console.error)
 } else if (reason === DisconnectReason.timedOut) {
-if (!isAuthenticated) return
+if (!isAuthenticated) {
+if (opcion === '2' || methodCode) {
+if ((global._pairingRetries || 0) >= 8) return
+global._pairingRetries = (global._pairingRetries || 0) + 1
+await delay(5000)
+await global.reloadHandler(true).catch(console.error)
+}
+return
+}
 console.log(chalk.bold.yellowBright(`\n♻ Conexión agotada, reconectando el Bot...`))
 await delay(5000)
 await global.reloadHandler(true).catch(console.error)
     } else {
-        if (!isAuthenticated) return
+        if (!isAuthenticated) {
+if (opcion === '2' || methodCode) {
+if ((global._pairingRetries || 0) >= 8) return
+global._pairingRetries = (global._pairingRetries || 0) + 1
+await delay(5000)
+await global.reloadHandler(true).catch(console.error)
+}
+return
+}
         console.log(chalk.bold.redBright(`\n⚠︎ Conexión cerrada (razón: ${reason}), reconectando...`))
         await delay(3000)
         await global.reloadHandler(true).catch(console.error)
