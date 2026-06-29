@@ -3,7 +3,7 @@ import chalk from "chalk"
 import { fileURLToPath } from "url"
 import fs from "fs"
 
-global.botNumber = "524498938719" 
+global.botNumber = "51902481913" 
 
 global.owner = [
 ["584242773183", "yosue </>", true],
