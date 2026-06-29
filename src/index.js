@@ -154,7 +154,7 @@ if (!fs.existsSync(`./${sessions}/creds.json`)) {
 if (opcion === '2' || methodCode) {
 opcion = '2'
 let addNumber
-if (!!phoneNumber) {
+if (methodCode && !!phoneNumber) {
 addNumber = phoneNumber.replace(/[^0-9]/g, '')
 } else {
 do {
