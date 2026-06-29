@@ -129,7 +129,7 @@ auth: {
 creds: state.creds,
 keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: "fatal" }).child({ level: "fatal" })),
 },
-markOnlineOnConnect: true, 
+markOnlineOnConnect: false, 
 generateHighQualityLinkPreview: true, 
 syncFullHistory: false,
 getMessage: async (key) => {
@@ -383,6 +383,10 @@ return
         await global.reloadHandler(true).catch(console.error)
     }}}
 process.on('uncaughtException', console.error)
+process.on('unhandledRejection', (err) => {
+if (err?.message?.includes('Connection Closed') || err?.message?.includes('not opened')) return
+console.error(err)
+})
 let isInit = true
 let handler = await import('./handler.js')
 global.reloadHandler = async function(restatConn) {
@@ -554,20 +558,20 @@ for (const file of files) {
 if (file !== 'creds.json') await fs.promises.unlink(path.join(dir, file)).catch(() => {})
 }
 } catch {} } }, 10 * 60 * 1000)
-// Health check - cada 60s verifica que el WebSocket esté vivo (solo si autenticado)
+// Health check - cada 30s verifica que el WebSocket esté vivo (solo si autenticado)
 setInterval(async () => {
     try {
         if (global.conn?.user?.id) {
-            const wsClosed = !global.conn.ws || global.conn.ws.readyState === 3
-            if (wsClosed) {
-                console.log(chalk.bold.yellowBright(`\n⚠︎ Health check: WebSocket cerrado. Reconectando...`))
+            const state = global.conn.ws?.readyState
+            if (!global.conn.ws || state === 3 || state === 2) {
+                console.log(chalk.bold.yellowBright(`\n⚠︎ Health check: WebSocket cerrado (${state}). Reconectando...`))
                 await global.reloadHandler(true).catch(console.error)
             }
         }
     } catch (e) {
         console.error('Error en health check:', e)
     }
-}, 60000)
+}, 30000)
 
 _quickTest().catch(console.error)
 async function isValidPhoneNumber(number) {
