@@ -16,25 +16,30 @@ const handler = async (m, { args, conn }) => {
     const res = await fetch(api)
     const json = await res.json()
 
-    console.log('Respuesta completa de la API:', JSON.stringify(json, null, 2))
-
-    const resultado = json.resultado || json.result || json
-    let videoUrl = resultado?.video_hd || resultado?.video_sd || resultado?.url || resultado?.urls?.[0]?.url
+    const data = json.resultado || json.result || json.data || json
+    
+    let videoUrl = ''
+    if (typeof data === 'string') {
+      videoUrl = data
+    } else {
+      videoUrl = data.video_hd || data.hd || data.video_sd || data.sd || data.url || data.urls?.[0]?.url || data.video || data.link
+    }
 
     if (!videoUrl) {
       if (m.react) await m.react('✖️')
       return conn.reply(
         m.chat,
-        'No se pudo obtener el contenido del enlace. Verifica que el video sea público.',
+        'No se pudo obtener el enlace de descarga del video. Asegúrate de que el formato sea correcto.',
         m
       )
     }
 
-    let titulo = resultado?.titulo || resultado?.title || resultado?.descripcion || resultado?.description || 'Video de Facebook'
-    let duracion = resultado?.duracion || resultado?.duration ? `\n⏱️ *Duración:* ${resultado.duracion || resultado.duration}` : ''
+    let titulo = data.titulo || data.title || data.descripcion || data.description || 'Video de Facebook'
+    let duracion = data.duracion || data.duration ? `\n⏱️ *Duración:* ${data.duracion || data.duration}` : ''
+    let autor = data.autor || data.author || data.owner ? `\n👤 *Autor:* ${data.autor || data.author || data.owner}` : ''
 
     let txt = `*✦ Descarga de Facebook ✦*\n\n`
-    txt += `📝 *Título:* ${titulo}${duracion}\n\n`
+    txt += `📝 *Título:* ${titulo}${duracion}${autor}\n\n`
     txt += `> ✩ Aqui tienes tu pedido.`
 
     await conn.sendFile(
