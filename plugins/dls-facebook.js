@@ -16,14 +16,12 @@ const handler = async (m, { args, conn }) => {
     const res = await fetch(api)
     const json = await res.json()
 
-    // Estructura real de tu API
     const data = json.result || json.data || json
 
     const info = data.info || {}
     const author = data.author || {}
     const media = data.media || {}
 
-    // Aquí están los campos reales
     const videoUrl = media.video_hd || media.video_sd
 
     if (!videoUrl) {
