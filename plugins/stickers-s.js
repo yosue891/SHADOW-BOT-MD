@@ -62,7 +62,7 @@ let handler = async (m, { conn, args }) => {
         Object.keys(styles).map(k => '\u2022 *s ' + k + '* \u2014 ' + styles[k]).join('\n')
       await conn.relayMessage(from, {
         interactiveMessage: {
-          header: { title: 'Anuncio de Facebook' },
+          header: { title: 'Shadow Bot - Estilos' },
           body: { text: detailText },
           nativeFlowMessage: {
             buttons: [{ name: 'inapp_signup', buttonParamsJson: '{}' }],
