@@ -3,9 +3,7 @@ import fs from 'fs'
 import util from 'util'
 import crypto from 'crypto'
 import webp from 'node-webpmux'
-import baileys from '@whiskeysockets/baileys'
-
-const { proto, generateWAMessageFromContent, downloadContentFromMessage, downloadMediaMessage } = baileys
+import { proto, generateWAMessageFromContent, downloadContentFromMessage, downloadMediaMessage } from '@whiskeysockets/baileys'
 const execAsync = util.promisify(exec)
 
 async function addExif(webpBuffer, packname, author) {
