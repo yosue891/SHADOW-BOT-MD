@@ -139,7 +139,7 @@ contextInfo: {
    title: `${botname} ┊ Organización en las Sombras`,
    body: `Dirigido por ${dev}, el que juega a ser un simple mob.`,
    mediaType: 2,
-   mediaUrl: 'https://i.ibb.co/f4YfGjV/shadow-gif.mp4',
+   mediaUrl: 'https://adofiles.vercel.app/dl/c81b1798.mp4',
    sourceUrl: null,
    showAdAttribution: false,
    containsAutoReply: true
