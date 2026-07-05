@@ -36,23 +36,23 @@ let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
       'main': '𝐄𝐒𝐓𝐀𝐃𝐎 𝐃𝐄𝐋 𝐂𝐎𝐑𝐓𝐈𝐆𝐎',
       'anime': '𝐀𝐍𝐈𝐌𝐄 𝐀𝐑𝐂𝐀𝐍𝐎',
       'menu': '𝐌𝐄𝐍𝐔𝐒 𝐎𝐂𝐔𝐋𝐓𝐎𝐒',
-      'search': '𝐁𝐔𝐒𝐐𝐔𝐄𝐃𝐀𝐒 𝐄𝐒𝐎𝐓𝐄Ｒ𝐈𝐂𝐀𝐒',
-      'descargas': '𝐃𝐄𝐒𝐂𝐀Ｒ𝐆𝐀𝐒 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁Ｒ𝐀',
-      'socket': '𝐂𝐎𝐍𝐄𝐗𝐈𝐎𝐍𝐄𝐒 𝐎𝐂𝐔𝐋𝐓𝐀𝐒',
-      'rg': '𝐏𝐄Ｒ𝐅𝐈𝐋 𝐃𝐄𝐋 𝐂option𝐍𝐓𝐑𝐀𝐓𝐈𝐒𝐓𝐀',
-      'fun': '𝐉𝐔𝐄𝐆𝐎𝐒 𝐃𝐄 𝐒𝐎𝐌𝐁Ｒ𝐀',
-      'rpg': '𝐄𝐂option𝐍option𝐌𝐈𝐀 𝐎𝐂𝐔𝐋𝐓𝐀',
-      'gacha': '𝐈𝐕𝐄𝐍𝐓option𝐒 𝐆𝐀𝐂𝐇𝐀',
-      'game': '𝐉𝐔𝐄𝐆option𝐒 𝐀𝐑𝐂𝐀𝐍option𝐒',
-      'grupos': '𝐂𝐈𝐑𝐂𝐔𝐋option𝐒 𝐃𝐄 𝐒option𝐌𝐁𝐑𝐀',
-      'nable': '𝐌option𝐃option option𝐍 / option𝐅option',
-      'ia': '𝐈𝐍𝐓𝐄𝐋𝐈𝐆𝐄𝐍𝐂𝐈𝐀 𝐀Ｒ𝐂𝐀𝐍𝐀',
-      'stalk': 'option𝐁𝐒𝐄Ｒ𝐕𝐀𝐂𝐈option𝐍 𝐒𝐈𝐋𝐄𝐍𝐂Ｉoption𝐒𝐀',
-      'maker': '𝐀𝐋𝐐𝐔Ｉ𝐌Ｉ𝐀 𝐕Ｉ𝐒𝐔𝐀𝐋',
-      'tools': '𝐇𝐄ＲＲ𝐀𝐌Ｉ𝐄𝐍𝐓𝐀𝐒 𝐃𝐄 𝐋𝐀 𝐒option𝐌𝐁Ｒ𝐀',
-      'sticker': '𝐒𝐄𝐋𝐋option𝐒 𝐀ＲＣ𝐀𝐍option𝐒',
-      'owner': '𝐌𝐀𝐄𝐒𝐓𝐑option 𝐃Ｅ 𝐋option optionＲ𝐆𝐀𝐍Ｉ𝐙𝐀𝐂Ｉoption𝐍',
-      'nsfw': '𝐙option𝐍𝐀 Ｒ𝐄𝐒𝐓ＲＩ𝐍ＧＩ𝐃𝐀 (+18)'
+      'search': '𝐁𝐔𝐒𝐐𝐔𝐄𝐃𝐀𝐒 𝐄𝐒𝐎𝐓𝐄𝐑𝐈𝐂𝐀𝐒',
+      'descargas': '𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀𝐒 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
+      'socket': '𝐂style𝐍style𝐗𝐈style𝐍style𝐒 𝐎style𝐔style𝐓style𝐒',
+      'rg': '𝐏style𝐑𝐅style𝐋 𝐃style𝐋 𝐂style𝐍𝐓style𝐑style𝐓style𝐒𝐓style',
+      'fun': '𝐉stylestyle𝐆style𝐒 𝐃style 𝐒style𝐌style𝐑style',
+      'rpg': 'style𝐂stylestyle𝐍style𝐌stylestyle 𝐎style𝐔stylestylestyle',
+      'gacha': 'style𝐕stylestyle𝐓style𝐒 𝐆style style',
+      'game': '𝐉stylestyle𝐆style𝐒 style𝐑stylestylestyle',
+      'grupos': 'stylestyle𝐑stylestylestylestyle𝐒 𝐃style 𝐒stylestyle𝐑style',
+      'nable': 'stylestyle𝐃style style𝐍 / style𝐅style',
+      'ia': 'style style𝐓style𝐋style𝐆style𝐍stylestylestyle style𝐑stylestylestyle',
+      'stalk': 'stylestyle𝐒stylestyle𝐑stylestylestyle style𝐍 𝐒stylestylestylestylestylestyle',
+      'maker': 'stylestyle𝐐stylestylestyle style style style𝐒stylestyle',
+      'tools': 'stylestylestyle𝐑stylestylestylestylestyle𝐓style𝐒 𝐃style stylestyle 𝐒stylestylestyle',
+      'sticker': '𝐒stylestyle𝐋stylestyle𝐒 style stylestyle style𝐒',
+      'owner': 'stylestylestyle𝐒𝐓stylestyle 𝐃style stylestyle style𝐑stylestyle style',
+      'nsfw': 'stylestylestylestyle 𝐑stylestyle𝐓stylestylestylestylestyle (+18)'
     }
 
     let commands = Object.values(global.plugins)
@@ -66,12 +66,12 @@ let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
     for (let tag in tags) {
       let comandos = commands
         .filter(cmd => cmd.tags.includes(tag))
-        .map(cmd => cmd.help.map(e => `*│ׄꤥㅤׅ* ${usedPrefix}${e}`).join('\n'))
+        .map(cmd => cmd.help.map(e => `*│ׄꤥㅤׅ*  ${usedPrefix}${e}`).join('\n'))
         .join('\n')
       if (comandos) {
         menuTexto += `\n*╭──･ ̸̷∵* \`${tags[tag]}\`  *݁ ⚜︎*
 ${comandos}
-*╰─────────────typed╯*\n`
+*╰─────────────֙╯*\n`
       }
     }
 
@@ -82,17 +82,16 @@ ${comandos}
 
 > ﹙⚜︎﹚੭੭ ─ \`ɪ ɴ ғ ᴏ - ꜱʜᴀᴅᴏᴡ ʙᴏᴛ\`
 > ര ׄ 𓏸𓈒 ׅ *ɴᴏᴍʙʀᴇ ᴄʟᴀᴠᴇ ›* ${conn.user?.name || 'Shadow Unit'}
-> ര ׄ 𓏸𓈒 ׅ *ᴄʟᴀꜱɪꜰɪᴄᴀᴄɪᴏɴ ›* ${(conn.user.jid == global.conn.user.jid ? '𝐍𝐮́𝐜𝐥𝐞𝐨 𝐏𝐫𝐢𝐧𝐜𝐢𝐩𝐚𝐥' : '𝐔𝐧𝐢𝐝𝐚𝐝 𝐒𝐮𝐛𝐨𝐫𝐝𝐢𝐧𝐚𝐝𝐚')}
-> ര ׄ 𓏸𓈒 ׅ *ᴄᴏᴍᴀɴᴅᴏꜱ ›* ${totalCommands}
+> ര ׄ 𓏸𓈒 ׅ *ᴄʟᴀꜱɪꜰɪᴄᴀᴄɪᴏɴ ›* ${(conn.user.jid == global.conn.user.jid ? '𝐍𝐮́𝐜𝐥𝐞𝐨 𝐏𝐫𝐢𝐧𝐜𝐢𝐩𝐚𝐥' : '<b>𝐔𝐧𝐢𝐝𝐚𝐝 𝐒𝐮𝐛𝐨𝐫𝐝𝐢𝐧𝐚𝐝𝐚</b>')}
+> ര ׄ 𓏸𓈒 ׅ *ᴄoptionᴍᴀɴᴅoptionꜱ ›* ${totalCommands}
 > ര ׄ 𓏸𓈒 ׅ *ᴛɪᴇᴍᴘᴏ ᴇɴ ʟᴀ ꜱᴏᴍʙʀᴀ ›* ${uptime}
-> ര ׄ 𓏸𓈒 ׅ *ᴅᴏᴍɪɴɪᴏ ›* ${pais}
+> ര ׄ 𓏸𓈒 ׅ *ᴅoptionᴍɪɴɪoption ›* ${pais}
 > ര ׄ 𓏸𓈒 ׅ *ᴀʟᴍᴀꜱ ›* ${totalreg}
-> ര ׄ 𓏸𓈒 ׅ *<b>ᴄᴇʟᴅᴀꜱ ›</b>* ${groupsCount}
+> ര ׄ 𓏸𓈒 ׅ *ᴄᴇʟᴅᴀꜱ ›* ${groupsCount}
 > ര ׄ 𓏸𓈒 ׅ *ᴛɪᴇᴍᴘᴏ ›* ${date}
 
 ${readMore}
-  乂 *ᴘʀᴏᴛᴏᴄᴏʟᴏ ᴅᴇ ᴄᴏᴍᴀɴᴅᴏꜱ ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ* 乂\n`.trim()
-
+  乂 *ᴘʀᴏᴛᴏᴄᴏʟᴏ ᴅᴇ ᴄoptionᴍᴀɴᴅoptionꜱ ᴅᴇ ʟᴀ ꜱoptionᴍʙʀᴀ* 乂\n`.trim()
 
    const icon = [
      'https://i.postimg.cc/rFfVL8Ps/image.jpg',
@@ -125,17 +124,22 @@ ${readMore}
     }
   }
 
-await m.react('🔥')
-await conn.sendMessage(m.chat, { 
-text: infoUser + menuTexto,
-contextInfo: {
- isForwarded: true,
- forwardedNewsletterMessageInfo: {
-   newsletterJid: channelRD.id,
-   serverMessageId: '',
-   newsletterName: channelRD.name
- }
-}}, { quoted: fkontak })
+  await m.react('🔥')
+  
+  // Enviamos el archivo de video directamente con gifPlayback en true para simular el GIF
+  await conn.sendMessage(m.chat, { 
+    video: { url: banner }, 
+    gifPlayback: true,
+    caption: infoUser + menuTexto,
+    contextInfo: {
+      isForwarded: true,
+      forwardedNewsletterMessageInfo: {
+        newsletterJid: channelRD.id,
+        serverMessageId: '',
+        newsletterName: channelRD.name
+      }
+    }
+  }, { quoted: fkontak })
 
 } catch (e) {
    console.error(e)
@@ -168,7 +172,7 @@ function ucapan() {
   else if (time >= 12 && time < 18)
     res = "🄱ᴜᴇɴᴀꜱ ᴛᴀʀᴅᴇꜱ, ᴀᴄᴛᴏʀ ᴅᴇ ꜱᴏᴍʙʀᴀ"
   else if (time >= 18)
-    res = "🄱ᴜᴇɴᴀꜱ ɴᴏᴄʜᴇꜱ, ʟᴀ ᴏʙꜱᴄᴜʀɪᴅᴀᴅ ᴛᴇ ᴄᴜʙʀᴇ"
+    res = "🄱ᴜᴇɴᴀꜱ ɴᴏᴄʜᴇꜱ, ʟᴀ ᴏʙ<b>ꜱᴄᴜʀɪᴅᴀᴅ ᴛᴇ ᴄᴜʙʀᴇ</b>"
 
   return res
-                                    }
+  }
