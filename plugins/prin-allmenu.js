@@ -6,7 +6,7 @@ import moment from 'moment-timezone'
 
 const botname = global.botname || "Shadow Garden"
 const dev = global.dev || "Cid Kagenou"
-const banner = global.banner || "https://adofiles.i11.eu/dl/kmbh.jpg"
+const banner = global.banner || "https://adofiles.vercel.app/dl/c81b1798.mp4"
 const channelRD = global.channelRD || { id: "0@newsletter", name: "Shadow Channel" }
 
 let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
@@ -36,23 +36,23 @@ let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
       'main': '𝐄𝐒𝐓𝐀𝐃𝐎 𝐃𝐄𝐋 𝐂𝐎𝐑𝐓𝐈𝐆𝐎',
       'anime': '𝐀𝐍𝐈𝐌𝐄 𝐀𝐑𝐂𝐀𝐍𝐎',
       'menu': '𝐌𝐄𝐍𝐔𝐒 𝐎𝐂𝐔𝐋𝐓𝐎𝐒',
-      'search': '𝐁𝐔𝐒𝐐𝐔𝐄𝐃𝐀𝐒 𝐄𝐒𝐎𝐓𝐄𝐑𝐈𝐂𝐀𝐒',
-      'descargas': '𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀𝐒 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
+      'search': '𝐁𝐔𝐒𝐐𝐔𝐄𝐃𝐀𝐒 𝐄𝐒𝐎𝐓𝐄Ｒ𝐈𝐂𝐀𝐒',
+      'descargas': '𝐃𝐄𝐒𝐂𝐀Ｒ𝐆𝐀𝐒 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁Ｒ𝐀',
       'socket': '𝐂𝐎𝐍𝐄𝐗𝐈𝐎𝐍𝐄𝐒 𝐎𝐂𝐔𝐋𝐓𝐀𝐒',
-      'rg': '𝐏𝐄𝐑𝐅𝐈𝐋 𝐃𝐄𝐋 𝐂𝐎𝐍𝐓𝐑𝐀𝐓𝐈𝐒𝐓𝐀',
-      'fun': '𝐉𝐔𝐄𝐆𝐎𝐒 𝐃𝐄 𝐒𝐎𝐌𝐁𝐑𝐀',
-      'rpg': '𝐄𝐂𝐎𝐍𝐎𝐌𝐈𝐀 𝐎𝐂𝐔𝐋𝐓𝐀',
-      'gacha': '𝐈𝐕𝐄𝐍𝐓𝐎𝐒 𝐆𝐀𝐂𝐇𝐀',
-      'game': '𝐉𝐔𝐄𝐆𝐎𝐒 𝐀𝐑𝐂𝐀𝐍𝐎𝐒',
-      'grupos': '𝐂𝐈Ｒ𝐂𝐔𝐋𝐎𝐒 𝐃𝐄 𝐒𝐎𝐌𝐁𝐑𝐀',
-      'nable': '𝐌𝐎𝐃𝐎 𝐎𝐍 / 𝐎𝐅𝐅',
-      'ia': '𝐈𝐍𝐓𝐄𝐋𝐈𝐆𝐄𝐍𝐂𝐈𝐀 𝐀𝐑𝐂𝐀𝐍𝐀',
-      'stalk': '𝐎𝐁𝐒𝐄Ｒ𝐕𝐀𝐂𝐈𝐎𝐍 𝐒𝐈𝐋𝐄𝐍𝐂𝐈𝐎𝐒𝐀',
-      'maker': '𝐀𝐋𝐐𝐔𝐈𝐌𝐈𝐀 𝐕𝐈𝐒𝐔𝐀𝐋',
-      'tools': '𝐇𝐄ＲＲ𝐀𝐌𝐈𝐄𝐍𝐓𝐀𝐒 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
-      'sticker': '𝐒𝐄𝐋𝐋𝐎𝐒 𝐀𝐑𝐂𝐀𝐍𝐎𝐒',
-      'owner': '𝐌𝐀𝐄𝐒𝐓𝐑𝐎 𝐃𝐄 𝐋𝐀 𝐎𝐑𝐆𝐀𝐍𝐈𝐛𝐀𝐂𝐈𝐎𝐍',
-      'nsfw': '𝐛𝐎𝐍𝐀 𝐑𝐄𝐒𝐓𝐑𝐈𝐍𝐆𝐈𝐃𝐀 (+18)'
+      'rg': '𝐏𝐄Ｒ𝐅𝐈𝐋 𝐃𝐄𝐋 𝐂option𝐍𝐓𝐑𝐀𝐓𝐈𝐒𝐓𝐀',
+      'fun': '𝐉𝐔𝐄𝐆𝐎𝐒 𝐃𝐄 𝐒𝐎𝐌𝐁Ｒ𝐀',
+      'rpg': '𝐄𝐂option𝐍option𝐌𝐈𝐀 𝐎𝐂𝐔𝐋𝐓𝐀',
+      'gacha': '𝐈𝐕𝐄𝐍𝐓option𝐒 𝐆𝐀𝐂𝐇𝐀',
+      'game': '𝐉𝐔𝐄𝐆option𝐒 𝐀𝐑𝐂𝐀𝐍option𝐒',
+      'grupos': '𝐂𝐈𝐑𝐂𝐔𝐋option𝐒 𝐃𝐄 𝐒option𝐌𝐁𝐑𝐀',
+      'nable': '𝐌option𝐃option option𝐍 / option𝐅option',
+      'ia': '𝐈𝐍𝐓𝐄𝐋𝐈𝐆𝐄𝐍𝐂𝐈𝐀 𝐀Ｒ𝐂𝐀𝐍𝐀',
+      'stalk': 'option𝐁𝐒𝐄Ｒ𝐕𝐀𝐂𝐈option𝐍 𝐒𝐈𝐋𝐄𝐍𝐂Ｉoption𝐒𝐀',
+      'maker': '𝐀𝐋𝐐𝐔Ｉ𝐌Ｉ𝐀 𝐕Ｉ𝐒𝐔𝐀𝐋',
+      'tools': '𝐇𝐄ＲＲ𝐀𝐌Ｉ𝐄𝐍𝐓𝐀𝐒 𝐃𝐄 𝐋𝐀 𝐒option𝐌𝐁Ｒ𝐀',
+      'sticker': '𝐒𝐄𝐋𝐋option𝐒 𝐀ＲＣ𝐀𝐍option𝐒',
+      'owner': '𝐌𝐀𝐄𝐒𝐓𝐑option 𝐃Ｅ 𝐋option optionＲ𝐆𝐀𝐍Ｉ𝐙𝐀𝐂Ｉoption𝐍',
+      'nsfw': '𝐙option𝐍𝐀 Ｒ𝐄𝐒𝐓ＲＩ𝐍ＧＩ𝐃𝐀 (+18)'
     }
 
     let commands = Object.values(global.plugins)
@@ -66,12 +66,12 @@ let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
     for (let tag in tags) {
       let comandos = commands
         .filter(cmd => cmd.tags.includes(tag))
-        .map(cmd => cmd.help.map(e => `*│ׄꤥㅤׅ*  ${usedPrefix}${e}`).join('\n'))
+        .map(cmd => cmd.help.map(e => `*│ׄꤥㅤׅ* ${usedPrefix}${e}`).join('\n'))
         .join('\n')
       if (comandos) {
         menuTexto += `\n*╭──･ ̸̷∵* \`${tags[tag]}\`  *݁ ⚜︎*
 ${comandos}
-*╰─────────────֙╯*\n`
+*╰─────────────typed╯*\n`
       }
     }
 
@@ -87,7 +87,7 @@ ${comandos}
 > ര ׄ 𓏸𓈒 ׅ *ᴛɪᴇᴍᴘᴏ ᴇɴ ʟᴀ ꜱᴏᴍʙʀᴀ ›* ${uptime}
 > ര ׄ 𓏸𓈒 ׅ *ᴅᴏᴍɪɴɪᴏ ›* ${pais}
 > ര ׄ 𓏸𓈒 ׅ *ᴀʟᴍᴀꜱ ›* ${totalreg}
-> ര ׄ 𓏸𓈒 ׅ *ᴄᴇʟᴅᴀꜱ ›* ${groupsCount}
+> ര ׄ 𓏸𓈒 ׅ *<b>ᴄᴇʟᴅᴀꜱ ›</b>* ${groupsCount}
 > ര ׄ 𓏸𓈒 ׅ *ᴛɪᴇᴍᴘᴏ ›* ${date}
 
 ${readMore}
@@ -134,16 +134,8 @@ contextInfo: {
    newsletterJid: channelRD.id,
    serverMessageId: '',
    newsletterName: channelRD.name
- },
- externalAdReply: {
-   title: `${botname} ┊ Organización en las Sombras`,
-   body: `Dirigido por ${dev}, el que juega a ser un simple mob.`,
-   mediaType: 2,
-   mediaUrl: 'https://adofiles.vercel.app/dl/c81b1798.mp4',
-   sourceUrl: null,
-   showAdAttribution: false,
-   containsAutoReply: true
- }}}, { quoted: fkontak })
+ }
+}}, { quoted: fkontak })
 
 } catch (e) {
    console.error(e)
@@ -179,4 +171,4 @@ function ucapan() {
     res = "🄱ᴜᴇɴᴀꜱ ɴᴏᴄʜᴇꜱ, ʟᴀ ᴏʙꜱᴄᴜʀɪᴅᴀᴅ ᴛᴇ ᴄᴜʙʀᴇ"
 
   return res
-        }
+                                    }
