@@ -58,11 +58,12 @@ let handler = async (m, { conn, args }) => {
   if (opt === 'details') {
     try {
       const detailText =
+        '\u25AE\u25AE _Shadow Garden - Estilos de Stickers_\n\n' +
         'Estos son todos los estilos disponibles para crear tu sticker personalizado:\n\n' +
         Object.keys(styles).map(k => '\u2022 *s ' + k + '* \u2014 ' + styles[k]).join('\n')
       await conn.relayMessage(from, {
         interactiveMessage: {
-          header: { title: 'Shadow Bot - Estilos' },
+          header: { title: '\u2605 Shadow Garden \u2605' },
           body: { text: detailText },
           nativeFlowMessage: {
             buttons: [{ name: 'inapp_signup', buttonParamsJson: '{}' }],
