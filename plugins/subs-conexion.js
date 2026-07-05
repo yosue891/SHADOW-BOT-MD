@@ -370,9 +370,15 @@ const secret = await sock.requestPairingCode(phoneNumber)
 
     const reason = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode
     if (connection === 'close') {
+      const subReconnectCount = sock._reconnectCount || 0
+      const backoff = Math.min(3000 * Math.pow(2, subReconnectCount), 60000)
+      sock._reconnectCount = subReconnectCount + 1
+
       if ([428, 408, 515].includes(reason)) {
-        console.log(chalk.bold.magentaBright(`\n┆ La conexión (+${path.basename(pathMichiJadiBot)}) se cerró. Razón: ${reason}. Intentando reconectar...`))
+        console.log(chalk.bold.magentaBright(`\n┆ La conexión (+${path.basename(pathMichiJadiBot)}) se cerró. Razón: ${reason}. Reconectando en ${Math.round(backoff/1000)}s...`))
+        await delay(backoff)
         await creloadHandler(true).catch(console.error)
+        return
       }
 
       if (reason === 440) {
@@ -382,6 +388,7 @@ const secret = await sock.requestPairingCode(phoneNumber)
         } catch {
           console.error(chalk.bold.yellow(`⚠︎ Error 440 no se pudo enviar mensaje a: +${path.basename(pathMichiJadiBot)}`))
         }
+        return
       }
 
       if (reason === 405 || reason === 401 || reason === 403) {
@@ -392,19 +399,22 @@ const secret = await sock.requestPairingCode(phoneNumber)
           console.error(chalk.bold.yellow(`⚠︎ Error ${reason} no se pudo enviar mensaje a: +${path.basename(pathMichiJadiBot)}`))
         }
         fs.rmSync(pathMichiJadiBot, { recursive: true, force: true })
+        return
       }
 
-      if (reason === 500) {
-        console.log(chalk.bold.magentaBright(`\n┆ Conexión perdida en la sesión (+${path.basename(pathMichiJadiBot)}). Reconectando...`))
-        if (options.fromCommand && m?.chat) await conn.sendMessage(`${path.basename(pathMichiJadiBot)}@s.whatsapp.net`, { text: '⚠︎ Conexión perdida.\n\n> ☁︎ Intente conectarse manualmente para volver a ser *SUB-BOT*' }, { quoted: m || null })
+      if (reason === 500 || reason === 502) {
+        console.log(chalk.bold.magentaBright(`\n┆ Conexión perdida en la sesión (+${path.basename(pathMichiJadiBot)}). Reconectando en ${Math.round(backoff/1000)}s...`))
+        await delay(backoff)
         return creloadHandler(true).catch(console.error)
       }
 
-      if (!reason || ![428, 408, 440, 405, 401, 403, 500, 515].includes(reason)) {
-        console.log(chalk.bold.yellowBright(`\n┆ Conexión cerrada en sesión (+${path.basename(pathMichiJadiBot)}), razón: ${reason}. Reconectando...`))
+      if (!reason || ![428, 408, 440, 405, 401, 403, 500, 502, 515].includes(reason)) {
+        console.log(chalk.bold.yellowBright(`\n┆ Conexión cerrada en sesión (+${path.basename(pathMichiJadiBot)}), razón: ${reason}. Reconectando en ${Math.round(backoff/1000)}s...`))
+        await delay(backoff)
         return creloadHandler(true).catch(console.error)
       }
     }
+    if (connection === 'open') sock._reconnectCount = 0
 
     if (global.db.data == null) loadDatabase()
     if (connection === 'open') {
@@ -422,15 +432,23 @@ const secret = await sock.requestPairingCode(phoneNumber)
     }
   }
 
+  let healthCheckFailures = 0
   setInterval(async () => {
     const wsClosed = !sock.ws || sock.ws.readyState === 3
     if (sock.user && wsClosed) {
-      console.log(chalk.bold.yellowBright(`\n⚠︎ Health check Sub-Bot (+${path.basename(pathMichiJadiBot)}): WebSocket cerrado. Reconectando...`))
-      await creloadHandler(true).catch(console.error)
-    } else if (!sock.user && wsClosed) {
-      try { sock.ev.removeAllListeners() } catch {}
-      const i = global.conns.indexOf(sock)
-      if (i >= 0) global.conns.splice(i, 1)
+      healthCheckFailures++
+      if (healthCheckFailures >= 3) {
+        console.log(chalk.bold.yellowBright(`\n⚠︎ Health check Sub-Bot (+${path.basename(pathMichiJadiBot)}): WebSocket cerrado (${healthCheckFailures} fallos). Reconectando...`))
+        healthCheckFailures = 0
+        await creloadHandler(true).catch(console.error)
+      }
+    } else {
+      healthCheckFailures = 0
+      if (!sock.user && wsClosed) {
+        try { sock.ev.removeAllListeners() } catch {}
+        const i = global.conns.indexOf(sock)
+        if (i >= 0) global.conns.splice(i, 1)
+      }
     }
   }, 60000)
 

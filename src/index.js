@@ -151,6 +151,7 @@ maxIdleTimeMs: 0,
 
 global.conn = makeWASocket(connectionOptions)
 conn.ev.on('creds.update', saveCreds.bind(global.conn, true))
+global._reconnectAttempts = 0
 if (!fs.existsSync(`./${sessions}/creds.json`)) {
 if (opcion === '2' || methodCode) {
 opcion = '2'
@@ -378,9 +379,12 @@ await global.reloadHandler(true).catch(console.error)
 }
 return
 }
-        console.log(chalk.bold.redBright(`\n⚠︎ Conexión cerrada (razón: ${reason}), reconectando...`))
-        await delay(3000)
+        global._reconnectAttempts = (global._reconnectAttempts || 0) + 1
+        const backoff = Math.min(3000 * Math.pow(2, global._reconnectAttempts - 1), 60000)
+        console.log(chalk.bold.redBright(`\n⚠︎ Conexión cerrada (razón: ${reason}), reconectando en ${Math.round(backoff/1000)}s...`))
+        await delay(backoff)
         await global.reloadHandler(true).catch(console.error)
+        if (connection === 'open') global._reconnectAttempts = 0
     }}}
 process.on('uncaughtException', console.error)
 process.on('unhandledRejection', (err) => {
@@ -512,66 +516,69 @@ const [ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find] = test;
 const s = global.support = {ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find};
 Object.freeze(global.support);
 }
-// Limpieza automática de audios innecesarios de subbots cada 3 minutos
+// Limpieza de archivos temporales de subbots cada 10 minutos (solo .bak, .log, .tmp)
 setInterval(async () => {
   const baseDir = `./${jadi}/`;
   try {
     if (!existsSync(baseDir)) return;
-
     const subBots = await fs.promises.readdir(baseDir);
-    let totalDeleted = 0;
-
+    const tmpExtensions = ['.bak', '.log', '.tmp', '.old']
     for (const bot of subBots) {
       const botPath = join(baseDir, bot);
       const stat = await fs.promises.stat(botPath).catch(() => null);
       if (!stat?.isDirectory()) continue;
-
       const files = await fs.promises.readdir(botPath);
       for (const file of files) {
-        if (!['creds.json', 'config.json', 'config.js'].includes(file)) {
-          const filePath = join(botPath, file);
-          try {
-            await fs.promises.rm(filePath, { recursive: true, force: true });
-            totalDeleted++;
-          } catch {}
+        if (tmpExtensions.some(ext => file.endsWith(ext))) {
+          try { await fs.promises.unlink(join(botPath, file)) } catch {}
         }
       }
     }
   } catch {}
-}, 3 * 60 * 1000)
+}, 10 * 60 * 1000)
 
-// Tmp
+// Tmp - solo archivos con más de 5 minutos
 setInterval(async () => {
 const tmpDir = join(__dirname, 'tmp')
 try {
 const filenames = await fs.promises.readdir(tmpDir)
-await Promise.all(filenames.map(f => fs.promises.unlink(join(tmpDir, f)).catch(() => {})))
-} catch {}}, 30 * 1000)
-
-// Sessions Subs
-setInterval(async () => {
-const directories = [`./${sessions}/`, `./${jadi}/`]
-for (const dir of directories) {
+const now = Date.now()
+for (const f of filenames) {
 try {
-const files = await fs.promises.readdir(dir)
-for (const file of files) {
-if (file !== 'creds.json') await fs.promises.unlink(path.join(dir, file)).catch(() => {})
-}
-} catch {} } }, 10 * 60 * 1000)
-// Health check - cada 30s verifica que el WebSocket esté vivo (solo si autenticado)
+const stat = await fs.promises.stat(join(tmpDir, f))
+if (now - stat.mtimeMs > 300000) await fs.promises.unlink(join(tmpDir, f)).catch(() => {})
+} catch {}}
+} catch {}}, 120 * 1000)
+
+// Sessions Subs - solo limpia archivos .json huérfanos (no toca keys de baileys)
+setInterval(async () => {
+const orphanFiles = ['database.json']
+for (const file of orphanFiles) {
+try {
+if (existsSync(file)) await fs.promises.unlink(file).catch(() => {})
+} catch {}
+} }, 10 * 60 * 1000)
+// Health check - cada 60s verifica que el WebSocket esté vivo (solo si autenticado)
+let healthCheckFailures = 0
 setInterval(async () => {
     try {
         if (global.conn?.user?.id) {
             const state = global.conn.ws?.readyState
             if (!global.conn.ws || state === 3 || state === 2) {
-                console.log(chalk.bold.yellowBright(`\n⚠︎ Health check: WebSocket cerrado (${state}). Reconectando...`))
-                await global.reloadHandler(true).catch(console.error)
+                healthCheckFailures++
+                if (healthCheckFailures >= 3) {
+                    console.log(chalk.bold.yellowBright(`\n⚠︎ Health check: WebSocket caído (${state}, ${healthCheckFailures} intentos). Reconectando...`))
+                    healthCheckFailures = 0
+                    await global.reloadHandler(true).catch(console.error)
+                }
+            } else {
+                healthCheckFailures = 0
             }
         }
     } catch (e) {
         console.error('Error en health check:', e)
     }
-}, 30000)
+}, 60000)
 
 _quickTest().catch(console.error)
 async function isValidPhoneNumber(number) {
