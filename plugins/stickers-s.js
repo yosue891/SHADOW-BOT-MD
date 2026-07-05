@@ -3,8 +3,9 @@ import fs from 'fs'
 import util from 'util'
 import crypto from 'crypto'
 import webp from 'node-webpmux'
-import { generateWAMessageFromContent, downloadContentFromMessage, downloadMediaMessage } from '@whiskeysockets/baileys'
+import baileys from '@whiskeysockets/baileys'
 
+const { proto, generateWAMessageFromContent, downloadContentFromMessage, downloadMediaMessage } = baileys
 const execAsync = util.promisify(exec)
 
 async function addExif(webpBuffer, packname, author) {
@@ -60,7 +61,7 @@ let handler = async (m, { conn, args }) => {
       const content = {
         viewOnceMessage: {
           message: {
-            interactiveMessage: {
+            interactiveMessage: proto.Message.InteractiveMessage.fromObject({
               header: { hasMediaAttachment: false, title: global.packsticker || 'Shadow Bot' },
               body: { text: 'Estos son todos los estilos disponibles para crear tu sticker personalizado:\n\n' +
                 Object.keys(styles).map(k => `\u2022 *s ${k}* \u2014 ${styles[k]}`).join('\n') },
@@ -70,11 +71,14 @@ let handler = async (m, { conn, args }) => {
                   buttonParamsJson: JSON.stringify({ display_text: 'Ver estilos', url: 'https://github.com/yosue891/SHADOW-BOT-MD' })
                 }]
               }
-            }
+            })
           }
         }
       }
-      const msg = generateWAMessageFromContent(from, content, { userJid: conn.user?.jid, quoted: m })
+      const msg = generateWAMessageFromContent(from, content, {
+        userJid: conn.user?.jid,
+        quoted: m
+      })
       await conn.relayMessage(from, msg.message, { messageId: msg.key.id })
     } catch (e) {
       await conn.sendMessage(from, { text: listText + '\n\n[DEBUG Error: ' + (e?.message || e) + ']' }, { quoted: m })
@@ -100,7 +104,7 @@ let handler = async (m, { conn, args }) => {
       const content = {
         viewOnceMessage: {
           message: {
-            interactiveMessage: {
+            interactiveMessage: proto.Message.InteractiveMessage.fromObject({
               header: { hasMediaAttachment: false, title: global.packsticker || 'Shadow Bot' },
               body: { text: helpText },
               nativeFlowMessage: {
@@ -109,14 +113,17 @@ let handler = async (m, { conn, args }) => {
                   buttonParamsJson: JSON.stringify({ display_text: 'Ver detalles', id: '.s details' })
                 }]
               }
-            }
+            })
           }
         }
       }
-      const msg = generateWAMessageFromContent(from, content, { userJid: conn.user?.jid })
+      const msg = generateWAMessageFromContent(from, content, {
+        userJid: conn.user?.jid,
+        quoted: m
+      })
       await conn.relayMessage(from, msg.message, { messageId: msg.key.id })
     } catch (e) {
-      conn.sendMessage(from, { text: helpText + '\n\n[DEBUG Error: ' + (e?.message || e) + ']' }, { quoted: m })
+      await conn.sendMessage(from, { text: helpText + '\n\n[DEBUG Error: ' + (e?.message || e) + ']' }, { quoted: m })
     }
     return
   }
@@ -130,7 +137,7 @@ let handler = async (m, { conn, args }) => {
     try {
       buffer = await downloadMediaMessage(q, 'buffer', {}, { logger: console })
     } catch (e) {
-      return conn.sendMessage(from, { text: `Error al descargar el ${isVideo ? 'video' : 'imagen'}.` }, { quoted: m })
+      return conn.sendMessage(from, { text: 'Error al descargar el ' + (isVideo ? 'video' : 'imagen') + '.' }, { quoted: m })
     }
   }
   if (!buffer) {
@@ -138,8 +145,8 @@ let handler = async (m, { conn, args }) => {
   }
 
   const ts = Date.now()
-  const input = `./tmp/temp_${ts}.${isVideo ? 'mp4' : 'jpg'}`
-  const output = `./tmp/temp_${ts}.webp`
+  const input = './tmp/temp_' + ts + '.' + (isVideo ? 'mp4' : 'jpg')
+  const output = './tmp/temp_' + ts + '.webp'
 
   await fs.promises.mkdir('./tmp', { recursive: true })
   await fs.promises.writeFile(input, buffer)
@@ -164,19 +171,19 @@ let handler = async (m, { conn, args }) => {
   const geqCircle = "geq=lum='p(X,Y)':a='if(lte(hypot(X-256,Y-256),256),255,0)'"
 
   const vf =
-    style === 'circle' ? `${baseCoverCrop},format=rgba,${geqCircle}` :
+    style === 'circle' ? (baseCoverCrop + ',format=rgba,' + geqCircle) :
     style === 'crop' ? baseCoverCrop :
-    style === 'bw' ? `${baseContain},hue=s=0` :
-    style === 'invert' ? `${baseContain},negate` :
-    style === 'blur' ? `${baseContain},gblur=sigma=6` :
-    style === 'pixel' ? `${baseContain},scale=128:128:flags=neighbor,scale=512:512:flags=neighbor` :
-    style === 'sepia' ? `${baseContain},colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131` :
-    style === 'neon' ? `${baseContain},edgedetect=low=0.08:high=0.2` :
-    `${baseCoverCrop},format=rgba,${geqCircle}`
+    style === 'bw' ? (baseContain + ',hue=s=0') :
+    style === 'invert' ? (baseContain + ',negate') :
+    style === 'blur' ? (baseContain + ',gblur=sigma=6') :
+    style === 'pixel' ? (baseContain + ',scale=128:128:flags=neighbor,scale=512:512:flags=neighbor') :
+    style === 'sepia' ? (baseContain + ',colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131') :
+    style === 'neon' ? (baseContain + ',edgedetect=low=0.08:high=0.2') :
+    (baseCoverCrop + ',format=rgba,' + geqCircle)
 
   const ffmpegCmd = isVideo
-    ? `ffmpeg -y -i "${input}" -t 8 -an -vf "${vf}" -loop 0 -fps_mode passthrough "${output}"`
-    : `ffmpeg -y -i "${input}" -an -vf "${vf}" -loop 0 -fps_mode passthrough "${output}"`
+    ? 'ffmpeg -y -i "' + input + '" -t 8 -an -vf "' + vf + '" -loop 0 -fps_mode passthrough "' + output + '"'
+    : 'ffmpeg -y -i "' + input + '" -an -vf "' + vf + '" -loop 0 -fps_mode passthrough "' + output + '"'
 
   try {
     await execAsync(ffmpegCmd)
@@ -190,9 +197,7 @@ let handler = async (m, { conn, args }) => {
   } catch (e) {
     const err = (e?.stderr || e?.stdout || e?.message || String(e) || '').toString()
     await conn.sendMessage(from, {
-      text: 'Error creando el sticker.\n\n' +
-        `Estilo: *${style}*\n` +
-        `Error:\n\`\`\`\n${err.slice(0, 3500)}\n\`\`\``
+      text: 'Error creando el sticker.\n\nEstilo: *' + style + '*\nError:\n```\n' + err.slice(0, 3500) + '\n```'
     }, { quoted: m })
   } finally {
     if (fs.existsSync(input)) await fs.promises.unlink(input)
