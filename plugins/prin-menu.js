@@ -26,7 +26,8 @@ function clockString(ms) {
 async function getBufferFromUrl(url) {
   const r = await fetch(url)
   if (!r.ok) throw new Error(`No se pudo descargar: ${url}`)
-  return await r.buffer()
+  const arrayBuffer = await r.arrayBuffer()
+  return Buffer.from(arrayBuffer)
 }
 
 function dedupeRows(rows = []) {
@@ -67,7 +68,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     if (!profilePic) profilePic = "https://i.ibb.co/3NfYh9k/default-avatar.png"
 
     let botNameToShow = global.botname || meName
-    let bannerUrl = global.michipg || "https://adofiles.vercel.app/dl/3d55b968.jpg"
+    let bannerUrl = "https://adofiles.vercel.app/dl/3d55b968.jpg"
 
     const channelUrl = "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
     const botType = (conn.user?.jid || "") === (global.conn?.user?.jid || "") ? "Principal" : "Sub-Bot"
@@ -120,48 +121,47 @@ let handler = async (m, { conn, usedPrefix }) => {
     )
 
     if (!isRegistered) {
-      const fkontak = {
-        key: { participants: "0@s.whatsapp.net", fromMe: false, id: "Shadow" },
-        message: {
-          locationMessage: {
-            name: "Registro requerido",
-            jpegThumbnail: thumbBuffer,
-            vcard:
-              "BEGIN:VCARD\nVERSION:3.0\nN:;Shadow;;;\nFN:Shadow\nORG:Shadow Garden\nitem1.TEL;waid=584242773183:+58 424 2773183\nitem1.X-ABLabel:Shadow\nEND:VCARD"
-          }
+      const regMedia = await prepareWAMessageMedia(
+        { image: thumbBuffer },
+        { upload: conn.waUploadToServer }
+      )
+
+      const regText = [
+        `𔓕 Hola ${tagUser}`,
+        `𔓕 Para usar el menú necesitas registrarte.`,
+        ``,
+        `📝 *Comando:* \`${usedPrefix}reg nombre.edad\``,
+        `💡 *Ejemplo:* \`${usedPrefix}reg shadow.18\``
+      ].join("\n")
+
+      const regPayload = {
+        body: { text: regText },
+        footer: { text: botNameToShow },
+        header: {
+          title: "⚠️ REGISTRO REQUERIDO ⚠️",
+          hasMediaAttachment: true,
+          imageMessage: regMedia.imageMessage
         },
-        participant: "0@s.whatsapp.net"
+        nativeFlowMessage: {
+          buttons: [
+            {
+              name: "quick_reply",
+              buttonParamsJson: JSON.stringify({ display_text: "📝 Registrarse", id: `${usedPrefix}reg` })
+            },
+            {
+              name: "cta_url",
+              buttonParamsJson: JSON.stringify({ display_text: "👑 Creador", url: "https://wa.me/584242773183" })
+            }
+          ]
+        },
+        contextInfo: { mentionedJid: [m.sender] }
       }
 
-      const productMessage = {
-        product: {
-          productImage: { url: bannerUrl },
-          productId: "999999999999999",
-          title: "REGISTRO",
-          description: "Registro requerido",
-          currencyCode: "USD",
-          priceAmount1000: 0,
-          retailerId: "1677",
-          url: "https://wa.me/584242773183",
-          productImageCount: 1
-        },
-        businessOwnerJid: "584242773183@s.whatsapp.net",
-        caption: [
-          `➤ *\`REGISTRO\`*`,
-          `𔓕 Hola ${tagUser}`,
-          `𔓕 Para usar el menú necesitas registrarte`,
-          `𔓕 Comando: \`${usedPrefix}reg nombre.edad\``,
-          `𔓕 Ejemplo: \`${usedPrefix}reg shadow.18\``
-        ].join("\n"),
-        footer: botNameToShow,
-        interactiveButtons: [
-          { name: "quick_reply", buttonParamsJson: JSON.stringify({ display_text: "📝 Registrarse", id: `${usedPrefix}reg` }) },
-          { name: "cta_url", buttonParamsJson: JSON.stringify({ display_text: "👑 Creador", url: "https://wa.me/584242773183" }) }
-        ],
-        mentions: [m.sender]
-      }
-
-      return await conn.sendMessage(m.chat, productMessage, { quoted: fkontak })
+      return await conn.relayMessage(
+        m.chat,
+        { viewOnceMessage: { message: { interactiveMessage: regPayload } } },
+        { quoted: m }
+      )
     }
 
     const menuByTag = {}
