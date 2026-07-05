@@ -5,7 +5,7 @@ import crypto from 'crypto'
 import webp from 'node-webpmux'
 import baileys from '@whiskeysockets/baileys'
 
-const { proto, generateWAMessageFromContent, downloadContentFromMessage } = baileys
+const { proto, generateWAMessageFromContent, downloadContentFromMessage, downloadMediaMessage } = baileys
 const execAsync = util.promisify(exec)
 
 async function addExif(webpBuffer, packname, author) {
@@ -92,22 +92,10 @@ let handler = async (m, { conn, args, command }) => {
     return
   }
 
-  const quotedMsg = m?.message?.extendedTextMessage?.contextInfo?.quotedMessage || m?.message?.imageMessage || m?.message?.videoMessage || null
-  let imageMessage = quotedMsg?.imageMessage || null
-  let videoMessage = quotedMsg?.videoMessage || null
+  let q = m.quoted ? m.quoted : m
+  let mime = (q.msg || q).mimetype || ''
 
-  if (!imageMessage && !videoMessage) {
-    imageMessage = m?.message?.imageMessage || m?.message?.videoMessage || null
-    if (m?.quoted) {
-      imageMessage = m.quoted.message?.imageMessage || null
-      videoMessage = m.quoted.message?.videoMessage || null
-    }
-  }
-
-  const isImage = !!imageMessage
-  const isVideo = !!videoMessage
-
-  if (!isImage && !isVideo) {
+  if (!/image|video/.test(mime)) {
     const helpText =
       `Hola ${m.pushName || 'usuario'}, responde a una *imagen* o *video* para crear tu sticker.\n\n` +
       `\u2022 *s circle* \u2014 circulo\n` +
@@ -146,15 +134,24 @@ let handler = async (m, { conn, args, command }) => {
     return
   }
 
-  const msg = isImage ? imageMessage : videoMessage
-  const dlType = isImage ? 'image' : 'video'
+  const isVideo = /video/.test(mime)
 
-  const stream = await downloadContentFromMessage(msg, dlType)
-  let buffer = Buffer.from([])
-  for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk])
+  let buffer
+  try {
+    buffer = await q.download()
+  } catch {
+    try {
+      buffer = await downloadMediaMessage(q, 'buffer', {}, { logger: console, reconnectMode: 'on' })
+    } catch (e) {
+      return conn.sendMessage(from, { text: `Error al descargar el ${isVideo ? 'video' : 'imagen'}.` }, { quoted: m })
+    }
+  }
+  if (!buffer) {
+    return conn.sendMessage(from, { text: 'No se pudo obtener el archivo multimedia.' }, { quoted: m })
+  }
 
   const ts = Date.now()
-  const input = `./tmp/temp_${ts}.${isImage ? 'jpg' : 'mp4'}`
+  const input = `./tmp/temp_${ts}.${isVideo ? 'mp4' : 'jpg'}`
   const output = `./tmp/temp_${ts}.webp`
 
   await fs.promises.mkdir('./tmp', { recursive: true })
