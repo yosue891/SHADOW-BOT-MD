@@ -150,6 +150,7 @@ maxIdleTimeMs: 0,
 }
 
 global.conn = makeWASocket(connectionOptions)
+try { conn.ev.on('connection.update', connectionUpdate.bind(global.conn)) } catch {}
 conn.ev.on('creds.update', saveCreds.bind(global.conn, true))
 global._reconnectAttempts = 0
 if (!state.creds.registered) {
@@ -167,6 +168,32 @@ phoneNumber = `+${phoneNumber}`
 rl.close()
 global._pairingNumber = phoneNumber.replace(/\D/g, '')
 }
+// fallback: intentar pairing code tras 10s si connectionUpdate no lo hace
+setTimeout(async () => {
+const maxRetries = 8
+for (let i = 0; i < maxRetries; i++) {
+try {
+if (global.conn?.authState?.creds?.registered) return
+if (global._pairingRequested) return
+global._pairingRequested = true
+console.log(chalk.cyanBright(`\n📱 Solicitando código de vinculación para +${global._pairingNumber}...`))
+let codeBot = await global.conn.requestPairingCode(global._pairingNumber)
+codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
+console.log(chalk.bold.white(chalk.bgMagenta(`[ ✿ ]  Código:`)), chalk.bold.white(chalk.white(codeBot)))
+return
+} catch (e) {
+global._pairingRequested = false
+if (e.message?.includes('not_open') || e.message?.includes('Connection Closed')) {
+console.log(chalk.bold.yellowBright(`\n⚠︎ Esperando conexión (${i+1}/${maxRetries})...`))
+await new Promise(r => setTimeout(r, 5000))
+continue
+}
+console.log(chalk.bold.yellowBright(`\n⚠︎ Error al solicitar código (${i+1}/${maxRetries}): ${e.message}`))
+if (i < maxRetries - 1) await new Promise(r => setTimeout(r, 5000))
+}
+}
+console.log(chalk.bold.redBright(`\n⚠︎ No se pudo solicitar el código de vinculación.`))
+}, 10000)
 }}
 conn.isInit = false
 conn.well = false
