@@ -3,8 +3,12 @@ import fs from 'fs'
 import util from 'util'
 import crypto from 'crypto'
 import webp from 'node-webpmux'
-import { proto, generateWAMessageFromContent, downloadContentFromMessage, downloadMediaMessage } from '@whiskeysockets/baileys'
+import baileys from 'baileys'
+import config from '../config.js'
+
 const execAsync = util.promisify(exec)
+const downloadContentFromMessage = baileys.downloadContentFromMessage
+const generateWAMessageFromContent = baileys.generateWAMessageFromContent
 
 async function addExif(webpBuffer, packname, author) {
   const img = new webp.Image()
@@ -59,8 +63,8 @@ let handler = async (m, { conn, args }) => {
       const content = {
         viewOnceMessage: {
           message: {
-            interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-              header: { hasMediaAttachment: false, title: global.packsticker || 'Shadow Bot' },
+            interactiveMessage: baileys.proto.Message.InteractiveMessage.fromObject({
+              header: { hasMediaAttachment: false, title: config.bot_name || 'Shadow Bot' },
               body: { text: 'Estos son todos los estilos disponibles para crear tu sticker personalizado:\n\n' +
                 Object.keys(styles).map(k => `\u2022 *s ${k}* \u2014 ${styles[k]}`).join('\n') },
               nativeFlowMessage: {
@@ -102,8 +106,8 @@ let handler = async (m, { conn, args }) => {
       const content = {
         viewOnceMessage: {
           message: {
-            interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-              header: { hasMediaAttachment: false, title: global.packsticker || 'Shadow Bot' },
+            interactiveMessage: baileys.proto.Message.InteractiveMessage.fromObject({
+              header: { hasMediaAttachment: false, title: config.bot_name || 'Shadow Bot' },
               body: { text: helpText },
               nativeFlowMessage: {
                 buttons: [{
@@ -130,81 +134,9 @@ let handler = async (m, { conn, args }) => {
 
   let buffer
   try {
-    buffer = await q.download()
-  } catch {
-    try {
-      buffer = await downloadMediaMessage(q, 'buffer', {}, { logger: console })
-    } catch (e) {
-      return conn.sendMessage(from, { text: 'Error al descargar el ' + (isVideo ? 'video' : 'imagen') + '.' }, { quoted: m })
-    }
-  }
-  if (!buffer) {
-    return conn.sendMessage(from, { text: 'No se pudo obtener el archivo multimedia.' }, { quoted: m })
-  }
-
-  const ts = Date.now()
-  const input = './tmp/temp_' + ts + '.' + (isVideo ? 'mp4' : 'jpg')
-  const output = './tmp/temp_' + ts + '.webp'
-
-  await fs.promises.mkdir('./tmp', { recursive: true })
-  await fs.promises.writeFile(input, buffer)
-
-  const style = opt || 'circle'
-  if (style && style !== '' && !styles[style]) {
-    await conn.sendMessage(from, { text: listText }, { quoted: m })
-    if (fs.existsSync(input)) await fs.promises.unlink(input)
-    return
-  }
-
-  const baseContain =
-    'fps=15,' +
-    'scale=512:512:force_original_aspect_ratio=decrease,' +
-    'pad=512:512:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
-
-  const baseCoverCrop =
-    'fps=15,' +
-    'scale=512:512:force_original_aspect_ratio=increase,' +
-    'crop=512:512'
-
-  const geqCircle = "geq=lum='p(X,Y)':a='if(lte(hypot(X-256,Y-256),256),255,0)'"
-
-  const vf =
-    style === 'circle' ? (baseCoverCrop + ',format=rgba,' + geqCircle) :
-    style === 'crop' ? baseCoverCrop :
-    style === 'bw' ? (baseContain + ',hue=s=0') :
-    style === 'invert' ? (baseContain + ',negate') :
-    style === 'blur' ? (baseContain + ',gblur=sigma=6') :
-    style === 'pixel' ? (baseContain + ',scale=128:128:flags=neighbor,scale=512:512:flags=neighbor') :
-    style === 'sepia' ? (baseContain + ',colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131') :
-    style === 'neon' ? (baseContain + ',edgedetect=low=0.08:high=0.2') :
-    (baseCoverCrop + ',format=rgba,' + geqCircle)
-
-  const ffmpegCmd = isVideo
-    ? 'ffmpeg -y -i "' + input + '" -t 8 -an -vf "' + vf + '" -loop 0 -fps_mode passthrough "' + output + '"'
-    : 'ffmpeg -y -i "' + input + '" -an -vf "' + vf + '" -loop 0 -fps_mode passthrough "' + output + '"'
-
-  try {
-    await execAsync(ffmpegCmd)
-    let stickerBuffer = await fs.promises.readFile(output)
-
-    const packName = global.packsticker || 'Shadow Bot'
-    const author = global.dev || 'yosue'
-    stickerBuffer = await addExif(stickerBuffer, packName, author)
-
-    await conn.sendMessage(from, { sticker: stickerBuffer }, { quoted: m })
+    const msgMedia = q.msg || q
+    const dlType = isVideo ? 'video' : 'image'
+    const stream = await downloadContentFromMessage(msgMedia, dlType)
+    buffer = Buffer.from([])
+    for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk])
   } catch (e) {
-    const err = (e?.stderr || e?.stdout || e?.message || String(e) || '').toString()
-    await conn.sendMessage(from, {
-      text: 'Error creando el sticker.\n\nEstilo: *' + style + '*\nError:\n```\n' + err.slice(0, 3500) + '\n```'
-    }, { quoted: m })
-  } finally {
-    if (fs.existsSync(input)) await fs.promises.unlink(input)
-    if (fs.existsSync(output)) await fs.promises.unlink(output)
-  }
-}
-
-handler.help = ['sticker', 's', 'stiker']
-handler.tags = ['sticker']
-handler.command = ['sticker', 's', 'stiker']
-
-export default handler
