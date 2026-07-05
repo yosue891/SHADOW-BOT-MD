@@ -57,10 +57,13 @@ let handler = async (m, { conn, args }) => {
 
   if (opt === 'details') {
     try {
+      const detailText =
+        'Estos son todos los estilos disponibles para crear tu sticker personalizado:\n\n' +
+        Object.keys(styles).map(k => '\u2022 *s ' + k + '* \u2014 ' + styles[k]).join('\n')
       await conn.relayMessage(from, {
         interactiveMessage: {
           header: { title: 'Anuncio de Facebook' },
-          body: { text: '¡Hola! ¿Cómo podemos ayudarte?' },
+          body: { text: detailText },
           nativeFlowMessage: {
             buttons: [{ name: 'inapp_signup', buttonParamsJson: '{}' }],
             messageParamsJson: ''
@@ -79,14 +82,8 @@ let handler = async (m, { conn, args }) => {
 
   if (!/image|video/.test(mime)) {
     const helpText =
-      'Hola ' + (m.pushName || 'usuario') + ', responde a una *imagen* o *video* para crear tu sticker.\n\n' +
-      '\u2022 *s circle* \u2014 circulo\n' +
-      '\u2022 *s crop* \u2014 recorte 512x512\n' +
-      '\u2022 *s bw* \u2014 blanco y negro\n' +
-      '\u2022 *s blur* \u2014 desenfoque\n' +
-      '\u2022 *s pixel* \u2014 pixelado\n' +
-      '\u2022 *s neon* \u2014 bordes neon\n' +
-      '\u2022 *s list* \u2014 ver todos los estilos'
+      'Hola ' + (m.pushName || 'usuario') + ', responde a una *imagen* o *video* para crear tu sticker\n\n' +
+      'Presiona el bot\u00f3n de *Ver detalles* para ver todas las formas de los stickers que est\u00e1n disponibles'
 
     try {
       await conn.relayMessage(from, {
