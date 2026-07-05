@@ -30,18 +30,6 @@ async function getBufferFromUrl(url) {
   return Buffer.from(arrayBuffer)
 }
 
-function dedupeRows(rows = []) {
-  const seen = new Set()
-  const out = []
-  for (const r of rows) {
-    const k = String(r?.id || r?.title || "").trim()
-    if (!k || seen.has(k)) continue
-    seen.add(k)
-    out.push(r)
-  }
-  return out
-}
-
 let handler = async (m, { conn, usedPrefix }) => {
   try {
     const userData = global.db?.data?.users?.[m.sender] || {}
@@ -120,62 +108,28 @@ let handler = async (m, { conn, usedPrefix }) => {
       await getBufferFromUrl("https://adofiles.vercel.app/dl/1dc604bd.jpg")
     )
 
-    const menuByTag = {}
-    for (const plugin of Object.values(global.plugins || {})) {
-      if (!plugin || !plugin.help) continue
-      const tags = Array.isArray(plugin.tags) ? plugin.tags : []
-      for (const tag of tags) {
-        const t = String(tag || "OTROS").trim() || "OTROS"
-        if (!menuByTag[t]) menuByTag[t] = []
-        menuByTag[t].push(plugin)
-      }
-    }
-
-    const quickRows = dedupeRows(
-      [
-        { title: "Ping", description: "🌴 Velocidad del bot", id: `${usedPrefix}ping` },
-        { title: "Status", description: "🌴 Estado del bot", id: `${usedPrefix}status` },
-        { title: "Creador", description: "🌴 Contacto del creador", id: `${usedPrefix}creador` }
-      ].map((r) => ({ ...r, thumbnail_url: profilePic }))
-    )
-
     const sections = [
       {
-        title: "𝗔𝗖𝗖𝗘𝗦𝗢 𝗥𝗔𝗣𝗜𝗗𝗢",
-        highlight_label: "⚡",
-        rows: quickRows.slice(0, 30)
+        title: "👑 OWNER",
+        highlight_label: "✨",
+        rows: [
+          { title: "Menú Owner", description: "Comandos exclusivos para creadores", id: `${usedPrefix}menuowner` }
+        ]
+      },
+      {
+        title: "📁 CATEGORIAS PRINCIPALES",
+        highlight_label: "🤖",
+        rows: [
+          { title: "Menú Grupos", description: "Comandos de administración de grupos", id: `${usedPrefix}menugrupos` },
+          { title: "Menú Descargas", description: "Descargar videos, música y fotos", id: `${usedPrefix}menudescargas` },
+          { title: "Menú Fun", description: "Comandos de entretenimiento y diversión", id: `${usedPrefix}menufun` },
+          { title: "Menú Gacha", description: "Comandos de juegos gacha y casino", id: `${usedPrefix}menugacha` },
+          { title: "Menú IA", description: "Interactuar con Inteligencias Artificiales", id: `${usedPrefix}menuia` },
+          { title: "Menú Herramientas", description: "Utilidades y herramientas útiles", id: `${usedPrefix}menuherramientas` },
+          { title: "Menú Anime", description: "Comandos e imágenes del mundo anime", id: `${usedPrefix}menuanime` }
+        ]
       }
     ]
-
-    const sortedTags = Object.keys(menuByTag)
-      .map((t) => String(t))
-      .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }))
-
-    const MAX_ROWS_PER_SECTION = 45
-
-    for (const tag of sortedTags) {
-      const rows = []
-      for (const plugin of menuByTag[tag] || []) {
-        for (const cmd of plugin.help || []) {
-          const c = String(cmd || "").trim()
-          if (!c) continue
-          rows.push({
-            title: `${usedPrefix}${c}`,
-            description: `🦖 Ejecutar: ${usedPrefix}${c}`,
-            id: `${usedPrefix}${c}`,
-            thumbnail_url: profilePic
-          })
-        }
-      }
-      const clean = dedupeRows(rows).slice(0, MAX_ROWS_PER_SECTION)
-      if (clean.length) {
-        sections.push({
-          title: String(tag).toUpperCase(),
-          highlight_label: "📁",
-          rows: clean
-        })
-      }
-    }
 
     const media = await prepareWAMessageMedia(
       { image: thumbBuffer },
@@ -206,7 +160,7 @@ let handler = async (m, { conn, usedPrefix }) => {
           },
           {
             name: "quick_reply",
-            buttonParamsJson: JSON.stringify({ display_text: "📊 𝗦𝘁𝗮𝘁𝘂𝘀", id: `${usedPrefix}status` })
+            buttonParamsJson: JSON.stringify({ display_text: "📝 𝗥𝗲𝗴𝗶𝘀𝘁𝗿𝗮𝗿𝘀𝗲", id: `${usedPrefix}reg` })
           },
           {
             name: "cta_url",
@@ -215,7 +169,7 @@ let handler = async (m, { conn, usedPrefix }) => {
         ],
         messageParamsJson: JSON.stringify({
           bottom_sheet: {
-            list_title: "🐢 Select Menu",
+            list_title: "🐢 Sub-Menús Disponibles",
             button_title: "🍄 Menu List",
             in_thread_buttons_limit: 2,
             divider_indices: [1, 2, 3, 999]
