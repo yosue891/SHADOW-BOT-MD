@@ -3,9 +3,8 @@ import fs from 'fs'
 import util from 'util'
 import crypto from 'crypto'
 import webp from 'node-webpmux'
-import baileys from '@whiskeysockets/baileys'
+import { generateWAMessageFromContent, downloadContentFromMessage, downloadMediaMessage } from '@whiskeysockets/baileys'
 
-const { proto, generateWAMessageFromContent, downloadContentFromMessage, downloadMediaMessage } = baileys
 const execAsync = util.promisify(exec)
 
 async function addExif(webpBuffer, packname, author) {
@@ -46,7 +45,7 @@ const listText =
   Object.keys(styles).map(k => `\u2022 *s ${k}* \u2014 ${styles[k]}`).join('\n') +
   '\n\n\u2022 *s list*'
 
-let handler = async (m, { conn, args, command }) => {
+let handler = async (m, { conn, args }) => {
   const from = m.chat
   if (!from) return
 
@@ -61,33 +60,24 @@ let handler = async (m, { conn, args, command }) => {
       const content = {
         viewOnceMessage: {
           message: {
-            interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-              header: { title: global.packsticker || 'Shadow Bot', hasMediaAttachment: false },
-              body: {
-                text: 'Estos son todos los estilos disponibles para crear tu sticker personalizado:\n\n' +
-                  Object.keys(styles).map(k => `\u2022 *s ${k}* \u2014 ${styles[k]}`).join('\n')
-              },
+            interactiveMessage: {
+              header: { hasMediaAttachment: false, title: global.packsticker || 'Shadow Bot' },
+              body: { text: 'Estos son todos los estilos disponibles para crear tu sticker personalizado:\n\n' +
+                Object.keys(styles).map(k => `\u2022 *s ${k}* \u2014 ${styles[k]}`).join('\n') },
               nativeFlowMessage: {
                 buttons: [{
                   name: 'cta_url',
-                  buttonParamsJson: JSON.stringify({
-                    display_text: 'Ver estilos',
-                    url: 'https://github.com/yosue891/SHADOW-BOT-MD',
-                    merchant_url: 'https://github.com/yosue891/SHADOW-BOT-MD'
-                  })
+                  buttonParamsJson: JSON.stringify({ display_text: 'Ver estilos', url: 'https://github.com/yosue891/SHADOW-BOT-MD' })
                 }]
               }
-            })
+            }
           }
         }
       }
-      const msg = generateWAMessageFromContent(from, content, {
-        quoted: m,
-        userJid: conn.user?.jid
-      })
+      const msg = generateWAMessageFromContent(from, content, { userJid: conn.user?.jid, quoted: m })
       await conn.relayMessage(from, msg.message, { messageId: msg.key.id })
-    } catch {
-      await conn.sendMessage(from, { text: listText }, { quoted: m })
+    } catch (e) {
+      await conn.sendMessage(from, { text: listText + '\n\n[DEBUG Error: ' + (e?.message || e) + ']' }, { quoted: m })
     }
     return
   }
@@ -110,8 +100,8 @@ let handler = async (m, { conn, args, command }) => {
       const content = {
         viewOnceMessage: {
           message: {
-            interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-              header: { title: global.packsticker || 'Shadow Bot', hasMediaAttachment: false },
+            interactiveMessage: {
+              header: { hasMediaAttachment: false, title: global.packsticker || 'Shadow Bot' },
               body: { text: helpText },
               nativeFlowMessage: {
                 buttons: [{
@@ -119,17 +109,14 @@ let handler = async (m, { conn, args, command }) => {
                   buttonParamsJson: JSON.stringify({ display_text: 'Ver detalles', id: '.s details' })
                 }]
               }
-            })
+            }
           }
         }
       }
-      const msg = generateWAMessageFromContent(from, content, {
-        quoted: m,
-        userJid: conn.user?.jid
-      })
+      const msg = generateWAMessageFromContent(from, content, { userJid: conn.user?.jid })
       await conn.relayMessage(from, msg.message, { messageId: msg.key.id })
-    } catch {
-      await conn.sendMessage(from, { text: helpText }, { quoted: m })
+    } catch (e) {
+      conn.sendMessage(from, { text: helpText + '\n\n[DEBUG Error: ' + (e?.message || e) + ']' }, { quoted: m })
     }
     return
   }
@@ -141,7 +128,7 @@ let handler = async (m, { conn, args, command }) => {
     buffer = await q.download()
   } catch {
     try {
-      buffer = await downloadMediaMessage(q, 'buffer', {}, { logger: console, reconnectMode: 'on' })
+      buffer = await downloadMediaMessage(q, 'buffer', {}, { logger: console })
     } catch (e) {
       return conn.sendMessage(from, { text: `Error al descargar el ${isVideo ? 'video' : 'imagen'}.` }, { quoted: m })
     }
