@@ -1,158 +1,284 @@
-import fetch from 'node-fetch'
-import { xpRange } from '../lib/levelling.js'
-import fs from 'fs'
-import PhoneNumber from 'awesome-phonenumber'
-import moment from 'moment-timezone'
+import moment from "moment-timezone"
+import fs from "fs"
+import { dirname, join } from "path"
+import { fileURLToPath } from "url"
+import fetch from "node-fetch"
 
-const botname = global.botname || "Shadow Garden"
-const dev = global.dev || "Cid Kagenou"
-const banner = "https://u.pone.rs/pihrugtw.mp4"
-const canalId = '120363403739366547@newsletter'
-const canalName = 'SHADOW-BOT'
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
-let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
-  let mentionedJid = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.sender
-  
+const baileysMod = await import("@whiskeysockets/baileys")
+const prepareWAMessageMedia =
+  baileysMod.prepareWAMessageMedia ||
+  baileysMod.default?.prepareWAMessageMedia
+
+if (typeof prepareWAMessageMedia !== "function") {
+  throw new Error("Tu versión de Baileys no expone prepareWAMessageMedia")
+}
+
+function clockString(ms) {
+  let h = isNaN(ms) ? "--" : Math.floor(ms / 3600000)
+  let m = isNaN(ms) ? "--" : Math.floor(ms / 60000) % 60
+  let s = isNaN(ms) ? "--" : Math.floor(ms / 1000) % 60
+  return [h, m, s].map((v) => v.toString().padStart(2, "0")).join(":")
+}
+
+async function getBufferFromUrl(url) {
+  const r = await fetch(url)
+  if (!r.ok) throw new Error(`No se pudo descargar: ${url}`)
+  return await r.buffer()
+}
+
+function dedupeRows(rows = []) {
+  const seen = new Set()
+  const out = []
+  for (const r of rows) {
+    const k = String(r?.id || r?.title || "").trim()
+    if (!k || seen.has(k)) continue
+    seen.add(k)
+    out.push(r)
+  }
+  return out
+}
+
+let handler = async (m, { conn, usedPrefix }) => {
   try {
-    let user = global.db.data.users[m.sender] || {}
-    let name = await conn.getName(m.sender)
-    let totalreg = Object.keys(global.db.data.users).length
-    let groupUserCount = m.isGroup ? participants.length : '-'
-    let groupsCount = Object.values(conn.chats).filter(v => v.id.endsWith('@g.us')).length
-    let uptime = clockString(process.uptime() * 1000)
-    let fecha = new Date(Date.now())
-    let locale = 'es-PE'
-    let dia = fecha.toLocaleDateString(locale, { weekday: 'long' })
-    let fechaTxt = fecha.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })
-    let hora = fecha.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
-    let totalCommands = Object.keys(global.plugins).length
-    let readMore = String.fromCharCode(8206).repeat(4001)
+    const userData = global.db?.data?.users?.[m.sender] || {}
+    const isRegistered = !!userData.registered
 
-    let userIdNum = m.sender.split('@')[0]
-    let phone = PhoneNumber('+' + userIdNum)
-    let pais = phone.getRegionCode() || 'Dominio Desconocido 🌑'
+    const tz = "America/Tegucigalpa"
+    const time = moment.tz(tz).format("HH:mm:ss")
+    const date = moment.tz(tz).format("DD/MM/YYYY")
+    const uptime = clockString(process.uptime() * 1000)
 
-    let tags = {
-      'info': '𝐈𝐍𝐅𝐎 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
-      'main': '𝐄𝐒𝐓𝐀𝐃𝐎 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
-      'anime': '𝐀𝐍𝐈𝐌𝐄 𝐀𝐑𝐂𝐀𝐍𝐎',
-      'menu': '𝐌𝐄𝐍𝐔𝐒 𝐎𝐂𝐔𝐋𝐓𝐎𝐒',
-      'search': '𝐁𝐔𝐒𝐐𝐔𝐄𝐃𝐀𝐒 𝐄𝐒𝐎𝐓𝐄𝐑𝐈𝐂𝐀𝐒',
-      'descargas': '𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀𝐒 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
-      'socket': '𝐂𝐎𝐍block𝐈block𝐎block𝐍blockblock𝐄𝐒 𝐎block𝐂blockblock𝐔block𝐋block𝐓blockblock𝐀𝐒',
-      'rg': '𝐏block𝐄blockblock𝐑block𝐅blockblock𝐈block𝐋 𝐃block𝐄blockblock𝐋 𝐂𝐎block𝐍block𝐓block𝐑block𝐀blockblock𝐓block𝐈block𝐒block𝐓𝐀',
-      'fun': '𝐉𝐔block𝐄𝐆𝐎𝐒 𝐃𝐄 𝐒𝐎𝐌𝐁𝐑block𝐀',
-      'rpg': '𝐄𝐂𝐎block𝐍block𝐎block𝐌blockblock𝐈block𝐀 𝐎block𝐂blockblock𝐔block𝐋block𝐓blockblock𝐀',
-      'gacha': '𝐈block𝐕𝐄block𝐍blockblock𝐓𝐎𝐒 𝐆block𝐀blockblock𝐂𝐇block𝐀',
-      'game': '𝐉𝐔block𝐄block𝐆block𝐎𝐒 𝐀block𝐑blockblock𝐂block𝐀blockblockblock𝐍block𝐎block𝐒',
-      'grupos': '𝐂block𝐈blockblock𝐑blockblock𝐂block𝐔blockblock𝐋𝐎𝐒 𝐃block𝐄 𝐒block𝐎block𝐌block𝐁blockblock𝐑𝐀',
-      'nable': '𝐌block𝐎block𝐃𝐎 𝐎block𝐍 / 𝐎𝐅block𝐅',
-      'ia': '𝐈block𝐍blockblock𝐓block𝐄block𝐋block𝐈block𝐆blockblock𝐄block𝐍block𝐂block𝐈𝐀 𝐀block𝐑blockblock𝐂blockblock𝐀blockblock𝐍block𝐀',
-      'stalk': '𝐎𝐁𝐒𝐄block𝐑block𝐕block𝐀block𝐂block𝐈𝐎blockblock𝐍 𝐒block𝐈block𝐋𝐄blockblock𝐍block𝐂block𝐈𝐎blockblock𝐒𝐀',
-      'maker': '𝐀package 𝐕style 𝐀',
-      'tools': '𝐇block𝐄blockblockblock𝐑blockblock𝐑block𝐀block𝐌block𝐈block𝐄blockblock𝐍blockblock𝐓blockblock𝐀𝐒 𝐃blockblock𝐄 𝐋blockblock𝐀 𝐒block𝐎blockblock𝐌blockblockblock𝐁block𝐑𝐀',
-      'sticker': '𝐒𝐄block𝐋blockblock𝐋𝐎block𝐒 𝐀block𝐑blockblock𝐂blockblockblock𝐀blockblockblock𝐍block𝐎𝐒',
-      'owner': '𝐌blockblock𝐀block𝐄block𝐒block𝐓blockblock𝐑𝐎 𝐃block𝐄 𝐋block𝐀 𝐎block𝐑block𝐆block𝐀blockblockblock𝐍blockblock𝐈block𝐙𝐀blockblock𝐂block𝐈𝐎blockblock𝐒𝐀',
-      'nsfw': '𝐛𝐎blockblock𝐍block𝐀 𝐑block𝐄block𝐒blockblock𝐓block𝐑block𝐈block𝐍blockblock𝐆block𝐈block𝐃block𝐀 (+18)'
+    const tagUser = "@" + m.sender.split("@")[0]
+    const name = (await conn.getName(m.sender)) || "User"
+    const meName =
+      (await conn.getName(conn.user?.id || conn.user?.jid || "")) ||
+      global.botname ||
+      "Bot"
+
+    let profilePic
+    try {
+      profilePic = await conn.profilePictureUrl(m.sender, "image")
+    } catch {
+      profilePic = "https://i.ibb.co/3NfYh9k/default-avatar.png"
+    }
+    if (!profilePic) profilePic = "https://i.ibb.co/3NfYh9k/default-avatar.png"
+
+    let botNameToShow = global.botname || meName
+    let bannerUrl = global.michipg || "https://files.catbox.moe/k45sr6.jpg"
+
+    const channelUrl = "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
+    const botType = (conn.user?.jid || "") === (global.conn?.user?.jid || "") ? "Principal" : "Sub-Bot"
+
+    const senderBotNumber = (conn.user?.jid || "").split("@")[0]
+    let configPath
+    if ((conn.user?.jid || "") === (global.conn?.user?.jid || "")) configPath = join("./Sessions", "config.json")
+    else configPath = join("./Sessions/SubBot", senderBotNumber, "config.json")
+
+    if (configPath && fs.existsSync(configPath)) {
+      try {
+        const botConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"))
+        if (botConfig?.name) botNameToShow = botConfig.name
+        if (botConfig?.banner) bannerUrl = botConfig.banner
+      } catch {}
     }
 
-    let commands = Object.values(global.plugins)
-      .filter(v => v.help && v.tags)
-      .map(v => ({
-        help: Array.isArray(v.help) ? v.help : [v.help],
-        tags: Array.isArray(v.tags) ? v.tags : [v.tags]
-      }))
+    const infoUser = [
+      "─┈➤ *`INFO USER`*",
+      `𔓕 *Nombre* : ${name}`,
+      `𔓕 *Tag*    : ${tagUser}`,
+      `𔓕 *Registro* : ${isRegistered ? "✅" : "❌"}`
+    ].join("\n")
 
-    let menuTexto = ''
-    for (let tag in tags) {
-      let comandos = commands
-        .filter(cmd => cmd.tags.includes(tag))
-        .map(cmd => cmd.help.map(e => `*│ׄꤥㅤׅ* ${usedPrefix}${e}`).join('\n'))
-        .join('\n')
-      if (comandos) {
-        menuTexto += `\n*╭──･ ̸̷∵* \`${tags[tag]}\`  *݁ ⚜︎*
-${comandos}
-*╰─────────────毁灭╯*\n`
+    const infoBot = [
+      "╭──┈ *`INFO BOT`*",
+      `│ 🐢 *Nombre*  : ${botNameToShow}`,
+      `│ 🌲 *Tipo*    : ${botType}`,
+      `│ 🌾 *Prefix*  : ${usedPrefix}`,
+      `│ 🪴 *Uptime*   : ${uptime}`,
+      `│ 🌵 *Hora*    : ${time}`,
+      `│ 🌱 *Fecha*   : ${date}`,
+      "╰------------------------------------------"
+    ].join("\n")
+
+    const menuText = [
+      `Hola *${tagUser}!*`,
+      `Bienvenido a *${botNameToShow}*`,
+      ``,
+      infoUser,
+      ``,
+      infoBot,
+      ``,
+      ` *\`CANAL\`*`,
+      `🌵 ${channelUrl}`
+    ].join("\n")
+
+    const thumbBuffer = await getBufferFromUrl(bannerUrl).catch(async () =>
+      await getBufferFromUrl("https://files.catbox.moe/k45sr6.jpg")
+    )
+
+    if (!isRegistered) {
+      const fkontak = {
+        key: { participants: "0@s.whatsapp.net", fromMe: false, id: "Shadow" },
+        message: {
+          locationMessage: {
+            name: "Registro requerido",
+            jpegThumbnail: thumbBuffer,
+            vcard:
+              "BEGIN:VCARD\nVERSION:3.0\nN:;Shadow;;;\nFN:Shadow\nORG:Shadow Garden\nitem1.TEL;waid=584242773183:+58 424 2773183\nitem1.X-ABLabel:Shadow\nEND:VCARD"
+          }
+        },
+        participant: "0@s.whatsapp.net"
+      }
+
+      const productMessage = {
+        product: {
+          productImage: { url: bannerUrl },
+          productId: "999999999999999",
+          title: "REGISTRO",
+          description: "Registro requerido",
+          currencyCode: "USD",
+          priceAmount1000: 0,
+          retailerId: "1677",
+          url: "https://wa.me/584242773183",
+          productImageCount: 1
+        },
+        businessOwnerJid: "584242773183@s.whatsapp.net",
+        caption: [
+          `➤ *\`REGISTRO\`*`,
+          `𔓕 Hola ${tagUser}`,
+          `𔓕 Para usar el menú necesitas registrarte`,
+          `𔓕 Comando: \`${usedPrefix}reg nombre.edad\``,
+          `𔓕 Ejemplo: \`${usedPrefix}reg shadow.18\``
+        ].join("\n"),
+        footer: botNameToShow,
+        interactiveButtons: [
+          { name: "quick_reply", buttonParamsJson: JSON.stringify({ display_text: "📝 Registrarse", id: `${usedPrefix}reg` }) },
+          { name: "cta_url", buttonParamsJson: JSON.stringify({ display_text: "👑 Creador", url: "https://wa.me/584242773183" }) }
+        ],
+        mentions: [m.sender]
+      }
+
+      return await conn.sendMessage(m.chat, productMessage, { quoted: fkontak })
+    }
+
+    const menuByTag = {}
+    for (const plugin of Object.values(global.plugins || {})) {
+      if (!plugin || !plugin.help) continue
+      const tags = Array.isArray(plugin.tags) ? plugin.tags : []
+      for (const tag of tags) {
+        const t = String(tag || "OTROS").trim() || "OTROS"
+        if (!menuByTag[t]) menuByTag[t] = []
+        menuByTag[t].push(plugin)
       }
     }
 
-    let date = `${dia}, ${fechaTxt}, ${hora}`
-    let infoUser = `
-> . ݁  🌑՞ *ʙɪᴇɴᴠᴇɴɪᴅᴏ ᴀ ʟᴀ ꜱᴏᴍʙʀᴀ,* ${name}.
->    ʏᴀ ᴇꜱᴛᴀʙᴀ ᴇꜱᴄᴜᴄhᴀɴᴅᴏ ᴛᴜꜱ ᴘᴀꜱᴏꜱ...
+    const quickRows = dedupeRows(
+      [
+        { title: "Ping", description: "🌴 Velocidad del bot", id: `${usedPrefix}ping` },
+        { title: "Status", description: "🌴 Estado del bot", id: `${usedPrefix}status` },
+        { title: "Creador", description: "🌴 Contacto del creador", id: `${usedPrefix}creador` }
+      ].map((r) => ({ ...r, thumbnail_url: profilePic }))
+    )
 
-> ﹙⚜︎﹚੭੭ ─ \`ɪ ɴ ғ ᴏ - ꜱʜᴀᴅᴏw ʙᴏᴛ\`
-> de ׄ 𓏸𓈒 ׅ *ɴᴏᴍʙʀᴇ ᴄʟᴀᴠ ›* ${conn.user?.name || 'Shadow Unit'}
-> de ׄ 𓏸𓈒 ׅ *Y2•ʟ•ᴀ•𝐬•ɪ•ꜰ•ɪ•ᴄ•ᴀ•ᴄ•ɪ•ᴏ•ɴ ›* ${(conn.user.jid == global.conn.user.jid ? ' can 𝐍𝐮́𝐜𝐥𝐞𝐨 𝐏𝐫𝐢𝐧𝐜𝐢𝐩𝐚𝐥' : ' can 𝐔𝐧𝐢𝐝𝐚𝐝 𝐒𝐮𝐛𝐨𝐫𝐝𝐢𝐧𝐚𝐝𝐚')}
-> de ׄ 𓏸𓈒 ׅ * can ᴄᴏᴍᴀɴᴅᴏส์ ›* ${totalCommands}
-> de ׄ 𓏸𓈒 ׅ *boxᴛblockɪblockᴇᴍᴘᴏ ᴇɴ ʟᴀ ꜱᴏᴍʙblockʀᴀ ›* ${uptime}
-> de ׄ 𓏸𓈒 ׅ *...ᴅblockᴏᴍblockɴɪᴏ ›* ${pais}
-> de ׄ 𓏸𓈒 ׅ *ᴀʟᴍblockᴀ_𝐬 ›* ${totalreg}
-> de ׄ 𓏸𓈒 ׅ * can ᴄedit ᴀ𝐬 ›* ${groupsCount}
-> de ׄ 𓏸𓈒 ׅ * can ᴛɪblockᴇᴍᴘᴏ ›* ${date}
+    const sections = [
+      {
+        title: "𝗔𝗖𝗖𝗘𝗦𝗢 𝗥𝗔𝗣𝗜𝗗𝗢",
+        highlight_label: "⚡",
+        rows: quickRows.slice(0, 30)
+      }
+    ]
 
-> *No olvides seguir el canal ofc del bot:*
-https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
-> *Y unirte a la comunidad ofc del botsito:*
-https://chat.whatsapp.com/EwF9uSoLzsQ3o0DvycCiQz
+    const sortedTags = Object.keys(menuByTag)
+      .map((t) => String(t))
+      .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }))
 
-${readMore}
-  乂 *ᴘʀᴏᴛᴏᴄᴏʟᴏ ᴅे ᴄᴏᴍᴀblockɴᴅᴏส์ ᴅblockᴇ ʟᴀ ꜱᴏᴍʙʀᴀ* 乂\n`.trim()
+    const MAX_ROWS_PER_SECTION = 45
 
-    await m.react('🔥')
-
-    await conn.sendMessage(m.chat, { 
-      video: { url: banner },
-      gifPlayback: true,
-      caption: infoUser + menuTexto,
-      contextInfo: {
-        mentionedJid: [m.sender],
-        isForwarded: true,
-        forwardingScore: 99,
-        forwardedNewsletterMessageInfo: {
-          newsletterJid: canalId,
-          serverMessageId: null,
-          newsletterName: canalName
+    for (const tag of sortedTags) {
+      const rows = []
+      for (const plugin of menuByTag[tag] || []) {
+        for (const cmd of plugin.help || []) {
+          const c = String(cmd || "").trim()
+          if (!c) continue
+          rows.push({
+            title: `${usedPrefix}${c}`,
+            description: `🦖 Ejecutar: ${usedPrefix}${c}`,
+            id: `${usedPrefix}${c}`,
+            thumbnail_url: profilePic
+          })
         }
       }
-    }, { quoted: m })
+      const clean = dedupeRows(rows).slice(0, MAX_ROWS_PER_SECTION)
+      if (clean.length) {
+        sections.push({
+          title: String(tag).toUpperCase(),
+          highlight_label: "📁",
+          rows: clean
+        })
+      }
+    }
 
+    const media = await prepareWAMessageMedia(
+      { image: thumbBuffer },
+      { upload: conn.waUploadToServer }
+    )
+
+    const nativeFlowPayload = {
+      body: { text: `𝗠𝗘𝗡𝗨 • ${botNameToShow}` },
+      footer: { text: menuText },
+      header: {
+        title: `🐢 ${botNameToShow}`,
+        subtitle: `👤 ${name} • ⏱ ${uptime}`,
+        hasMediaAttachment: true,
+        imageMessage: media.imageMessage
+      },
+      nativeFlowMessage: {
+        buttons: [
+          {
+            name: "single_select",
+            buttonParamsJson: JSON.stringify({
+              title: "📜 𝗦𝗲𝗹𝗲𝗰𝘁 𝗠𝗲𝗻𝘂",
+              sections
+            })
+          },
+          {
+            name: "quick_reply",
+            buttonParamsJson: JSON.stringify({ display_text: "🚀 𝗣𝗶𝗻𝗴", id: `${usedPrefix}ping` })
+          },
+          {
+            name: "quick_reply",
+            buttonParamsJson: JSON.stringify({ display_text: "📊 𝗦𝘁𝗮𝘁𝘂𝘀", id: `${usedPrefix}status` })
+          },
+          {
+            name: "cta_url",
+            buttonParamsJson: JSON.stringify({ display_text: "🍁 𝗖𝗮𝗻𝗮𝗹", url: channelUrl, merchant_url: channelUrl })
+          }
+        ],
+        messageParamsJson: JSON.stringify({
+          bottom_sheet: {
+            list_title: "🐢 Select Menu",
+            button_title: "🍄 Menu List",
+            in_thread_buttons_limit: 2,
+            divider_indices: [1, 2, 3, 999]
+          }
+        })
+      },
+      contextInfo: { mentionedJid: [m.sender], forwardingScore: 777, isForwarded: true }
+    }
+
+    await conn.relayMessage(
+      m.chat,
+      { viewOnceMessage: { message: { interactiveMessage: nativeFlowPayload } } },
+      { quoted: m }
+    )
   } catch (e) {
     console.error(e)
-    try {
-      await conn.sendMessage(m.chat, { 
-        text: `✘ Un fallo ha surgido entre las sombras: ${e.message}`,
-        mentionedJid: [mentionedJid]
-      }, { quoted: m })
-    } catch (err) {
-      console.error("Fallo crítico al enviar mensaje de error:", err)
-    }
+    await m.reply(`Error: ${e?.message || e}`)
   }
 }
 
-handler.help = ['menu']
-handler.tags = ['main']
-handler.command = ['menu','help','menú', 'allmenu']
-handler.register = true
+handler.command = ["help", "menu", "m"]
 export default handler
-
-function clockString(ms) {
-  const h = isNaN(ms) ? '--' : Math.floor(ms / 3600000)
-  const m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60
-  const s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60
-  return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':')
-}
-
-function ucapan() {
-  const time = moment.tz('America/Lima').format('HH')
-  let res = "🄱ᴜᴇɴᴀs ɴᴏᴄʜᴇs ᴅے ʟᴀ ꜱᴏᴍʙʀᴀ"
-
-  if (time >= 5 && time < 12)
-    res = "🄱ᴜᴇɴᴏꜱ ᴅɪᴀꜱ, ᴇxᴛʀᴀ ᴅے ʟᴀ ʜɪꜱᴛᴏʀɪᴀ"
-  else if (time >= 12 && time < 18)
-    res = "🄱ᴜᴇɴᴀꜱ ᴛᴀʀᴅᴇꜱ, ᴀᴄᴛᴏʀ ᴅे ꜱᴏᴍʙʀᴀ"
-  else if (time >= 18)
-    res = "🄱ᴜᴇɴᴀꜱ ɴᴏᴄʜblockᴇꜱ, ʟᴀ ᴏʙꜱᴄblockᴜʀɪᴅᴀᴅ ᴛᴇ ᴄᴜʙʀᴇ"
-
-  return res
-      }
