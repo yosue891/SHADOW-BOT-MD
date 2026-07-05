@@ -152,12 +152,11 @@ maxIdleTimeMs: 0,
 global.conn = makeWASocket(connectionOptions)
 conn.ev.on('creds.update', saveCreds.bind(global.conn, true))
 global._reconnectAttempts = 0
-if (!fs.existsSync(`./${sessions}/creds.json`)) {
+if (!state.creds.registered) {
 if (opcion === '2' || methodCode) {
 opcion = '2'
-let addNumber
 if (methodCode && !!phoneNumber) {
-addNumber = phoneNumber.replace(/[^0-9]/g, '')
+global._pairingNumber = phoneNumber.replace(/[^0-9]/g, '')
 } else {
 do {
 phoneNumber = await question(chalk.bgBlack(chalk.bold.greenBright(`[ 🍂 ]  Por favor, Ingrese el número de WhatsApp.\n${chalk.bold.magentaBright('---> ')}`)))
@@ -166,25 +165,8 @@ if (!phoneNumber.startsWith('+')) {
 phoneNumber = `+${phoneNumber}`
 }} while (!await isValidPhoneNumber(phoneNumber))
 rl.close()
-addNumber = phoneNumber.replace(/\D/g, '')
+global._pairingNumber = phoneNumber.replace(/\D/g, '')
 }
-const requestPairingWithRetry = async (retries = 3) => {
-for (let i = 0; i < retries; i++) {
-try {
-if (!global.conn?.authState?.creds?.registered) {
-let codeBot = await global.conn.requestPairingCode(addNumber)
-codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
-console.log(chalk.bold.white(chalk.bgMagenta(`[ ✿ ]  Código:`)), chalk.bold.white(chalk.white(codeBot)))
-return
-}
-} catch (e) {
-console.log(chalk.bold.yellowBright(`\n⚠︎ Reintentando solicitar código de vinculación (${i + 1}/${retries})...`))
-await delay(5000)
-}
-}
-console.log(chalk.bold.redBright(`\n⚠︎ No se pudo solicitar el código de vinculación.`))
-}
-setTimeout(() => requestPairingWithRetry(), 3000)
 }}
 conn.isInit = false
 conn.well = false
@@ -306,6 +288,19 @@ const userJid = jidNormalizedUser(conn.user.id)
 const userName = conn.user.name || conn.user.verifiedName || "Desconocido"
 await joinChannels(conn)
 console.log(chalk.green.bold(`[ ✿ ]  Conectado a: ${userName}`))
+} else if (!conn.user?.id && (methodCode || opcion === '2') && global._pairingNumber) {
+if (!global._pairingRequested) {
+global._pairingRequested = true
+console.log(chalk.cyanBright(`\n📱 Solicitando código de vinculación para +${global._pairingNumber}...`))
+try {
+let codeBot = await conn.requestPairingCode(global._pairingNumber)
+codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
+console.log(chalk.bold.white(chalk.bgMagenta(`[ ✿ ]  Código:`)), chalk.bold.white(chalk.white(codeBot)))
+} catch (e) {
+global._pairingRequested = false
+console.log(chalk.bold.yellowBright(`\n⚠︎ Error al solicitar código: ${e.message}`))
+}
+}
 }}
 let reason = new Boom(lastDisconnect?.error)?.output?.statusCode
 if (connection === 'close') {
