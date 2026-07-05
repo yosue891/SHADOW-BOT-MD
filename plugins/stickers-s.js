@@ -2,7 +2,7 @@ import { exec } from 'child_process'
 import fs from 'fs'
 import util from 'util'
 import crypto from 'crypto'
-import baileys from 'baileys'
+import baileys from '@whiskeysockets/baileys'
 import webp from 'node-webpmux'
 import config from '../config.js'
 
