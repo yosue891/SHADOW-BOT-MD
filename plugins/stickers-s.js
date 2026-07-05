@@ -68,7 +68,7 @@ let handler = async (m, { conn, args, command }) => {
             },
             interactiveMessage: {
               header: {
-                title: global.packsticker || 'Shadow Bot',
+                title: global.packsticker || 'Shadow-Bot',
                 hasMediaAttachment: false
               },
               body: {
