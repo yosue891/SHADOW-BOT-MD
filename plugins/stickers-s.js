@@ -3,8 +3,11 @@ import fs from 'fs'
 import util from 'util'
 import crypto from 'crypto'
 import webp from 'node-webpmux'
+import baileys from '@whiskeysockets/baileys'
 
 const execAsync = util.promisify(exec)
+const downloadContentFromMessage = baileys.downloadContentFromMessage
+const generateWAMessageFromContent = baileys.generateWAMessageFromContent
 
 async function addExif(webpBuffer, packname, author) {
   const img = new webp.Image()
@@ -45,47 +48,122 @@ const listText =
   '\n\n\u2022 *s list*'
 
 let handler = async (m, { conn, args, command }) => {
+  const from = m.chat
+  if (!from) return
+
   const opt = (args[0] || '').toLowerCase()
 
   if (opt === 'list') {
-    return conn.sendMessage(m.chat, { text: listText }, { quoted: m })
+    return conn.sendMessage(from, { text: listText }, { quoted: m })
   }
 
-  let q = m.quoted ? m.quoted : m
-  let mime = (q.msg || q).mimetype || ''
+  if (opt === 'details') {
+    try {
+      const detailMsg = generateWAMessageFromContent(from, {
+        viewOnceMessage: {
+          message: {
+            messageContextInfo: {
+              deviceListMetadata: {},
+              deviceListMetadataVersion: 2
+            },
+            interactiveMessage: {
+              header: {
+                title: global.packsticker || 'Shadow Bot',
+                hasMediaAttachment: false
+              },
+              body: {
+                text: 'Estos son todos los estilos disponibles para crear tu sticker personalizado:\n\n' +
+                  Object.keys(styles).map(k => `\u2022 *s ${k}* \u2014 ${styles[k]}`).join('\n')
+              },
+              nativeFlowMessage: {
+                buttons: [
+                  {
+                    name: 'inapp_signup',
+                    buttonParamsJson: '{}'
+                  }
+                ],
+                messageParamsJson: ''
+              },
+              contextInfo: {}
+            }
+          }
+        }
+      }, {
+        quoted: m,
+        userJid: conn.user?.jid
+      })
+      await conn.relayMessage(from, detailMsg.message, { messageId: detailMsg.key.id })
+    } catch {
+      await conn.sendMessage(from, { text: listText }, { quoted: m })
+    }
+    return
+  }
 
-  if (!/image|video/.test(mime)) {
+  const ctx = m?.message?.extendedTextMessage?.contextInfo
+  const quotedMsg = ctx?.quotedMessage || null
+  const imageMessage = quotedMsg?.imageMessage || m?.message?.imageMessage || null
+  const videoMessage = quotedMsg?.videoMessage || m?.message?.videoMessage || null
+  const isImage = !!imageMessage
+  const isVideo = !!videoMessage
+
+  if (!isImage && !isVideo) {
     const helpText =
       `Hola ${m.pushName || 'usuario'}, responde a una *imagen* o *video* para crear tu sticker.\n\n` +
-      Object.keys(styles).map(k => `\u2022 *${command} ${k}* \u2014 ${styles[k]}`).join('\n') +
-      `\n\u2022 *${command} list* \u2014 ver todos los estilos`
-    return conn.sendMessage(m.chat, { text: helpText }, { quoted: m })
-  }
+      `\u2022 *s circle* \u2014 circulo\n` +
+      `\u2022 *s crop* \u2014 recorte 512x512\n` +
+      `\u2022 *s bw* \u2014 blanco y negro\n` +
+      `\u2022 *s blur* \u2014 desenfoque\n` +
+      `\u2022 *s pixel* \u2014 pixelado\n` +
+      `\u2022 *s neon* \u2014 bordes neon\n` +
+      `\u2022 *s list* \u2014 ver todos los estilos`
 
-  await m.react('🕒')
-
-  const isVideo = /video/.test(mime)
-  const msg = q.msg || q
-
-  let buffer
-  try {
-    buffer = await q.download()
-  } catch {
     try {
-      const { downloadMediaMessage } = await import('@whiskeysockets/baileys')
-      buffer = await downloadMediaMessage(q, 'buffer', {}, { logger: console, reconnectMode: 'on' })
-    } catch (e) {
-      await m.react('✖️')
-      return conn.sendMessage(m.chat, { text: `Error al descargar el ${isVideo ? 'video' : 'imagen'}.` }, { quoted: m })
+      const msg = generateWAMessageFromContent(from, {
+        viewOnceMessage: {
+          message: {
+            messageContextInfo: {
+              deviceListMetadata: {},
+              deviceListMetadataVersion: 2
+            },
+            interactiveMessage: {
+              header: {
+                title: global.packsticker || 'Shadow Bot',
+                hasMediaAttachment: false
+              },
+              body: { text: helpText },
+              nativeFlowMessage: {
+                buttons: [
+                  {
+                    name: 'quick_reply',
+                    buttonParamsJson: JSON.stringify({ display_text: 'Ver detalles', id: '.s details' })
+                  }
+                ],
+                messageParamsJson: ''
+              },
+              contextInfo: {}
+            }
+          }
+        }
+      }, {
+        quoted: m,
+        userJid: conn.user?.jid
+      })
+      await conn.relayMessage(from, msg.message, { messageId: msg.key.id })
+    } catch {
+      await conn.sendMessage(from, { text: helpText }, { quoted: m })
     }
+    return
   }
-  if (!buffer) {
-    await m.react('✖️')
-    return conn.sendMessage(m.chat, { text: 'No se pudo obtener el archivo multimedia.' }, { quoted: m })
-  }
+
+  const msg = isImage ? imageMessage : videoMessage
+  const dlType = isImage ? 'image' : 'video'
+
+  const stream = await downloadContentFromMessage(msg, dlType)
+  let buffer = Buffer.from([])
+  for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk])
 
   const ts = Date.now()
-  const input = `./tmp/temp_${ts}.${isVideo ? 'mp4' : 'jpg'}`
+  const input = `./tmp/temp_${ts}.${isImage ? 'jpg' : 'mp4'}`
   const output = `./tmp/temp_${ts}.webp`
 
   await fs.promises.mkdir('./tmp', { recursive: true })
@@ -93,7 +171,7 @@ let handler = async (m, { conn, args, command }) => {
 
   const style = opt || 'circle'
   if (style && style !== '' && !styles[style]) {
-    await conn.sendMessage(m.chat, { text: listText }, { quoted: m })
+    await conn.sendMessage(from, { text: listText }, { quoted: m })
     if (fs.existsSync(input)) await fs.promises.unlink(input)
     return
   }
@@ -133,13 +211,13 @@ let handler = async (m, { conn, args, command }) => {
     const author = global.dev || 'yosue'
     stickerBuffer = await addExif(stickerBuffer, packName, author)
 
-    await conn.sendMessage(m.chat, { sticker: stickerBuffer }, { quoted: m })
-    await m.react('✔️')
+    await conn.sendMessage(from, { sticker: stickerBuffer }, { quoted: m })
   } catch (e) {
     const err = (e?.stderr || e?.stdout || e?.message || String(e) || '').toString()
-    await m.react('✖️')
-    await conn.sendMessage(m.chat, {
-      text: `Error creando el sticker.\n\nEstilo: *${style}*\nError:\`\`\`\n${err.slice(0, 3500)}\n\`\`\``
+    await conn.sendMessage(from, {
+      text: 'Error creando el sticker.\n\n' +
+        `Estilo: *${style}*\n` +
+        `Error:\n\`\`\`\n${err.slice(0, 3500)}\n\`\`\``
     }, { quoted: m })
   } finally {
     if (fs.existsSync(input)) await fs.promises.unlink(input)
