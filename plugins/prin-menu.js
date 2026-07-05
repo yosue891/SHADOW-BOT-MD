@@ -68,7 +68,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     if (!profilePic) profilePic = "https://i.ibb.co/3NfYh9k/default-avatar.png"
 
     let botNameToShow = global.botname || meName
-    let bannerUrl = "https://adofiles.vercel.app/dl/3d55b968.jpg"
+    let bannerUrl = "https://adofiles.vercel.app/dl/1dc604bd.jpg"
 
     const channelUrl = "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
     const botType = (conn.user?.jid || "") === (global.conn?.user?.jid || "") ? "Principal" : "Sub-Bot"
@@ -89,18 +89,18 @@ let handler = async (m, { conn, usedPrefix }) => {
     const infoUser = [
       "─┈➤ *`INFO USER`*",
       `𔓕 *Nombre* : ${name}`,
-      `𔓕 *Tag*    : ${tagUser}`,
+      `𔓕 *Tag* : ${tagUser}`,
       `𔓕 *Registro* : ${isRegistered ? "✅" : "❌"}`
     ].join("\n")
 
     const infoBot = [
       "╭──┈ *`INFO BOT`*",
-      `│ 🐢 *Nombre*  : ${botNameToShow}`,
-      `│ 🌲 *Tipo*    : ${botType}`,
-      `│ 🌾 *Prefix*  : ${usedPrefix}`,
-      `│ 🪴 *Uptime*   : ${uptime}`,
-      `│ 🌵 *Hora*    : ${time}`,
-      `│ 🌱 *Fecha*   : ${date}`,
+      `│ 🐢 *Nombre* : ${botNameToShow}`,
+      `│ 🌲 *Tipo* : ${botType}`,
+      `│ 🌾 *Prefix* : ${usedPrefix}`,
+      `│ 🪴 *Uptime* : ${uptime}`,
+      `│ 🌵 *Hora* : ${time}`,
+      `│ 🌱 *Fecha* : ${date}`,
       "╰------------------------------------------"
     ].join("\n")
 
@@ -117,52 +117,8 @@ let handler = async (m, { conn, usedPrefix }) => {
     ].join("\n")
 
     const thumbBuffer = await getBufferFromUrl(bannerUrl).catch(async () =>
-      await getBufferFromUrl("https://adofiles.vercel.app/dl/3d55b968.jpg")
+      await getBufferFromUrl("https://adofiles.vercel.app/dl/1dc604bd.jpg")
     )
-
-    if (!isRegistered) {
-      const regMedia = await prepareWAMessageMedia(
-        { image: thumbBuffer },
-        { upload: conn.waUploadToServer }
-      )
-
-      const regText = [
-        `𔓕 Hola ${tagUser}`,
-        `𔓕 Para usar el menú necesitas registrarte.`,
-        ``,
-        `📝 *Comando:* \`${usedPrefix}reg nombre.edad\``,
-        `💡 *Ejemplo:* \`${usedPrefix}reg shadow.18\``
-      ].join("\n")
-
-      const regPayload = {
-        body: { text: regText },
-        footer: { text: botNameToShow },
-        header: {
-          title: "⚠️ REGISTRO REQUERIDO ⚠️",
-          hasMediaAttachment: true,
-          imageMessage: regMedia.imageMessage
-        },
-        nativeFlowMessage: {
-          buttons: [
-            {
-              name: "quick_reply",
-              buttonParamsJson: JSON.stringify({ display_text: "📝 Registrarse", id: `${usedPrefix}reg` })
-            },
-            {
-              name: "cta_url",
-              buttonParamsJson: JSON.stringify({ display_text: "👑 Creador", url: "https://wa.me/584242773183" })
-            }
-          ]
-        },
-        contextInfo: { mentionedJid: [m.sender] }
-      }
-
-      return await conn.relayMessage(
-        m.chat,
-        { viewOnceMessage: { message: { interactiveMessage: regPayload } } },
-        { quoted: m }
-      )
-    }
 
     const menuByTag = {}
     for (const plugin of Object.values(global.plugins || {})) {
