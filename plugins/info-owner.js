@@ -28,9 +28,16 @@ const handler = async (m, { conn }) => {
     ]
 
     let cards = []
+    const fallbackImage = "https://files.catbox.moe/mwhyfm.jpg"
 
     for (let creator of creators) {
-      const imageBuffer = (await axios.get(creator.image, { responseType: 'arraybuffer' })).data
+      let imageBuffer
+      try {
+        imageBuffer = (await axios.get(creator.image, { responseType: 'arraybuffer' })).data
+      } catch {
+        imageBuffer = (await axios.get(fallbackImage, { responseType: 'arraybuffer' })).data
+      }
+
       const { imageMessage } = await generateWAMessageContent({ image: imageBuffer }, { upload: conn.waUploadToServer })
 
       cards.push({
@@ -92,7 +99,7 @@ const handler = async (m, { conn }) => {
 }
 
 handler.tags = ["main"]
-handler.help = ["creators", "creadores", "owner"]
-handler.command = ["creators", "creadores", "owner", "owners", "desarrolladores"]
+handler.help = ["owner"]
+handler.command = /^(owner|creators|creadores|owners|desarrolladores)$/i
 
 export default handler
