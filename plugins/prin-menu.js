@@ -137,7 +137,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     )
 
     const nativeFlowPayload = {
-      body: { text: `𝗠𝗘𝗡𝗨 𝗖𝗢𝗠𝗣𝗟𝗘𝗧𝗢 • ${botNameToShow}` },
+      body: { text: `𝗠𝗘𝗡𝗨 • ${botNameToShow}` },
       footer: { text: menuText },
       header: {
         title: `🐢 ${botNameToShow}`,
@@ -150,7 +150,7 @@ let handler = async (m, { conn, usedPrefix }) => {
           {
             name: "single_select",
             buttonParamsJson: JSON.stringify({
-              title: "📜 𝗦𝗲𝗹𝗲𝗰𝘁 𝗠𝗲𝗻𝘂",
+              title: "📜 Menu Completo",
               sections
             })
           },
