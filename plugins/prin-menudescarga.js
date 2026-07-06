@@ -1,4 +1,5 @@
 import { prepareWAMessageMedia, generateWAMessageFromContent } from "@whiskeysockets/baileys";
+import fetch from "node-fetch";
 
 let handler = async (m, { conn, usedPrefix }) => {
     const delay = ms => new Promise(res => setTimeout(res, ms))
@@ -58,14 +59,24 @@ let handler = async (m, { conn, usedPrefix }) => {
 `.trim()
 
     let finalMenu = infoUser + '\n\n' + listaDescargas + '\n\n' + after
-    let imagen = 'https://adofiles.vercel.app/dl/97e1d009.jpg'
+    let imagenUrl = 'https://adofiles.vercel.app/dl/58483102.jpg'
+
+    let bufferImage;
+    try {
+        let res = await fetch(imagenUrl);
+        if (res.ok) bufferImage = await res.buffer();
+    } catch {
+        bufferImage = null;
+    }
+
+    if (!bufferImage) return m.reply('❌ No se pudo descargar la imagen desde el servidor.')
 
     let media = await prepareWAMessageMedia(
-        { image: { url: imagen } },
+        { image: bufferImage },
         { upload: conn.waUploadToServer }
     ).catch(_ => null)
 
-    if (!media) return m.reply('❌ Error al procesar la imagen del menú.')
+    if (!media) return m.reply('❌ Error al procesar el formato de la imagen.')
 
     const msg = generateWAMessageFromContent(m.chat, {
         viewOnceMessage: {
