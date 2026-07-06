@@ -1,5 +1,6 @@
 import { prepareWAMessageMedia, generateWAMessageFromContent } from "@whiskeysockets/baileys";
-import fetch from "node-fetch";
+import axios from "axios";
+import https from "https";
 
 let handler = async (m, { conn, usedPrefix }) => {
     const delay = ms => new Promise(res => setTimeout(res, ms))
@@ -59,17 +60,20 @@ let handler = async (m, { conn, usedPrefix }) => {
 `.trim()
 
     let finalMenu = infoUser + '\n\n' + listaDescargas + '\n\n' + after
-    let imagenUrl = 'https://adofiles.vercel.app/dl/58483102.jpg'
+    let imagenUrl = 'https://adofiles.vercel.app/dl/97e1d009.jpg'
 
     let bufferImage;
     try {
-        let res = await fetch(imagenUrl);
-        if (res.ok) bufferImage = await res.buffer();
+        let res = await axios.get(imagenUrl, { 
+            responseType: 'arraybuffer',
+            httpsAgent: new https.Agent({ rejectUnauthorized: false }) 
+        });
+        bufferImage = Buffer.from(res.data, 'binary');
     } catch {
         bufferImage = null;
     }
 
-    if (!bufferImage) return m.reply('❌ No se pudo descargar la imagen desde el servidor.')
+    if (!bufferImage) return m.reply('❌ No se pudo descargar la imagen desde el servidor de adofiles.')
 
     let media = await prepareWAMessageMedia(
         { image: bufferImage },
