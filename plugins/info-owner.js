@@ -9,21 +9,27 @@ const handler = async (m, { conn }) => {
         role: "Owner Principal",
         number: "584242773183",
         image: "https://adofiles.vercel.app/dl/a1fbe517.jpg",
-        description: "Creador principal y encargado del desarrollo general.\n\n🌐 GitHub: github.com/yosue-dev\n📸 Instagram: @yosue.fx"
+        description: "Creador principal y encargado del desarrollo general.\n\n🌐 GitHub: github.com/yosue891",
+        btnLabel: "Canal de Yosue",
+        btnUrl: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
       },
       {
         name: "Ado",
         role: "Segundo Creador Principal",
         number: "50498273976",
         image: "https://adofiles.vercel.app/dl/68799b5b.jpg",
-        description: "Co-creador y encargado de la optimización y soporte del proyecto.\n\n🌐 GitHub: github.com/ado-hub\n🌍 Web: adofiles.com"
+        description: "Co-creador y encargado de la optimización y soporte del proyecto.\n\n🌐 GitHub: github.com/ado-hub",
+        btnLabel: "Canal de Ado",
+        btnUrl: "https://whatsapp.com/channel/0029VbD5h6s0AgWBpfCQlw2P"
       },
       {
         name: "Gabriel",
         role: "Desarrollador",
         number: "584248272650",
         image: "https://adofiles.vercel.app/dl/0b4c0d1e.jpg",
-        description: "Soporte técnico y desarrollador de funciones avanzadas.\n\n🌐 GitHub: github.com/gabriel-dev\n💬 Discord: gabriel#0001"
+        description: "Soporte técnico y desarrollador de funciones avanzadas.\n\n🌐 GitHub: github.com/gabriel-dev",
+        btnLabel: "Grupo de Ventas/Sorteos",
+        btnUrl: "https://chat.whatsapp.com/GNZoTT5MKYe6yJtfCdCqoO"
       }
     ]
 
@@ -64,8 +70,15 @@ const handler = async (m, { conn }) => {
             {
               name: "cta_url",
               buttonParamsJson: JSON.stringify({
-                display_text: "Canal Oficial",
-                url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
+                display_text: creator.btnLabel,
+                url: creator.btnUrl
+              })
+            },
+            {
+              name: "cta_url",
+              buttonParamsJson: JSON.stringify({
+                display_text: "Repositorio GitHub",
+                url: "https://github.com/yosue891/SHADOW-BOT-MD.git"
               })
             }
           ]
@@ -92,6 +105,10 @@ const handler = async (m, { conn }) => {
     }, { quoted: m })
 
     await conn.relayMessage(m.chat, messageContent.message, { messageId: messageContent.key.id })
+
+    await conn.sendMessage(m.chat, { 
+      text: "Estos son los creadores y desarrolladores más destacados en Shadow-BOT-MD si hay algún error o falla no olvides en reportarlo por alguno de nosotros (y nada de estar escribiendo a media noche por qué no te vamos a contestar)" 
+    }, { quoted: m })
 
   } catch (error) {
     m.reply(`¡Ups! Algo falló.\n\nDetalle técnico: ${error.message}`)
