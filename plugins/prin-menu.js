@@ -150,21 +150,21 @@ let handler = async (m, { conn, usedPrefix }) => {
           {
             name: "single_select",
             buttonParamsJson: JSON.stringify({
-              title: "📜 Menus disponibles",
+              title: "📜 Menu Completo",
               sections
             })
           },
           {
             name: "quick_reply",
-            buttonParamsJson: JSON.stringify({ display_text: "🚀 𝗣𝗶𝗻𝗴", id: `${usedPrefix}ping` })
+            buttonParamsJson: JSON.stringify({ display_text: "🚀 Ping", id: `${usedPrefix}ping` })
           },
           {
             name: "quick_reply",
-            buttonParamsJson: JSON.stringify({ display_text: "📝 𝗥𝗲𝗴𝗶𝘀𝘁𝗿𝗮𝗿𝘀𝗲", id: `${usedPrefix}reg` })
+            buttonParamsJson: JSON.stringify({ display_text: "📝 Registrarse", id: `${usedPrefix}reg` })
           },
           {
             name: "cta_url",
-            buttonParamsJson: JSON.stringify({ display_text: "🍁 𝗖𝗮𝗻𝗮𝗹", url: channelUrl, merchant_url: channelUrl })
+            buttonParamsJson: JSON.stringify({ display_text: "🍁 Canal", url: channelUrl, merchant_url: channelUrl })
           },
           {
             name: "quick_reply",
@@ -194,4 +194,5 @@ let handler = async (m, { conn, usedPrefix }) => {
   }
 }
 
-handler.command = ["
+handler.command = ["help", "menu", "m"]
+export default handler
