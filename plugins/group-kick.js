@@ -35,7 +35,7 @@ var handler = async (m, { conn, participants, usedPrefix, command }) => {
 }
 
 handler.help = ['kick']
-handler.tags = ['grupo']
+handler.tags = ['grupos']
 handler.command = ['kick', 'echar', 'hechar', 'sacar', 'ban']
 handler.admin = true
 handler.group = true

@@ -66,5 +66,5 @@ const handler = async (m, { conn, command }) => {
 
 handler.command = ["setvid"]
 handler.help = ["setvid"]
-handler.tags = ["serbot"]
+handler.tags = ["socket"]
 export default handler 

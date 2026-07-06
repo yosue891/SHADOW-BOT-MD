@@ -61,7 +61,7 @@ await conn.sendMessage(m.chat, { text: finalText, edit: key }, { quoted: m })
 }
 
 handler.help = ['slot']
-handler.tags = ['economia']
+handler.tags = ['rpg']
 handler.command = ['slot']
 handler.group = true
 

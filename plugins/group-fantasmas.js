@@ -50,7 +50,7 @@ break
 m.reply(`⚠︎ Se ha producido un problema.\n> Usa *${usedPrefix}report* para informarlo.\n\n${e.message}`)
 }}
 
-handler.tags = ['grupo']
+handler.tags = ['grupos']
 handler.help = ['fantasmas', 'kickfantasmas']
 handler.command = ['inactivos', 'fantasmas', 'kickinactivos', 'kickfantasmas']
 handler.group = true

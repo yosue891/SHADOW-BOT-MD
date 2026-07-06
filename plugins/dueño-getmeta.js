@@ -4,7 +4,7 @@ let handler = async (m, { conn }) => {
 }
 
 handler.help = ['getmeta']
-handler.tags = ['group']
+handler.tags = ['owner']
 handler.command = /^getmeta$/i
 handler.group = true
 

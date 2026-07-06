@@ -50,7 +50,7 @@ Ahora responde lo siguiente`
 }
 
 handler.help = ['simi']
-handler.tags = ['tools']
+handler.tags = ['ia']
 handler.register = true
 handler.command = ['simi']
 

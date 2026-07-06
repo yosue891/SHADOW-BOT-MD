@@ -166,7 +166,7 @@ let handler = async (m, { conn, text }) => {
 };
 
 handler.help = ["pinterest", "pin"];
-handler.tags = ["buscador"];
+handler.tags = ["search"];
 handler.command = ["pinterest", "pin"];
 
 export default handler;

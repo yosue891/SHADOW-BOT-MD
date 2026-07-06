@@ -31,7 +31,7 @@ conn.reply(m.chat, `❀ Le robaste *¥${rob.toLocaleString()} ${global.currency}
 }
 
 handler.help = ['robar']
-handler.tags = ['economia']
+handler.tags = ['rpg']
 handler.command = ['robar', 'steal', 'rob']
 handler.group = true
 

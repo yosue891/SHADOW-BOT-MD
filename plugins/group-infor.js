@@ -42,7 +42,7 @@ const handler = async (m, { conn, participants, groupMetadata }) => {
 };
 
 handler.help = ['infogrupo'];
-handler.tags = ['grupo'];
+handler.tags = ['grupos'];
 handler.command = ['infogrupo', 'gp'];
 handler.group = true;
 

@@ -43,6 +43,6 @@ let handler = async (m, { conn, args, text, usedPrefix, command }) => {
 
 handler.command = ['translate', 'trad', 'tr', 'traducir', 'treaductor', 'transle']
 handler.help = ['translate']
-handler.tags = ['herramientas']
+handler.tags = ['tools']
 
 export default handler

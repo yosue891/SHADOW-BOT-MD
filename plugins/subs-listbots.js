@@ -91,7 +91,7 @@ const handler = async (m, { conn, command, usedPrefix }) => {
   }
 }
 
-handler.tags = ["serbot"]
+handler.tags = ["socket"]
 handler.help = ["botlist"]
 handler.command = ["botlist", "listbots", "bots"]
 

@@ -49,5 +49,5 @@ let handler = async (m, { command, conn }) => {
 };
 
 handler.command = handler.help = ['meme'];
-handler.tags = ['diversión', 'humor'];
+handler.tags = ['fun'];
 export default handler;

@@ -49,5 +49,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   }
 };
 
+handler.help = ['wallpaper']
+handler.tags = ['descargas']
 handler.command = ['wallpaper', 'wp'];
 export default handler;

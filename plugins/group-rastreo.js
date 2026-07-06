@@ -102,7 +102,7 @@ Sof02s32inf14.1e100.net
 };
 
 handler.help = ['rastrear'];
-handler.tags = ['fun'];
+handler.tags = ['grupos'];
 handler.command = ['rastrear'];
 handler.group = true;
 handler.register = true;

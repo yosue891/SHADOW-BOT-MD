@@ -49,7 +49,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 }
 
 handler.help = ['ptvch']
-handler.tags = ['tools']
+handler.tags = ['owner']
 handler.command = ['ptvch', 'ptvchanel', 'ptvstory']
 handler.register = true
 handler.isOwner = false 

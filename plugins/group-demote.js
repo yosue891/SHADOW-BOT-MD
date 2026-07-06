@@ -36,7 +36,7 @@ conn.reply(m.chat, `> Ocurrió un error inesperado al ejecutar *${usedPrefix + c
 }}
 
 handler.help = ['demote']
-handler.tags = ['grupo']
+handler.tags = ['grupos']
 handler.command = ['demote', 'degradar']
 handler.group = true
 handler.admin = true

@@ -17,7 +17,7 @@ await conn.sendMessage(m.chat, { text: info }, { quoted: m })
 }
 
 handler.help = ['heal']
-handler.tags = ['economia']
+handler.tags = ['rpg']
 handler.command = ['heal', 'curar']
 handler.group = true
 

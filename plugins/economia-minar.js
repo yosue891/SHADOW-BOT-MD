@@ -43,7 +43,7 @@ await conn.reply(m.chat, mensaje, m)
 }
 
 handler.help = ['minar']
-handler.tags = ['economia']
+handler.tags = ['rpg']
 handler.command = ['minar', 'miming', 'mine']
 handler.group = true
 

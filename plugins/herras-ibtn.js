@@ -128,7 +128,7 @@ let handler = async (m, { conn }) => {
 }
 
 handler.help = ["ibtn"]
-handler.tags = ["main"]
+handler.tags = ['tools']
 handler.command = ["ibtn"]
 
 export default handler

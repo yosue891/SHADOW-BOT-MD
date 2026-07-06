@@ -14,7 +14,7 @@ await m.react('✔️')
 }
 
 handler.help = ['toimg']
-handler.tags = ['herramientas']
+handler.tags = ['tools']
 handler.command = ['toimg', 'jpg', 'img'] 
 //handler.coin = 14
 

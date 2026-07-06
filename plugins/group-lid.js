@@ -139,7 +139,7 @@ await conn.relayMessage(m.chat, interactive.message, { messageId: interactive.ke
 
 }
 
-handler.tags = ['group']
+handler.tags = ['grupos']
 handler.help = ['lid', 'lidnum', 'lid <@mención|número>']
 handler.command = ['lid', 'lidnum']
 

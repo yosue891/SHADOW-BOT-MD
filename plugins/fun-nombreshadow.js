@@ -48,7 +48,7 @@ function handler(m, { conn, text }) {
 }
 
 handler.help = ['nombreshadow *<texto>*']
-handler.tags = ['fun', 'shadow', 'navidad']
+handler.tags = ['fun']
 handler.command = ['nombreshadow', 'nombreninja', 'shadowgarden']
 
 export default handler

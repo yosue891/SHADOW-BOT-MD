@@ -92,6 +92,6 @@ var handler = async (m, { conn }) => {
 handler.help = ['profile']
 handler.register = true
 handler.group = true
-handler.tags = ['rg']
+handler.tags = ['grupos']
 handler.command = ['profile', 'perfil']
 export default handler

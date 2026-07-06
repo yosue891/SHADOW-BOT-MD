@@ -64,7 +64,7 @@ ${pesan}
     }
 }
 
-handler.tags = ['rg'];
+handler.tags = ['fun'];
 handler.help = ['confesar'].map(v => v + ' <número mensaje>');
 handler.command = ['confesar', 'confesiones'];
 handler.register = true;

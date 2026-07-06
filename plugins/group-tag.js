@@ -96,7 +96,7 @@ const handler = async (m, { conn, args }) => {
 }
 
 handler.command = ['tag', 'todos']
-handler.tags = ['grupo']
+handler.tags = ['grupos']
 handler.group = true
 handler.admin = true
 handler.botAdmin = false

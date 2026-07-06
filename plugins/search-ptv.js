@@ -124,7 +124,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
 }
 
 handler.help = ['ptvsearch <texto|link>']
-handler.tags = ['buscadores']
+handler.tags = ['search']
 handler.command = ['ptvsearch', 'ptvtt', 'ttptv']
 handler.group = true
 handler.coin = 23

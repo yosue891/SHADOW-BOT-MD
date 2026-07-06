@@ -21,7 +21,7 @@ conn.reply(m.chat, `「✿」 ${pickRandom(cofres)}\n> Has recibido *¥${reward.
 }
 
 handler.help = ['cofre']
-handler.tags = ['economia']
+handler.tags = ['rpg']
 handler.command = ['coffer', 'cofre', 'abrircofre', 'cofreabrir']
 handler.group = true
 

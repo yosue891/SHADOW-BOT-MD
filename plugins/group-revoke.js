@@ -5,7 +5,7 @@ conn.reply(m.sender, 'https://chat.whatsapp.com/' + await conn.groupInviteCode(g
 }
 
 handler.help = ['revoke']
-handler.tags = ['grupo']
+handler.tags = ['grupos']
 handler.command = ['revoke', 'restablecer']
 handler.group = true
 handler.admin = true

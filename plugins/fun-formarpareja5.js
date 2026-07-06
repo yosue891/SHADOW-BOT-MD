@@ -55,7 +55,7 @@ function handler(m, {groupMetadata}) {
   );
 }
 handler.help = ["formarpareja5"];
-handler.tags = ["main", "fun"];
+handler.tags = ["fun"];
 handler.command = ["formarpareja5"];
 handler.register = true;
 handler.group = true;

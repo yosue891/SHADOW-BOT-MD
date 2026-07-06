@@ -186,7 +186,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
 }
 
 handler.help = ['tiktoks <texto|link>', 'tiktoksearch <texto|link>']
-handler.tags = ['buscadores']
+handler.tags = ['search']
 handler.command = ['tiktoks', 'tiktoksearch', 'ttss']
 handler.group = true
 handler.coin = 23

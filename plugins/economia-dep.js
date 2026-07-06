@@ -21,7 +21,7 @@ user.bank += count * 1
 await m.reply(`❀ Depositaste *¥${count.toLocaleString()} ${global.currency}* en el banco, ya no podran robartelo.`)}
 
 handler.help = ['depositar']
-handler.tags = ['economia']
+handler.tags = ['rpg']
 handler.command = ['deposit', 'depositar', 'd', 'dep']
 handler.group = true
 

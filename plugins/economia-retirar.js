@@ -61,7 +61,7 @@ let handler = async (m, { args, usedPrefix, command }) => {
 }
 
 handler.help = ['retirar']
-handler.tags = ['economia']
+handler.tags = ['rpg']
 handler.command = ['withdraw', 'retirar', 'with']
 handler.group = true
 

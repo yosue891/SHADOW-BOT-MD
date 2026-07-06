@@ -90,6 +90,6 @@ const handler = async (m, { conn, command }) => {
 }
 
 handler.help = ['setimagen']
-handler.tags = ['serbot']
+handler.tags = ['socket']
 handler.command = ['setimagen']
 export default handler

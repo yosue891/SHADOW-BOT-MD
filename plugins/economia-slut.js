@@ -26,7 +26,7 @@ await conn.reply(m.chat, mensaje, m)
 }
 
 handler.help = ['slut']
-handler.tags = ['economia']
+handler.tags = ['rpg']
 handler.command = ['slut', 'protituirse']
 handler.group = true
 

@@ -149,7 +149,7 @@ let handler = async (m, { conn, text }) => {
 }
 
 handler.help = ['welcome', 'welcome @usuario']
-handler.tags = ['group']
+handler.tags = ['grupos']
 handler.command = ['welcome', 'bienvenida', 'banner']
 
 export default handler

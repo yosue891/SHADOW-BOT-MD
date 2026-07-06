@@ -46,7 +46,7 @@ let handler = async (m, { conn, usedPrefix }) => {
 };
 
 handler.help = ['coffee/cafe @tag'];
-handler.tags = ['diversión'];
+handler.tags = ['anime'];
 handler.command = ['coffee', 'cafe', 'taza'];
 handler.group = true;
 

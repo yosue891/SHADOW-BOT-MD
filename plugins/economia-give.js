@@ -22,7 +22,7 @@ m.reply(`❀ Transferiste *¥${count.toLocaleString()} ${global.currency}* a *${
 }
 
 handler.help = ['pay']
-handler.tags = ['economia']
+handler.tags = ['rpg']
 handler.command = ['pay', 'coinsgive', 'givecoins']
 handler.group = true
 

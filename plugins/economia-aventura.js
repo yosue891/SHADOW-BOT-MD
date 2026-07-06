@@ -46,7 +46,7 @@ await conn.reply(m.chat, resultado, m)
 await global.db.write()
 }
 
-handler.tags = ['economia']
+handler.tags = ['rpg']
 handler.help = ['aventura']
 handler.command = ['adventure', 'aventura']
 handler.group = true

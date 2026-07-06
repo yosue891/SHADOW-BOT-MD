@@ -32,7 +32,7 @@ conn.reply(m.chat, `「✿」Has reclamado tu recompensa diaria de *¥${reward.t
 }
 
 handler.help = ['daily']
-handler.tags = ['economia']
+handler.tags = ['rpg']
 handler.command = ['daily', 'diario']
 handler.group = true
 

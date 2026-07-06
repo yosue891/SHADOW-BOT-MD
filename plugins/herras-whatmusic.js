@@ -35,7 +35,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 };
 
 handler.help = ['whatmusic'];
-handler.tags = ['herramientas'];
+handler.tags = ['tools'];
 handler.command = ['shazam', 'whatmusic'];
 //handler.coin = 24;
 

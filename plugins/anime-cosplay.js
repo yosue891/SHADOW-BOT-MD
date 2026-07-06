@@ -45,7 +45,7 @@ let handler = async (m, { conn, usedPrefix}) => {
 };
 
 handler.help = ['cosplay'];
-handler.tags = ['weeb'];
+handler.tags = ['anime'];
 handler.command = ['cosplay'];
 handler.register = true;
 

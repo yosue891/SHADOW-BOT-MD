@@ -24,7 +24,7 @@ let handler = async (m, { conn, text, args, usedPrefix, command }) => {
 
 // Ayuda y configuración
 handler.help = ['encuesta <opción1|opción2|...>']
-handler.tags = ['grupo']
+handler.tags = ['grupos']
 handler.command = ['poll', 'encuesta', 'shadowpoll']
 handler.group = true
 

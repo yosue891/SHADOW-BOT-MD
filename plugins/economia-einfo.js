@@ -53,7 +53,7 @@ let handler = async (m, { conn, command, usedPrefix }) => {
 };
 
 handler.help = ["einfo"];
-handler.tags = ['economia'];
+handler.tags = ['rpg'];
 handler.command = ["economyinfo", 'infoeconomy', "einfo"];
 handler.group = true;
 

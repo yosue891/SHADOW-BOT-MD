@@ -36,7 +36,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 }
 
 handler.help = ['setname']
-handler.tags= ['serbot']
+handler.tags = ['socket']
 handler.command = ['setname']
 
 export default handler

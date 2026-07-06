@@ -221,7 +221,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
 }
 
 handler.help = ['esclavizar', 'liberar', 'esclavos']
-handler.tags = ['juegos']
+handler.tags = ['fun']
 handler.command = ['esclavizar', 'esclavo_opcion', 'liberar', 'liberar_confirm', 'esclavos']
 handler.group = true
 

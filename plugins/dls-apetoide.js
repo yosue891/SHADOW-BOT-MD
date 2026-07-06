@@ -71,7 +71,7 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
 }
 
 handler.help = ['apk']
-handler.tags = ['downloader']
+handler.tags = ['descargas']
 handler.command = ['apk']   // corregido para que se registre bien
 handler.register = true     // asegura que se cargue en tu bot
 

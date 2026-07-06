@@ -122,7 +122,7 @@ Palabra oculta: ${ocultarPalabra(partidas[chatId].palabra, [])}
 }
 
 handler.help = ['orcado', 'letra <letra>']
-handler.tags = ['game', 'shadow', 'navidad']
+handler.tags = ['game']
 handler.command = ['orcado', 'ahorcado', 'letra']
 
 export default handler

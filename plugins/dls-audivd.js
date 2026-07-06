@@ -49,7 +49,7 @@ const handler = async (m, { conn }) => {
 }
 
 handler.help = ['audivd']
-handler.tags = ['convertidor']
+handler.tags = ['tools']
 handler.command = ['audivd']
 handler.register = true
 

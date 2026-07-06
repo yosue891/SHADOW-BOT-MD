@@ -89,7 +89,7 @@ var handler = async (m, { conn, args }) => {
 }
 
 handler.help = ['link']
-handler.tags = ['grupo']
+handler.tags = ['grupos']
 handler.command = ['link', 'enlace']
 handler.group = true
 handler.botAdmin = true

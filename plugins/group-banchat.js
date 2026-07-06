@@ -20,7 +20,7 @@ const handler = async (m, { conn, isAdmin, isROwner }) => {
 }
 
 handler.help = ['banearbot']
-handler.tags = ['group']
+handler.tags = ['grupos']
 handler.command = ['banearbot', 'banchat']
 handler.group = true
 

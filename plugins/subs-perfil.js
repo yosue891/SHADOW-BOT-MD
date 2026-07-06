@@ -53,7 +53,7 @@ const handler = async (m, { conn, command, usedPrefix, text }) => {
 };
 
 handler.help = ['setpfp', 'setbio', 'setuser'];
-handler.tags = ['serbot'];
+handler.tags = ['socket'];
 handler.command = ['setpfp', 'setimage', 'setstatus', 'setbio', 'setusername', 'setuser'];
 
 export default handler;

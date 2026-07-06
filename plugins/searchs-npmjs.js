@@ -31,7 +31,7 @@ let handler = async (m, { text, usedPrefix, command }) => {
 }
 
 handler.help = ['npmjs']
-handler.tags = ['buscador']
+handler.tags = ['search']
 handler.command = ['npmjs']
 handler.register = true
 

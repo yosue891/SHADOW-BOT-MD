@@ -22,7 +22,7 @@ await conn.reply(m.chat, texto, m)
 }
 
 handler.help = ['bal']
-handler.tags = ['economia']
+handler.tags = ['rpg']
 handler.command = ['bal', 'balance', 'bank'] 
 handler.group = true 
 

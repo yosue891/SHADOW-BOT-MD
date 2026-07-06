@@ -43,7 +43,7 @@ if (user.health < 0) user.health = 0
 conn.reply(m.chat, `❀ ${evento.mensaje} *¥${monedas.toLocaleString()} ${currency}*`, m)
 }
 
-handler.tags = ['economia']
+handler.tags = ['rpg']
 handler.help = ['cazar', 'hunt']
 handler.command = ['cazar', 'hunt']
 handler.group = true

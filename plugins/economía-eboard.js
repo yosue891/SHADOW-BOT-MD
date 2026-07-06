@@ -22,7 +22,7 @@ await conn.reply(m.chat, text.trim(), m, { mentions: conn.parseMention(text) })
 }
 
 handler.help = ['baltop']
-handler.tags = ['economia']
+handler.tags = ['rpg']
 handler.command = ['baltop', 'eboard', 'economyboard']
 handler.group = true
 

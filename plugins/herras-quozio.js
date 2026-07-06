@@ -22,7 +22,7 @@ let handler = async (m, { conn, usedPrefix, args, command }) => {
   );
 };
 
-handler.tags = ["herramientas"];
+handler.tags = ['tools'];
 handler.command = handler.help = ["quozio"];
 export default handler;
 

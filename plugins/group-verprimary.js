@@ -10,7 +10,7 @@ let handler = async (m, { conn }) => {
 }
 
 handler.help = ['verprimary']
-handler.tags = ['serbot']
+handler.tags = ['socket']
 handler.command = ['verprimary']
 handler.group = true
 handler.admin = true

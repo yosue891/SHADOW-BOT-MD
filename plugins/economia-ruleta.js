@@ -21,7 +21,7 @@ users.coin -= coin
 conn.reply(m.chat, `「✿」La ruleta salió en *${resultColor}* y has perdido *¥${coin.toLocaleString()} ${global.currency}*!`, m)
 }}
 
-handler.tags = ['economia']
+handler.tags = ['rpg']
 handler.help = ['ruleta']
 handler.command = ['ruleta', 'roulette', 'rt']
 handler.group = true

@@ -45,7 +45,7 @@ let handler = async (m, { text }) => {
 }
 
 handler.help = ['setprefix']
-handler.tags = ['serbot']
+handler.tags = ['socket']
 handler.command = ['setprefix']
 
 export default handler

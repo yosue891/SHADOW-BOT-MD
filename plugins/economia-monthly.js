@@ -31,7 +31,7 @@ conn.reply(m.chat, `「❁」 Has reclamado tu recompensa mensual de *+${coins.t
 }
 
 handler.help = ['monthly', 'mensual']
-handler.tags = ['economia']
+handler.tags = ['rpg']
 handler.command = ['monthly', 'mensual']
 handler.group = true
 

@@ -43,7 +43,7 @@ const handler = async (m, { conn, text }) => {
 };
 
 handler.help = ['comprimir'];
-handler.tags = ['herramientas'];
+handler.tags = ['tools'];
 handler.command = ['compress', 'comprimir'];
 
 export default handler;

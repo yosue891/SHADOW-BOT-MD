@@ -77,7 +77,7 @@ let handler = async (m, { conn, text }) => {
 }
 
 handler.help = ['invocar']
-handler.tags = ['grupo']
+handler.tags = ['grupos']
 handler.command = ['tagall', 'invocar', 'todos']
 handler.group = true
 handler.admin = true

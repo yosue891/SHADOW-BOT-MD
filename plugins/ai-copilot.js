@@ -131,7 +131,7 @@ async function handler(m, { text, conn }) {
 }
 
 handler.help = ['copilot'];
-handler.tags = ['ai'];
+handler.tags = ['ia'];
 handler.command = ['copilot'];
 handler.limit = true;
 handler.group = true;

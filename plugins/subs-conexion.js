@@ -248,7 +248,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 }
 
 handler.help = ['qr', 'code']
-handler.tags = ['serbot']
+handler.tags = ['socket']
 handler.command = ['qr', 'code']
 export default handler
 

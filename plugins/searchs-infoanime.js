@@ -83,7 +83,7 @@ var handler = async (m, { conn, usedPrefix, command, text }) => {
 }
 
 handler.help = ['infoanime']
-handler.tags = ['anime']
+handler.tags = ['search']
 handler.command = ['infoanime']
 handler.group = true
 

@@ -26,7 +26,7 @@ if (user.coin < 0) user.coin = 0
 await conn.reply(m.chat, `❀ ${evento.mensaje} *¥${cantidad.toLocaleString()} ${global.currency}*`, m)
 }
 
-handler.tags = ['economia']
+handler.tags = ['rpg']
 handler.help = ['crime']
 handler.command = ['crimen', 'crime']
 handler.group = true

@@ -19,7 +19,7 @@ let handler = async (m, { args, text, usedPrefix, command }) => {
 }
 
 handler.help = ['8ball <pregunta>']
-handler.tags = ['fun', 'shadow', 'navidad']
+handler.tags = ['fun']
 handler.command = ['8ball', 'shadowball', 'naviball']
 
 export default handler

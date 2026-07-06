@@ -49,7 +49,7 @@ const handler = async (m, { conn, args, text, command, usedPrefix }) => {
 }
 
 handler.help = ['gpbanner', 'groupimg', 'gpdesc', 'groupdesc', 'gpname', 'groupname']
-handler.tags = ['grupo']
+handler.tags = ['grupos']
 handler.command = ['gpbanner', 'groupimg', 'gpdesc', 'groupdesc', 'gpname', 'groupname']
 handler.group = true
 handler.admin = true

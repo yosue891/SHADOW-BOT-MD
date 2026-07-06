@@ -54,7 +54,7 @@ const handler = async (m, { conn, text }) => {
 }
 
 handler.help = ['afk [razón]']
-handler.tags = ['tools']
+handler.tags = ['fun']
 handler.command = ['afk']
 
 export default handler

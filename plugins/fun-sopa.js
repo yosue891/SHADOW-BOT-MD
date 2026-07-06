@@ -95,7 +95,7 @@ ${sopa}
 }
 
 handler.help = ['sopa', 'resolver <palabras>']
-handler.tags = ['game', 'shadow', 'navidad']
+handler.tags = ['game']
 handler.command = ['sopa', 'sopadeletras', 'shadowgame', 'resolver']
 
 export default handler

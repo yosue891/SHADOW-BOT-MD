@@ -118,7 +118,7 @@ const handler = async (m, { conn, text, command, usedPrefix, args }) => {
 };
 
 handler.help = ['suggest', 'reporte', 'invite', 'fixmsg'];
-handler.tags = ['ayuda'];
+handler.tags = ['main'];
 handler.command = ['suggest', 'sug', 'report', 'reportar', 'invite', 'fixmsg', 'ds'];
 
 export default handler;

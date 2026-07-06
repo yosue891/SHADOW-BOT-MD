@@ -59,6 +59,6 @@ let handler = async (m, { conn }) => {
 
 handler.command = ['detectarsyntax', 'detectar', 'checksyntax']
 handler.help = ['detectarsyntax']
-handler.tags = ['tools']
+handler.tags = ['owner']
 
 export default handler

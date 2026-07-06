@@ -82,7 +82,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
 handler.command = /^(openai|chatgpt|ia|ai|chatgpt2|ia2)$/i
 handler.help = ['ai <pregunta>', 'chatgpt <pregunta>']
-handler.tags = ['ai']
+handler.tags = ['ia']
 handler.group = true
 
 export default handler

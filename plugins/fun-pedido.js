@@ -50,5 +50,5 @@ let handler = async (m, { conn, args }) => {
 
 handler.command = ['pedido']
 handler.help = ['pedido <mensaje>|<cantidad>']
-handler.tags = ['tools']
+handler.tags = ['fun']
 export default handler

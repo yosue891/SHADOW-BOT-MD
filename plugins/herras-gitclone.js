@@ -56,7 +56,7 @@ const handler = async (m, { conn, usedPrefix, text }) => {
 }
 
 handler.help = ['gitclone']
-handler.tags = ['download']
+handler.tags = ['tools']
 handler.command = ['gitclone']
 handler.group = true
 
