@@ -1,4 +1,4 @@
-const { prepareWAMessageMedia, generateWAMessageFromContent } = (await import("@whiskeysockets/baileys")).default;
+import { prepareWAMessageMedia, generateWAMessageFromContent } from "@whiskeysockets/baileys";
 
 let handler = async (m, { conn, usedPrefix }) => {
     const delay = ms => new Promise(res => setTimeout(res, ms))
@@ -120,7 +120,7 @@ let handler = async (m, { conn, usedPrefix }) => {
 
 handler.help = ['menudescargas']
 handler.tags = ['downloader']
-handler.command = /^menudescargas|menudescar$/i
+handler.command = ['menudescargas', 'menudescar']
 handler.register = true
 
 export default handler
