@@ -150,7 +150,7 @@ let handler = async (m, { conn, usedPrefix }) => {
           {
             name: "single_select",
             buttonParamsJson: JSON.stringify({
-              title: "📜 Menu Completo",
+              title: "📜 Menus disponibles",
               sections
             })
           },
