@@ -5,18 +5,18 @@ let handler = async (m, { conn, usedPrefix }) => {
     const delay = ms => new Promise(res => setTimeout(res, ms))
 
     let after = '🪴 ღSHADOW-BOT-MD༻๖ۣۜ◥ὦɧ◤'
-    let user = global.db.data.users[m.sender] || {}
+    let user = global.db.data.users[m.sender]
     let nombre = await conn.getName(m.sender)
     let registrado = user?.registered ? '✅ Sí' : '❌ No'
     let limite = user?.limit || 0
     let totalreg = Object.keys(global.db.data.users).length
     let groupsCount = Object.values(conn.chats).filter(v => v.id.endsWith('@g.us')).length
-    let muptime = clockString(process.uptime() * 1000) // Multiplicado por 1000 para corregir milisegundos
+    let muptime = clockString(process.uptime())
 
-    function clockString(ms) {
-        let h = isNaN(ms) ? '00' : Math.floor(ms / 3600000)
-        let m = isNaN(ms) ? '00' : Math.floor(ms / 60000) % 60
-        let s = isNaN(ms) ? '00' : Math.floor(ms / 1000) % 60
+    function clockString(seconds) {
+        let h = Math.floor(seconds / 3600)
+        let m = Math.floor(seconds % 3600 / 60)
+        let s = Math.floor(seconds % 60)
         return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':')
     }
 
@@ -59,26 +59,24 @@ let handler = async (m, { conn, usedPrefix }) => {
 `.trim()
 
     let finalMenu = infoUser + '\n\n' + listaDescargas + '\n\n' + after
-    let imagenUrl = 'https://adofiles.vercel.app/dl/0b4c0d1e.jpg'
+    let imagenUrl = 'https://d.uguu.se/hqkQTrUX.jpeg'
 
     let bufferImage;
     try {
-        let res = await fetch(imagenUrl)
-        if (!res.ok) throw new Error('Error en la respuesta del servidor')
-        bufferImage = await res.buffer()
-    } catch (e) {
-        console.error(e)
-        bufferImage = null
+        let res = await fetch(imagenUrl);
+        if (res.ok) bufferImage = await res.buffer();
+    } catch {
+        bufferImage = null;
     }
 
-    if (!bufferImage) return m.reply('❌ No se pudo obtener la imagen del servidor. Verifica que el enlace esté activo.')
+    if (!bufferImage) return m.reply('❌ No se pudo descargar la imagen desde el servidor.')
 
     let media = await prepareWAMessageMedia(
         { image: bufferImage },
         { upload: conn.waUploadToServer }
     ).catch(_ => null)
 
-    if (!media || !media.imageMessage) return m.reply('❌ Error al procesar el formato de la imagen con Baileys.')
+    if (!media) return m.reply('❌ Error al procesar el formato de la imagen.')
 
     const msg = generateWAMessageFromContent(m.chat, {
         viewOnceMessage: {
