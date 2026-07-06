@@ -59,11 +59,10 @@ let handler = async (m, { conn, usedPrefix }) => {
 `.trim()
 
     let finalMenu = infoUser + '\n\n' + listaDescargas + '\n\n' + after
-    let imagenUrl = 'https://adofiles.vercel.app/dl/97e1d009.jpg'
+    let imagenUrl = 'https://adofiles.vercel.app/dl/0b4c0d1e.jpg'
 
     let bufferImage;
     try {
-        // Cambiado a fetch para evitar bloqueos de Axios y mejorar compatibilidad
         let res = await fetch(imagenUrl)
         if (!res.ok) throw new Error('Error en la respuesta del servidor')
         bufferImage = await res.buffer()
