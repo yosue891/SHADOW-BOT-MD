@@ -1,23 +1,22 @@
 import { prepareWAMessageMedia, generateWAMessageFromContent } from "@whiskeysockets/baileys";
-import axios from "axios";
-import https from "https";
+import fetch from "node-fetch";
 
 let handler = async (m, { conn, usedPrefix }) => {
     const delay = ms => new Promise(res => setTimeout(res, ms))
 
     let after = '🪴 ღSHADOW-BOT-MD༻๖ۣۜ◥ὦɧ◤'
-    let user = global.db.data.users[m.sender]
+    let user = global.db.data.users[m.sender] || {}
     let nombre = await conn.getName(m.sender)
     let registrado = user?.registered ? '✅ Sí' : '❌ No'
     let limite = user?.limit || 0
     let totalreg = Object.keys(global.db.data.users).length
     let groupsCount = Object.values(conn.chats).filter(v => v.id.endsWith('@g.us')).length
-    let muptime = clockString(process.uptime())
+    let muptime = clockString(process.uptime() * 1000) // Multiplicado por 1000 para corregir milisegundos
 
-    function clockString(seconds) {
-        let h = Math.floor(seconds / 3600)
-        let m = Math.floor(seconds % 3600 / 60)
-        let s = Math.floor(seconds % 60)
+    function clockString(ms) {
+        let h = isNaN(ms) ? '00' : Math.floor(ms / 3600000)
+        let m = isNaN(ms) ? '00' : Math.floor(ms / 60000) % 60
+        let s = isNaN(ms) ? '00' : Math.floor(ms / 1000) % 60
         return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':')
     }
 
@@ -64,23 +63,23 @@ let handler = async (m, { conn, usedPrefix }) => {
 
     let bufferImage;
     try {
-        let res = await axios.get(imagenUrl, { 
-            responseType: 'arraybuffer',
-            httpsAgent: new https.Agent({ rejectUnauthorized: false }) 
-        });
-        bufferImage = Buffer.from(res.data, 'binary');
-    } catch {
-        bufferImage = null;
+        // Cambiado a fetch para evitar bloqueos de Axios y mejorar compatibilidad
+        let res = await fetch(imagenUrl)
+        if (!res.ok) throw new Error('Error en la respuesta del servidor')
+        bufferImage = await res.buffer()
+    } catch (e) {
+        console.error(e)
+        bufferImage = null
     }
 
-    if (!bufferImage) return m.reply('❌ No se pudo descargar la imagen desde el servidor de adofiles.')
+    if (!bufferImage) return m.reply('❌ No se pudo obtener la imagen del servidor. Verifica que el enlace esté activo.')
 
     let media = await prepareWAMessageMedia(
         { image: bufferImage },
         { upload: conn.waUploadToServer }
     ).catch(_ => null)
 
-    if (!media) return m.reply('❌ Error al procesar el formato de la imagen.')
+    if (!media || !media.imageMessage) return m.reply('❌ Error al procesar el formato de la imagen con Baileys.')
 
     const msg = generateWAMessageFromContent(m.chat, {
         viewOnceMessage: {
