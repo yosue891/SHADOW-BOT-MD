@@ -9,7 +9,7 @@ const handler = async (m, { conn }) => {
         role: "Owner Principal",
         number: "584242773183",
         image: "https://adofiles.vercel.app/dl/a1fbe517.jpg",
-        description: "Creador principal y encargado del desarrollo general.\n\n🌐 GitHub: github.com/yosue891",
+        description: "Creador principal y encargado del desarrollo general.\n\n🌐 GitHub: github.com/yosue891\n📢 Canal: https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O\n📦 Repo: https://github.com/yosue891/SHADOW-BOT-MD.git",
         btnLabel: "Canal de Yosue",
         btnUrl: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
       },
@@ -18,7 +18,7 @@ const handler = async (m, { conn }) => {
         role: "Segundo Creador Principal",
         number: "50498273976",
         image: "https://adofiles.vercel.app/dl/68799b5b.jpg",
-        description: "Co-creador y encargado de la optimización y soporte del proyecto.\n\n🌐 GitHub: github.com/ado-hub",
+        description: "Co-creador y encargado de la optimización y soporte del proyecto.\n\n🌐 GitHub: github.com/ado-hub\n📢 Canal: https://whatsapp.com/channel/0029VbD5h6s0AgWBpfCQlw2P\n📦 Repo: https://github.com/yosue891/SHADOW-BOT-MD.git",
         btnLabel: "Canal de Ado",
         btnUrl: "https://whatsapp.com/channel/0029VbD5h6s0AgWBpfCQlw2P"
       },
@@ -27,7 +27,7 @@ const handler = async (m, { conn }) => {
         role: "Desarrollador",
         number: "584248272650",
         image: "https://adofiles.vercel.app/dl/0b4c0d1e.jpg",
-        description: "Soporte técnico y desarrollador de funciones avanzadas.\n\n🌐 GitHub: github.com/gabriel-dev",
+        description: "Soporte técnico y desarrollador de funciones avanzadas.\n\n🌐 GitHub: github.com/gabriel-dev\n💬 Grupo: https://chat.whatsapp.com/GNZoTT5MKYe6yJtfCdCqoO\n📦 Repo: https://github.com/yosue891/SHADOW-BOT-MD.git",
         btnLabel: "Grupo de Ventas/Sorteos",
         btnUrl: "https://chat.whatsapp.com/GNZoTT5MKYe6yJtfCdCqoO"
       }
