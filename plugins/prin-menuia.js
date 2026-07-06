@@ -23,7 +23,7 @@ let handler = async (m, { conn, usedPrefix }) => {
 
   let infoUser = `
 ʜᴏʟᴀ, ${nombre}
-Ctx: ꜱᴏʏ 🪴 Shadow-BOT-MD 🪴, ʟɪꜱᴛᴏ ᴘᴀʀᴀ ᴀʏᴜᴅᴀʀᴛᴇ
+ꜱᴏʏ 🪴 Shadow-BOT-MD 🪴, ʟɪꜱᴛᴏ ᴘᴀʀᴀ ᴀʏᴜᴅᴀʀᴛᴇ
 
 *乂 ɪɴꜰᴏ ᴅᴇʟ ᴜꜱᴜᴀʀɪᴏ*
 ┌  ◦ ᴇꜱᴛᴀᴅᴏ: ᴜꜱᴜᴀʀɪᴏ
@@ -40,7 +40,7 @@ Ctx: ꜱᴏʏ 🪴 Shadow-BOT-MD 🪴, ʟɪꜱᴛᴏ ᴘᴀʀᴀ ᴀʏᴜᴅᴀ�
 `.trim()
 
   let comandosAi = `
-*╭──* ` + "`INTELIGENCIA ARCANA`" + ` *⚜︎*
+*╭──* \`INTELIGENCIA ARCANA\` *⚜︎*
 *│* ${usedPrefix}ai <pregunta>
 *│* ${usedPrefix}chatgpt <pregunta>
 *│* ${usedPrefix}copilot
@@ -50,7 +50,7 @@ Ctx: ꜱᴏʏ 🪴 Shadow-BOT-MD 🪴, ʟɪꜱᴛᴏ ᴘᴀʀᴀ ᴀʏᴜᴅᴀ�
 *╰─────────────╯*`.trim()
 
   let finalMenu = infoUser + '\n\n' + comandosAi + '\n\n' + after
-  let imagen = 'https://h.uguu.se/zAqcgozY.jpeg'
+  let imagen = '[https://h.uguu.se/zAqcgozY.jpeg](https://h.uguu.se/zAqcgozY.jpeg)'
 
   let vcard = `BEGIN:VCARD\nVERSION:3.0\nN:;Itachi;;;\nFN:Itachi\nitem1.TEL;waid=13135550002:+1 (313) 555-0002\nitem1.X-ABLabel:Celular\nEND:VCARD`
   let qkontak = { key: { fromMe: false, participant: "0@s.whatsapp.net", remoteJid: "status@broadcast" }, message: { contactMessage: { displayName: "H A Y A B U S A - B O T", vcard: vcard } } }
@@ -73,7 +73,7 @@ Ctx: ꜱᴏʏ 🪴 Shadow-BOT-MD 🪴, ʟɪꜱᴛᴏ ᴘᴀʀᴀ ᴀʏᴜᴅᴀ�
                 name: "cta_url",
                 buttonParamsJson: JSON.stringify({
                   display_text: "🍃 Canal Oficial",
-                  url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
+                  url: "[https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O](https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O)"
                 })
               },
               {
