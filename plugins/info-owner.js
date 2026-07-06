@@ -1,70 +1,98 @@
-import fetch from 'node-fetch'
+import axios from "axios"
+import { generateWAMessageContent, generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
 
-let handler = async (m, { conn }) => {
-  await m.react('👑') 
-  let list = [
-    {
-      displayName: ' Shadow Creator ',
-      vcard: `BEGIN:VCARD
-VERSION:3.0
-FN:Shadow Master
-TEL;type=CELL;waid=584242773183:+58 424-2773183
-TEL;type=CELL;waid=50493732693:+504 9373-2693
-END:VCARD`
-    }
-  ]
+const handler = async (m, { conn }) => {
+  try {
+    const creators = [
+      {
+        name: "Yosue",
+        role: "Owner Principal",
+        number: "584242773183",
+        image: "https://adofiles.vercel.app/dl/a1fbe517.jpg",
+        description: "Creador principal y encargado del desarrollo general.\n\n🌐 GitHub: github.com/yosue-dev\n📸 Instagram: @yosue.fx"
+      },
+      {
+        name: "Ado",
+        role: "Segundo Creador Principal",
+        number: "50498273976",
+        image: "https://adofiles.vercel.app/dl/68799b5b.jpg",
+        description: "Co-creador y encargado de la optimización y soporte del proyecto.\n\n🌐 GitHub: github.com/ado-hub\n🌍 Web: adofiles.com"
+      },
+      {
+        name: "Gabriel",
+        role: "Desarrollador",
+        number: "584248272650",
+        image: "https://adofiles.vercel.app/dl/0b4c0d1e.jpg",
+        description: "Soporte técnico y desarrollador de funciones avanzadas.\n\n🌐 GitHub: github.com/gabriel-dev\n💬 Discord: gabriel#0001"
+      }
+    ]
 
-  const canalInfo = {
-    title: '⚔️ Canal Oficial de SHADOW ⚔️',
-    body: 'Sumérgete en las sombras. Únete al canal oficial.',
-    thumbnailUrl: 'https://u.pne.rs/plyqbqyl.jpg',
-    sourceUrl: 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O',
-    mediaType: 1,
-    renderLargerThumbnail: true
-  }
+    let cards = []
 
-  await conn.sendMessage(
-    m.chat,
-    {
-      contacts: {
-        displayName: `${list.length} Contacto`,
-        contacts: list
-      },
-      contextInfo: {
-        externalAdReply: canalInfo
-      }
-    },
-    { quoted: m }
-  )
+    for (let creator of creators) {
+      const imageBuffer = (await axios.get(creator.image, { responseType: 'arraybuffer' })).data
+      const { imageMessage } = await generateWAMessageContent({ image: imageBuffer }, { upload: conn.waUploadToServer })
 
-  let txt = `┏━━━━━━━━━━━━━━━━━━━┓
-🌑⚔️ *I N F O  D E L  C R E A D O R* ⚔️🌑
-┗━━━━━━━━━━━━━━━━━━━┛
+      cards.push({
+        body: proto.Message.InteractiveMessage.Body.fromObject({ 
+          text: `Desarrollador: ${creator.name}\nRol: ${creator.role}\n\n${creator.description}` 
+        }),
+        footer: proto.Message.InteractiveMessage.Footer.fromObject({ 
+          text: "error404 project" 
+        }),
+        header: proto.Message.InteractiveMessage.Header.fromObject({ 
+          title: creator.name, 
+          hasMediaAttachment: true, 
+          imageMessage 
+        }),
+        nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
+          buttons: [
+            {
+              name: "cta_url",
+              buttonParamsJson: JSON.stringify({
+                display_text: `Chatear con ${creator.name}`,
+                url: `https://wa.me/${creator.number}?text=Hola+${creator.name},+vengo+desde+el+bot.`
+              })
+            },
+            {
+              name: "cta_url",
+              buttonParamsJson: JSON.stringify({
+                display_text: "Canal Oficial",
+                url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
+              })
+            }
+          ]
+        })
+      })
+    }
 
-> ⚔️ 𝗦𝗛𝗔𝗗𝗢𝗪 𝗠𝗔𝗦𝗧𝗘𝗥 ⚔️  
-> 🌌 El estratega oculto tras las líneas del código
+    const messageContent = generateWAMessageFromContent(m.chat, {
+      viewOnceMessage: {
+        message: {
+          messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 },
+          interactiveMessage: proto.Message.InteractiveMessage.fromObject({
+            body: proto.Message.InteractiveMessage.Body.create({ 
+              text: "Presentamos al equipo oficial de desarrollo detrás de este proyecto." 
+            }),
+            footer: proto.Message.InteractiveMessage.Footer.create({ 
+              text: "Desliza para ver a los creadores" 
+            }),
+            header: proto.Message.InteractiveMessage.Header.create({ hasMediaAttachment: false }),
+            carouselMessage: proto.Message.InteractiveMessage.CarouselMessage.fromObject({ cards })
+          })
+        }
+      }
+    }, { quoted: m })
 
-📡 𝗖𝗔𝗡𝗔𝗟 𝗢𝗙𝗜𝗖𝗜𝗔𝗟:  
-https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O
+    await conn.relayMessage(m.chat, messageContent.message, { messageId: messageContent.key.id })
 
-📱 𝗖𝗢𝗡𝗧𝗔𝗖𝗧𝗢𝗦 𝗗𝗘 𝗟𝗔 𝗢𝗥𝗚𝗔𝗡𝗜𝗭𝗔𝗖𝗜𝗢́𝗡:  
-👑 Creador Principal: +58 424-2773183 (Yosue)  
-⚔️ Segundo creador:   +504 9827-3976 (ado)
-
-✦ *SHADOW-BOT-MD* — El poder no se muestra... se oculta en las sombras ✦`
-
-  await conn.sendMessage(
-    m.chat,
-    {
-      text: txt,
-      ...rcanal
-    },
-    { quoted: m }
-  )
+  } catch (error) {
+    m.reply(`¡Ups! Algo falló.\n\nDetalle técnico: ${error.message}`)
+  }
 }
 
-handler.help = ['owner', 'creador']
-handler.tags = ['info']
-handler.command = ['owner', 'creator', 'creador', 'dueño']
+handler.tags = ["main"]
+handler.help = ["creators", "creadores", "owner"]
+handler.command = ["creators", "creadores", "owner", "owners", "desarrolladores"]
 
 export default handler
