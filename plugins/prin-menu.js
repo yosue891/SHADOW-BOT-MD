@@ -137,7 +137,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     )
 
     const nativeFlowPayload = {
-      body: { text: `𝗠𝗘𝗡𝗨 • ${botNameToShow}` },
+      body: { text: `𝗠𝗘𝗡𝗨 𝗖𝗢𝗠𝗣𝗟𝗘𝗧𝗢 • ${botNameToShow}` },
       footer: { text: menuText },
       header: {
         title: `🐢 ${botNameToShow}`,
