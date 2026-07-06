@@ -58,7 +58,7 @@ let handler = async (m, { conn, usedPrefix }) => {
 `.trim()
 
     let finalMenu = infoUser + '\n\n' + listaDescargas + '\n\n' + after
-    let imagen = 'https://adofiles.vercel.app/dl/58483102.jpg'
+    let imagen = 'https://adofiles.vercel.app/dl/97e1d009.jpg'
 
     let media = await prepareWAMessageMedia(
         { image: { url: imagen } },
