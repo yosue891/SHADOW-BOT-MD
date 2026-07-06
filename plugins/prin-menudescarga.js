@@ -99,7 +99,7 @@ let handler = async (m, { conn, usedPrefix }) => {
                                             title: "SHADOW-BOT MD",
                                             highlight_label: "POPULAR",
                                             rows: [
-                                                { header: "Descargas", title: "Menú Descargas", description: "Ver comandos de descarga", id: `${usedPrefix}menudescargas` }
+                                                { header: "todo", title: "Menu completo", description: "Ver todos los comandos", id: `${usedPrefix}allmenu` }
                                             ]
                                         }
                                     ]
