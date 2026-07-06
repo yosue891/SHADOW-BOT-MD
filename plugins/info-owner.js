@@ -29,7 +29,7 @@ const handler = async (m, { conn }) => {
         role: "Desarrollador",
         number: "584248272650",
         image: "https://adofiles.vercel.app/dl/0b4c0d1e.jpg",
-        description: "Soporte técnico y desarrollador de funciones avanzadas.\n\n🌐 GitHub: github.com/gabriel-dev\n💬 Grupo: https://chat.whatsapp.com/GNZoTT5MKYe6yJtfCdCqoO\n📦 Repo: https://github.com/yosue891/SHADOW-BOT-MD.git",
+        description: "Soporte técnico y desarrollador de funciones avanzadas.\n\n💬 Grupo: https://chat.whatsapp.com/GNZoTT5MKYe6yJtfCdCqoO\n📦 Repo: https://github.com/yosue891/SHADOW-BOT-MD.git",
         btnLabel: "Grupo de Ventas/Sorteos",
         btnUrl: "https://chat.whatsapp.com/GNZoTT5MKYe6yJtfCdCqoO"
       }
