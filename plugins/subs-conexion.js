@@ -301,8 +301,8 @@ export async function MichiJadiBot(options) {
     generateHighQualityLinkPreview: true,
     markOnlineOnConnect: true,
     syncFullHistory: false,
-    keepAliveIntervalMs: 25000,
-    maxIdleTimeMs: 0
+    keepAliveIntervalMs: 45000,
+    maxIdleTimeMs: 120000
   }
 
   let sock = makeWASocket(connectionOptions)
@@ -320,7 +320,7 @@ export async function MichiJadiBot(options) {
       if (i >= 0) global.conns.splice(i, 1)
       console.log(`[AUTO-LIMPIEZA] Sesión ${path.basename(pathMichiJadiBot)} eliminada por credenciales inválidas.`)
     }
-  }, 60000)
+  }, 120000)
 
   async function sendPairingCode() {
     if (!mcode || sock.user || codeBot || sock.isPairingRequested) return false
@@ -437,7 +437,7 @@ const secret = await sock.requestPairingCode(phoneNumber)
     const wsClosed = !sock.ws || sock.ws.readyState === 3
     if (sock.user && wsClosed) {
       healthCheckFailures++
-      if (healthCheckFailures >= 3) {
+      if (healthCheckFailures >= 5) {
         console.log(chalk.bold.yellowBright(`\n⚠︎ Health check Sub-Bot (+${path.basename(pathMichiJadiBot)}): WebSocket cerrado (${healthCheckFailures} fallos). Reconectando...`))
         healthCheckFailures = 0
         await creloadHandler(true).catch(console.error)
@@ -450,7 +450,7 @@ const secret = await sock.requestPairingCode(phoneNumber)
         if (i >= 0) global.conns.splice(i, 1)
       }
     }
-  }, 60000)
+  }, 120000)
 
   let handlerModule = await loadHandlerModule()
   const creloadHandler = async function (restatConn) {

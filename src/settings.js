@@ -3,7 +3,7 @@ import chalk from "chalk"
 import { fileURLToPath } from "url"
 import fs from "fs"
 
-global.botNumber = "" 
+global.botNumber = "15705252140" 
 
 global.owner = [
 ["584242773183", "yosue </>", true],
@@ -26,7 +26,7 @@ global.vs = "^1.3.2"
 global.nameqr = "ShadowBot"
 global.sessions = "Sessions/Principal"
 global.jadi = "Sessions/SubBot"
-global.MichiJadibts = true
+global.MichiJadibts = false
 
 global.multiplier = 1
 global.botname = "Shadow-BOT-MD"

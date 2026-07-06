@@ -1,4 +1,5 @@
 const userSpamData = {}
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
 
 let handler = m => m
 
@@ -13,8 +14,8 @@ handler.before = async function (m, { conn, isAdmin, isBotAdmin, isOwner, isROwn
 
   const sender = m.sender
   const currentTime = Date.now()
-  const timeWindow = 8000   
-  const messageLimit = 15   
+  const timeWindow = 12000   
+  const messageLimit = 20   
 
   if (!(sender in userSpamData)) {
     userSpamData[sender] = {
@@ -39,14 +40,13 @@ handler.before = async function (m, { conn, isAdmin, isBotAdmin, isOwner, isROwn
         } else if (userData.antiBan >= 3) {
           if (isBotAdmin) {
             try {
+              await delay(5000 + Math.floor(Math.random() * 3000))
               await conn.reply(m.chat, `❄️ Expulsado por spam: @${sender.split('@')[0]}`, m, { mentions: [sender] })
+              await delay(2000 + Math.floor(Math.random() * 2000))
               await conn.groupParticipantsUpdate(m.chat, [sender], 'remove')
             } catch (err) {
               console.error('Error al expulsar:', err)
-              await conn.reply(m.chat, `⚠️ No pude expulsar a @${sender.split('@')[0]} aunque soy admin.`, m, { mentions: [sender] })
             }
-          } else {
-            await conn.reply(m.chat, `⚠️ No puedo expulsar porque no soy admin, pero @${sender.split('@')[0]} está spameando.`, m, { mentions: [sender] })
           }
         }
 

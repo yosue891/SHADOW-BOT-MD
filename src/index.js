@@ -145,8 +145,8 @@ userDevicesCache: userDevicesCache || new Map(),
 defaultQueryTimeoutMs: undefined,
 cachedGroupMetadata: (jid) => globalThis.conn?.chats?.[jid]?.metadata ?? {},
 version: version, 
-keepAliveIntervalMs: 25000, 
-maxIdleTimeMs: 0, 
+keepAliveIntervalMs: 45000, 
+maxIdleTimeMs: 120000, 
 }
 
 global.conn = makeWASocket(connectionOptions)
@@ -361,10 +361,14 @@ return
 console.log(chalk.bold.blueBright(`\n⚠︎ Conexión perdida con el servidor, reconectando el Bot...`))
 await delay(3000)
 await global.reloadHandler(true).catch(console.error)
-} else if (reason === DisconnectReason.connectionReplaced) {
-console.log(chalk.bold.yellowBright(`\nꕥ La conexión del Bot ha sido reemplazada.`))
-} else if (reason === DisconnectReason.loggedOut) {
-console.log(chalk.bold.redBright(`\n⚠︎ Sesión cerrada, borra la session principal del Bot, y conectate nuevamente.`))
+    } else if (reason === DisconnectReason.connectionReplaced) {
+        console.log(chalk.bold.yellowBright(`\nꕥ La conexión del Bot ha sido reemplazada, intentando reconectar...`))
+        await delay(5000)
+        await global.reloadHandler(true).catch(console.error)
+    } else if (reason === DisconnectReason.loggedOut) {
+        console.log(chalk.bold.redBright(`\n⚠︎ Sesión cerrada, intentando reconectar con nueva autenticación...`))
+        await delay(5000)
+        await global.reloadHandler(true).catch(console.error)
 } else if (reason === DisconnectReason.restartRequired) {
 if (!isAuthenticated) {
 if (opcion === '2' || methodCode) {
@@ -422,15 +426,17 @@ if (Object.keys(Handler || {}).length) handler = Handler
 } catch (e) {
 console.error(e);
 }
-if (restatConn) {
-const oldChats = global.conn.chats
-try {
-global.conn.ws.close()
-} catch { }
-conn.ev.removeAllListeners()
-global.conn = makeWASocket(connectionOptions, {chats: oldChats})
-isInit = true
-}
+    if (restatConn) {
+        const oldChats = global.conn.chats
+        try {
+            global.conn.ws.close()
+            await delay(2000)
+        } catch { }
+        conn.ev.removeAllListeners()
+        const newConn = makeWASocket(connectionOptions, {chats: oldChats})
+        global.conn = newConn
+        isInit = true
+    }
 if (!isInit) {
 conn.ev.off('messages.upsert', conn.handler)
 conn.ev.off('connection.update', conn.connectionUpdate)
@@ -580,7 +586,7 @@ try {
 if (existsSync(file)) await fs.promises.unlink(file).catch(() => {})
 } catch {}
 } }, 10 * 60 * 1000)
-// Health check - cada 60s verifica que el WebSocket esté vivo (solo si autenticado)
+// Health check - cada 120s verifica que el WebSocket esté vivo (solo si autenticado)
 let healthCheckFailures = 0
 setInterval(async () => {
     try {
@@ -588,7 +594,7 @@ setInterval(async () => {
             const state = global.conn.ws?.readyState
             if (!global.conn.ws || state === 3 || state === 2) {
                 healthCheckFailures++
-                if (healthCheckFailures >= 3) {
+                if (healthCheckFailures >= 5) {
                     console.log(chalk.bold.yellowBright(`\n⚠︎ Health check: WebSocket caído (${state}, ${healthCheckFailures} intentos). Reconectando...`))
                     healthCheckFailures = 0
                     await global.reloadHandler(true).catch(console.error)
@@ -600,7 +606,7 @@ setInterval(async () => {
     } catch (e) {
         console.error('Error en health check:', e)
     }
-}, 60000)
+}, 120000)
 
 _quickTest().catch(console.error)
 async function isValidPhoneNumber(number) {
