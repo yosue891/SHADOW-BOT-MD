@@ -17,7 +17,7 @@ const handler = async (m, { conn }) => {
         name: "Ado",
         role: "Segundo Creador Principal",
         number: "50498273976",
-        image: "https://adofiles.vercel.app/dl/68799b5b.jpg",
+        image: "https://adofiles.vercel.app/dl/268134ec.jpg",
         description: "Co-creador y encargado de la optimización y soporte del proyecto.\n\n🌐 GitHub: github.com/ado-hub\n📢 Canal: https://whatsapp.com/channel/0029VbD5h6s0AgWBpfCQlw2P\n📦 Repo: https://github.com/yosue891/SHADOW-BOT-MD.git",
         btnLabel: "Canal de Ado",
         btnUrl: "https://whatsapp.com/channel/0029VbD5h6s0AgWBpfCQlw2P"
