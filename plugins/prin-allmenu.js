@@ -29,30 +29,30 @@ let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
 
     let userIdNum = m.sender.split('@')[0]
     let phone = PhoneNumber('+' + userIdNum)
-    let pais = phone.getRegionCode() || 'Dominio Desconocido 🌑'
+    let pais = phone.getRegionCode() || 'Dominio Desconocido'
 
     let tags = {
-      'info': '𝐈𝐍𝐅𝐎 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
-      'main': '𝐄𝐒𝐓𝐀𝐃𝐎 𝐃𝐄𝐋 𝐂𝐎𝐑𝐓𝐈𝐆𝐎',
-      'anime': '𝐀𝐍𝐈𝐌𝐄 𝐀𝐑𝐂𝐀𝐍𝐎',
-      'menu': '𝐌𝐄𝐍𝐔𝐒 𝐎𝐂𝐔𝐋𝐓𝐎𝐒',
-      'search': '𝐁𝐔𝐒𝐐𝐔𝐄𝐃𝐀𝐒 𝐄𝐒𝐎𝐓𝐄𝐑𝐈𝐂𝐀𝐒',
-      'descargas': '𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀𝐒 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀',
-      'socket': '𝐂style𝐍style𝐗𝐈style𝐍style𝐒 𝐎style𝐔style𝐓style𝐒',
-      'rg': '𝐏style𝐑𝐅style𝐋 𝐃style𝐋 𝐂style𝐍𝐓style𝐑style𝐓style𝐒𝐓style',
-      'fun': '𝐉stylestyle𝐆style𝐒 𝐃style 𝐒style𝐌style𝐑style',
-      'rpg': 'style𝐂stylestyle𝐍style𝐌stylestyle 𝐎style𝐔stylestylestyle',
-      'gacha': 'style𝐕stylestyle𝐓style𝐒 𝐆style style',
-      'game': '𝐉stylestyle𝐆style𝐒 style𝐑stylestylestyle',
-      'grupos': 'stylestyle𝐑stylestylestylestyle𝐒 𝐃style 𝐒stylestyle𝐑style',
-      'nable': 'stylestyle𝐃style style𝐍 / style𝐅style',
-      'ia': 'style style𝐓style𝐋style𝐆style𝐍stylestylestyle style𝐑stylestylestyle',
-      'stalk': 'stylestyle𝐒stylestyle𝐑stylestylestyle style𝐍 𝐒stylestylestylestylestylestyle',
-      'maker': 'stylestyle𝐐stylestylestyle style style style𝐒stylestyle',
-      'tools': 'stylestylestyle𝐑stylestylestylestylestyle𝐓style𝐒 𝐃style stylestyle 𝐒stylestylestyle',
-      'sticker': '𝐒stylestyle𝐋stylestyle𝐒 style stylestyle style𝐒',
-      'owner': 'stylestylestyle𝐒𝐓stylestyle 𝐃style stylestyle style𝐑stylestyle style',
-      'nsfw': 'stylestylestylestyle 𝐑stylestyle𝐓stylestylestylestylestyle (+18)'
+      info: 'INFO DE LA SOMBRA',
+      main: 'ESTADO DEL CÓDIGO',
+      anime: 'ANIME ARCANO',
+      menu: 'MENÚS OCULTOS',
+      search: 'BÚSQUEDAS ESOTÉRICAS',
+      descargas: 'DESCARGAS DE LA SOMBRA',
+      socket: 'CONEXIONES OCULTAS',
+      rg: 'PERFIL DEL CONTRATISTA',
+      fun: 'JUEGOS DE SOMBRA',
+      rpg: 'ECONOMÍA OCULTA',
+      gacha: 'EVENTOS GACHA',
+      game: 'JUEGOS ARCANOS',
+      grupos: 'CÍRCULOS DE SOMBRA',
+      nable: 'MODO ON / OFF',
+      ia: 'INTELIGENCIA ARCANA',
+      stalk: 'OBSERVACIÓN SILENCIOSA',
+      maker: 'ALQUIMIA VISUAL',
+      tools: 'HERRAMIENTAS DE LA SOMBRA',
+      sticker: 'SELLOS ARCANOS',
+      owner: 'MAESTRO DE LA ORGANIZACIÓN',
+      nsfw: 'ZONA RESTRINGIDA (+18)'
     }
 
     let commands = Object.values(global.plugins)
@@ -66,32 +66,32 @@ let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
     for (let tag in tags) {
       let comandos = commands
         .filter(cmd => cmd.tags.includes(tag))
-        .map(cmd => cmd.help.map(e => `*│ׄꤥㅤׅ*  ${usedPrefix}${e}`).join('\n'))
+        .map(cmd => cmd.help.map(e => `*│*  ${usedPrefix}${e}`).join('\n'))
         .join('\n')
       if (comandos) {
-        menuTexto += `\n*╭──･ ̸̷∵* \`${tags[tag]}\`  *݁ ⚜︎*
+        menuTexto += `\n*╭──* \`${tags[tag]}\` *⚜︎*
 ${comandos}
-*╰─────────────֙╯*\n`
+*╰─────────────╯*\n`
       }
     }
 
     let date = `${dia}, ${fechaTxt}, ${hora}`
     let infoUser = `
-> . ݁  🌑՞ *ʙɪᴇɴᴠᴇɴɪᴅᴏ ᴀ ʟᴀ ꜱᴏᴍʙʀᴀ,* ${name}.
->    ʏᴀ ᴇꜱᴛᴀʙᴀ ᴇꜱᴄᴜᴄhᴀɴᴅᴏ ᴛᴜꜱ ᴘᴀꜱᴏꜱ...
+> 🌑 Bienvenido a la sombra, ${name}.
+> Ya estaba escuchando tus pasos...
 
-> ﹙⚜︎﹚੭੭ ─ \`ɪ ɴ ғ ᴏ - ꜱʜᴀᴅᴏᴡ ʙᴏᴛ\`
-> ര ׄ 𓏸𓈒 ׅ *ɴᴏᴍʙʀᴇ ᴄʟᴀᴠᴇ ›* ${conn.user?.name || 'Shadow Unit'}
-> ര ׄ 𓏸𓈒 ׅ *ᴄʟᴀꜱɪꜰɪᴄᴀᴄɪᴏɴ ›* ${(conn.user.jid == global.conn.user.jid ? '𝐍𝐮́𝐜𝐥𝐞𝐨 𝐏𝐫𝐢𝐧𝐜𝐢𝐩𝐚𝐥' : '<b>𝐔𝐧𝐢𝐝𝐚𝐝 𝐒𝐮𝐛𝐨𝐫𝐝𝐢𝐧𝐚𝐝𝐚</b>')}
-> ര ׄ 𓏸𓈒 ׅ *ᴄoptionᴍᴀɴᴅoptionꜱ ›* ${totalCommands}
-> ര ׄ 𓏸𓈒 ׅ *ᴛɪᴇᴍᴘᴏ ᴇɴ ʟᴀ ꜱᴏᴍʙʀᴀ ›* ${uptime}
-> ര ׄ 𓏸𓈒 ׅ *ᴅoptionᴍɪɴɪoption ›* ${pais}
-> ര ׄ 𓏸𓈒 ׅ *ᴀʟᴍᴀꜱ ›* ${totalreg}
-> ര ׄ 𓏸𓈒 ׅ *ᴄᴇʟᴅᴀꜱ ›* ${groupsCount}
-> ര ׄ 𓏸𓈒 ׅ *ᴛɪᴇᴍᴘᴏ ›* ${date}
+> ⚜︎ — INFO SHADOW BOT
+> • Nombre clave: ${conn.user?.name || 'Shadow Unit'}
+> • Clasificación: ${(conn.user.jid == global.conn.user.jid ? 'Núcleo Principal' : 'Unidad Subordinada')}
+> • Comandos: ${totalCommands}
+> • Tiempo activo: ${uptime}
+> • Dominio: ${pais}
+> • Almas: ${totalreg}
+> • Celdas: ${groupsCount}
+> • Tiempo: ${date}
 
 ${readMore}
-  乂 *ᴘʀᴏᴛᴏᴄᴏʟᴏ ᴅᴇ ᴄoptionᴍᴀɴᴅoptionꜱ ᴅᴇ ʟᴀ ꜱoptionᴍʙʀᴀ* 乂\n`.trim()
+乂 PROTOCOLO DE COMANDOS DE LA SOMBRA 乂\n`.trim()
 
    const icon = [
      'https://i.postimg.cc/rFfVL8Ps/image.jpg',
@@ -113,7 +113,7 @@ ${readMore}
             mimetype: "image/jpeg",
             jpegThumbnail: Shadow_url
           },
-          title: `⌗ֶㅤ𝐌𝐞𝐧𝐮 𝐝𝐞 𝐥𝐚 𝐒𝐨𝐦𝐛𝐫𝐚 - ${botname} 𝅄⚜︎`,
+          title: `Menú de la Sombra - ${botname}`,
           description: "« Soy quien actúa en las sombras, fingiendo ser un simple extra. »",
           currencyCode: "USD",
           priceAmount1000: 0,
@@ -126,7 +126,6 @@ ${readMore}
 
   await m.react('🔥')
   
-  // Enviamos el archivo de video directamente con gifPlayback en true para simular el GIF
   await conn.sendMessage(m.chat, { 
     video: { url: banner }, 
     gifPlayback: true,
@@ -165,14 +164,14 @@ function clockString(ms) {
 
 function ucapan() {
   const time = moment.tz('America/Lima').format('HH')
-  let res = "🄱ᴜᴇɴᴀs ɴᴏᴄʜᴇs ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ"
+  let res = "Buenas noches de la sombra"
 
   if (time >= 5 && time < 12)
-    res = "🄱ᴜᴇɴᴏꜱ ᴅɪᴀꜱ, ᴇxᴛʀᴀ ᴅᴇ ʟᴀ ʜɪꜱᴛᴏʀɪᴀ"
+    res = "Buenos días, extra de la historia"
   else if (time >= 12 && time < 18)
-    res = "🄱ᴜᴇɴᴀꜱ ᴛᴀʀᴅᴇꜱ, ᴀᴄᴛᴏʀ ᴅᴇ ꜱᴏᴍʙʀᴀ"
+    res = "Buenas tardes, actor de sombra"
   else if (time >= 18)
-    res = "🄱ᴜᴇɴᴀꜱ ɴᴏᴄʜᴇꜱ, ʟᴀ ᴏʙ<b>ꜱᴄᴜʀɪᴅᴀᴅ ᴛᴇ ᴄᴜʙʀᴇ</b>"
+    res = "Buenas noches, la oscuridad te cubre"
 
   return res
-  }
+      }
