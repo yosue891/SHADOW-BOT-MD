@@ -1,5 +1,6 @@
 import fs from 'fs'
-const { prepareWAMessageMedia, generateWAMessageFromContent } = (await import("@whiskeysockets/baileys")).default;
+import baileys from "@whiskeysockets/baileys"
+const { prepareWAMessageMedia, generateWAMessageFromContent } = baileys
 
 const botname = global.botname || "Shadow Garden"
 const channelRD = global.channelRD || { id: "0@newsletter", name: "Shadow Channel" }
@@ -18,8 +19,6 @@ let handler = async (m, { conn, usedPrefix }) => {
 
     let infoUser = `
 ʜᴏʟᴀ, ${nombre}
-ꜱᴏʏ ᴘᴀʀᴛᴇ ᴅᴇ ${botname}, ʟɪꜱᴛᴏ ᴘᴀʀᴀ ᴀʏᴜᴅᴀʀᴛᴇ
-
 *乂 ɪɴꜰᴏ ᴅᴇʟ ᴜꜱᴜᴀʀɪᴏ*
 ┌  ◦ ᴇꜱᴛᴀᴅᴏ: ᴜꜱᴜᴀʀɪᴏ
 │  ◦ ᴘʀᴇᴍɪᴜᴍ: ${premium}
@@ -43,8 +42,6 @@ let handler = async (m, { conn, usedPrefix }) => {
 *╰─────────────╯*`.trim()
 
     let finalMenu = infoUser + '\n\n' + comandosAi
-    
-    // URL Corregida (Limpia sin corchetes de Markdown)
     let imagen = 'https://h.uguu.se/zAqcgozY.jpeg'
 
     let vcard = `BEGIN:VCARD\nVERSION:3.0\nN:;Itachi;;;\nFN:Itachi\nitem1.TEL;waid=13135550002:+1 (313) 555-0002\nitem1.X-ABLabel:Celular\nEND:VCARD`
@@ -142,4 +139,4 @@ function clockString(ms) {
   const m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60
   const s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':')
-      }
+  }
