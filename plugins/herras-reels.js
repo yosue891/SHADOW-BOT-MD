@@ -1,6 +1,5 @@
 import * as crypto from 'crypto'
-import pkg from '@whiskeysockets/baileys'
-const { generateMessageID } = pkg
+import { generateMessageID } from '@whiskeysockets/baileys'
 
 const handler = async (m, { conn }) => {
 

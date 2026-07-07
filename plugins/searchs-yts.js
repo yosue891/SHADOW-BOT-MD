@@ -1,8 +1,6 @@
 import yts from "yt-search"
 import fetch from "node-fetch"
-import baileys from "@whiskeysockets/baileys"
-
-const { generateWAMessageFromContent, proto, prepareWAMessageMedia } = baileys
+import { generateWAMessageFromContent, proto, prepareWAMessageMedia } from "@whiskeysockets/baileys"
 
 let handler = async (m, { conn, text, usedPrefix }) => {
   if (!text) return m.reply("🌑✦ Ingresa una búsqueda de YouTube.")

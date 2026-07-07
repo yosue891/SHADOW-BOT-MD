@@ -1,7 +1,6 @@
 import moment from 'moment-timezone'
 import fetch from 'node-fetch'
-import baileys from '@whiskeysockets/baileys'
-const { generateWAMessageFromContent, generateWAMessageContent, proto } = baileys
+import { generateWAMessageFromContent, generateWAMessageContent, proto } from '@whiskeysockets/baileys'
 
 let handler = async (m, { conn }) => {
   try {

@@ -1,5 +1,4 @@
-import baileys from "@whiskeysockets/baileys"
-const { proto, generateWAMessageFromContent } = baileys
+import { proto, generateWAMessageFromContent } from "@whiskeysockets/baileys"
 
 function onlyDigits(s = "") {
   return String(s).replace(/[^0-9]/g, "")

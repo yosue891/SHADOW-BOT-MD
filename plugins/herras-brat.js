@@ -1,8 +1,7 @@
 import axios from 'axios'
 import fs from 'fs'
 import { exec } from 'child_process'
-import baileys from "@whiskeysockets/baileys"
-const { generateWAMessageFromContent, proto } = baileys
+import { generateWAMessageFromContent, proto } from "@whiskeysockets/baileys"
 
 var handler = async (m, { conn, usedPrefix, command, text }) => {
     let [txt, color] = text.split('|')
