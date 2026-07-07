@@ -1,6 +1,5 @@
 import fs from 'fs'
-import baileys from "@whiskeysockets/baileys"
-const { prepareWAMessageMedia, generateWAMessageFromContent } = baileys
+import { prepareWAMessageMedia, generateWAMessageFromContent } from "@whiskeysockets/baileys"
 
 const botname = global.botname || "Shadow Garden"
 const channelRD = global.channelRD || { id: "0@newsletter", name: "Shadow Channel" }
@@ -139,4 +138,4 @@ function clockString(ms) {
   const m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60
   const s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':')
-  }
+}
