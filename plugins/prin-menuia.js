@@ -1,7 +1,7 @@
 import fs from 'fs'
 import { prepareWAMessageMedia, generateWAMessageFromContent } from "@whiskeysockets/baileys"
 
-const botname = global.botname || "Shadow Garden"
+const botname = "SHADOW-BOT-MD"
 const channelRD = global.channelRD || { id: "0@newsletter", name: "Shadow Channel" }
 
 let handler = async (m, { conn, usedPrefix }) => {
@@ -10,7 +10,6 @@ let handler = async (m, { conn, usedPrefix }) => {
 
     let user = global.db.data.users[m.sender] || {}
     let nombre = await conn.getName(m.sender)
-    let premium = user.premium ? '✅ Sí' : '❌ No'
     let limite = user.limit || 0
     let totalreg = Object.keys(global.db.data.users).length
     let groupsCount = Object.values(conn.chats).filter(v => v.id.endsWith('@g.us')).length
@@ -20,7 +19,6 @@ let handler = async (m, { conn, usedPrefix }) => {
 ʜᴏʟᴀ, ${nombre}
 *乂 ɪɴꜰᴏ ᴅᴇʟ ᴜꜱᴜᴀʀɪᴏ*
 ┌  ◦ ᴇꜱᴛᴀᴅᴏ: ᴜꜱᴜᴀʀɪᴏ
-│  ◦ ᴘʀᴇᴍɪᴜᴍ: ${premium}
 └  ◦ ʟíᴍɪᴛᴇ: ${limite}
 
 *乂 ɪɴꜰᴏ ᴅᴇʟ ʙᴏᴛ*
@@ -46,7 +44,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     let vcard = `BEGIN:VCARD\nVERSION:3.0\nN:;Itachi;;;\nFN:Itachi\nitem1.TEL;waid=13135550002:+1 (313) 555-0002\nitem1.X-ABLabel:Celular\nEND:VCARD`
     let qkontak = { 
       key: { fromMe: false, participant: "0@s.whatsapp.net", remoteJid: "status@broadcast" }, 
-      message: { contactMessage: { displayName: "H A Y A B U S A - B O T", vcard: vcard } } 
+      message: { contactMessage: { displayName: "SHADOW-BOT-MD", vcard: vcard } } 
     }
 
     await m.react('🔥')
