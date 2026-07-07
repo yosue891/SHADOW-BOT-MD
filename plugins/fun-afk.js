@@ -9,8 +9,15 @@ export async function before(m, { conn }) {
   user.afk = typeof user.afk === 'number' ? user.afk : -1
   user.afkReason = typeof user.afkReason === 'string' ? user.afkReason : ''
 
-  const res = await fetch('https://i.postimg.cc/rFfVL8Ps/image.jpg')
-  const thumb = Buffer.from(await res.arrayBuffer())
+  let thumb = null
+  try {
+    const res = await fetch('https://i.postimg.cc/rFfVL8Ps/image.jpg')
+    if (res.ok) {
+      thumb = Buffer.from(await res.arrayBuffer())
+    }
+  } catch {
+    thumb = null
+  }
 
   const shadow_xyz = {
     key: {
@@ -22,10 +29,10 @@ export async function before(m, { conn }) {
     message: {
       productMessage: {
         product: {
-          productImage: {
+          productImage: thumb ? {
             mimetype: 'image/jpeg',
             jpegThumbnail: thumb
-          },
+          } : undefined,
           title: 'WhatsApp Business • Estado',
           description: 'Shadow team',
           currencyCode: 'USD',

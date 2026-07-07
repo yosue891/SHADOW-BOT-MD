@@ -63,20 +63,33 @@ continue
 }
 isIdMessage = true
 }}
-const messages = await generateWAMessage(m.chat, {text: isIdMessage ? id : text, mentions: m.mentionedJid}, {
-userJid: this.user.id,
-quoted: m.quoted && m.quoted.fakeObj,
-})
+let messages
+try {
+    messages = await generateWAMessage(m.chat, {text: isIdMessage ? id : text, mentions: m.mentionedJid}, {
+        userJid: this.user.id,
+        quoted: m.quoted && m.quoted.fakeObj,
+    })
+} catch (e) {
+    console.error('Error generando mensaje con quoted, intentando sin quoted:', e)
+    try {
+        messages = await generateWAMessage(m.chat, {text: isIdMessage ? id : text, mentions: m.mentionedJid}, {
+            userJid: this.user.id,
+        })
+    } catch (e2) {
+        console.error('Error generando mensaje sin quoted:', e2)
+        return
+    }
+}
 messages.key.fromMe = areJidsSameUser(m.sender, this.user.id)
 messages.key.id = m.key.id
 messages.pushName = m.name
 if (m.isGroup) {
-messages.key.participant = messages.participant = m.sender
+    messages.key.participant = messages.participant = m.sender
 }
 const msg = {
-...chatUpdate,
-messages: [proto.WebMessageInfo.fromObject(messages)].map((v) => (v.conn = this, v)),
-type: 'append',
+    ...chatUpdate,
+    messages: [proto.WebMessageInfo.fromObject(messages)].map((v) => (v.conn = this, v)),
+    type: 'append',
 }
 this.ev.emit('messages.upsert', msg)
 }
