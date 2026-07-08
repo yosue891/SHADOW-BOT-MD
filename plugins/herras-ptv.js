@@ -6,25 +6,10 @@ const pluginConfig = {
 }
 
 let handler = async (m, { conn, usedPrefix, command }) => {
-  let video = null
   let q = m.quoted ? m.quoted : m
-  let mime = (q.msg || q).mimetype || ''
+  let mime = (q.msg && q.msg.mimetype) || q.mimetype || ''
 
-  if (m.quoted && /video/.test(mime)) {
-    try {
-      video = await q.download()
-    } catch (e) {
-      return conn.reply(m.chat, `❌ Falló la descarga del video respondido desde las sombras.`, m)
-    }
-  } else if (/video/.test(mime)) {
-    try {
-      video = await q.download()
-    } catch (e) {
-      return conn.reply(m.chat, `❌ Falló la descarga del video principal.`, m)
-    }
-  }
-
-  if (!video) {
+  if (!/video/.test(mime)) {
     return conn.reply(
       m.chat,
       `⚠️ *MODO DE USO*\n\n` +
@@ -35,6 +20,13 @@ let handler = async (m, { conn, usedPrefix, command }) => {
   }
 
   await conn.reply(m.chat, `⏳ *Invocando arte circular... Transmutando video a PTV...*`, m)
+
+  let video
+  try {
+    video = await conn.downloadMediaMessage(q)
+  } catch (e) {
+    return conn.reply(m.chat, `❌ Falló la descarga del video. Intenta de nuevo.`, m)
+  }
 
   try {
     await conn.sendMessage(m.chat, {
