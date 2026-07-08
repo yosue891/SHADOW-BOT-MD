@@ -30,12 +30,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
   }
 
   try {
-    await conn.sendMessage(m.chat, {
-      video: video,
-      mimetype: 'video/mp4',
-      ptv: true
-    }, { quoted: m })
-
+    await conn.sendFile(m.chat, video, 'video.mp4', '', m, false, { ptv: true })
     await m.react('🔥')
   } catch (err) {
     return conn.reply(m.chat, `❌ *Fallo en la transmutación*\n\n> ${err.message}`, m)
