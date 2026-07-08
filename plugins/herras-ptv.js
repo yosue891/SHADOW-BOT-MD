@@ -23,9 +23,9 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
   let video
   try {
-    video = await conn.downloadMediaMessage(q)
+    video = await q.download?.() || await conn.downloadMediaMessage(q)
   } catch (e) {
-    return conn.reply(m.chat, `❌ Falló la descarga del video. Intenta de nuevo.`, m)
+    return conn.reply(m.chat, `❌ Falló la descarga del video. Error: ${e.message || e}`, m)
   }
 
   try {
