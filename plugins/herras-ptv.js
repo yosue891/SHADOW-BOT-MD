@@ -1,3 +1,5 @@
+import { downloadMediaMessage } from '@whiskeysockets/baileys'
+
 const pluginConfig = {
   description: 'Envía un video como nota de video circular (PTV).',
   cooldown: 5,
@@ -7,7 +9,7 @@ const pluginConfig = {
 
 let handler = async (m, { conn, usedPrefix, command }) => {
   let q = m.quoted ? m.quoted : m
-  let mime = (q.msg && q.msg.mimetype) || q.mimetype || ''
+  let mime = (q.msg || q).mimetype || ''
 
   if (!/video/.test(mime)) {
     return conn.reply(
@@ -23,7 +25,16 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
   let video
   try {
-    video = await q.download?.() || await conn.downloadMediaMessage(q)
+    video = await downloadMediaMessage(
+      q,
+      'buffer',
+      {},
+      {
+        logger: console,
+        reconnectMode: 'on'
+      }
+    )
+    if (!video) throw new Error('No se pudo descargar el video.')
   } catch (e) {
     return conn.reply(m.chat, `❌ Falló la descarga del video. Error: ${e.message || e}`, m)
   }
@@ -36,7 +47,6 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     }, { quoted: m })
 
     await m.react('🔥')
-
   } catch (err) {
     return conn.reply(m.chat, `❌ *Fallo en la transmutación*\n\n> ${err.message}`, m)
   }
