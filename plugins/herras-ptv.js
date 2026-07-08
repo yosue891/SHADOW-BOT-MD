@@ -1,5 +1,3 @@
-import { downloadMediaMessage } from '@whiskeysockets/baileys'
-
 const pluginConfig = {
   description: 'Envía un video como nota de video circular (PTV).',
   cooldown: 5,
@@ -25,16 +23,8 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
   let video
   try {
-    video = await downloadMediaMessage(
-      q,
-      'buffer',
-      {},
-      {
-        logger: console,
-        reconnectMode: 'on'
-      }
-    )
-    if (!video) throw new Error('No se pudo descargar el video.')
+    video = await q.download()
+    if (!video || (Buffer.isBuffer(video) && video.length === 0)) throw new Error('No se pudo descargar el video.')
   } catch (e) {
     return conn.reply(m.chat, `❌ Falló la descarga del video. Error: ${e.message || e}`, m)
   }
