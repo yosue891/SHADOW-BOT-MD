@@ -73,6 +73,22 @@ async function loadHandlerModule(cacheBust = false) {
 const MichiJBOptions = {}
 if (!(global.conns instanceof Array)) global.conns = []
 
+function isActiveConnection(sock) {
+  return sock?.user && sock.ws?.readyState !== 3 && sock.ws?.readyState !== undefined
+}
+
+function cleanStaleConns() {
+  if (!Array.isArray(global.conns)) return
+  for (let i = global.conns.length - 1; i >= 0; i--) {
+    const sock = global.conns[i]
+    if (!sock || (!sock.user && (!sock.ws || sock.ws.readyState === 3))) {
+      try { sock?.ev?.removeAllListeners() } catch {}
+      try { sock?.ws?.close() } catch {}
+      global.conns.splice(i, 1)
+    }
+  }
+}
+
 function isSubBotConnected(jid) {
   if (!jid) return false
   const user = jid.split('@')[0]
@@ -210,7 +226,8 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     return conn.reply(m.chat, retryMsg, m)
   }
 
-  const socklimit = global.conns.filter(sock => sock?.user).length
+  cleanStaleConns()
+  const socklimit = global.conns.filter(isActiveConnection).length
   if (socklimit >= 10) return m.reply('ꕥ No se han encontrado espacios para *Sockets* disponibles.')
 
   const mentionedJid = m.mentionedJid || []
@@ -371,6 +388,14 @@ const secret = await sock.requestPairingCode(phoneNumber)
     const reason = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode
     if (connection === 'close') {
       const subReconnectCount = sock._reconnectCount || 0
+      if (subReconnectCount >= 15) {
+        console.log(chalk.bold.redBright(`\n┆ Sesión (+${path.basename(pathMichiJadiBot)}) alcanzó máximo de reconexiones. Eliminando...`))
+        try { sock.ev.removeAllListeners() } catch {}
+        try { sock.ws?.close() } catch {}
+        const idx = global.conns.indexOf(sock)
+        if (idx >= 0) global.conns.splice(idx, 1)
+        return
+      }
       const backoff = Math.min(3000 * Math.pow(2, subReconnectCount), 60000)
       sock._reconnectCount = subReconnectCount + 1
 
@@ -398,6 +423,10 @@ const secret = await sock.requestPairingCode(phoneNumber)
         } catch {
           console.error(chalk.bold.yellow(`⚠︎ Error ${reason} no se pudo enviar mensaje a: +${path.basename(pathMichiJadiBot)}`))
         }
+        try { sock.ev.removeAllListeners() } catch {}
+        try { sock.ws?.close() } catch {}
+        const idx = global.conns.indexOf(sock)
+        if (idx >= 0) global.conns.splice(idx, 1)
         fs.rmSync(pathMichiJadiBot, { recursive: true, force: true })
         return
       }

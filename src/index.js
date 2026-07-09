@@ -419,16 +419,21 @@ console.error(err)
 })
 let isInit = true
 let handler = await import('./handler.js')
+global._reloading = false
 global.reloadHandler = async function(restatConn) {
+if (global._reloading) return
+global._reloading = true
 try {
 const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error);
 if (Object.keys(Handler || {}).length) handler = Handler
 } catch (e) {
 console.error(e);
 }
+try {
     if (restatConn) {
         const oldChats = global.conn.chats
         try {
+            conn.ev.removeAllListeners('connection.update')
             global.conn.ws.close()
             await delay(2000)
         } catch { }
@@ -449,6 +454,11 @@ conn.ev.on('messages.upsert', conn.handler)
 conn.ev.on('connection.update', conn.connectionUpdate)
 conn.ev.on('creds.update', conn.credsUpdate)
 isInit = false
+} catch (e) {
+console.error('Error en reloadHandler:', e)
+} finally {
+global._reloading = false
+}
 return true
 }
 //setInterval(() => {
@@ -586,6 +596,18 @@ try {
 if (existsSync(file)) await fs.promises.unlink(file).catch(() => {})
 } catch {}
 } }, 10 * 60 * 1000)
+// Limpieza global.conns - elimina sub-bots desconectados
+setInterval(() => {
+  if (!Array.isArray(global.conns)) return
+  for (let i = global.conns.length - 1; i >= 0; i--) {
+    const sock = global.conns[i]
+    if (!sock || (!sock.user && (!sock.ws || sock.ws.readyState === 3))) {
+      try { sock?.ev?.removeAllListeners() } catch {}
+      try { sock?.ws?.close() } catch {}
+      global.conns.splice(i, 1)
+    }
+  }
+}, 60000)
 // Health check - cada 120s verifica que el WebSocket esté vivo (solo si autenticado)
 let healthCheckFailures = 0
 setInterval(async () => {
