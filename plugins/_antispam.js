@@ -14,8 +14,8 @@ handler.before = async function (m, { conn, isAdmin, isBotAdmin, isOwner, isROwn
 
   const sender = m.sender
   const currentTime = Date.now()
-  const timeWindow = 12000   
-  const messageLimit = 20   
+  const timeWindow = 15000   
+  const messageLimit = 15
 
   if (!(sender in userSpamData)) {
     userSpamData[sender] = {

@@ -260,10 +260,10 @@ export async function handler(chatUpdate) {
         chat.primaryBot = null;
     }
 
-    if (opts["queque"] && m.text && !(isMods || isPrems)) {
+    if (m.text && !(isMods || isPrems)) {
         this.msgqueque.push(m.id || m.key.id);
         if (this.msgqueque.length > 1) {
-            await delay(1000 * 1.5);
+            await delay(500);
         }
         const quequeIndex = this.msgqueque.indexOf(m.id || m.key.id);
         if (quequeIndex !== -1) this.msgqueque.splice(quequeIndex, 1);
@@ -463,7 +463,7 @@ export async function handler(chatUpdate) {
     }
 
     if (m.sender && user) user.exp += m.exp;
-    if (!opts["noprint"]) await printModule?.(m, this).catch(err => console.warn(err));
+    if (!opts["noprint"] && m.isCommand) await printModule?.(m, this).catch(err => console.warn(err));
 }
 
 global.dfail = (type, m, conn) => {
