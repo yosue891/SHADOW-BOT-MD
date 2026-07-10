@@ -31,7 +31,25 @@ if (!text) return m.reply(`❀ Debes enviar un enlace de invitación para unirme
 const [_, code] = text.match(linkRegex) || []
 if (!code) return m.reply(`ꕥ El enlace de invitación no es válido.`)
 await m.react('🕒')
+try {
 await conn.groupAcceptInvite(code)
+} catch (e) {
+if (e.message?.includes('account_reachout_restricted')) {
+const info = await conn.groupGetInviteInfo(code).catch(() => null)
+if (info?.id) {
+const expiration = Math.floor(Date.now() / 1000) + 86400 * 7
+await conn.groupAcceptInviteV4(conn.user.jid, {
+groupJid: info.id,
+inviteCode: code,
+inviteExpiration: expiration
+})
+} else {
+throw e
+}
+} else {
+throw e
+}
+}
 await m.react('✔️')
 m.reply(`❀ ${botname} se a unido exitosamente al grupo.`)
 break
