@@ -29,7 +29,7 @@ let handler = async (m, { conn, usedPrefix }) => {
 `.trim()
 
     let comandosOwner = `
-*╭──* `JUEGOS DE SOMBRA` *⚜︎*
+*╭──* 'JUEGOS DE SOMBRA' *⚜︎*
 *│*  .morder @tag
 *│*  .8ball <pregunta>
 *│*  .afk [razón]
@@ -142,7 +142,7 @@ let handler = async (m, { conn, usedPrefix }) => {
 
   } catch (e) {
     console.error(e)
-    await conn.sendMessage(m.chat, { text: `✘ Un fallo ha surgido en el menú de owner: ${e.message}` })
+    await conn.sendMessage(m.chat, { text: `✘ Un fallo ha surgido en el menú de diversión: ${e.message}` })
   }
 }
 
@@ -158,4 +158,4 @@ function clockString(ms) {
   const m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60
   const s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':')
-                     }
+                                    }
