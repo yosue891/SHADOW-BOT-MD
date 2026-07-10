@@ -4,11 +4,9 @@ import fs from 'fs'
 import ws from 'ws'
 
 const linkRegex = /https:\/\/chat\.whatsapp\.com\/([0-9A-Za-z]{20,24})/i
-const handler = async (m, { conn, command, usedPrefix, text }) => {
+const handler = async (m, { conn, command, usedPrefix, text, isOwner, isROwner }) => {
 try {
-const senderNumber = m.sender?.split('@')[0]?.replace(/:\d+$/, '').replace(/\D/g, '') || ''
-const botNumber = conn.user.jid?.split('@')[0]?.replace(/:\d+$/, '').replace(/\D/g, '') || ''
-const isSubBots = senderNumber === botNumber || global.owner.some(([num]) => String(num) === senderNumber)
+const isSubBots = isOwner || isROwner || m.fromMe || (conn.user.jid === m.sender)
 if (!isSubBots) return m.reply(`❀ El comando *${command}* solo puede ser ejecutado por el Socket.`)
 switch (command) {
 case 'self': case 'public': case 'antiprivado': case 'antiprivate': case 'gponly': case 'sologp': {
