@@ -59,7 +59,7 @@ let handler = async (m, { conn, usedPrefix }) => {
 `.trim()
 
     let finalMenu = infoUser + '\n\n' + listaDescargas + '\n\n' + after
-    let imagenUrl = 'https://d.uguu.se/hqkQTrUX.jpeg'
+    let imagenUrl = 'https://adofiles.vercel.app/dl/0b4c0d1e.jpg'
 
     let bufferImage;
     try {
