@@ -34,7 +34,7 @@ await m.react('🕒')
 try {
 await conn.groupAcceptInvite(code)
 } catch (e) {
-if (e.message?.includes('account_reachout_restricted')) {
+if (/account_reachout_restricted/i.test(e.message || e)) {
 const info = await conn.groupGetInviteInfo(code).catch(() => null)
 if (info?.id) {
 const expiration = Math.floor(Date.now() / 1000) + 86400 * 7
@@ -44,8 +44,10 @@ inviteCode: code,
 inviteExpiration: expiration
 })
 } else {
-throw e
+return m.reply(`❀ La cuenta de WhatsApp del bot está restringida temporalmente por WhatsApp para unirse a grupos (account_reachout_restricted). Espera 24-72h para que se levante la restricción.`)
 }
+} else if (/Connection Closed/i.test(e.message || e)) {
+return m.reply(`❀ La conexión con WhatsApp está caída. Espera a que el bot se reconecte automáticamente y vuelve a intentarlo.`)
 } else {
 throw e
 }
