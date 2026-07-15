@@ -1,5 +1,4 @@
-import baileys from '@whiskeysockets/baileys'
-const { generateWAMessageFromContent, proto, downloadContentFromMessage } = baileys
+import { generateWAMessageFromContent, proto, downloadContentFromMessage } from '@whiskeysockets/baileys'
 
 const pluginConfig = {
   description: 'Envía un video como nota de video circular (PTV).',
@@ -10,7 +9,21 @@ const pluginConfig = {
 
 let handler = async (m, { conn, usedPrefix, command }) => {
   let q = m.quoted ? m.quoted : m
-  let mime = (q.msg || q).mimetype || ''
+  let mime = ''
+  let mediaMsg = null
+
+  if (m.quoted) {
+    let msgObj = m.quoted.mediaMessage || m.quoted.msg
+    if (msgObj) {
+      let type = Object.keys(msgObj)[0]
+      mediaMsg = msgObj[type]
+      mime = mediaMsg?.mimetype || ''
+    }
+  }
+  if (!mediaMsg) {
+    mediaMsg = m.msg || q
+    mime = mediaMsg?.mimetype || ''
+  }
 
   if (!mime.startsWith('video/')) {
     return conn.reply(
@@ -31,7 +44,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
   let video
   try {
     const messageType = mime.split('/')[0]
-    const stream = await downloadContentFromMessage(q.msg || q, messageType)
+    const stream = await downloadContentFromMessage(mediaMsg, messageType)
     let buffer = Buffer.from([])
     
     for await (const chunk of stream) {
