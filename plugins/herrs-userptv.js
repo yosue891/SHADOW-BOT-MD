@@ -1,28 +1,27 @@
 import fs from 'fs'
 import path from 'path'
 import axios from 'axios'
-import { generateWAMessageContent, generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
+import { downloadContentFromMessage, generateWAMessageContent, generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
 
 let handler = async (m, { conn, usedPrefix, command, text }) => {
-  let video = null
   let q = m.quoted ? m.quoted : m
-  let mime = (q.msg || q).mimetype || ''
+  let mime = ''
+  let mediaMsg = null
 
-  if (m.quoted && (/video|ptv/.test(mime) || m.quoted.isVideo)) {
-    try {
-      video = await m.quoted.download()
-    } catch (e) {
-      return m.reply(`❌ Fallo descarga video de quoted.`)
-    }
-  } else if (/video|ptv/.test(mime) || m.isVideo) {
-    try {
-      video = await m.download()
-    } catch (e) {
-      return m.reply(`❌ Fallo descarga video.`)
+  if (m.quoted) {
+    let msgObj = m.quoted.mediaMessage || m.quoted.msg
+    if (msgObj) {
+      let type = Object.keys(msgObj)[0]
+      mediaMsg = msgObj[type]
+      mime = mediaMsg?.mimetype || ''
     }
   }
+  if (!mediaMsg) {
+    mediaMsg = m.msg || q
+    mime = mediaMsg?.mimetype || ''
+  }
 
-  if (!video || !text || !text.includes('|')) {
+  if (!mime || !mime.startsWith('video/')) {
     return m.reply(
       `⚠️ *MODO DE USO MULTIFUNCIONAL*\n\n` +
       `> Responde o envía un video con el formato:\n` +
@@ -116,6 +115,26 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
   }
 
   await m.reply(`⏳ *ENVIANDO PTV AL DESTINO...*`)
+
+  let video
+  try {
+    const messageType = mime.split('/')[0]
+    const stream = await downloadContentFromMessage(mediaMsg, messageType)
+    let buffer = Buffer.from([])
+
+    for await (const chunk of stream) {
+      buffer = Buffer.concat([buffer, chunk])
+    }
+
+    video = buffer
+
+    if (!video || video.length < 1) {
+      throw new Error('No se pudo descargar el video.')
+    }
+  } catch (e) {
+    console.error(e)
+    return m.reply(`❌ Fallo descarga video.\n\n> ${e.message}`)
+  }
 
   const dir = path.join(process.cwd(), 'tmp')
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
