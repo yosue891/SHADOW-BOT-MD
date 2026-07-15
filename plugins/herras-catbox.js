@@ -1,97 +1,60 @@
-import {
-    prepareWAMessageMedia,
-    generateWAMessageFromContent
-} from "@whiskeysockets/baileys";
+import axios from 'axios'
+import FormData from 'form-data'
 
-const upload = async (m, { conn, from }) => {
-    const msg = m.quoted || m;
-    const mime = msg.mimetype || msg.mediaType || "";
+function randomName(ext = 'bin') {
+  return `${Math.random().toString(36).slice(2, 8)}.${ext}`
+}
 
-    if (!/image|video|audio/.test(mime)) {
-        return m.reply("❌ Responde a una imagen, video o audio.");
-    }
+async function uploadCatbox(buffer, mime) {
+  const form = new FormData()
+  form.append('reqtype', 'fileupload')
+  form.append('userhash', 'c9bc208e83a7dbc7c7cc68aff')
+  form.append('fileToUpload', buffer, {
+    filename: randomName(mime.split('/')[1]),
+    contentType: mime
+  })
 
-    try {
-        const buffer = await msg.download();
-        const base64 = `data:${mime};base64,${buffer.toString("base64")}`;
+  const { data } = await axios.post(
+    'https://catbox.moe/user/api.php',
+    form,
+    { headers: form.getHeaders() }
+  )
 
-        let ext = "png";
-        if (/video/.test(mime)) ext = "mp4";
-        if (/audio/.test(mime)) ext = "mp3";
+  if (!data.startsWith('https://')) throw 'Error en Catbox'
+  return data
+}
 
-        const res = await fetch("https://yoru-box.onrender.com/upload", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                data: base64,
-                name: `file_${Date.now()}.${ext}`
-            })
-        });
+let handler = async (m, { conn, usedPrefix, command }) => {
+  let q = m.quoted || m
+  let mime = (q.msg || q).mimetype || ''
 
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
+  if (!mime) {
+    return m.reply(`Responde a una imagen, video o documento para subirlo a Catbox.`)
+  }
 
-        let mediaObj = {};
-        if (/image/.test(mime)) mediaObj = { image: buffer };
-        else if (/video/.test(mime)) mediaObj = { video: buffer };
-        else if (/audio/.test(mime)) mediaObj = { audio: buffer };
+  let media = await q.download()
+  if (!media) throw 'No pude descargar el archivo.'
 
-        const media = await prepareWAMessageMedia(mediaObj, {
-            upload: conn.waUploadToServer
-        });
+  await m.reply('Subiendo archivo a Catbox, espera un momento...')
 
-        const buttons = [
-            {
-                name: "cta_copy",
-                buttonParamsJson: JSON.stringify({
-                    display_text: "📋 Copiar enlace",
-                    copy_code: json.url
-                })
-            }
-        ];
+  try {
+    let url = await uploadCatbox(media, mime)
+    
+    m.reply(
+`*UPLOAD COMPLETADO*
 
-        let headerMessage = {};
-        if (media.imageMessage) headerMessage = { title: "Archivo subido", hasMediaAttachment: true, imageMessage: media.imageMessage };
-        else if (media.videoMessage) headerMessage = { title: "Archivo subido", hasMediaAttachment: true, videoMessage: media.videoMessage };
-        else if (media.audioMessage) headerMessage = { title: "Archivo subido", hasMediaAttachment: true, audioMessage: media.audioMessage };
+• Servidor: Catbox
+• Tipo: ${mime}
+• URL:
+${url}`
+    )
+  } catch (error) {
+    throw 'Ocurrió un error al intentar subir a Catbox: ' + error
+  }
+}
 
-        const message = generateWAMessageFromContent(
-            from,
-            {
-                viewOnceMessage: {
-                    message: {
-                        interactiveMessage: {
-                            header: headerMessage,
-                            body: {
-                                text: "✅ Archivo subido correctamente.\n\nPulsa el botón de abajo para copiar tu enlace."
-                            },
-                            footer: {
-                                text: "Shadow-BOT-MD ⚡"
-                            },
-                            nativeFlowMessage: {
-                                buttons
-                            }
-                        }
-                    }
-                }
-            },
-            {
-                userJid: conn.user.id
-            }
-        );
+handler.help = ['catbox']
+handler.tags = ['tools']
+handler.command = ['catbox', 'upload']
 
-        await conn.relayMessage(from, message.message, {
-            messageId: message.key.id
-        });
-
-    } catch (e) {
-        console.error(e);
-        m.reply("❌ Error al procesar y subir el archivo.");
-    }
-};
-
-upload.command = ["catbox", "imgurl", "upload", "tourl"];
-
-export default upload;
+export default handler
