@@ -1,4 +1,4 @@
-import { generateWAMessageFromContent, proto, downloadContentFromMessage } from '@whiskeysockets/baileys'
+import { generateWAMessageFromContent, generateWAMessageContent, proto, downloadContentFromMessage } from '@whiskeysockets/baileys'
 
 const pluginConfig = {
   description: 'Envía un video como nota de video circular (PTV).',
@@ -66,19 +66,15 @@ let handler = async (m, { conn, usedPrefix, command }) => {
   }
 
   try {
-    const upload = await conn.waUploadToServer(video, { mimetype: 'video/mp4' })
-    
+    const { videoMessage } = await generateWAMessageContent(
+      { video: video },
+      { upload: conn.waUploadToServer }
+    )
+
+    videoMessage.ptv = true
+
     const msg = generateWAMessageFromContent(m.chat, {
-      videoMessage: proto.VideoMessage.fromObject({
-        url: upload.url,
-        directPath: upload.directPath,
-        mediaKey: upload.mediaKey,
-        mimetype: 'video/mp4',
-        fileEncSha256: upload.fileEncSha256,
-        fileSha256: upload.fileSha256,
-        fileLength: upload.fileLength,
-        ptv: true
-      })
+      videoMessage: proto.VideoMessage.fromObject(videoMessage)
     }, { quoted: m })
 
     await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
