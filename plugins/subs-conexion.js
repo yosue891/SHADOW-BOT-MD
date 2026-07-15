@@ -358,7 +358,7 @@ const secret = await sock.requestPairingCode(phoneNumber)
 ✧ Número solicitado: +${phoneNumber}
 ✧ Código: *${formattedSecret}*
 
-> Escríbelo en WhatsApp exactamente cuando aparezca la pantalla de vinculación. Si WhatsApp no acepta guiones, escríbelo así: *${secret}*`, ...global.rcanal }, { quoted: m })
+> Escríbelo en WhatsApp exactamente cuando aparezca la pantalla de vinculación. Si WhatsApp no acepta guiones, escríbelo así: *${secret}*` }, { quoted: m })
       codeBot = await m.reply(secret)
       console.log(`[PAIRING-CODE] ${phoneNumber}: ${secret}`)
       if (txtCode?.key) setTimeout(() => conn.sendMessage(m.chat, { delete: txtCode.key }).catch(() => {}), PAIRING_CODE_TTL_MS)
