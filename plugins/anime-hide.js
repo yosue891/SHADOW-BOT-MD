@@ -26,20 +26,10 @@ let handler = async (m, { conn, usedPrefix }) => {
     }
     
     if (m.isGroup) {
-        let pp = 'https://cdn.adoolab.xyz/dl/36b9923f.mp4'; 
-        let pp2 = 'https://cdn.adoolab.xyz/dl/a96d4b84.mp4'; 
-        let pp3 = 'https://cdn.adoolab.xyz/dl/bc2fd5cb.mp4';
-        let pp4 = 'https://cdn.adoolab.xyz/dl/dbe725db.mp4';
-        let pp5 = 'https://cdn.adoolab.xyz/dl/cc2af6b0.mp4';
-        let pp6 = 'https://cdn.adoolab.xyz/dl/dbe725db.mp4';
-        let pp7 = 'https://cdn.adoolab.xyz/dl/bc2fd5cb.mp4';
-        let pp8 = 'https://cdn.adoolab.xyz/dl/a96d4b84.mp4';
-        
-        const videos = [pp, pp2, pp3, pp4, pp5, pp6, pp7, pp8];
-        const video = videos[Math.floor(Math.random() * videos.length)];
+        let imagen = 'https://i.ibb.co/3NfYh9k/default-avatar.png';
 
         let mentions = [who];
-        conn.sendMessage(m.chat, { video: { url: video }, gifPlayback: true, caption: str, mentions }, { quoted: m });
+        conn.sendMessage(m.chat, { image: { url: imagen }, caption: str, mentions }, { quoted: m });
     }
 }
 

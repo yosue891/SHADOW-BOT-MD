@@ -59,7 +59,7 @@ let handler = async (m, { conn, usedPrefix }) => {
 *╰─────────────╯*`.trim()
 
     let finalMenu = infoUser + '\n\n' + comandosOwner
-    let videoUrl = 'https://files.catbox.moe/036yza.mp4'
+    let imagenUrl = 'https://i.ibb.co/3NfYh9k/default-avatar.png'
 
     let vcard = `BEGIN:VCARD\nVERSION:3.0\nN:;Itachi;;;\nFN:Itachi\nitem1.TEL;waid=13135550002:+1 (313) 555-0002\nitem1.X-ABLabel:Celular\nEND:VCARD`
     let qkontak = { 
@@ -69,7 +69,12 @@ let handler = async (m, { conn, usedPrefix }) => {
 
     await m.react('🔥')
 
-    let media = await prepareWAMessageMedia({ video: { url: videoUrl }, gifPlayback: true }, { upload: conn.waUploadToServer })
+    let media;
+    try {
+      media = await prepareWAMessageMedia({ image: { url: imagenUrl } }, { upload: conn.waUploadToServer })
+    } catch {
+      media = null
+    }
 
     const msg = generateWAMessageFromContent(m.chat, {
       viewOnceMessage: {
@@ -77,10 +82,10 @@ let handler = async (m, { conn, usedPrefix }) => {
           interactiveMessage: {
             body: { text: finalMenu },
             footer: { text: botname },
-            header: {
+            header: media ? {
               hasMediaAttachment: true,
-              videoMessage: media.videoMessage
-            },
+              imageMessage: media.imageMessage
+            } : undefined,
             nativeFlowMessage: {
               buttons: [
                 {

@@ -6,7 +6,7 @@ import moment from 'moment-timezone'
 
 const botname = global.botname || "Shadow Garden"
 const dev = global.dev || "Cid Kagenou"
-const banner = global.banner || "https://files.catbox.moe/ymckla.mp4"
+const banner = global.banner || "https://i.ibb.co/3NfYh9k/default-avatar.png"
 const channelRD = global.channelRD || { id: "0@newsletter", name: "Shadow Channel" }
 
 let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
@@ -99,7 +99,15 @@ ${readMore}
    ]
    let icons = icon[Math.floor(Math.random() * icon.length)]
 
-  const Shadow_url = await (await fetch(icons)).buffer()
+   let Shadow_url = null
+   try {
+     const ctrl = new AbortController()
+     const t = setTimeout(() => ctrl.abort(), 8000)
+     Shadow_url = await (await fetch(icons, { signal: ctrl.signal })).buffer()
+     clearTimeout(t)
+   } catch {
+     Shadow_url = Buffer.alloc(0)
+   }
   const fkontak = {
     key: {
       fromMe: false,
@@ -127,8 +135,7 @@ ${readMore}
   await m.react('🔥')
   
   await conn.sendMessage(m.chat, { 
-    video: { url: banner }, 
-    gifPlayback: true,
+    image: { url: banner },
     caption: infoUser + menuTexto,
     contextInfo: {
       isForwarded: true,

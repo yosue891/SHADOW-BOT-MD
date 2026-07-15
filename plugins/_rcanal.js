@@ -20,12 +20,15 @@ export async function before(m, { conn }) {
       }
     }
 
-    const canales = [global.idcanal, global.idcanal2]
-    const newsletterJidRandom = canales[Math.floor(Math.random() * canales.length)]
+    const canales = [global.idcanal || '120363403739366547@newsletter', global.idcanal2 || '120363403739366547@newsletter']
+    const channelRD = global.channelRD || { id: canales[0], name: 'SHADOW-BOT-MD' }
 
     let bannerBuffer = null
     try {
-      bannerBuffer = await (await fetch(bannerFinal)).buffer()
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), 8000)
+      bannerBuffer = await (await fetch(bannerFinal, { signal: controller.signal })).buffer()
+      clearTimeout(timer)
     } catch {
       bannerBuffer = null
     }

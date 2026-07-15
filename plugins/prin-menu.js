@@ -23,11 +23,17 @@ function clockString(ms) {
   return [h, m, s].map((v) => v.toString().padStart(2, "0")).join(":")
 }
 
-async function getBufferFromUrl(url) {
-  const r = await fetch(url)
-  if (!r.ok) throw new Error(`No se pudo descargar: ${url}`)
-  const arrayBuffer = await r.arrayBuffer()
-  return Buffer.from(arrayBuffer)
+async function getBufferFromUrl(url, timeoutMs = 8000) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const r = await fetch(url, { signal: controller.signal })
+    if (!r.ok) throw new Error(`No se pudo descargar: ${url}`)
+    const arrayBuffer = await r.arrayBuffer()
+    return Buffer.from(arrayBuffer)
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 let handler = async (m, { conn, usedPrefix }) => {
@@ -56,7 +62,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     if (!profilePic) profilePic = "https://i.ibb.co/3NfYh9k/default-avatar.png"
 
     let botNameToShow = global.botname || meName
-    let bannerUrl = "https://files.catbox.moe/zuyn8i.jpeg"
+    let bannerUrl = "https://i.ibb.co/3NfYh9k/default-avatar.png"
 
     const channelUrl = "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
     const botType = (conn.user?.jid || "") === (global.conn?.user?.jid || "") ? "Principal" : "Sub-Bot"
@@ -104,9 +110,20 @@ let handler = async (m, { conn, usedPrefix }) => {
       `🌵 ${channelUrl}`
     ].join("\n")
 
-    const thumbBuffer = await getBufferFromUrl(bannerUrl).catch(async () =>
-      await getBufferFromUrl("https://adofiles.vercel.app/dl/1dc604bd.jpg")
-    )
+    const thumbBuffer = await getBufferFromUrl(bannerUrl).catch(() => null)
+
+    let media = null
+    if (thumbBuffer) {
+      try {
+        media = await prepareWAMessageMedia(
+          { image: thumbBuffer },
+          { upload: conn.waUploadToServer }
+        )
+      } catch (e) {
+        console.error('Error preparando media del menú:', e)
+        media = null
+      }
+    }
 
     const sections = [
       {
@@ -131,20 +148,15 @@ let handler = async (m, { conn, usedPrefix }) => {
       }
     ]
 
-    const media = await prepareWAMessageMedia(
-      { image: thumbBuffer },
-      { upload: conn.waUploadToServer }
-    )
-
     const nativeFlowPayload = {
       body: { text: `𝗠𝗘𝗡𝗨 • ${botNameToShow}` },
       footer: { text: menuText },
-      header: {
+      header: media ? {
         title: `🐢 ${botNameToShow}`,
         subtitle: `👤 ${name} • ⏱ ${uptime}`,
         hasMediaAttachment: true,
         imageMessage: media.imageMessage
-      },
+      } : undefined,
       nativeFlowMessage: {
         buttons: [
           {

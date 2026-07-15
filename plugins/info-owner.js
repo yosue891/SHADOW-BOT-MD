@@ -10,7 +10,7 @@ const handler = async (m, { conn }) => {
         name: "Yosue",
         role: "Owner Principal",
         number: "584242773183",
-        image: "https://adofiles.vercel.app/dl/a1fbe517.jpg",
+        image: "https://i.ibb.co/3NfYh9k/default-avatar.png",
         description: "Creador principal y encargado del desarrollo general.\n\n🌐 GitHub: github.com/yosue891\n📢 Canal: https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O\n📦 Repo: https://github.com/yosue891/SHADOW-BOT-MD.git",
         btnLabel: "Canal de Yosue",
         btnUrl: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
@@ -19,7 +19,7 @@ const handler = async (m, { conn }) => {
         name: "Ado",
         role: "Segundo Creador Principal",
         number: "50498273976",
-        image: "https://adofiles.vercel.app/dl/268134ec.jpg",
+        image: "https://i.ibb.co/3NfYh9k/default-avatar.png",
         description: "Co-creador y encargado de la optimización y soporte del proyecto.\n\n🌐 GitHub: github.com/ado-hub\n📢 Canal: https://whatsapp.com/channel/0029VbD5h6s0AgWBpfCQlw2P\n📦 Repo: https://github.com/yosue891/SHADOW-BOT-MD.git",
         btnLabel: "Canal de Ado",
         btnUrl: "https://whatsapp.com/channel/0029VbD5h6s0AgWBpfCQlw2P"
@@ -28,7 +28,7 @@ const handler = async (m, { conn }) => {
         name: "Gabriel",
         role: "Desarrollador",
         number: "584248272650",
-        image: "https://adofiles.vercel.app/dl/0b4c0d1e.jpg",
+        image: "https://i.ibb.co/3NfYh9k/default-avatar.png",
         description: "Soporte técnico y desarrollador de funciones avanzadas.\n\n💬 Grupo: https://chat.whatsapp.com/GNZoTT5MKYe6yJtfCdCqoO\n📦 Repo: https://github.com/yosue891/SHADOW-BOT-MD.git",
         btnLabel: "Grupo de Ventas/Sorteos",
         btnUrl: "https://chat.whatsapp.com/GNZoTT5MKYe6yJtfCdCqoO"
@@ -41,9 +41,13 @@ const handler = async (m, { conn }) => {
     for (let creator of creators) {
       let imageBuffer
       try {
-        imageBuffer = (await axios.get(creator.image, { responseType: 'arraybuffer' })).data
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 8000);
+        imageBuffer = (await axios.get(creator.image, { responseType: 'arraybuffer', signal: controller.signal })).data
       } catch {
-        imageBuffer = (await axios.get(fallbackImage, { responseType: 'arraybuffer' })).data
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 8000);
+        imageBuffer = (await axios.get(fallbackImage, { responseType: 'arraybuffer', signal: controller.signal })).data
       }
 
       const { imageMessage } = await generateWAMessageContent({ image: imageBuffer }, { upload: conn.waUploadToServer })

@@ -36,8 +36,11 @@ global.dev = "SHADOW-BOT-MD"
 global.author = "*SHADOW-BOT-MD* © mᥲძᥱ ᥕі𝗍һ 𝙮𝙤𝙨𝙪𝙚"
 global.etiqueta = "© 𝙮𝙤𝙨𝙪𝙚 | 𝟤𝟢𝟤𝟧"
 global.currency = "¢ Pesos"
-global.michipg = "https://cdn.adoolab.xyz/dl/ef0d7efa.webp"
-global.icono = "https://cdn.adoolab.xyz/dl/e05b5644.webp"
+global.michipg = "https://i.ibb.co/3NfYh9k/default-avatar.png"
+global.icono = "https://i.ibb.co/3NfYh9k/default-avatar.png"
+global.idcanal = "120363403739366547@newsletter"
+global.idcanal2 = "120363403739366547@newsletter"
+global.banner = "https://i.ibb.co/3NfYh9k/default-avatar.png"
 global.catalogo = fs.readFileSync('./lib/catalogo.jpg')
 
 

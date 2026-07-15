@@ -68,7 +68,12 @@ let handler = async (m, { conn, usedPrefix }) => {
 
     await m.react('🔥')
 
-    let media = await prepareWAMessageMedia({ image: { url: imagen } }, { upload: conn.waUploadToServer })
+    let media;
+    try {
+      media = await prepareWAMessageMedia({ image: { url: imagen } }, { upload: conn.waUploadToServer })
+    } catch {
+      media = null
+    }
 
     const msg = generateWAMessageFromContent(m.chat, {
       viewOnceMessage: {
@@ -76,10 +81,10 @@ let handler = async (m, { conn, usedPrefix }) => {
           interactiveMessage: {
             body: { text: finalMenu },
             footer: { text: botname },
-            header: {
+            header: media ? {
               hasMediaAttachment: true,
               imageMessage: media.imageMessage
-            },
+            } : undefined,
             nativeFlowMessage: {
               buttons: [
                 {

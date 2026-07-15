@@ -149,19 +149,12 @@ const handler = async (m, { conn, command, usedPrefix, text }) => {
     users[userId].marry = suitorId
     users[suitorId].marry = userId
 
-    const gifs = [
-      'https://cdn.adoolab.xyz/dl/b74d5c58.mp4',
-      'https://cdn.adoolab.xyz/dl/d6a34e16.mp4',
-      'https://cdn.adoolab.xyz/dl/d6a34e16.mp4'
-    ]
-
-    const randomGif = gifs[Math.floor(Math.random() * gifs.length)]
+    const img = 'https://i.ibb.co/3NfYh9k/default-avatar.png'
 
     return conn.sendMessage(
       m.chat,
       {
-        video: { url: randomGif },
-        gifPlayback: true,
+        image: { url: img },
         caption: `💒 『☽』 Las sombras han sellado el pacto.\n@${suitorId.split('@')[0]} y @${userId.split('@')[0]} ahora están casados.\n\n🎉🥳 *¡VIVAN LOS NOVIOSSS NJD!*`,
         mentions: [suitorId, userId]
       },

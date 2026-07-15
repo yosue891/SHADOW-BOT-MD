@@ -59,33 +59,34 @@ let handler = async (m, { conn, usedPrefix }) => {
 `.trim()
 
     let finalMenu = infoUser + '\n\n' + listaDescargas + '\n\n' + after
-    let imagenUrl = 'https://files.catbox.moe/26zyi5.jpeg'
+    let imagenUrl = 'https://i.ibb.co/3NfYh9k/default-avatar.png'
 
-    let bufferImage;
+    let media;
     try {
-        let res = await fetch(imagenUrl);
-        if (res.ok) bufferImage = await res.buffer();
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 8000);
+        let res = await fetch(imagenUrl, { signal: controller.signal });
+        if (res.ok) {
+            let bufferImage = await res.buffer();
+            media = await prepareWAMessageMedia(
+                { image: bufferImage },
+                { upload: conn.waUploadToServer }
+            );
+        }
     } catch {
-        bufferImage = null;
+        media = null;
     }
 
-    if (!bufferImage) return m.reply('❌ No se pudo descargar la imagen desde el servidor.')
-
-    let media = await prepareWAMessageMedia(
-        { image: bufferImage },
-        { upload: conn.waUploadToServer }
-    ).catch(_ => null)
-
-    if (!media) return m.reply('❌ Error al procesar el formato de la imagen.')
+    if (!media) return m.reply('❌ No se pudo cargar la imagen para el menú.')
 
     const msg = generateWAMessageFromContent(m.chat, {
         viewOnceMessage: {
             message: {
                 interactiveMessage: {
-                    header: {
+                    header: media ? {
                         hasMediaAttachment: true,
                         imageMessage: media.imageMessage 
-                    },
+                    } : undefined,
                     body: { text: finalMenu },
                     footer: { text: "🪴 .ღSHADOW-BOT-MD༻๖ۣۜ◥ὦɧ◤🪴" },
                     nativeFlowMessage: {

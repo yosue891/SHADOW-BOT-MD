@@ -1,6 +1,6 @@
 import fetch from 'node-fetch'
 
-const imagen1 = 'https://cdn.adoolab.xyz/dl/c33c1751.jpg'
+const imagen1 = 'https://i.ibb.co/3NfYh9k/default-avatar.png'
 
 var handler = async (m, { conn }) => {
   let who = m.mentionedJid?.[0] || m.quoted?.sender || m.sender
