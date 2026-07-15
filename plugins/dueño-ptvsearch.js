@@ -42,7 +42,16 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
     const content = await generateWAMessageContent(
       { video: { url: tempPath }, ptv: true },
-      { upload: conn.waUploadToServer }
+      {
+        jid: canalId,
+        upload: async (readStream, opts) => {
+          const up = await conn.waUploadToServer(readStream, {
+            ...opts,
+            newsletter: true
+          })
+          return up
+        }
+      }
     )
 
     const msg = generateWAMessageFromContent(canalId, content, { userJid: conn.user.id })

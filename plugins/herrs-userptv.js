@@ -126,7 +126,16 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
 
     const content = await generateWAMessageContent(
       { video: { url: tempPath }, ptv: true },
-      { upload: conn.waUploadToServer }
+      {
+        jid: isNewsletter ? chatId : undefined,
+        upload: async (readStream, opts) => {
+          const up = await conn.waUploadToServer(readStream, {
+            ...opts,
+            ...(isNewsletter ? { newsletter: true } : {})
+          })
+          return up
+        }
+      }
     )
 
     if (!isNewsletter) {
