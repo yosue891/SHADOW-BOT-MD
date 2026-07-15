@@ -1,4 +1,7 @@
+import fs from 'fs'
+import path from 'path'
 import axios from 'axios'
+import { generateWAMessageContent, generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
 
 const handler = async (m, { conn, text, usedPrefix }) => {
   if (!text) {
@@ -13,6 +16,9 @@ const handler = async (m, { conn, text, usedPrefix }) => {
       ;[array[i], array[j]] = [array[j], array[i]]
     }
   }
+
+  const dir = path.join(process.cwd(), 'tmp')
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
 
   try {
     if (m.react) await m.react('🕒')
@@ -54,15 +60,38 @@ const handler = async (m, { conn, text, usedPrefix }) => {
       }
 
       if (play) {
-        await conn.sendMessage(
-          m.chat,
-          {
-            video: { url: play },
-            mimetype: 'video/mp4',
-            ptv: true
-          },
-          { quoted: m }
-        )
+        const tempPath = path.join(dir, `ptv_${Date.now()}.mp4`)
+        try {
+          const videoRes = await axios({ url: play, method: 'GET', responseType: 'arraybuffer', timeout: 30000 })
+          await fs.promises.writeFile(tempPath, Buffer.from(videoRes.data))
+
+          const content = await generateWAMessageContent(
+            { video: { url: tempPath }, ptv: true },
+            { upload: conn.waUploadToServer }
+          )
+
+          const quotedMsg = m.quoted || m
+          const quotedType = quotedMsg.mtype || m.mtype
+          const quotedContent = quotedMsg.msg || quotedMsg
+          if (quotedContent && quotedType) {
+            content.ptvMessage.contextInfo = {
+              stanzaId: quotedMsg.id || m.id,
+              participant: quotedMsg.sender || m.sender,
+              quotedMessage: proto.Message.create({ [quotedType]: quotedContent })
+            }
+            if (m.chat !== (quotedMsg.chat || m.chat)) {
+              content.ptvMessage.contextInfo.remoteJid = quotedMsg.chat
+            }
+          }
+
+          const msg = generateWAMessageFromContent(m.chat, content, { userJid: conn.user.id })
+          await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
+        } finally {
+          if (fs.existsSync(tempPath)) {
+            await fs.promises.unlink(tempPath).catch(console.error)
+          }
+        }
+
         if (m.react) await m.react('✔️')
         return
       }
@@ -101,15 +130,37 @@ const handler = async (m, { conn, text, usedPrefix }) => {
     const topResults = results.slice(0, 4)
 
     for (const v of topResults) {
-      await conn.sendMessage(
-        m.chat,
-        {
-          video: { url: v.play },
-          mimetype: 'video/mp4',
-          ptv: true
-        },
-        { quoted: m }
-      )
+      const tempPath = path.join(dir, `ptv_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.mp4`)
+      try {
+        const videoRes = await axios({ url: v.play, method: 'GET', responseType: 'arraybuffer', timeout: 30000 })
+        await fs.promises.writeFile(tempPath, Buffer.from(videoRes.data))
+
+        const content = await generateWAMessageContent(
+          { video: { url: tempPath }, ptv: true },
+          { upload: conn.waUploadToServer }
+        )
+
+        const quotedMsg = m.quoted || m
+        const quotedType = quotedMsg.mtype || m.mtype
+        const quotedContent = quotedMsg.msg || quotedMsg
+        if (quotedContent && quotedType) {
+          content.ptvMessage.contextInfo = {
+            stanzaId: quotedMsg.id || m.id,
+            participant: quotedMsg.sender || m.sender,
+            quotedMessage: proto.Message.create({ [quotedType]: quotedContent })
+          }
+          if (m.chat !== (quotedMsg.chat || m.chat)) {
+            content.ptvMessage.contextInfo.remoteJid = quotedMsg.chat
+          }
+        }
+
+        const msg = generateWAMessageFromContent(m.chat, content, { userJid: conn.user.id })
+        await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
+      } finally {
+        if (fs.existsSync(tempPath)) {
+          await fs.promises.unlink(tempPath).catch(console.error)
+        }
+      }
     }
 
     if (m.react) await m.react('🔥')

@@ -1,4 +1,7 @@
+import fs from 'fs'
+import path from 'path'
 import axios from 'axios'
+import { generateWAMessageContent, generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
 
 let handler = async (m, { conn, usedPrefix, command, text }) => {
   let video = null
@@ -114,22 +117,46 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
 
   await m.reply(`⏳ *ENVIANDO PTV AL DESTINO...*`)
 
+  const dir = path.join(process.cwd(), 'tmp')
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const tempPath = path.join(dir, `ptv_${Date.now()}.mp4`)
+
   try {
-    await conn.sendMessage(chatId, {
-      video: video,
-      mimetype: 'video/mp4',
-      ptv: true
-    }, { 
-      quoted: isNewsletter ? null : m,
-      backgroundColor: '#000000',
-      mediaUploadPage: true
-    })
+    await fs.promises.writeFile(tempPath, video)
+
+    const content = await generateWAMessageContent(
+      { video: { url: tempPath }, ptv: true },
+      { upload: conn.waUploadToServer }
+    )
+
+    if (!isNewsletter) {
+      const quotedMsg = m.quoted || m
+      const quotedType = quotedMsg.mtype || m.mtype
+      const quotedContent = quotedMsg.msg || quotedMsg
+      if (quotedContent && quotedType) {
+        content.ptvMessage.contextInfo = {
+          stanzaId: quotedMsg.id || m.id,
+          participant: quotedMsg.sender || m.sender,
+          quotedMessage: proto.Message.create({ [quotedType]: quotedContent })
+        }
+        if (m.chat !== (quotedMsg.chat || m.chat)) {
+          content.ptvMessage.contextInfo.remoteJid = quotedMsg.chat
+        }
+      }
+    }
+
+    const msg = generateWAMessageFromContent(chatId, content, { userJid: conn.user.id })
+
+    await conn.relayMessage(chatId, msg.message, { messageId: msg.key.id })
 
     await m.react('✅')
     return m.reply(`✅ *ÉXITO*\n\n> El video fue enviado correctamente como PTV al destino indicado.`)
-
   } catch (err) {
     return m.reply(`❌ *FALLO*\n\n> Error: ${err.message}`)
+  } finally {
+    if (fs.existsSync(tempPath)) {
+      await fs.promises.unlink(tempPath).catch(console.error)
+    }
   }
 }
 

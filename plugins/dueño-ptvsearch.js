@@ -1,3 +1,7 @@
+import fs from 'fs'
+import path from 'path'
+import { generateWAMessageContent, generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
+
 let handler = async (m, { conn, usedPrefix, command }) => {
   let video = null
   let q = m.quoted ? m.quoted : m
@@ -29,22 +33,30 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
   await m.reply(`⏳ *ᴍblockᴇblockɴblockɢblockɪblockʀblockɪblockᴍ ᴘblockᴛblockᴠ...*`)
 
+  const dir = path.join(process.cwd(), 'tmp')
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const tempPath = path.join(dir, `ptv_${Date.now()}.mp4`)
+
   try {
-    await conn.sendMessage(canalId, {
-      video: video,
-      mimetype: 'video/mp4',
-      ptv: true
-    }, { 
-      quoted: null,
-      backgroundColor: '#000000',
-      mediaUploadPage: true
-    })
+    await fs.promises.writeFile(tempPath, video)
+
+    const content = await generateWAMessageContent(
+      { video: { url: tempPath }, ptv: true },
+      { upload: conn.waUploadToServer }
+    )
+
+    const msg = generateWAMessageFromContent(canalId, content, { userJid: conn.user.id })
+
+    await conn.relayMessage(canalId, msg.message, { messageId: msg.key.id })
 
     await m.react('✅')
     return m.reply(`✅ *sᴜᴋsᴇs*\n\n> Video éxito dikirim ke channel sebagai PTV.`)
-
   } catch (err) {
     return m.reply(`❌ *ɢᴀɢᴀʟ*\n\n> Error: ${err.message}`)
+  } finally {
+    if (fs.existsSync(tempPath)) {
+      await fs.promises.unlink(tempPath).catch(console.error)
+    }
   }
 }
 
