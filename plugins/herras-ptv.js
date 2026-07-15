@@ -1,6 +1,3 @@
-import baileys from '@whiskeysockets/baileys'
-const { generateWAMessageFromContent, proto } = baileys
-
 const pluginConfig = {
   description: 'Envía un video como nota de video circular (PTV).',
   cooldown: 5,
@@ -15,8 +12,8 @@ let handler = async (m, { conn, usedPrefix, command }) => {
   if (!mime.startsWith('video/')) {
     return conn.reply(
       m.chat,
-      `[ 🕸️ ] *MODO DE USO REQUERIDO*\n\n` +
-      `> Envía un *video* o *responde a uno* y desata el poder con:\n` +
+      ` *MODO DE USO*\n\n` +
+      `> Envía un *video* o *responde a un video* y escribe:\n` +
       `> \`${usedPrefix + command}\``,
       m
     )
@@ -24,7 +21,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
   await conn.reply(
     m.chat,
-    '[ ⏳ ] *Canalizando la energía... Convirtiendo el video a nota circular (PTV)...*',
+    ' *Convirtiendo el video a PTV...*',
     m
   )
 
@@ -33,41 +30,35 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     video = await q.download?.()
 
     if (!video || video.length < 1) {
-      throw new Error('Las sombras no pudieron extraer el flujo de video.')
+      throw new Error('No se pudo descargar el video.')
     }
   } catch (e) {
     console.error(e)
     return conn.reply(
       m.chat,
-      `[ 🩸 ] Fallo al descargar el recuerdo visual.\n\n> ${e.message || e}`,
+      `Error al descargar el video.\n\n> ${e.message || e}`,
       m
     )
   }
 
   try {
-    const upload = await conn.waUploadToServer(video, { mimetype: 'video/mp4' })
-    
-    const msg = generateWAMessageFromContent(m.chat, {
-      videoMessage: proto.VideoMessage.fromObject({
-        url: upload.url,
-        directPath: upload.directPath,
-        mediaKey: upload.mediaKey,
+    // Corrección para evitar el error 'undefined' al enviar el PTV
+    await conn.sendMessage(
+      m.chat,
+      {
+        video: video,
         mimetype: 'video/mp4',
-        fileEncSha256: upload.fileEncSha256,
-        fileSha256: upload.fileSha256,
-        fileLength: upload.fileLength,
         ptv: true
-      })
-    }, { quoted: m })
+      },
+      { quoted: m }
+    )
 
-    await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
-    await m.react('⚔️')
-    
+    if (m.react) await m.react('✅')
   } catch (err) {
     console.error(err)
     return conn.reply(
       m.chat,
-      `[ 🩸 ] Las sombras colapsaron al proyectar el PTV.\n\n> ${err.message || err}`,
+      `Error al enviar el PTV.\n\n> ${err.message || err}`,
       m
     )
   }
