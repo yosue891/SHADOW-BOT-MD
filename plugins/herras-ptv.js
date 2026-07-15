@@ -1,4 +1,4 @@
-import { generateWAMessageFromContent, generateWAMessageContent, proto, downloadContentFromMessage } from '@whiskeysockets/baileys'
+import { generateWAMessageFromContent, generateWAMessageContent, downloadContentFromMessage } from '@whiskeysockets/baileys'
 
 const pluginConfig = {
   description: 'Envía un video como nota de video circular (PTV).',
@@ -25,7 +25,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     mime = mediaMsg?.mimetype || ''
   }
 
-  if (!mime.startsWith('video/')) {
+  if (!mime || !mime.startsWith('video/')) {
     return conn.reply(
       m.chat,
       `[ 🕸️ ] *MODO DE USO REQUERIDO*\n\n` +
@@ -46,11 +46,11 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     const messageType = mime.split('/')[0]
     const stream = await downloadContentFromMessage(mediaMsg, messageType)
     let buffer = Buffer.from([])
-    
+
     for await (const chunk of stream) {
       buffer = Buffer.concat([buffer, chunk])
     }
-    
+
     video = buffer
 
     if (!video || video.length < 1) {
@@ -66,20 +66,16 @@ let handler = async (m, { conn, usedPrefix, command }) => {
   }
 
   try {
-    const { videoMessage } = await generateWAMessageContent(
-      { video: video },
+    const content = await generateWAMessageContent(
+      { video, ptv: true },
       { upload: conn.waUploadToServer }
     )
 
-    videoMessage.ptv = true
-
-    const msg = generateWAMessageFromContent(m.chat, {
-      videoMessage: proto.Message.VideoMessage.fromObject(videoMessage)
-    }, { quoted: m })
+    const msg = generateWAMessageFromContent(m.chat, content, { quoted: m })
 
     await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
     await m.react('⚔️')
-    
+
   } catch (err) {
     console.error(err)
     return conn.reply(
