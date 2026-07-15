@@ -10,7 +10,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
   const channelId = parts[0].trim()
   const searchQuery = parts.slice(1).join('|').trim()
 
-  if (!channelId || !searchQuery) return m.reply(`[ 🕳️ ] El ID del canal o el rastro de la música se ha perdido en el vacío.`)
+  if (!channelId || !searchQuery) return m.reply(`[ 🕳️ ] El ID del canal o el rastro de la música se ha perdido en el vacío. Asegúrate de estructurar bien el comando.`)
 
   await m.react("🔥")
 
@@ -81,7 +81,18 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       }
     }
 
-    const caption = `✧━───『 𝙸𝚗𝚏𝚘 𝚍𝚎𝚕 𝚅𝚒𝚍𝚎𝚘 』───━✧\n\n🎼 𝑻𝒊́𝒕𝒖𝒍𝒐: ${title}\n📺 𝑪𝒂𝒏𝒂𝒍: ${authorName}\n👁️ 𝑽𝒊𝒔𝒕𝒂𝒔: ${vistas}\n⏳ 𝑫𝒖𝒓𝒂𝒄𝒊𝒐́𝒏: ${durationTimestamp}\n🌐 𝑬𝒏𝒍𝒂𝒄𝒆: ${url}\n\n✧━───『 𝑺𝒉𝒂𝒅𝒐𝒘 𝑩𝒐𝒕 』───━✧\n⚡ 𝑷𝒐𝒘𝒆𝒓𝒆𝒅 𝒃𝒚 𝒀𝒐𝒔𝒖𝒆 & 𝑺𝒉𝒂𝒅𝒐𝒘 𝑮𝒂𝒓𝒅𝒆𝒏 ⚡`
+    const caption = `
+✧━───『 𝙸𝚗𝚏𝚘 𝚍𝚎𝚕 𝚅𝚒𝚍𝚎𝚘 』───━✧
+
+🎼 𝑻𝒊́𝒕𝒖𝒍𝒐: ${title}
+📺 𝑪𝒂𝒏𝒂𝒍: ${authorName}
+👁️ 𝑽𝒊𝒔𝒕𝒂𝒔: ${vistas}
+⏳ 𝑫𝒖𝒓𝒂𝒄𝒊𝒐́𝒏: ${durationTimestamp}
+🌐 𝑬𝒏𝒍𝒂𝒄𝒆: ${url}
+
+✧━───『 𝑺𝒉𝒂𝒅𝒐𝒘 𝑩𝒐𝒕 』───━✧
+⚡ 𝑷𝒐𝒘𝒆𝒓𝒆𝒅 𝒃𝒚 𝒀𝒐𝒔𝒖𝒆 & 𝑺𝒉𝒂𝒅𝒐𝒘 𝑮𝒂𝒓𝒅𝒆𝒏 ⚡
+`.trim()
 
     let thumb = fallbackThumb
 
@@ -158,7 +169,7 @@ const downloadMediaToChannel = async (conn, m, url, channelId, quotedMsg) => {
     }
   } catch (e) {
     console.error(e)
-    await m.reply("[ 🩸 ] Las sombras fallaron al desviar el flujo al canal: " + e.message)
+    await m.reply("[ 🩸 ] Las sombras fallaron al desviar el flujo al canal. Asegúrate de que la ID sea correcta (ej: 120363xxxxxxxx@newsletter) y que el bot sea administrador: " + e.message)
     await m.react("⚠️")
   }
 }
