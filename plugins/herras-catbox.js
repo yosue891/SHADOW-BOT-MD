@@ -17,23 +17,40 @@ async function uploadCatbox(buffer, mime) {
   const { data } = await axios.post(
     'https://catbox.moe/user/api.php',
     form,
-    { headers: form.getHeaders() }
+    { 
+      headers: form.getHeaders(),
+      timeout: 40000 // 40 segundos de margen máximo para la subida
+    }
   )
 
-  if (!data.startsWith('https://')) throw 'Error en Catbox'
+  if (!data.startsWith('https://')) throw 'Respuesta inválida del servidor'
   return data
 }
 
 let handler = async (m, { conn }) => {
-  let q = m.quoted || m
+  let q = m.quoted ? m.quoted : m
   let mime = (q.msg || q).mimetype || ''
 
   if (!mime) {
-    return conn.reply(m.chat, `Responde a una imagen, video o documento para subirlo a Catbox.`, m)
+    return conn.reply(m.chat, `⚠️ Responde a una imagen, video o audio para subirlo a Catbox.`, m)
   }
 
-  let media = await q.download()
-  if (!media) throw 'No pude descargar el archivo de los servidores de WhatsApp.'
+  let media
+  try {
+    // Intentamos descargar con un catch directo para evitar que rompa el proceso del bot si falla
+    media = await q.download().catch(() => null)
+  } catch (e) {
+    media = null
+  }
+
+  if (!media || !Buffer.isBuffer(media)) {
+    return conn.reply(m.chat, `❌ No se pudo descargar el archivo de WhatsApp. Intenta con un archivo más liviano o reenvíalo.`, m)
+  }
+
+  // Límite de seguridad: Evitar procesar archivos de más de 15MB para no saturar el socket
+  if (media.length > 15 * 1024 * 1024) {
+    return conn.reply(m.chat, `⚠️ El archivo es demasiado grande (Máximo 15MB para evitar caídas de conexión).`, m)
+  }
 
   try {
     let url = await uploadCatbox(media, mime)
@@ -45,7 +62,8 @@ let handler = async (m, { conn }) => {
 
     await conn.reply(m.chat, txt, m)
   } catch (error) {
-    await conn.reply(m.chat, `Ocurrió un error al intentar subir a Catbox: ${error}`, m)
+    console.error('Error en Catbox:', error)
+    await conn.reply(m.chat, `❌ Ocurrió un error al subir a Catbox.`, m)
   }
 }
 
