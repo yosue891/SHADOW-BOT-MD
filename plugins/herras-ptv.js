@@ -74,7 +74,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     videoMessage.ptv = true
 
     const msg = generateWAMessageFromContent(m.chat, {
-      videoMessage: proto.VideoMessage.fromObject(videoMessage)
+      videoMessage: proto.Message.VideoMessage.fromObject(videoMessage)
     }, { quoted: m })
 
     await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
