@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import { downloadContentFromMessage, generateWAMessageContent, generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
 
 const pluginConfig = {
   description: 'Envía un video como nota de video circular (PTV).',
@@ -10,9 +11,23 @@ const pluginConfig = {
 
 let handler = async (m, { conn, usedPrefix, command }) => {
   let q = m.quoted ? m.quoted : m
-  let mime = (q.msg || q).mimetype || ''
+  let mime = ''
+  let mediaMsg = null
 
-  if (!mime.startsWith('video/')) {
+  if (m.quoted) {
+    let msgObj = m.quoted.mediaMessage || m.quoted.msg
+    if (msgObj) {
+      let type = Object.keys(msgObj)[0]
+      mediaMsg = msgObj[type]
+      mime = mediaMsg?.mimetype || ''
+    }
+  }
+  if (!mediaMsg) {
+    mediaMsg = m.msg || q
+    mime = mediaMsg?.mimetype || ''
+  }
+
+  if (!mime || !mime.startsWith('video/')) {
     return conn.reply(
       m.chat,
       ` *MODO DE USO*\n\n` +
@@ -30,7 +45,15 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
   let video
   try {
-    video = await q.download?.()
+    const messageType = mime.split('/')[0]
+    const stream = await downloadContentFromMessage(mediaMsg, messageType)
+    let buffer = Buffer.from([])
+
+    for await (const chunk of stream) {
+      buffer = Buffer.concat([buffer, chunk])
+    }
+
+    video = buffer
 
     if (!video || video.length < 1) {
       throw new Error('No se pudo descargar el video.')
@@ -44,26 +67,36 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     )
   }
 
-  // Creamos el directorio temporal si no existe
   const dir = path.join(process.cwd(), 'tmp')
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
   const tempPath = path.join(dir, `ptv_${Date.now()}.mp4`)
 
   try {
-    // Guardamos el buffer en el archivo temporal
     await fs.promises.writeFile(tempPath, video)
 
-    // Enviamos el PTV usando la URL del archivo local (esto evita el bug de Baileys)
-    await conn.sendMessage(
-      m.chat,
-      {
-        video: { url: tempPath },
-        mimetype: 'video/mp4',
-        ptv: true
-      },
-      { quoted: m }
+    const content = await generateWAMessageContent(
+      { video: { url: tempPath }, ptv: true },
+      { upload: conn.waUploadToServer }
     )
 
+    const quotedMsg = m.quoted || m
+    const quotedType = quotedMsg.mtype || m.mtype
+    const quotedContent = quotedMsg.msg || quotedMsg
+
+    if (quotedContent && quotedType) {
+      content.ptvMessage.contextInfo = {
+        stanzaId: quotedMsg.id || m.id,
+        participant: quotedMsg.sender || m.sender,
+        quotedMessage: proto.Message.create({ [quotedType]: quotedContent })
+      }
+      if (m.chat !== (quotedMsg.chat || m.chat)) {
+        content.ptvMessage.contextInfo.remoteJid = quotedMsg.chat
+      }
+    }
+
+    const msg = generateWAMessageFromContent(m.chat, content, { userJid: conn.user.id })
+
+    await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
     if (m.react) await m.react('✅')
   } catch (err) {
     console.error(err)
@@ -73,7 +106,6 @@ let handler = async (m, { conn, usedPrefix, command }) => {
       m
     )
   } finally {
-    // El bloque 'finally' asegura que el archivo temporal se borre SIEMPRE, incluso si falla el envío
     if (fs.existsSync(tempPath)) {
       await fs.promises.unlink(tempPath).catch(console.error)
     }
