@@ -9,31 +9,56 @@ let handler = async (m, { conn, usedPrefix, command }) => {
   let q = m.quoted ? m.quoted : m
   let mime = (q.msg || q).mimetype || ''
 
-  if (!/video/.test(mime)) {
+  if (!mime.startsWith('video/')) {
     return conn.reply(
       m.chat,
-      `⚠️ *MODO DE USO*\n\n` +
+      ` *MODO DE USO*\n\n` +
       `> Envía un *video* o *responde a un video* y escribe:\n` +
       `> \`${usedPrefix + command}\``,
       m
     )
   }
 
-  await conn.reply(m.chat, `⏳ *Invocando arte circular... Transmutando video a PTV...*`, m)
+  await conn.reply(
+    m.chat,
+    ' *Convirtiendo el video a PTV...*',
+    m
+  )
 
   let video
   try {
-    video = await q.download()
-    if (!video || (Buffer.isBuffer(video) && video.length === 0)) throw new Error('No se pudo descargar el video.')
+    video = await q.download?.()
+
+    if (!video || video.length < 1) {
+      throw new Error('No se pudo descargar el video.')
+    }
   } catch (e) {
-    return conn.reply(m.chat, `❌ Falló la descarga del video. Error: ${e.message || e}`, m)
+    console.error(e)
+    return conn.reply(
+      m.chat,
+      `Error al descargar el video.\n\n> ${e.message || e}`,
+      m
+    )
   }
 
   try {
-    await conn.sendFile(m.chat, video, 'video.mp4', '', m, false, { ptv: true })
-    await m.react('🔥')
+    await conn.sendMessage(
+      m.chat,
+      {
+        video,
+        ptv: true
+      },
+      { quoted: m }
+    )
+
+    await m.react('✅')
   } catch (err) {
-    return conn.reply(m.chat, `❌ *Fallo en la transmutación*\n\n> ${err.message}`, m)
+    console.error(err)
+    return conn.reply(
+      m.chat,
+      `Error al enviar el PTV.\n\n> ${err.message || err}`,
+      m
+    )
   }
 }
 
