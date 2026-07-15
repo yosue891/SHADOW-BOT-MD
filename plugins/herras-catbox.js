@@ -24,32 +24,28 @@ async function uploadCatbox(buffer, mime) {
   return data
 }
 
-let handler = async (m, { conn, usedPrefix, command }) => {
+let handler = async (m, { conn }) => {
   let q = m.quoted || m
   let mime = (q.msg || q).mimetype || ''
 
   if (!mime) {
-    return m.reply(`Responde a una imagen, video o documento para subirlo a Catbox.`)
+    return conn.reply(m.chat, `Responde a una imagen, video o documento para subirlo a Catbox.`, m)
   }
 
   let media = await q.download()
-  if (!media) throw 'No pude descargar el archivo.'
-
-  await m.reply('Subiendo archivo a Catbox, espera un momento...')
+  if (!media) throw 'No pude descargar el archivo de los servidores de WhatsApp.'
 
   try {
     let url = await uploadCatbox(media, mime)
     
-    m.reply(
-`*UPLOAD COMPLETADO*
+    let txt = `*UPLOAD COMPLETADO*\n\n` +
+              `• Servidor: Catbox\n` +
+              `• Tipo: ${mime}\n` +
+              `• URL:\n${url}`
 
-• Servidor: Catbox
-• Tipo: ${mime}
-• URL:
-${url}`
-    )
+    await conn.reply(m.chat, txt, m)
   } catch (error) {
-    throw 'Ocurrió un error al intentar subir a Catbox: ' + error
+    await conn.reply(m.chat, `Ocurrió un error al intentar subir a Catbox: ${error}`, m)
   }
 }
 
