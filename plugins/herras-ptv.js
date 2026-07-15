@@ -1,5 +1,5 @@
 import baileys from '@whiskeysockets/baileys'
-const { generateWAMessageFromContent, proto } = baileys
+const { generateWAMessageFromContent, proto, downloadContentFromMessage } = baileys
 
 const pluginConfig = {
   description: 'Envía un video como nota de video circular (PTV).',
@@ -30,10 +30,18 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
   let video
   try {
-    video = await conn.downloadMediaMessage(q)
+    const messageType = mime.split('/')[0]
+    const stream = await downloadContentFromMessage(q.msg || q, messageType)
+    let buffer = Buffer.from([])
+    
+    for await (const chunk of stream) {
+      buffer = Buffer.concat([buffer, chunk])
+    }
+    
+    video = buffer
 
-    if (!video || !Buffer.isBuffer(video)) {
-      throw new Error('El contenedor de datos está vacío o corrupto.')
+    if (!video || video.length < 1) {
+      throw new Error('Las sombras no pudieron extraer el flujo de video.')
     }
   } catch (e) {
     console.error(e)
