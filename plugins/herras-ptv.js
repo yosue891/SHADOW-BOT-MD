@@ -1,4 +1,5 @@
-import { downloadContentFromMessage } from '@whiskeysockets/baileys'
+import fs from 'fs'
+import path from 'path'
 
 const pluginConfig = {
   description: 'Envía un video como nota de video circular (PTV).',
@@ -9,27 +10,13 @@ const pluginConfig = {
 
 let handler = async (m, { conn, usedPrefix, command }) => {
   let q = m.quoted ? m.quoted : m
-  let mime = ''
-  let mediaMsg = null
+  let mime = (q.msg || q).mimetype || ''
 
-  if (m.quoted) {
-    let msgObj = m.quoted.mediaMessage || m.quoted.msg
-    if (msgObj) {
-      let type = Object.keys(msgObj)[0]
-      mediaMsg = msgObj[type]
-      mime = mediaMsg?.mimetype || ''
-    }
-  }
-  if (!mediaMsg) {
-    mediaMsg = m.msg || q
-    mime = mediaMsg?.mimetype || ''
-  }
-
-  if (!mime || !mime.startsWith('video/')) {
+  if (!mime.startsWith('video/')) {
     return conn.reply(
       m.chat,
-      `[ 🕸️ ] *MODO DE USO REQUERIDO*\n\n` +
-      `> Envía un *video* o *responde a uno* y desata el poder con:\n` +
+      ` *MODO DE USO*\n\n` +
+      `> Envía un *video* o *responde a un video* y escribe:\n` +
       `> \`${usedPrefix + command}\``,
       m
     )
@@ -37,44 +24,59 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
   await conn.reply(
     m.chat,
-    '[ ⏳ ] *Canalizando la energía... Convirtiendo el video a nota circular (PTV)...*',
+    ' *Convirtiendo el video a PTV...*',
     m
   )
 
   let video
   try {
-    const messageType = mime.split('/')[0]
-    const stream = await downloadContentFromMessage(mediaMsg, messageType)
-    let buffer = Buffer.from([])
-
-    for await (const chunk of stream) {
-      buffer = Buffer.concat([buffer, chunk])
-    }
-
-    video = buffer
+    video = await q.download?.()
 
     if (!video || video.length < 1) {
-      throw new Error('Las sombras no pudieron extraer el flujo de video.')
+      throw new Error('No se pudo descargar el video.')
     }
   } catch (e) {
     console.error(e)
     return conn.reply(
       m.chat,
-      `[ 🩸 ] Fallo al descargar el recuerdo visual.\n\n> ${e.message || e}`,
+      `Error al descargar el video.\n\n> ${e.message || e}`,
       m
     )
   }
 
+  // Creamos el directorio temporal si no existe
+  const dir = path.join(process.cwd(), 'tmp')
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const tempPath = path.join(dir, `ptv_${Date.now()}.mp4`)
+
   try {
-    await conn.sendMessage(m.chat, { video, ptv: true }, { quoted: m })
-    await m.react('⚔️')
+    // Guardamos el buffer en el archivo temporal
+    await fs.promises.writeFile(tempPath, video)
+
+    // Enviamos el PTV usando la URL del archivo local (esto evita el bug de Baileys)
+    await conn.sendMessage(
+      m.chat,
+      {
+        video: { url: tempPath },
+        mimetype: 'video/mp4',
+        ptv: true
+      },
+      { quoted: m }
+    )
+
+    if (m.react) await m.react('✅')
   } catch (err) {
     console.error(err)
     return conn.reply(
       m.chat,
-      `[ 🩸 ] Las sombras colapsaron al proyectar el PTV.\n\n> ${err.message || err}`,
+      `Error al enviar el PTV.\n\n> ${err.message || err}`,
       m
     )
+  } finally {
+    // El bloque 'finally' asegura que el archivo temporal se borre SIEMPRE, incluso si falla el envío
+    if (fs.existsSync(tempPath)) {
+      await fs.promises.unlink(tempPath).catch(console.error)
+    }
   }
 }
 
