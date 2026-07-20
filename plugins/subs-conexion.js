@@ -362,51 +362,56 @@ export async function MichiJadiBot(options) {
           { image: { url: 'https://h.uguu.se/iywLLjvT.jpeg' } },
           { upload: conn.waUploadToServer }
         )
+        console.log('[PAIRING-CODE] Imagen preparada correctamente:', !!media?.imageMessage)
       } catch (e) {
-        console.error('[PAIRING-CODE] No se pudo preparar la imagen:', e)
+        console.error('[PAIRING-CODE] ERROR preparando la imagen:', e)
       }
 
-      // ╭─ Envía TODO en un único mensaje interactivo: imagen + texto + código pix copiable ─╮
-      const interactiveMsg = {
-        interactiveMessage: {
-          body: {
-            text: `${rtx2}
+      // ╭─ Envía TODO en un único mensaje interactivo: imagen + pasos + código pix copiable ─╮
+      const interactiveMsg = generateWAMessageFromContent(m.chat, {
+        viewOnceMessage: {
+          message: {
+            interactiveMessage: {
+              body: {
+                text: `${rtx2}
 
 ✧ Número solicitado: +${phoneNumber}
 ✧ Código: *${formattedSecret}*
 
-> Escríbelo en WhatsApp exactamente cuando aparezca la pantalla de vinculación. Si WhatsApp no acepta guiones, escríbelo así: *${secret}*`
-          },
-          footer: { text: 'SHADOW-BOT-MD' },
-          header: media ? {
-            hasMediaAttachment: true,
-            imageMessage: media.imageMessage
-          } : undefined,
-          nativeFlowMessage: {
-            buttons: [
-              {
-                name: 'payment_info',
-                buttonParamsJson: JSON.stringify({
-                  payment_settings: [
-                    {
-                      type: 'pix_static_code',
-                      pix_static_code: {
-                        merchant_name: 'SHADOW-BOT-MD',
-                        key: secret,
-                        key_type: 'EVP'
-                      }
-                    }
-                  ]
-                })
-              }
-            ],
-            messageParamsJson: '{}'
-          },
-          contextInfo: {}
+> Toca el botón para copiar el código y escríbelo en WhatsApp exactamente cuando aparezca la pantalla de vinculación. Si WhatsApp no acepta guiones, escríbelo así: *${secret}*`
+              },
+              footer: { text: 'SHADOW-BOT-MD' },
+              header: media ? {
+                hasMediaAttachment: true,
+                imageMessage: media.imageMessage
+              } : undefined,
+              nativeFlowMessage: {
+                buttons: [
+                  {
+                    name: 'payment_info',
+                    buttonParamsJson: JSON.stringify({
+                      payment_settings: [
+                        {
+                          type: 'pix_static_code',
+                          pix_static_code: {
+                            merchant_name: 'SHADOW-BOT-MD',
+                            key: secret,
+                            key_type: 'EVP'
+                          }
+                        }
+                      ]
+                    })
+                  }
+                ],
+                messageParamsJson: '{}'
+              },
+              contextInfo: {}
+            }
+          }
         }
-      }
+      }, {})
 
-      txtCode = await conn.relayMessage(m.chat, interactiveMsg, { quoted: m })
+      txtCode = await conn.relayMessage(m.chat, interactiveMsg.message, { quoted: m })
       codeBot = txtCode
       // ╰─────────────────────────────────────────────────────────────────────────╯
 
