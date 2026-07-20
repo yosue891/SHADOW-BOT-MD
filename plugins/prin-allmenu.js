@@ -93,8 +93,8 @@ ${readMore}
 乂 PROTOCOLO DE COMANDOS DE LA SOMBRA 乂\n`.trim()
 
     const icon = [
-      'https://i.postimg.cc/rFfVL8Ps/image.jpg',
-      'https://i.postimg.cc/rFfVL8Ps/image.jpg'
+      'https://h.uguu.se/ejsRWNYz.jpeg',
+      'https://h.uguu.se/ejsRWNYz.jpeg'
     ]
     let icons = icon[Math.floor(Math.random() * icon.length)]
 
@@ -102,7 +102,6 @@ ${readMore}
     try {
       const ctrl = new AbortController()
       const t = setTimeout(() => ctrl.abort(), 4000)
-      // Cambiado aquí para que descargue la imagen del banner global
       let resIcon = await fetch(banner, { signal: ctrl.signal })
       if (resIcon.ok) {
         Shadow_url = await resIcon.buffer()
