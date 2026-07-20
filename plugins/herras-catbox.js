@@ -1,8 +1,9 @@
-//código echo por Cristian OFC y edítado y ajustado por yosue dejar créditos si lo van a usar 
+//código echo por Cristian OFC dejar créditos si lo van a usar 
 import {
     prepareWAMessageMedia,
     generateWAMessageFromContent
 } from "@whiskeysockets/baileys";
+import FormData from "form-data";
 
 const upload = async (m, { conn, from }) => {
 
@@ -17,20 +18,24 @@ const upload = async (m, { conn, from }) => {
 
         const buffer = await msg.download();
 
-        const formData = new FormData();
-        formData.append("reqtype", "fileupload");
-        formData.append("fileToUpload", new Blob([buffer], { type: mime }), `img_${Date.now()}.png`);
+        const form = new FormData();
+        form.append("reqtype", "fileupload");
+        form.append("fileToUpload", buffer, {
+            filename: `img_${Date.now()}.png`,
+            contentType: mime
+        });
 
         const res = await fetch("https://catbox.moe/user/api.php", {
             method: "POST",
-            body: formData
+            body: form,
+            headers: form.getHeaders()
         });
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const link = await res.text();
 
-        if (!link || !link.startsWith("http")) {
+        if (!link || !link.trim().startsWith("http")) {
             throw new Error("No se recibió un enlace válido de Catbox");
         }
 
