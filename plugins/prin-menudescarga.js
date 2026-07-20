@@ -59,7 +59,7 @@ let handler = async (m, { conn, usedPrefix }) => {
 `.trim()
 
     let finalMenu = infoUser + '\n\n' + listaDescargas + '\n\n' + after
-    let imagenUrl = 'https://i.ibb.co/3NfYh9k/default-avatar.png'
+    let imagenUrl = 'https://h.uguu.se/omqzfNRm.jpeg'
 
     let media;
     try {
