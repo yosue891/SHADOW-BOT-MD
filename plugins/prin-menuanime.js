@@ -64,7 +64,7 @@ let handler = async (m, { conn, usedPrefix }) => {
 *╰─────────────╯*`.trim()
 
     let finalMenu = infoUser + '\n\n' + comandosAnime
-    let imagen = 'https://i.ibb.co/HDCTsKKg/IMG-20260706-WA0279.jpg'
+    let imagen = 'https://d.uguu.se/BSsUAgaX.jpeg'
 
     let vcard = `BEGIN:VCARD\nVERSION:3.0\nN:;Itachi;;;\nFN:Itachi\nitem1.TEL;waid=13135550002:+1 (313) 555-0002\nitem1.X-ABLabel:Celular\nEND:VCARD`
     let qkontak = { 
