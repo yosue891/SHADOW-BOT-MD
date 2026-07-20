@@ -98,16 +98,21 @@ ${readMore}
     ]
     let icons = icon[Math.floor(Math.random() * icon.length)]
 
-    // VERIFICACIÓN DE URL DE LOS ICONOS (Fkontak)
+    // OBTENER MINIATURA FIABLE PARA EL CONTANTO FALSO
     let Shadow_url = null
     try {
       const ctrl = new AbortController()
-      const t = setTimeout(() => ctrl.abort(), 5000)
+      const t = setTimeout(() => ctrl.abort(), 4000)
       let resIcon = await fetch(icons, { signal: ctrl.signal })
-      if (resIcon.ok) Shadow_url = await resIcon.buffer()
+      if (resIcon.ok) {
+        Shadow_url = await resIcon.buffer()
+      } else {
+        throw new Error()
+      }
       clearTimeout(t)
     } catch {
-      Shadow_url = Buffer.alloc(0)
+      // Si falla, un mini buffer negro de respaldo para que WhatsApp no ignore la miniatura
+      Shadow_url = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64')
     }
 
     const fkontak = {
@@ -129,24 +134,22 @@ ${readMore}
 
     await m.react('🔥')
 
-    // VERIFICACIÓN DEL BANNER PRINCIPAL (Soporta videos e imágenes con fallback)
+    // VERIFICAR BANNER Y DETERMINAR FORMATO
     let finalBanner = banner
-    let isVideo = banner.endsWith('.mp4')
+    let isVideo = banner.split('?')[0].endsWith('.mp4') || banner.includes('video')
     
     try {
       const ctrl2 = new AbortController()
-      const t2 = setTimeout(() => ctrl2.abort(), 6000)
+      const t2 = setTimeout(() => ctrl2.abort(), 5000)
       let checkBanner = await fetch(banner, { method: 'HEAD', signal: ctrl2.signal })
       clearTimeout(t2)
-      
-      if (!checkBanner.ok) throw new Error("URL caída")
-    } catch (err) {
-      // Si la URL del banner original falla, usamos el icono de respaldo como imagen
+      if (!checkBanner.ok) throw new Error()
+    } catch {
       finalBanner = icons
       isVideo = false
     }
 
-    // ENVIAR MENSAJE DEPENDIENDO DE SI ES VIDEO O IMAGEN
+    // CONFIGURACIÓN DE ENVÍO
     let messageOptions = {
       caption: infoUser + menuTexto,
       contextInfo: {
@@ -161,7 +164,8 @@ ${readMore}
 
     if (isVideo) {
       messageOptions.video = { url: finalBanner }
-      messageOptions.gifPlayback = true // Opcional: lo envía como GIF si gustas
+      messageOptions.gifPlayback = true // Fuerza el envío en formato reproducción de GIF
+      messageOptions.mimetype = 'video/mp4'
     } else {
       messageOptions.image = { url: finalBanner }
     }
@@ -188,4 +192,4 @@ function clockString(ms) {
   const m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60
   const s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':')
-                                                       }
+}
