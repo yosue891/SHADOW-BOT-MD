@@ -351,7 +351,7 @@ export async function MichiJadiBot(options) {
   (await resolveSenderToPhone(m?.participant, m, conn))
       if (!phoneNumber) throw new Error('No se pudo detectar el número del usuario para generar el código.')
 
-const secret = await sock.requestPairingCode(phoneNumber)
+      const secret = await sock.requestPairingCode(phoneNumber)
       const formattedSecret = secret.match(/.{1,4}/g)?.join('-') || secret
       txtCode = await conn.sendMessage(m.chat, { text: `${rtx2}
 
@@ -359,6 +359,45 @@ const secret = await sock.requestPairingCode(phoneNumber)
 ✧ Código: *${formattedSecret}*
 
 > Escríbelo en WhatsApp exactamente cuando aparezca la pantalla de vinculación. Si WhatsApp no acepta guiones, escríbelo así: *${secret}*` }, { quoted: m })
+
+      // ╭─ Integrando comando pix: envía el código de 8 dígitos como código copiable ─╮
+      await conn.relayMessage(
+        m.chat,
+        {
+          interactiveMessage: {
+            nativeFlowMessage: {
+              buttons: [
+                {
+                  name: 'payment_info',
+                  buttonParamsJson: JSON.stringify({
+                    payment_settings: [
+                      {
+                        type: 'pix_static_code',
+                        pix_static_code: {
+                          merchant_name: 'SHADOW-BOT-MD',
+                          key: secret,
+                          key_type: 'EVP'
+                        }
+                      }
+                    ]
+                  })
+                }
+              ],
+              messageParamsJson: '{}'
+            },
+            contextInfo: {}
+          }
+        },
+        {}
+      )
+
+      // ╭─ Envía la imagen junto con el código de vinculación ─╮
+      await conn.sendMessage(m.chat, {
+        image: { url: 'https://h.uguu.se/iywLLjvT.jpeg' },
+        caption: `✧ Código de vinculación copiable: *${secret}*`
+      }, { quoted: m })
+      // ╰───────────────────────────────────────────────────────╯
+
       codeBot = await m.reply(secret)
       console.log(`[PAIRING-CODE] ${phoneNumber}: ${secret}`)
       if (txtCode?.key) setTimeout(() => conn.sendMessage(m.chat, { delete: txtCode.key }).catch(() => {}), PAIRING_CODE_TTL_MS)
