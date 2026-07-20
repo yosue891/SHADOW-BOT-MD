@@ -1,103 +1,86 @@
-//código echo por Cristian OFC dejar créditos si lo van a usar 
-import {
-    prepareWAMessageMedia,
-    generateWAMessageFromContent
-} from "@whiskeysockets/baileys";
-import FormData from "form-data";
+import { downloadContentFromMessage } from '@whiskeysockets/baileys'
+import axios from 'axios'
+import FormData from 'form-data'
+import { fileTypeFromBuffer } from 'file-type'
 
-const upload = async (m, { conn, from }) => {
+async function uploadToCatbox(buffer) {
+  const type = await fileTypeFromBuffer(buffer)
+  const ext = type ? type.ext : 'bin'
+  const form = new FormData()
+  form.append('reqtype', 'fileupload')
+  form.append('fileToUpload', buffer, `file.${ext}`)
+  
+  const response = await axios.post('https://catbox.moe/user/api.php', form, {
+    headers: form.getHeaders()
+  })
+  return response.data
+}
 
-    const msg = m.quoted || m;
-    const mime = msg.mimetype || msg.mediaType || "";
+async function uploadToTmpfiles(buffer) {
+  const type = await fileTypeFromBuffer(buffer)
+  const ext = type ? type.ext : 'bin'
+  const form = new FormData()
+  form.append('file', buffer, `file.${ext}`)
 
-    if (!/image/.test(mime)) {
-        return m.reply("❌ Responde a una imagen o envíala junto al comando.");
-    }
+  const response = await axios.post('https://tmpfiles.org/api/v1/upload', form, {
+    headers: form.getHeaders()
+  })
+  if (response.data && response.data.status === 'success') {
+    return response.data.data.url.replace('https://tmpfiles.org/', 'https://tmpfiles.org/dl/')
+  }
+  throw new Error('Tmpfiles failed')
+}
+
+async function uploadToQuaxg(buffer) {
+  const type = await fileTypeFromBuffer(buffer)
+  const ext = type ? type.ext : 'bin'
+  const form = new FormData()
+  form.append('file', buffer, `file.${ext}`)
+
+  const response = await axios.post('https://upload.quaxg.xyz/upload', form, {
+    headers: form.getHeaders()
+  })
+  if (response.data && response.data.url) {
+    return response.data.url
+  }
+  throw new Error('Quaxg failed')
+}
+
+let handler = async (m, { conn, command, usedPrefix }) => {
+  let q = m.quoted ? m.quoted : m
+  let mime = (q.msg || q).mimetype || ''
+
+  if (!mime.includes('image') && !mime.includes('video') && !mime.includes('gif')) {
+    return conn.reply(m.chat, `*✘ Responde a una imagen, video o GIF* usando el comando *${usedPrefix}${command}*`, m)
+  }
+
+  await conn.reply(m.chat, '✦ Procesando y subiendo archivo...', m)
+
+  try {
+    let media = await q.download()
+    let link = ''
 
     try {
-
-        const buffer = await msg.download();
-
-        const form = new FormData();
-        form.append("reqtype", "fileupload");
-        form.append("fileToUpload", buffer, {
-            filename: `img_${Date.now()}.png`,
-            contentType: mime
-        });
-
-        const res = await fetch("https://catbox.moe/user/api.php", {
-            method: "POST",
-            body: form,
-            headers: form.getHeaders()
-        });
-
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const link = await res.text();
-
-        if (!link || !link.trim().startsWith("http")) {
-            throw new Error("No se recibió un enlace válido de Catbox");
-        }
-
-        const media = await prepareWAMessageMedia(
-            {
-                image: buffer
-            },
-            {
-                upload: conn.waUploadToServer
-            }
-        );
-
-        const buttons = [
-            {
-                name: "cta_copy",
-                buttonParamsJson: JSON.stringify({
-                    display_text: "📋 Copiar enlace",
-                    copy_code: link.trim()
-                })
-            }
-        ];
-
-        const message = generateWAMessageFromContent(
-            from,
-            {
-                viewOnceMessage: {
-                    message: {
-                        interactiveMessage: {
-                            header: {
-                                title: "✅ Imagen subida correctamente.",
-                                hasMediaAttachment: true,
-                                imageMessage: media.imageMessage
-                            },
-                            body: {
-                                text: "Pulsa el botón de abajo para copiar el enlace de tu imagen."
-                            },
-                            footer: {
-                                text: "Catbox Uploader ⚡"
-                            },
-                            nativeFlowMessage: {
-                                buttons: buttons
-                            }
-                        }
-                    }
-                }
-            },
-            {
-                userJid: conn.user.id
-            }
-        );
-
-        await conn.relayMessage(from, message.message, {
-            messageId: message.key.id
-        });
-
-    } catch (e) {
-        console.error(e);
-        m.reply("❌ Error al subir la imagen a Catbox.");
+      link = await uploadToCatbox(media)
+    } catch {
+      try {
+        link = await uploadToTmpfiles(media)
+      } catch {
+        link = await uploadToQuaxg(media)
+      }
     }
 
-};
+    return conn.reply(m.chat, `*✦ ¡Enlace generado con éxito!* \n\n${link}`, m)
 
-upload.command = ["catbox"];
+  } catch (error) {
+    console.error(error)
+    return conn.reply(m.chat, '✘ Todos los servidores de subida fallaron.', m)
+  }
+}
 
-export default upload;
+handler.help = ['catbox']
+handler.tags = ['tools']
+handler.command = ['catbox']
+handler.register = true
+
+export default handler
