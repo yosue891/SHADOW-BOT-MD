@@ -102,7 +102,8 @@ ${readMore}
     try {
       const ctrl = new AbortController()
       const t = setTimeout(() => ctrl.abort(), 4000)
-      let resIcon = await fetch(icons, { signal: ctrl.signal })
+      // Cambiado aquí para que descargue la imagen del banner global
+      let resIcon = await fetch(banner, { signal: ctrl.signal })
       if (resIcon.ok) {
         Shadow_url = await resIcon.buffer()
       } else {
@@ -188,4 +189,4 @@ function clockString(ms) {
   const m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60
   const s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':')
-      }
+    }
