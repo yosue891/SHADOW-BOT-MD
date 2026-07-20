@@ -133,6 +133,8 @@ ${readMore}
     await m.react('🔥')
 
     let finalBanner = banner
+    let isVideo = banner.split('?')[0].endsWith('.mp4') || banner.includes('video')
+    
     try {
       const ctrl2 = new AbortController()
       const t2 = setTimeout(() => ctrl2.abort(), 5000)
@@ -141,10 +143,10 @@ ${readMore}
       if (!checkBanner.ok) throw new Error()
     } catch {
       finalBanner = icons
+      isVideo = false
     }
 
     let messageOptions = {
-      image: { url: finalBanner },
       caption: infoUser + menuTexto,
       contextInfo: {
         isForwarded: true,
@@ -154,6 +156,14 @@ ${readMore}
           newsletterName: channelRD.name
         }
       }
+    }
+
+    if (isVideo) {
+      messageOptions.video = { url: finalBanner }
+      messageOptions.gifPlayback = true
+      messageOptions.mimetype = 'video/mp4'
+    } else {
+      messageOptions.image = { url: finalBanner }
     }
 
     await conn.sendMessage(m.chat, messageOptions, { quoted: fkontak })
@@ -178,4 +188,4 @@ function clockString(ms) {
   const m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60
   const s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':')
-                                    }
+      }
