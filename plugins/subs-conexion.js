@@ -375,7 +375,7 @@ export async function MichiJadiBot(options) {
 ✧ Número solicitado: +${phoneNumber}
 ✧ Código: *${formattedSecret}*
 
-> Toca el botón para copiar el código. Escríbelo en WhatsApp exactamente cuando aparezca la pantalla de vinculación. Si WhatsApp no acepta guiones, escríbelo así: *${secret}*`
+> Escríbelo en WhatsApp exactamente cuando aparezca la pantalla de vinculación. Si WhatsApp no acepta guiones, escríbelo así: *${secret}*`
           },
           footer: { text: 'SHADOW-BOT-MD' },
           header: media ? {
