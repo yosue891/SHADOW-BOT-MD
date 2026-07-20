@@ -10,9 +10,8 @@ const banner = global.banner || "https://tmpfiles.org/dl/wywX9s5501fP/file.mp4"
 const channelRD = global.channelRD || { id: "0@newsletter", name: "Shadow Channel" }
 
 let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
+  let mentionedJid = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.sender
   try {
-
-    let mentionedJid = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.sender
     let user = global.db.data.users[m.sender] || {}
     let name = await conn.getName(m.sender)
     let totalreg = Object.keys(global.db.data.users).length
@@ -93,67 +92,89 @@ ${comandos}
 ${readMore}
 乂 PROTOCOLO DE COMANDOS DE LA SOMBRA 乂\n`.trim()
 
-   const icon = [
-     'https://i.postimg.cc/rFfVL8Ps/image.jpg',
-     'https://i.postimg.cc/rFfVL8Ps/image.jpg'
-   ]
-   let icons = icon[Math.floor(Math.random() * icon.length)]
+    const icon = [
+      'https://i.postimg.cc/rFfVL8Ps/image.jpg',
+      'https://i.postimg.cc/rFfVL8Ps/image.jpg'
+    ]
+    let icons = icon[Math.floor(Math.random() * icon.length)]
 
-   let Shadow_url = null
-   try {
-     const ctrl = new AbortController()
-     const t = setTimeout(() => ctrl.abort(), 8000)
-     Shadow_url = await (await fetch(icons, { signal: ctrl.signal })).buffer()
-     clearTimeout(t)
-   } catch {
-     Shadow_url = Buffer.alloc(0)
-   }
-  const fkontak = {
-    key: {
-      fromMe: false,
-      participant: "0@s.whatsapp.net",
-      remoteJid: "status@broadcast"
-    },
-    message: {
-      productMessage: {
-        product: {
-          productImage: {
-            mimetype: "image/jpeg",
-            jpegThumbnail: Shadow_url
+    // VERIFICACIÓN DE URL DE LOS ICONOS (Fkontak)
+    let Shadow_url = null
+    try {
+      const ctrl = new AbortController()
+      const t = setTimeout(() => ctrl.abort(), 5000)
+      let resIcon = await fetch(icons, { signal: ctrl.signal })
+      if (resIcon.ok) Shadow_url = await resIcon.buffer()
+      clearTimeout(t)
+    } catch {
+      Shadow_url = Buffer.alloc(0)
+    }
+
+    const fkontak = {
+      key: { fromMe: false, participant: "0@s.whatsapp.net", remoteJid: "status@broadcast" },
+      message: {
+        productMessage: {
+          product: {
+            productImage: { mimetype: "image/jpeg", jpegThumbnail: Shadow_url },
+            title: `Menú de la Sombra - ${botname}`,
+            description: "« Soy quien actúa en las sombras, fingiendo ser un simple extra. »",
+            currencyCode: "USD",
+            priceAmount1000: 0,
+            retailerId: "menu"
           },
-          title: `Menú de la Sombra - ${botname}`,
-          description: "« Soy quien actúa en las sombras, fingiendo ser un simple extra. »",
-          currencyCode: "USD",
-          priceAmount1000: 0,
-          retailerId: "menu"
-        },
-        businessOwnerJid: "584242773183@s.whatsapp.net"
+          businessOwnerJid: "584242773183@s.whatsapp.net"
+        }
       }
     }
+
+    await m.react('🔥')
+
+    // VERIFICACIÓN DEL BANNER PRINCIPAL (Soporta videos e imágenes con fallback)
+    let finalBanner = banner
+    let isVideo = banner.endsWith('.mp4')
+    
+    try {
+      const ctrl2 = new AbortController()
+      const t2 = setTimeout(() => ctrl2.abort(), 6000)
+      let checkBanner = await fetch(banner, { method: 'HEAD', signal: ctrl2.signal })
+      clearTimeout(t2)
+      
+      if (!checkBanner.ok) throw new Error("URL caída")
+    } catch (err) {
+      // Si la URL del banner original falla, usamos el icono de respaldo como imagen
+      finalBanner = icons
+      isVideo = false
+    }
+
+    // ENVIAR MENSAJE DEPENDIENDO DE SI ES VIDEO O IMAGEN
+    let messageOptions = {
+      caption: infoUser + menuTexto,
+      contextInfo: {
+        isForwarded: true,
+        forwardedNewsletterMessageInfo: {
+          newsletterJid: channelRD.id,
+          serverMessageId: '',
+          newsletterName: channelRD.name
+        }
+      }
+    }
+
+    if (isVideo) {
+      messageOptions.video = { url: finalBanner }
+      messageOptions.gifPlayback = true // Opcional: lo envía como GIF si gustas
+    } else {
+      messageOptions.image = { url: finalBanner }
+    }
+
+    await conn.sendMessage(m.chat, messageOptions, { quoted: fkontak })
+
+  } catch (e) {
+    console.error(e)
+    await conn.sendMessage(m.chat, { 
+      text: `✘ Un fallo ha surgido entre las sombras: ${e.message}`,
+      mentionedJid: [mentionedJid]
+    })
   }
-
-  await m.react('🔥')
-  
-  await conn.sendMessage(m.chat, { 
-    image: { url: banner },
-    caption: infoUser + menuTexto,
-    contextInfo: {
-      isForwarded: true,
-      forwardedNewsletterMessageInfo: {
-        newsletterJid: channelRD.id,
-        serverMessageId: '',
-        newsletterName: channelRD.name
-      }
-    }
-  }, { quoted: fkontak })
-
-} catch (e) {
-   console.error(e)
-   await conn.sendMessage(m.chat, { 
-     text: `✘ Un fallo ha surgido entre las sombras: ${e.message}`,
-     mentionedJid: [mentionedJid]
-   })
- }
 }
 
 handler.help = ['allmenu']
@@ -167,18 +188,4 @@ function clockString(ms) {
   const m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60
   const s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':')
-}
-
-function ucapan() {
-  const time = moment.tz('America/Lima').format('HH')
-  let res = "Buenas noches de la sombra"
-
-  if (time >= 5 && time < 12)
-    res = "Buenos días, extra de la historia"
-  else if (time >= 12 && time < 18)
-    res = "Buenas tardes, actor de sombra"
-  else if (time >= 18)
-    res = "Buenas noches, la oscuridad te cubre"
-
-  return res
-      }
+                                                       }
