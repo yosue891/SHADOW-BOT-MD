@@ -6,7 +6,7 @@ import moment from 'moment-timezone'
 
 const botname = global.botname || "Shadow Garden"
 const dev = global.dev || "Cid Kagenou"
-const banner = global.banner || "https://tmpfiles.org/dl/wywX9s5501fP/file.mp4"
+const banner = global.banner || "https://h.uguu.se/ejsRWNYz.jpeg"
 const channelRD = global.channelRD || { id: "0@newsletter", name: "Shadow Channel" }
 
 let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
@@ -98,7 +98,6 @@ ${readMore}
     ]
     let icons = icon[Math.floor(Math.random() * icon.length)]
 
-    // OBTENER MINIATURA FIABLE PARA EL CONTANTO FALSO
     let Shadow_url = null
     try {
       const ctrl = new AbortController()
@@ -111,7 +110,6 @@ ${readMore}
       }
       clearTimeout(t)
     } catch {
-      // Si falla, un mini buffer negro de respaldo para que WhatsApp no ignore la miniatura
       Shadow_url = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64')
     }
 
@@ -134,10 +132,7 @@ ${readMore}
 
     await m.react('🔥')
 
-    // VERIFICAR BANNER Y DETERMINAR FORMATO
     let finalBanner = banner
-    let isVideo = banner.split('?')[0].endsWith('.mp4') || banner.includes('video')
-    
     try {
       const ctrl2 = new AbortController()
       const t2 = setTimeout(() => ctrl2.abort(), 5000)
@@ -146,11 +141,10 @@ ${readMore}
       if (!checkBanner.ok) throw new Error()
     } catch {
       finalBanner = icons
-      isVideo = false
     }
 
-    // CONFIGURACIÓN DE ENVÍO
     let messageOptions = {
+      image: { url: finalBanner },
       caption: infoUser + menuTexto,
       contextInfo: {
         isForwarded: true,
@@ -160,14 +154,6 @@ ${readMore}
           newsletterName: channelRD.name
         }
       }
-    }
-
-    if (isVideo) {
-      messageOptions.video = { url: finalBanner }
-      messageOptions.gifPlayback = true // Fuerza el envío en formato reproducción de GIF
-      messageOptions.mimetype = 'video/mp4'
-    } else {
-      messageOptions.image = { url: finalBanner }
     }
 
     await conn.sendMessage(m.chat, messageOptions, { quoted: fkontak })
@@ -192,4 +178,4 @@ function clockString(ms) {
   const m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60
   const s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':')
-}
+                                    }
