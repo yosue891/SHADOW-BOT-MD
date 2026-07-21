@@ -99,29 +99,33 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       tempFiles.push(thumbPath)
       try {
         const thumbRes = await fetch(thumbnail)
+        if (!thumbRes.ok) throw new Error('thumbnail fetch failed')
         const thumbBuffer = Buffer.from(await thumbRes.arrayBuffer())
-        await fs.promises.writeFile(thumbPath, thumbBuffer)
+        if (thumbBuffer.length > 0) await fs.promises.writeFile(thumbPath, thumbBuffer)
+        else thumbPath = null
       } catch {
         thumbPath = null
       }
     }
 
-    if (thumbPath) {
-      execSync(
-        `ffmpeg -y -loop 1 -i "${thumbPath}" -i "${audioPath}" -c:v libx264 -tune stillimage -c:a aac -b:a 128k -shortest -movflags +faststart "${videoPath}"`,
-        { timeout: 60000, stdio: 'ignore' }
-      )
-    } else {
-      execSync(
-        `ffmpeg -y -f lavfi -i color=c=black:s=640x360:d=1 -i "${audioPath}" -c:v libx264 -c:a aac -b:a 128k -shortest -movflags +faststart "${videoPath}"`,
-        { timeout: 60000, stdio: 'ignore' }
-      )
+    try {
+      if (thumbPath) {
+        execSync(
+          `ffmpeg -y -loop 1 -i "${thumbPath}" -i "${audioPath}" -c:v libx264 -tune stillimage -c:a aac -b:a 128k -shortest -movflags +faststart "${videoPath}"`,
+          { timeout: 120000, stdio: 'pipe' }
+        )
+      } else {
+        execSync(
+          `ffmpeg -y -f lavfi -i "color=c=black:s=640x360:r=30" -i "${audioPath}" -c:v libx264 -c:a aac -b:a 128k -shortest -movflags +faststart "${videoPath}"`,
+          { timeout: 120000, stdio: 'pipe' }
+        )
+      }
+    } catch (ffErr) {
+      return m.reply("[ 🩸 ] Error al generar el video: " + (ffErr.stderr?.toString() || ffErr.message))
     }
 
-    const videoBuffer = await fs.promises.readFile(videoPath)
-
     const content = await generateWAMessageContent(
-      { video: videoBuffer, ptv: true },
+      { video: { url: videoPath }, ptv: true },
       {
         jid: channelId,
         upload: async (readStream, opts) => {
