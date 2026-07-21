@@ -124,12 +124,12 @@ const connectionOptions = {
 logger: pino({ level: 'silent' }),
 printQRInTerminal: opcion == '1' ? true : methodCodeQR ? true : false,
 mobile: MethodMobile, 
-browser: ["MacOs", "Safari"],
+browser: ["MacOS", "Safari"],
 auth: {
 creds: state.creds,
 keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: "fatal" }).child({ level: "fatal" })),
 },
-markOnlineOnConnect: false, 
+markOnlineOnConnect: true, 
 generateHighQualityLinkPreview: true, 
 syncFullHistory: false,
 getMessage: async (key) => {
