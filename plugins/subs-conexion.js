@@ -6,6 +6,7 @@ import path from 'path'
 import { fileURLToPath, pathToFileURL } from 'url'
 import pino from 'pino'
 import chalk from 'chalk'
+import fetch from 'node-fetch'
 import { makeWASocket } from '../lib/simple.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -13,6 +14,7 @@ const __dirname = path.dirname(__filename)
 const PAIRING_CODE_TTL_MS = 45000
 const QR_TTL_MS = 45000
 
+// URL de la imagen de instrucciones
 const BANNER_URL = 'https://h.uguu.se/tMFshJlK.jpeg'
 
 const rtx = `❐ *_Vincula via codigo qr_*
@@ -212,8 +214,28 @@ function getPairingPhoneNumber(m, args, fallbackJid) {
   return number
 }
 
-// Función para construir el mensaje interactivo con botón de copiar
-function createPairingInteractive({ bodyText, code, thumbUrl }) {
+// Función para construir e interactuar enviando la imagen real + botón
+async function sendPairingInteractiveImage(conn, chatId, { bodyText, code, imageUrl }, quoted) {
+  let imageMessageHeader = {}
+
+  try {
+    const res = await fetch(imageUrl)
+    const imageBuffer = Buffer.from(await res.arrayBuffer())
+
+    // Preparar el mensaje visual con imagen
+    const preparedMsg = await conn.sendMessage(chatId, { image: imageBuffer }, { quoted })
+    if (preparedMsg?.message?.imageMessage) {
+      imageMessageHeader = {
+        header: {
+          hasMediaAttachment: true,
+          imageMessage: preparedMsg.message.imageMessage
+        }
+      }
+    }
+  } catch (e) {
+    console.error('No se pudo cargar la imagen para el encabezado:', e)
+  }
+
   const buttons = [
     {
       name: 'cta_copy',
@@ -241,17 +263,8 @@ function createPairingInteractive({ bodyText, code, thumbUrl }) {
     }
   }
 
-  return {
-    contextInfo: {
-      externalAdReply: {
-        title: 'VINCULACIÓN SUB-BOT',
-        body: '',
-        thumbnailUrl: thumbUrl,
-        sourceUrl: 'https://whatsapp.com',
-        mediaType: 1,
-        renderLargerThumbnail: true
-      }
-    },
+  const interactiveMessage = {
+    ...imageMessageHeader,
     body: {
       text: bodyText || ' '
     },
@@ -260,9 +273,7 @@ function createPairingInteractive({ bodyText, code, thumbUrl }) {
       buttons
     }
   }
-}
 
-async function sendInteractiveCode(conn, chatId, interactiveMessage, quoted) {
   const content = {
     viewOnceMessage: {
       message: {
@@ -270,6 +281,7 @@ async function sendInteractiveCode(conn, chatId, interactiveMessage, quoted) {
       }
     }
   }
+
   const userJid = conn?.user?.id || conn?.user?.jid
   const msg = generateWAMessageFromContent(chatId, content, { userJid, quoted })
   await conn.relayMessage(chatId, msg.message, { messageId: msg.key.id })
@@ -428,13 +440,12 @@ export async function MichiJadiBot(options) {
 
 > Toca el botón de abajo para copiar tu código de vinculación.`
 
-      const interactiveMessage = createPairingInteractive({
+      txtCode = await sendPairingInteractiveImage(conn, m.chat, {
         bodyText,
         code: secret,
-        thumbUrl: BANNER_URL
-      })
+        imageUrl: BANNER_URL
+      }, m)
 
-      txtCode = await sendInteractiveCode(conn, m.chat, interactiveMessage, m)
       console.log(`[PAIRING-CODE] ${phoneNumber}: ${secret}`)
       
       if (txtCode?.key) setTimeout(() => conn.sendMessage(m.chat, { delete: txtCode.key }).catch(() => {}), PAIRING_CODE_TTL_MS)
@@ -608,3 +619,5 @@ async function joinChannels(sock) {
     if (typeof value === 'string' && value.endsWith('@newsletter')) await sock.newsletterFollow(value).catch(() => {})
   }
 }
+
+      
