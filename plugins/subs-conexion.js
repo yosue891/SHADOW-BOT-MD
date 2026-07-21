@@ -1,4 +1,4 @@
-const { useMultiFileAuthState, makeCacheableSignalKeyStore, fetchLatestBaileysVersion } = await import('@whiskeysockets/baileys')
+const { useMultiFileAuthState, makeCacheableSignalKeyStore, fetchLatestBaileysVersion, generateWAMessageFromContent } = await import('@whiskeysockets/baileys')
 import qrcode from 'qrcode'
 import NodeCache from 'node-cache'
 import fs from 'fs'
@@ -211,6 +211,71 @@ function getPairingPhoneNumber(m, args, fallbackJid) {
 
   return number
 }
+
+// Función para construir el mensaje interactivo con botón de copiar
+function createPairingInteractive({ bodyText, code, thumbUrl }) {
+  const buttons = [
+    {
+      name: 'cta_copy',
+      buttonParamsJson: JSON.stringify({
+        display_text: 'Copiar Code',
+        copy_code: code || '',
+        has_multiple_buttons: true
+      })
+    }
+  ]
+
+  const params = {
+    bottom_sheet: {
+      in_thread_buttons_limit: 1,
+      divider_indices: [1],
+      list_title: 'Opciones',
+      button_title: 'Abrir'
+    },
+    tap_target_configuration: {
+      title: 'Código Sub-Bot',
+      description: 'Vincular Sub-Bot',
+      canonical_url: 'https://whatsapp.com',
+      domain: 'whatsapp.com',
+      button_index: 0
+    }
+  }
+
+  return {
+    contextInfo: {
+      externalAdReply: {
+        title: 'VINCULACIÓN SUB-BOT',
+        body: '',
+        thumbnailUrl: thumbUrl,
+        sourceUrl: 'https://whatsapp.com',
+        mediaType: 1,
+        renderLargerThumbnail: true
+      }
+    },
+    body: {
+      text: bodyText || ' '
+    },
+    nativeFlowMessage: {
+      messageParamsJson: JSON.stringify(params),
+      buttons
+    }
+  }
+}
+
+async function sendInteractiveCode(conn, chatId, interactiveMessage, quoted) {
+  const content = {
+    viewOnceMessage: {
+      message: {
+        interactiveMessage
+      }
+    }
+  }
+  const userJid = conn?.user?.id || conn?.user?.jid
+  const msg = generateWAMessageFromContent(chatId, content, { userJid, quoted })
+  await conn.relayMessage(chatId, msg.message, { messageId: msg.key.id })
+  return msg
+}
+
 let handler = async (m, { conn, args, usedPrefix, command }) => {
   if (!global.db.data.settings[conn.user.jid].jadibotmd) return m.reply(`ꕥ El Comando *${command}* está desactivado temporalmente.`)
 
@@ -281,7 +346,7 @@ export async function MichiJadiBot(options) {
 
   const mcodeArg = (args[0] && /^(--code|code)$/.test(args[0].trim())) || (args[1] && /^(--code|code)$/.test(args[1].trim()))
   const mcode = options.command === 'code' || mcodeArg
-  let txtCode, codeBot, txtQR
+  let txtCode, txtQR
 
   if (mcodeArg) {
     if (args[0]) args[0] = args[0].replace(/^--code$|^code$/, '').trim()
@@ -342,35 +407,37 @@ export async function MichiJadiBot(options) {
   }, 120000)
 
   async function sendPairingCode() {
-    if (!mcode || sock.user || codeBot || sock.isPairingRequested) return false
+    if (!mcode || sock.user || txtCode || sock.isPairingRequested) return false
     sock.isPairingRequested = true
     await delay(3000)
     try {
       const phoneNumber =
-  (pairingPhoneNumber && normalizePhoneNumber(pairingPhoneNumber).length >= 8 ? pairingPhoneNumber : '') ||
-  (await resolveSenderToPhone(m?.sender, m, conn)) ||
-  (await resolveSenderToPhone(m?.key?.participant, m, conn)) ||
-  (await resolveSenderToPhone(m?.participant, m, conn))
+        (pairingPhoneNumber && normalizePhoneNumber(pairingPhoneNumber).length >= 8 ? pairingPhoneNumber : '') ||
+        (await resolveSenderToPhone(m?.sender, m, conn)) ||
+        (await resolveSenderToPhone(m?.key?.participant, m, conn)) ||
+        (await resolveSenderToPhone(m?.participant, m, conn))
       if (!phoneNumber) throw new Error('No se pudo detectar el número del usuario para generar el código.')
 
       const secret = await sock.requestPairingCode(phoneNumber)
       const formattedSecret = secret.match(/.{1,4}/g)?.join('-') || secret
       
-      // Aquí agregamos la imagen al mensaje explicativo
-      txtCode = await conn.sendMessage(m.chat, { 
-        image: { url: BANNER_URL },
-        caption: `${rtx2}
+      const bodyText = `${rtx2}
 
 ✧ Número solicitado: +${phoneNumber}
 ✧ Código: *${formattedSecret}*
 
-> Escríbelo en WhatsApp exactamente cuando aparezca la pantalla de vinculación. Si WhatsApp no acepta guiones, escríbelo así: *${secret}*` 
-      }, { quoted: m })
+> Toca el botón de abajo para copiar tu código de vinculación.`
 
-      codeBot = await m.reply(secret)
+      const interactiveMessage = createPairingInteractive({
+        bodyText,
+        code: secret,
+        thumbUrl: BANNER_URL
+      })
+
+      txtCode = await sendInteractiveCode(conn, m.chat, interactiveMessage, m)
       console.log(`[PAIRING-CODE] ${phoneNumber}: ${secret}`)
+      
       if (txtCode?.key) setTimeout(() => conn.sendMessage(m.chat, { delete: txtCode.key }).catch(() => {}), PAIRING_CODE_TTL_MS)
-      if (codeBot?.key) setTimeout(() => conn.sendMessage(m.chat, { delete: codeBot.key }).catch(() => {}), PAIRING_CODE_TTL_MS)
       return true
     } catch (e) {
       console.error('Error generando pairing code:', e)
