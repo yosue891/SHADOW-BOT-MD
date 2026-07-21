@@ -106,7 +106,6 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       }
     }
 
-    const thumbInput = thumbPath || thumbPath
     if (thumbPath) {
       execSync(
         `ffmpeg -y -loop 1 -i "${thumbPath}" -i "${audioPath}" -c:v libx264 -tune stillimage -c:a aac -b:a 128k -shortest -movflags +faststart "${videoPath}"`,
