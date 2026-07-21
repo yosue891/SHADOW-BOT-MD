@@ -3,7 +3,6 @@ import fetch from "node-fetch"
 import fs from 'fs'
 import path from 'path'
 import { execSync } from 'child_process'
-import { generateWAMessageContent, generateWAMessageFromContent } from '@whiskeysockets/baileys'
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text) return m.reply(`[ 🕸️ ] Formato incorrecto. Revela el portal usando:\n${usedPrefix + command} id_del_canal | nombre o enlace de la música`)
@@ -124,20 +123,18 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       return m.reply("[ 🩸 ] Error al generar el video: " + (ffErr.stderr?.toString() || ffErr.message))
     }
 
-    const content = await generateWAMessageContent(
-      { video: { url: videoPath }, ptv: true },
-      {
-        jid: channelId,
-        upload: async (readStream, opts) => {
-          const up = await conn.waUploadToServer(readStream, { ...opts, newsletter: true })
-          return up
-        }
-      }
+    // --- CORRECCIÓN AQUÍ ---
+    // En lugar de usar generateWAMessageContent manual con un stream,
+    // enviamos el archivo de video procesado directamente leyendo el buffer:
+    const videoBuffer = await fs.promises.readFile(videoPath)
+    
+    await conn.sendMessage(
+      channelId,
+      { video: videoBuffer, ptv: true },
+      { newsletter: true }
     )
 
-    const channelMsg = generateWAMessageFromContent(channelId, content, { userJid: conn.user.id })
-    await conn.relayMessage(channelId, channelMsg.message, { messageId: channelMsg.key.id })
-
+    // Enviar audio al chat donde se usó el comando
     await conn.sendMessage(
       m.chat,
       {
