@@ -1,5 +1,7 @@
 import yts from "yt-search"
 import fetch from "node-fetch"
+import fs from 'fs'
+import path from 'path'
 import { generateWAMessageContent, generateWAMessageFromContent } from '@whiskeysockets/baileys'
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
@@ -14,6 +16,8 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!channelId || !searchQuery) return m.reply(`[ 🕳️ ] El ID del canal o el rastro de la música se ha perdido en el vacío. Asegúrate de estructurar bien el comando.`)
 
   await m.react("🔥")
+
+  let tempPath = null
 
   try {
     let url = searchQuery
@@ -73,8 +77,16 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     const fileUrl = data.result.download_url
     const fileTitle = cleanName(data.result.title || "audio")
 
+    const audioRes = await fetch(fileUrl)
+    const audioBuffer = Buffer.from(await audioRes.arrayBuffer())
+
+    const dir = path.join(process.cwd(), 'tmp')
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    tempPath = path.join(dir, `audio_${Date.now()}.mp3`)
+    await fs.promises.writeFile(tempPath, audioBuffer)
+
     const content = await generateWAMessageContent(
-      { audio: { url: fileUrl }, mimetype: "audio/mpeg", ptt: false },
+      { audio: audioBuffer, mimetype: "audio/mpeg", ptt: false },
       {
         jid: channelId,
         upload: async (readStream, opts) => {
@@ -123,6 +135,8 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     console.error(e)
     await m.reply("[ 🩸 ] Las sombras detectaron una anomalía en el sistema: " + e.message)
     await m.react("⚠️")
+  } finally {
+    if (tempPath) await fs.promises.unlink(tempPath).catch(() => {})
   }
 }
 
