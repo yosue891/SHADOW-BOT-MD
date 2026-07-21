@@ -1,4 +1,4 @@
-const { useMultiFileAuthState, makeCacheableSignalKeyStore, fetchLatestBaileysVersion, generateWAMessageFromContent } = await import('@whiskeysockets/baileys')
+const { useMultiFileAuthState, makeCacheableSignalKeyStore, fetchLatestBaileysVersion, generateWAMessageFromContent, prepareWAMessageMedia } = await import('@whiskeysockets/baileys')
 import qrcode from 'qrcode'
 import NodeCache from 'node-cache'
 import fs from 'fs'
@@ -6,7 +6,6 @@ import path from 'path'
 import { fileURLToPath, pathToFileURL } from 'url'
 import pino from 'pino'
 import chalk from 'chalk'
-import fetch from 'node-fetch'
 import { makeWASocket } from '../lib/simple.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -219,16 +218,15 @@ async function sendPairingInteractiveImage(conn, chatId, { bodyText, code, image
   let imageMessageHeader = {}
 
   try {
-    const res = await fetch(imageUrl)
-    const imageBuffer = Buffer.from(await res.arrayBuffer())
-
-    // Preparar el mensaje visual con imagen
-    const preparedMsg = await conn.sendMessage(chatId, { image: imageBuffer }, { quoted })
-    if (preparedMsg?.message?.imageMessage) {
+    const media = await prepareWAMessageMedia(
+      { image: { url: imageUrl } },
+      { upload: conn.waUploadToServer }
+    )
+    if (media?.imageMessage) {
       imageMessageHeader = {
         header: {
           hasMediaAttachment: true,
-          imageMessage: preparedMsg.message.imageMessage
+          imageMessage: media.imageMessage
         }
       }
     }
