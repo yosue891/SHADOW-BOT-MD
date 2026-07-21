@@ -214,43 +214,27 @@ function getPairingPhoneNumber(m, args, fallbackJid) {
   return number
 }
 
-// Genera un objeto de imagen silencioso en memoria para que WhatsApp lo muestre en el header del botón
-async function prepareImageHeader(conn, chatId, imageUrl, userJid) {
+// Función para construir e interactuar enviando la imagen real + botón
+async function sendPairingInteractiveImage(conn, chatId, { bodyText, code, imageUrl }, quoted) {
+  let imageMessageHeader = {}
+
   try {
     const res = await fetch(imageUrl)
     const imageBuffer = Buffer.from(await res.arrayBuffer())
-    
-    // Se prepara el prototipo del mensaje en memoria SIN enviarlo por el socket
-    const tempMsg = generateWAMessageFromContent(chatId, {
-      imageMessage: { url: imageUrl }
-    }, { userJid })
 
-    // Se sube el archivo a los servidores de WhatsApp para obtener el mediaKey e URL cifrada
-    const uploadedMedia = await conn.waUploadToServer(imageBuffer, 'image')
-
-    return {
-      hasMediaAttachment: true,
-      imageMessage: {
-        ...tempMsg.message.imageMessage,
-        url: uploadedMedia.url,
-        mimetype: 'image/jpeg',
-        fileSha256: uploadedMedia.fileSha256,
-        fileEncSha256: uploadedMedia.fileEncSha256,
-        mediaKey: uploadedMedia.mediaKey,
-        directPath: uploadedMedia.directPath,
-        mediaKeyTimestamp: Math.floor(Date.now() / 1000)
+    // Preparar el mensaje visual con imagen
+    const preparedMsg = await conn.sendMessage(chatId, { image: imageBuffer }, { quoted })
+    if (preparedMsg?.message?.imageMessage) {
+      imageMessageHeader = {
+        header: {
+          hasMediaAttachment: true,
+          imageMessage: preparedMsg.message.imageMessage
+        }
       }
     }
   } catch (e) {
-    console.error('Error al preparar la imagen interna:', e)
-    return null
+    console.error('No se pudo cargar la imagen para el encabezado:', e)
   }
-}
-
-// Función para enviar UN SOLO mensaje interactivo con Imagen en el encabezado
-async function sendPairingInteractiveImage(conn, chatId, { bodyText, code, imageUrl }, quoted) {
-  const userJid = conn?.user?.id || conn?.user?.jid
-  const header = await prepareImageHeader(conn, chatId, imageUrl, userJid)
 
   const buttons = [
     {
@@ -280,7 +264,7 @@ async function sendPairingInteractiveImage(conn, chatId, { bodyText, code, image
   }
 
   const interactiveMessage = {
-    header: header || undefined,
+    ...imageMessageHeader,
     body: {
       text: bodyText || ' '
     },
@@ -298,6 +282,7 @@ async function sendPairingInteractiveImage(conn, chatId, { bodyText, code, image
     }
   }
 
+  const userJid = conn?.user?.id || conn?.user?.jid
   const msg = generateWAMessageFromContent(chatId, content, { userJid, quoted })
   await conn.relayMessage(chatId, msg.message, { messageId: msg.key.id })
   return msg
@@ -633,4 +618,4 @@ async function joinChannels(sock) {
   for (const value of Object.values(global.ch || {})) {
     if (typeof value === 'string' && value.endsWith('@newsletter')) await sock.newsletterFollow(value).catch(() => {})
   }
-        }
+              }
