@@ -15,7 +15,7 @@ const PAIRING_CODE_TTL_MS = 45000
 const QR_TTL_MS = 45000
 
 // URL de la imagen de instrucciones
-const BANNER_URL = 'https://h.uguu.se/tMFshJlK.jpeg'
+const BANNER_URL = 'https://files.catbox.moe/owpjte.jpg'
 
 const rtx = `❐ *_Vincula via codigo qr_*
 ✩ Escanea este QR para ser *Sub-Bot* temporal.
