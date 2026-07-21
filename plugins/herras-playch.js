@@ -1,8 +1,5 @@
 import yts from "yt-search"
 import fetch from "node-fetch"
-import fs from 'fs'
-import path from 'path'
-import { generateWAMessageContent, generateWAMessageFromContent } from '@whiskeysockets/baileys'
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text) return m.reply(`[ 🕸️ ] Formato incorrecto. Revela el portal usando:\n${usedPrefix + command} id_del_canal | nombre o enlace de la música`)
@@ -16,8 +13,6 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!channelId || !searchQuery) return m.reply(`[ 🕳️ ] El ID del canal o el rastro de la música se ha perdido en el vacío. Asegúrate de estructurar bien el comando.`)
 
   await m.react("🔥")
-
-  let tempPath = null
 
   try {
     let url = searchQuery
@@ -80,24 +75,14 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     const audioRes = await fetch(fileUrl)
     const audioBuffer = Buffer.from(await audioRes.arrayBuffer())
 
-    const dir = path.join(process.cwd(), 'tmp')
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-    tempPath = path.join(dir, `audio_${Date.now()}.mp3`)
-    await fs.promises.writeFile(tempPath, audioBuffer)
-
-    const content = await generateWAMessageContent(
-      { audio: audioBuffer, mimetype: "audio/mpeg", ptt: false },
+    await conn.sendMessage(
+      channelId,
       {
-        jid: channelId,
-        upload: async (readStream, opts) => {
-          const up = await conn.waUploadToServer(readStream, { ...opts, newsletter: true })
-          return up
-        }
+        audio: audioBuffer,
+        mimetype: "audio/mpeg",
+        ptt: false
       }
     )
-
-    const channelMsg = generateWAMessageFromContent(channelId, content, { userJid: conn.user.id })
-    await conn.relayMessage(channelId, channelMsg.message, { messageId: channelMsg.key.id })
 
     await conn.sendMessage(
       m.chat,
@@ -135,8 +120,6 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     console.error(e)
     await m.reply("[ 🩸 ] Las sombras detectaron una anomalía en el sistema: " + e.message)
     await m.react("⚠️")
-  } finally {
-    if (tempPath) await fs.promises.unlink(tempPath).catch(() => {})
   }
 }
 
