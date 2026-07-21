@@ -1,5 +1,9 @@
 import yts from "yt-search"
 import fetch from "node-fetch"
+import fs from 'fs'
+import path from 'path'
+import { execSync } from 'child_process'
+import { generateWAMessageContent, generateWAMessageFromContent } from '@whiskeysockets/baileys'
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text) return m.reply(`[ 🕸️ ] Formato incorrecto. Revela el portal usando:\n${usedPrefix + command} id_del_canal | nombre o enlace de la música`)
@@ -14,9 +18,12 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 
   await m.react("🔥")
 
+  let tempFiles = []
+
   try {
     let url = searchQuery
     let title = "Desconocido"
+    let thumbnail = ""
 
     const isUrl = /^https?:\/\/\S+/i.test(url)
 
@@ -38,6 +45,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 
       title = res.title || title
       url = res.url || url
+      thumbnail = res.thumbnail || ""
     } else {
       const res = await yts(url)
       if (!res?.videos?.length) {
@@ -48,6 +56,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       const video = res.videos[0]
       title = video.title || title
       url = video.url || url
+      thumbnail = video.thumbnail || ""
     }
 
     const sent = await conn.sendMessage(
@@ -72,17 +81,59 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     const fileUrl = data.result.download_url
     const fileTitle = cleanName(data.result.title || "audio")
 
+    const dir = path.join(process.cwd(), 'tmp')
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+
+    const audioPath = path.join(dir, `audio_${Date.now()}.mp3`)
+    tempFiles.push(audioPath)
     const audioRes = await fetch(fileUrl)
     const audioBuffer = Buffer.from(await audioRes.arrayBuffer())
+    await fs.promises.writeFile(audioPath, audioBuffer)
 
-    await conn.sendMessage(
-      channelId,
+    const videoPath = path.join(dir, `video_${Date.now()}.mp4`)
+    tempFiles.push(videoPath)
+
+    let thumbPath = null
+    if (thumbnail) {
+      thumbPath = path.join(dir, `thumb_${Date.now()}.jpg`)
+      tempFiles.push(thumbPath)
+      try {
+        const thumbRes = await fetch(thumbnail)
+        const thumbBuffer = Buffer.from(await thumbRes.arrayBuffer())
+        await fs.promises.writeFile(thumbPath, thumbBuffer)
+      } catch {
+        thumbPath = null
+      }
+    }
+
+    const thumbInput = thumbPath || thumbPath
+    if (thumbPath) {
+      execSync(
+        `ffmpeg -y -loop 1 -i "${thumbPath}" -i "${audioPath}" -c:v libx264 -tune stillimage -c:a aac -b:a 128k -shortest -movflags +faststart "${videoPath}"`,
+        { timeout: 60000, stdio: 'ignore' }
+      )
+    } else {
+      execSync(
+        `ffmpeg -y -f lavfi -i color=c=black:s=640x360:d=1 -i "${audioPath}" -c:v libx264 -c:a aac -b:a 128k -shortest -movflags +faststart "${videoPath}"`,
+        { timeout: 60000, stdio: 'ignore' }
+      )
+    }
+
+    const videoBuffer = await fs.promises.readFile(videoPath)
+
+    const content = await generateWAMessageContent(
+      { video: videoBuffer, ptv: true },
       {
-        audio: audioBuffer,
-        mimetype: "audio/mpeg",
-        ptt: false
+        jid: channelId,
+        upload: async (readStream, opts) => {
+          const up = await conn.waUploadToServer(readStream, { ...opts, newsletter: true })
+          return up
+        }
       }
     )
+
+    const channelMsg = generateWAMessageFromContent(channelId, content, { userJid: conn.user.id })
+    await conn.relayMessage(channelId, channelMsg.message, { messageId: channelMsg.key.id })
 
     await conn.sendMessage(
       m.chat,
@@ -120,6 +171,10 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     console.error(e)
     await m.reply("[ 🩸 ] Las sombras detectaron una anomalía en el sistema: " + e.message)
     await m.react("⚠️")
+  } finally {
+    for (const f of tempFiles) {
+      await fs.promises.unlink(f).catch(() => {})
+    }
   }
 }
 
