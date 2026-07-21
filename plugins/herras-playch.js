@@ -1,8 +1,5 @@
 import yts from "yt-search"
 import fetch from "node-fetch"
-import fs from 'fs'
-import path from 'path'
-import { generateWAMessageContent, generateWAMessageFromContent } from '@whiskeysockets/baileys'
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text) return m.reply(`[ 🕸️ ] Formato incorrecto. Revela el portal usando:\n${usedPrefix + command} id_del_canal | nombre o enlace de la música`)
@@ -19,6 +16,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 
   try {
     let url = searchQuery
+    let title = "Desconocido"
 
     const isUrl = /^https?:\/\/\S+/i.test(url)
 
@@ -37,6 +35,9 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       if (!res) {
         return m.reply("[ 🕳️ ] La sombra no pudo obtener información de este archivo cósmico.")
       }
+
+      title = res.title || title
+      url = res.url || url
     } else {
       const res = await yts(url)
       if (!res?.videos?.length) {
@@ -45,24 +46,13 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       }
 
       const video = res.videos[0]
+      title = video.title || title
       url = video.url || url
     }
 
-    await downloadMediaToChannel(conn, m, url, channelId)
-    await m.react("⚔️")
-  } catch (e) {
-    console.error(e)
-    await m.reply("[ 🩸 ] Las sombras detectaron una anomalía en el sistema: " + e.message)
-    await m.react("⚠️")
-  }
-}
-
-const downloadMediaToChannel = async (conn, m, url, channelId) => {
-  let tempPath = null
-  try {
     const sent = await conn.sendMessage(
       m.chat,
-      { text: "[ ⏳ ] Invocando el arte prohibido... Transfiriendo el audio al canal de destino..." },
+      { text: "[ ⏳ ] Invocando el arte prohibido..." },
       { quoted: m }
     )
 
@@ -82,47 +72,49 @@ const downloadMediaToChannel = async (conn, m, url, channelId) => {
     const fileUrl = data.result.download_url
     const fileTitle = cleanName(data.result.title || "audio")
 
-    const audioRes = await fetch(fileUrl)
-    const audioBuffer = Buffer.from(await audioRes.arrayBuffer())
-
-    const dir = path.join(process.cwd(), 'tmp')
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-    tempPath = path.join(dir, `audio_${Date.now()}.mp3`)
-    await fs.promises.writeFile(tempPath, audioBuffer)
-
-    const content = await generateWAMessageContent(
-      { audio: { url: tempPath }, mimetype: "audio/mpeg", ptt: false },
+    await conn.sendMessage(
+      channelId,
       {
-        jid: channelId,
-        upload: async (readStream, opts) => {
-          const up = await conn.waUploadToServer(readStream, { ...opts, newsletter: true })
-          return up
-        }
+        text: `🎵 *${fileTitle}*`
       }
     )
 
-    const channelMsg = generateWAMessageFromContent(channelId, content, { userJid: conn.user.id })
-    await conn.relayMessage(channelId, channelMsg.message, { messageId: channelMsg.key.id })
-
-    await conn.copyNForward(m.chat, channelMsg, true)
+    await conn.sendMessage(
+      m.chat,
+      {
+        audio: { url: fileUrl },
+        mimetype: "audio/mpeg",
+        fileName: `${fileTitle}.mp3`,
+        ptt: false,
+        contextInfo: {
+          isForwarded: true,
+          forwardingScore: 1,
+          forwardedNewsletterMessageInfo: {
+            newsletterJid: channelId,
+            newsletterName: "Canal de las Sombras",
+            serverMessageId: 100
+          }
+        }
+      }
+    )
 
     try {
       await conn.sendMessage(
         m.chat,
         {
-          text: `⚔️ Transferencia dimensional completada.\n\n🎼 Título: ${fileTitle}\n👁️ Destino: Canal de las Sombras`,
+          text: `⚔️ Transferencia dimensional completada.\n\n🎼 Título: ${fileTitle}\n👁️ Canal: ${channelId}`,
           edit: sent.key
         }
       )
     } catch {
       await m.reply(`⚔️ Transferencia dimensional completada.\n\n🎼 Título: ${fileTitle}`)
     }
+
+    await m.react("⚔️")
   } catch (e) {
     console.error(e)
-    await m.reply("[ 🩸 ] Las sombras fallaron al desviar el flujo al canal. Asegúrate de que la ID sea correcta (ej: 120363xxxxxxxx@newsletter) y que el bot sea administrador: " + e.message)
+    await m.reply("[ 🩸 ] Las sombras detectaron una anomalía en el sistema: " + e.message)
     await m.react("⚠️")
-  } finally {
-    if (tempPath) await fs.promises.unlink(tempPath).catch(() => {})
   }
 }
 
