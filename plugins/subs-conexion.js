@@ -1,5 +1,4 @@
 const { useMultiFileAuthState, makeCacheableSignalKeyStore, fetchLatestBaileysVersion } = await import('@whiskeysockets/baileys')
-import { prepareWAMessageMedia, generateWAMessageFromContent } from '@whiskeysockets/baileys'
 import qrcode from 'qrcode'
 import NodeCache from 'node-cache'
 import fs from 'fs'
@@ -13,6 +12,8 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const PAIRING_CODE_TTL_MS = 45000
 const QR_TTL_MS = 45000
+
+const BANNER_URL = 'https://h.uguu.se/tMFshJlK.jpeg'
 
 const rtx = `❐ *_Vincula via codigo qr_*
 ✩ Escanea este QR para ser *Sub-Bot* temporal.
@@ -354,69 +355,22 @@ export async function MichiJadiBot(options) {
 
       const secret = await sock.requestPairingCode(phoneNumber)
       const formattedSecret = secret.match(/.{1,4}/g)?.join('-') || secret
-
-      // ╭─ Prepara la imagen para enviarla como cabecera en un solo mensaje ─╮
-      let media = null
-      try {
-        media = await prepareWAMessageMedia(
-          { image: { url: 'https://h.uguu.se/iywLLjvT.jpeg' } },
-          { upload: conn.waUploadToServer }
-        )
-        console.log('[PAIRING-CODE] Imagen preparada correctamente:', !!media?.imageMessage)
-      } catch (e) {
-        console.error('[PAIRING-CODE] ERROR preparando la imagen:', e)
-      }
-
-      // ╭─ Envía TODO en un único mensaje interactivo: imagen + pasos + código pix copiable ─╮
-      const interactiveMsg = generateWAMessageFromContent(m.chat, {
-        viewOnceMessage: {
-          message: {
-            interactiveMessage: {
-              body: {
-                text: `${rtx2}
+      
+      // Aquí agregamos la imagen al mensaje explicativo
+      txtCode = await conn.sendMessage(m.chat, { 
+        image: { url: BANNER_URL },
+        caption: `${rtx2}
 
 ✧ Número solicitado: +${phoneNumber}
 ✧ Código: *${formattedSecret}*
 
-> Toca el botón para copiar el código y escríbelo en WhatsApp exactamente cuando aparezca la pantalla de vinculación. Si WhatsApp no acepta guiones, escríbelo así: *${secret}*`
-              },
-              footer: { text: 'SHADOW-BOT-MD' },
-              header: media ? {
-                hasMediaAttachment: true,
-                imageMessage: media.imageMessage
-              } : undefined,
-              nativeFlowMessage: {
-                buttons: [
-                  {
-                    name: 'payment_info',
-                    buttonParamsJson: JSON.stringify({
-                      payment_settings: [
-                        {
-                          type: 'pix_static_code',
-                          pix_static_code: {
-                            merchant_name: 'SHADOW-BOT-MD',
-                            key: secret,
-                            key_type: 'EVP'
-                          }
-                        }
-                      ]
-                    })
-                  }
-                ],
-                messageParamsJson: '{}'
-              },
-              contextInfo: {}
-            }
-          }
-        }
-      }, {})
+> Escríbelo en WhatsApp exactamente cuando aparezca la pantalla de vinculación. Si WhatsApp no acepta guiones, escríbelo así: *${secret}*` 
+      }, { quoted: m })
 
-      txtCode = await conn.relayMessage(m.chat, interactiveMsg.message, { quoted: m })
-      codeBot = txtCode
-      // ╰─────────────────────────────────────────────────────────────────────────╯
-
+      codeBot = await m.reply(secret)
       console.log(`[PAIRING-CODE] ${phoneNumber}: ${secret}`)
       if (txtCode?.key) setTimeout(() => conn.sendMessage(m.chat, { delete: txtCode.key }).catch(() => {}), PAIRING_CODE_TTL_MS)
+      if (codeBot?.key) setTimeout(() => conn.sendMessage(m.chat, { delete: codeBot.key }).catch(() => {}), PAIRING_CODE_TTL_MS)
       return true
     } catch (e) {
       console.error('Error generando pairing code:', e)
