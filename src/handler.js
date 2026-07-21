@@ -400,6 +400,14 @@ export async function handler(chatUpdate) {
         m.isCommand = true;
         m.exp += plugin.exp ? parseInt(plugin.exp) : 10;
 
+        const audioCommands = new Set(['play', 'play2', 'playch', 'ytmp3', 'ytmp4', 'playvid', 'ytv', 'yt', 'spotify', 'spdl', 'audivd', 'cancion', 'canción', 'say', 'decir', 'tiktoks', 'tiktoksearch', 'ttss', 'ptvsearch', 'ptvtt', 'ttptv', 'shazam', 'whatmusic']);
+        if (this.sendPresenceUpdate) {
+            await this.sendPresenceUpdate(audioCommands.has(command) ? 'recording' : 'composing', m.chat);
+        }
+        if (this.readMessages) {
+            await this.readMessages([m.key]);
+        }
+
         try {
             await plugin.call(this, m, {
                 match,
