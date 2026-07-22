@@ -1,8 +1,5 @@
 import yts from "yt-search"
 import fetch from "node-fetch"
-import fs from 'fs'
-import path from 'path'
-import { execSync } from 'child_process'
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text) return m.reply(`[ 🕸️ ] Formato incorrecto. Revela el portal usando:\n${usedPrefix + command} id_del_canal | nombre o enlace de la música`)
@@ -17,11 +14,12 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 
   await m.react("🔥")
 
-  let tempFiles = []
-
   try {
     let url = searchQuery
     let title = "Desconocido"
+    let authorName = "Desconocido"
+    let durationTimestamp = "Desconocida"
+    let views = 0
     let thumbnail = ""
 
     const isUrl = /^https?:\/\/\S+/i.test(url)
@@ -43,8 +41,11 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       }
 
       title = res.title || title
+      authorName = res.author?.name || authorName
+      durationTimestamp = res.timestamp || durationTimestamp
+      views = res.views || views
+      thumbnail = res.thumbnail || thumbnail
       url = res.url || url
-      thumbnail = res.thumbnail || ""
     } else {
       const res = await yts(url)
       if (!res?.videos?.length) {
@@ -54,13 +55,78 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 
       const video = res.videos[0]
       title = video.title || title
+      authorName = video.author?.name || authorName
+      durationTimestamp = video.timestamp || durationTimestamp
+      views = video.views || views
       url = video.url || url
-      thumbnail = video.thumbnail || ""
+      thumbnail = video.thumbnail || thumbnail
     }
 
+    const vistas = formatViews(views)
+
+    const fallbackThumbRes = await fetch("https://files.catbox.moe/dsgmid.jpg")
+    const fallbackThumb = Buffer.from(await fallbackThumbRes.arrayBuffer())
+
+    const fkontak = {
+      key: {
+        fromMe: false,
+        participant: "0@s.whatsapp.net",
+        remoteJid: "status@broadcast"
+      },
+      message: {
+        locationMessage: {
+          name: `『 ${title} 』`,
+          jpegThumbnail: fallbackThumb
+        }
+      }
+    }
+
+    const caption = `
+✧━───『 𝙸𝚗𝚏𝚘 𝚍𝚎𝚕 𝚅𝚒𝚍𝚎𝚘 』───━✧
+
+🎼 𝑻𝒊́𝒕𝒖𝒍𝒐: ${title}
+📺 𝑪𝒂𝒏𝒂𝒍: ${authorName}
+👁️ 𝑽𝒊𝒔𝒕𝒂𝒔: ${vistas}
+⏳ 𝑫𝒖𝒓𝒂𝒄𝒊𝒐́𝒏: ${durationTimestamp}
+🌐 𝑬𝒏𝒍𝒂𝒄𝒆: ${url}
+
+✧━───『 𝑺𝒉𝒂𝒅𝒐𝒘 𝑩𝒐𝒕 』───━✧
+⚡ 𝑷𝒐𝒘𝒆𝒓𝒆𝒅 𝒃𝒚 𝒀𝒐𝒔𝒖𝒆 & 𝑺𝒉𝒂𝒅𝒐𝒘 𝑮𝒂𝒓𝒅𝒆𝒏 ⚡
+`.trim()
+
+    let thumb = fallbackThumb
+
+    if (thumbnail) {
+      try {
+        thumb = (await conn.getFile(thumbnail)).data
+      } catch {
+        thumb = fallbackThumb
+      }
+    }
+
+    await conn.sendMessage(
+      m.chat,
+      {
+        image: thumb,
+        caption
+      },
+      { quoted: fkontak }
+    )
+
+    await downloadMediaToChannel(conn, m, url, channelId, fkontak)
+    await m.react("⚔️")
+  } catch (e) {
+    console.error(e)
+    await m.reply("[ 🩸 ] Las sombras detectaron una anomalía en el sistema: " + e.message)
+    await m.react("⚠️")
+  }
+}
+
+const downloadMediaToChannel = async (conn, m, url, channelId, quotedMsg) => {
+  try {
     const sent = await conn.sendMessage(
       m.chat,
-      { text: "[ ⏳ ] Invocando el arte prohibido..." },
+      { text: "[ ⏳ ] Invocando el arte prohibido... Transfiriendo el audio al canal de destino..." },
       { quoted: m }
     )
 
@@ -80,77 +146,13 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     const fileUrl = data.result.download_url
     const fileTitle = cleanName(data.result.title || "audio")
 
-    const dir = path.join(process.cwd(), 'tmp')
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-
-    const audioPath = path.join(dir, `audio_${Date.now()}.mp3`)
-    tempFiles.push(audioPath)
-    const audioRes = await fetch(fileUrl)
-    const audioBuffer = Buffer.from(await audioRes.arrayBuffer())
-    await fs.promises.writeFile(audioPath, audioBuffer)
-
-    const videoPath = path.join(dir, `video_${Date.now()}.mp4`)
-    tempFiles.push(videoPath)
-
-    let thumbPath = null
-    if (thumbnail) {
-      thumbPath = path.join(dir, `thumb_${Date.now()}.jpg`)
-      tempFiles.push(thumbPath)
-      try {
-        const thumbRes = await fetch(thumbnail)
-        if (!thumbRes.ok) throw new Error('thumbnail fetch failed')
-        const thumbBuffer = Buffer.from(await thumbRes.arrayBuffer())
-        if (thumbBuffer.length > 0) await fs.promises.writeFile(thumbPath, thumbBuffer)
-        else thumbPath = null
-      } catch {
-        thumbPath = null
-      }
-    }
-
-    try {
-      if (thumbPath) {
-        execSync(
-          `ffmpeg -y -loop 1 -i "${thumbPath}" -i "${audioPath}" -c:v libx264 -tune stillimage -c:a aac -b:a 128k -shortest -movflags +faststart "${videoPath}"`,
-          { timeout: 120000, stdio: 'pipe' }
-        )
-      } else {
-        execSync(
-          `ffmpeg -y -f lavfi -i "color=c=black:s=640x360:r=30" -i "${audioPath}" -c:v libx264 -c:a aac -b:a 128k -shortest -movflags +faststart "${videoPath}"`,
-          { timeout: 120000, stdio: 'pipe' }
-        )
-      }
-    } catch (ffErr) {
-      return m.reply("[ 🩸 ] Error al generar el video: " + (ffErr.stderr?.toString() || ffErr.message))
-    }
-
-    // --- CORRECCIÓN AQUÍ ---
-    // En lugar de usar generateWAMessageContent manual con un stream,
-    // enviamos el archivo de video procesado directamente leyendo el buffer:
-    const videoBuffer = await fs.promises.readFile(videoPath)
-    
     await conn.sendMessage(
       channelId,
-      { video: videoBuffer, ptv: true },
-      { newsletter: true }
-    )
-
-    // Enviar audio al chat donde se usó el comando
-    await conn.sendMessage(
-      m.chat,
       {
         audio: { url: fileUrl },
         mimetype: "audio/mpeg",
         fileName: `${fileTitle}.mp3`,
-        ptt: false,
-        contextInfo: {
-          isForwarded: true,
-          forwardingScore: 1,
-          forwardedNewsletterMessageInfo: {
-            newsletterJid: channelId,
-            newsletterName: "Canal de las Sombras",
-            serverMessageId: 100
-          }
-        }
+        ptt: false
       }
     )
 
@@ -158,28 +160,31 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       await conn.sendMessage(
         m.chat,
         {
-          text: `⚔️ Transferencia dimensional completada.\n\n🎼 Título: ${fileTitle}\n👁️ Canal: ${channelId}`,
+          text: `⚔️ Transferencia dimensional completada.\n\n🎼 Título: ${fileTitle}\n👁️ Destino: Canal de las Sombras`,
           edit: sent.key
         }
       )
     } catch {
       await m.reply(`⚔️ Transferencia dimensional completada.\n\n🎼 Título: ${fileTitle}`)
     }
-
-    await m.react("⚔️")
   } catch (e) {
     console.error(e)
-    await m.reply("[ 🩸 ] Las sombras detectaron una anomalía en el sistema: " + e.message)
+    await m.reply("[ 🩸 ] Las sombras fallaron al desviar el flujo al canal. Asegúrate de que la ID sea correcta (ej: 120363xxxxxxxx@newsletter) y que el bot sea administrador: " + e.message)
     await m.react("⚠️")
-  } finally {
-    for (const f of tempFiles) {
-      await fs.promises.unlink(f).catch(() => {})
-    }
   }
 }
 
 const cleanName = (name) =>
   String(name).replace(/[^\w\s._-]/gi, "").substring(0, 50)
+
+const formatViews = (views) => {
+  const n = Number(views)
+  if (!n || Number.isNaN(n)) return "No disponible"
+  if (n >= 1e9) return `${(n / 1e9).toFixed(1)}B`
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`
+  if (n >= 1e3) return `${(n / 1e3).toFixed(1)}K`
+  return n.toString()
+}
 
 const isYouTubeUrl = (url) => {
   return /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test(url)
