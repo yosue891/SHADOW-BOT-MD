@@ -62,7 +62,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     if (!profilePic) profilePic = "https://i.ibb.co/3NfYh9k/default-avatar.png"
 
     let botNameToShow = global.botname || meName
-    let bannerUrl = "https://d.uguu.se/YfSdSusd.jpeg"
+    let bannerUrl = "https://raw.githubusercontent.com/yosue891/Shadow-MD/refs/heads/main/Screenshot%202026-06-09%2016.03.08%20(1).png"
 
     const channelUrl = "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
     const botType = (conn.user?.jid || "") === (global.conn?.user?.jid || "") ? "Principal" : "Sub-Bot"
