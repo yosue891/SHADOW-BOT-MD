@@ -1,5 +1,32 @@
 import yts from "yt-search"
 import fetch from "node-fetch"
+import fs from "fs"
+import path from "path"
+import crypto from "crypto"
+import { exec } from "child_process"
+import { promisify } from "util"
+
+const execAsync = promisify(exec)
+
+async function toOggOpus(mp3Buf) {
+  const tmp = path.join(process.cwd(), "temp")
+  if (!fs.existsSync(tmp)) fs.mkdirSync(tmp, { recursive: true })
+  
+  const id = crypto.randomBytes(6).toString("hex")
+  const inp = path.join(tmp, `in_${id}.mp3`)
+  const out = path.join(tmp, `out_${id}.ogg`)
+  
+  fs.writeFileSync(inp, mp3Buf)
+  await execAsync(
+    `ffmpeg -y -i "${inp}" -vn -map_metadata -1 -ac 1 -ar 48000 -c:a libopus -b:a 96k -vbr on -application audio -f ogg "${out}"`
+  )
+  const buf = fs.readFileSync(out)
+  
+  try { fs.unlinkSync(inp) } catch {}
+  try { fs.unlinkSync(out) } catch {}
+  
+  return buf
+}
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text) return m.reply(`[ 🕸️ ] Formato incorrecto. Revela el portal usando:\n${usedPrefix + command} id_del_canal | nombre o enlace de la música`)
@@ -87,11 +114,11 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 🎼 𝑻𝒊́𝒕𝒖𝒍𝒐: ${title}
 📺 𝑪𝒂𝒏𝒂𝒍: ${authorName}
 👁️ 𝑽𝒊𝒔𝒕𝒂𝒔: ${vistas}
-⏳ 𝑫𝒖𝒓𝒂𝒄𝒊𝒐́𝒏: ${durationTimestamp}
+⏳ 𝑫𝚞𝒓𝒂𝒄𝒊𝒐́𝒏: ${durationTimestamp}
 🌐 𝑬𝒏𝒍𝒂𝒄𝒆: ${url}
 
 ✧━───『 𝑺𝒉𝒂𝒅𝒐𝒘 𝑩𝒐𝒕 』───━✧
-⚡ 𝑷𝒐𝒘𝒆𝒓𝒆𝒅 𝒃𝒚 𝒀𝒐𝒔𝒖𝒆 & 𝑺𝒉𝒂𝒅𝒐𝒘 𝑮𝒂𝒓𝒅𝒆𝒏 ⚡
+⚡ 𝑷𝒐𝒘𝒆𝒓𝒆𝒅 𝒃𝒚 𝒀𝒐𝒔𝒖𝒆 & 𝑺𝒉𝒂𝒅𝒐𝒘 𝑮𝒂𝒓𝒅𝒆𝚗 ⚡
 `.trim()
 
     let thumb = fallbackThumb
@@ -113,7 +140,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       { quoted: fkontak }
     )
 
-    await downloadMediaToChannel(conn, m, url, channelId, fkontak)
+    await downloadMediaToChannel(conn, m, url, channelId)
     await m.react("⚔️")
   } catch (e) {
     console.error(e)
@@ -122,7 +149,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
   }
 }
 
-const downloadMediaToChannel = async (conn, m, url, channelId, quotedMsg) => {
+const downloadMediaToChannel = async (conn, m, url, channelId) => {
   try {
     const sent = await conn.sendMessage(
       m.chat,
@@ -146,15 +173,33 @@ const downloadMediaToChannel = async (conn, m, url, channelId, quotedMsg) => {
     const fileUrl = data.result.download_url
     const fileTitle = cleanName(data.result.title || "audio")
 
-    await conn.sendMessage(
-      channelId,
-      {
-        audio: { url: fileUrl },
-        mimetype: "audio/mpeg",
-        fileName: `${fileTitle}.mp3`,
-        ptt: false
-      }
-    )
+    const audioRes = await fetch(fileUrl)
+    const audioArrayBuffer = await audioRes.arrayBuffer()
+    const mp3Buf = Buffer.from(audioArrayBuffer)
+
+    if (mp3Buf.length < 50000) {
+      throw new Error("El archivo de audio recibido es demasiado pequeño.")
+    }
+
+    const opusBuf = await toOggOpus(mp3Buf)
+    if (opusBuf.length < 10000) {
+      throw new Error("La conversión de audio a Opus ha fallado.")
+    }
+
+    await conn.sendMessage(channelId, {
+      audio: opusBuf,
+      mimetype: "audio/ogg; codecs=opus",
+      ptt: false,
+      contextInfo: {
+        isForwarded: true,
+        forwardingScore: 99,
+        forwardedNewsletterMessageInfo: {
+          newsletterJid: channelId,
+          serverMessageId: 100,
+          newsletterName: "Shadow Garden",
+        },
+      },
+    })
 
     try {
       await conn.sendMessage(
@@ -169,7 +214,7 @@ const downloadMediaToChannel = async (conn, m, url, channelId, quotedMsg) => {
     }
   } catch (e) {
     console.error(e)
-    await m.reply("[ 🩸 ] Las sombras fallaron al desviar el flujo al canal. Asegúrate de que la ID sea correcta (ej: 120363xxxxxxxx@newsletter) y que el bot sea administrador: " + e.message)
+    await m.reply("[ 🩸 ] Las sombras fallaron al desviar el flujo al canal. Asegúrate de tener FFmpeg instalado y que la ID sea correcta (ej: 120363xxxxxxxx@newsletter): " + e.message)
     await m.react("⚠️")
   }
 }
