@@ -93,8 +93,8 @@ ${readMore}
 乂 PROTOCOLO DE COMANDOS DE LA SOMBRA 乂\n`.trim()
 
     const icon = [
-      'https://h.uguu.se/ejsRWNYz.jpeg',
-      'https://h.uguu.se/ejsRWNYz.jpeg'
+      'https://raw.githubusercontent.com/yosue891/Shadow-MD/refs/heads/main/G9i8jTSWgAAppEQ.jpg',
+      'https://raw.githubusercontent.com/yosue891/Shadow-MD/refs/heads/main/G9i8jTSWgAAppEQ.jpg'
     ]
     let icons = icon[Math.floor(Math.random() * icon.length)]
 
