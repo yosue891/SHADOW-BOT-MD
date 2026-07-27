@@ -61,7 +61,7 @@ let handler = async (m, { conn, usedPrefix }) => {
 *╰─────────────╯*`.trim()
 
     let finalMenu = infoUser + '\n\n' + comandosOwner
-    let videoUrl = 'https://d.uguu.se/PXjpyfPU.jpeg'
+    let videoUrl = 'https://raw.githubusercontent.com/yosue891/Shadow-MD/refs/heads/main/Gemini_Generated_Image_r6qzclr6qzclr6qz.png'
 
     let vcard = `BEGIN:VCARD\nVERSION:3.0\nN:;Itachi;;;\nFN:Itachi\nitem1.TEL;waid=13135550002:+1 (313) 555-0002\nitem1.X-ABLabel:Celular\nEND:VCARD`
     let qkontak = { 
@@ -84,8 +84,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     const msg = generateWAMessageFromContent(m.chat, {
       viewOnceMessage: {
         message: {
-          interactiveMessage: {
-            body: { text: finalMenu },
+          interactiveMext: finalMenu },
             footer: { text: botname },
             header: media ? {
               hasMediaAttachment: true,
