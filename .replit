@@ -20,12 +20,12 @@ args = "Shadow Bot"
 name = "Shadow Bot"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm start -- --code"
-
-[workflows.workflow.metadata]
-outputType = "console"
 
 [nix]
 channel = "stable-25_05"
