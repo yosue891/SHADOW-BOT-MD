@@ -35,12 +35,12 @@ await delay(1 * 10000)
 let chat = global.db.data.chats[m.chat]
 chat.welcome = false
 try {
-let users = m.mentionedJid.filter(u => !areJidsSameUser(u, conn.user.id))
+ let users = (m.mentionedJid || []).filter(u => !areJidsSameUser(u, conn.user.id))
 let kickedGhost = sider.filter(v => v !== conn.user.jid)
 for (let user of users)
 if (user.endsWith('@s.whatsapp.net') && !(participants.find(v => areJidsSameUser(v.id, user)) || { admin: true }).admin) {
 let res = await conn.groupParticipantsUpdate(m.chat, [user], 'remove')
-kickedGhost.concat(res)
+ kickedGhost = kickedGhost.concat(res)
 await delay(1 * 10000)
 }} finally {
 chat.welcome = true

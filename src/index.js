@@ -97,7 +97,7 @@ const msgRetryCounterMap = new Map()
 const msgRetryCounterCache = new NodeCache({ stdTTL: 0, checkperiod: 0 })
 const userDevicesCache = new NodeCache({ stdTTL: 0, checkperiod: 0 })
 const { version } = await fetchLatestBaileysVersion()
-let phoneNumber = global.botNumber
+let phoneNumber = process.env.BOT_NUMBER || process.env.PHONE_NUMBER || global.botNumber
 const methodCodeQR = process.argv.includes("qr") || process.argv.includes("--qr")
 const methodCode = process.argv.includes("code") || process.argv.includes("--code")
 const MethodMobile = process.argv.includes("mobile") || process.argv.includes("--mobile")
@@ -124,7 +124,7 @@ const connectionOptions = {
 logger: pino({ level: 'silent' }),
 printQRInTerminal: opcion == '1' ? true : methodCodeQR ? true : false,
 mobile: MethodMobile, 
-browser: ["MacOS", "Safari"],
+browser: ["Ubuntu", "Chrome", "120.0.0"],
 auth: {
 creds: state.creds,
 keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: "fatal" }).child({ level: "fatal" })),
@@ -147,6 +147,12 @@ cachedGroupMetadata: (jid) => globalThis.conn?.chats?.[jid]?.metadata ?? {},
 version: version, 
 keepAliveIntervalMs: 45000, 
 maxIdleTimeMs: 120000, 
+}
+
+let reloadHandlerImpl
+global.reloadHandler = async (...args) => {
+while (!reloadHandlerImpl) await delay(100)
+return reloadHandlerImpl(...args)
 }
 
 global.conn = makeWASocket(connectionOptions)
@@ -420,7 +426,7 @@ console.error(err)
 let isInit = true
 let handler = await import('./handler.js')
 global._reloading = false
-global.reloadHandler = async function(restatConn) {
+reloadHandlerImpl = async function(restatConn) {
 if (global._reloading) return
 global._reloading = true
 try {

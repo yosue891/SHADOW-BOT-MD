@@ -3,7 +3,7 @@ import axios from 'axios';
 const handler = async (m, { conn, command, args}) => {
   try {
     // Verifica si el grupo tiene NSFW activado
-    if (!db.data.chats[m.chat].nsfw && m.isGroup) {
+    if (!global.db.data.chats[m.chat].nsfw && m.isGroup) {
       return m.reply(`🚫 El contenido *NSFW* está desactivado en este grupo.\n🛡️ Un administrador puede activarlo con: *.on nsfw*`);
 }
 
