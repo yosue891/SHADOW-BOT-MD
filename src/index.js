@@ -35,6 +35,8 @@ const { CONNECTING } = ws
 const { chain } = lodash
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
+const pairingRetryLimit = 20
+const pairingRetryDelay = 30000
 
 let { say } = cfonts
 console.log(chalk.magentaBright('\n🌾 Iniciando...'))
@@ -343,10 +345,10 @@ console.log(chalk.bold.cyanBright(`\n⚠︎ Sesión incorrecta, borra la session
 } else if (reason === DisconnectReason.connectionClosed) {
 if (!isAuthenticated) {
 if (opcion === '2' || methodCode) {
-if ((global._pairingRetries || 0) >= 8) return
+if ((global._pairingRetries || 0) >= pairingRetryLimit) return
 global._pairingRetries = (global._pairingRetries || 0) + 1
-console.log(chalk.bold.magentaBright(`\n♻ Reconectando (${global._pairingRetries}/8)...`))
-await delay(5000)
+console.log(chalk.bold.magentaBright(`\n♻ Reconectando (${global._pairingRetries}/${pairingRetryLimit})...`))
+await delay(pairingRetryDelay)
 await global.reloadHandler(true).catch(console.error)
 }
 return
@@ -357,9 +359,9 @@ await global.reloadHandler(true).catch(console.error)
 } else if (reason === DisconnectReason.connectionLost) {
 if (!isAuthenticated) {
 if (opcion === '2' || methodCode) {
-if ((global._pairingRetries || 0) >= 8) return
+if ((global._pairingRetries || 0) >= pairingRetryLimit) return
 global._pairingRetries = (global._pairingRetries || 0) + 1
-await delay(5000)
+await delay(pairingRetryDelay)
 await global.reloadHandler(true).catch(console.error)
 }
 return
@@ -372,15 +374,23 @@ await global.reloadHandler(true).catch(console.error)
         await delay(5000)
         await global.reloadHandler(true).catch(console.error)
     } else if (reason === DisconnectReason.loggedOut) {
+        if (!isAuthenticated) {
+            if ((global._pairingRetries || 0) >= pairingRetryLimit) return
+            global._pairingRetries = (global._pairingRetries || 0) + 1
+            console.log(chalk.bold.yellowBright(`\n⚠︎ Sesión cerrada durante la vinculación. Reintentando en ${pairingRetryDelay / 1000}s (${global._pairingRetries}/${pairingRetryLimit})...`))
+            await delay(pairingRetryDelay)
+            await global.reloadHandler(true).catch(console.error)
+            return
+        }
         console.log(chalk.bold.redBright(`\n⚠︎ Sesión cerrada, intentando reconectar con nueva autenticación...`))
         await delay(5000)
         await global.reloadHandler(true).catch(console.error)
 } else if (reason === DisconnectReason.restartRequired) {
 if (!isAuthenticated) {
 if (opcion === '2' || methodCode) {
-if ((global._pairingRetries || 0) >= 8) return
+if ((global._pairingRetries || 0) >= pairingRetryLimit) return
 global._pairingRetries = (global._pairingRetries || 0) + 1
-await delay(5000)
+await delay(pairingRetryDelay)
 await global.reloadHandler(true).catch(console.error)
 }
 return
@@ -391,9 +401,9 @@ await global.reloadHandler(true).catch(console.error)
 } else if (reason === DisconnectReason.timedOut) {
 if (!isAuthenticated) {
 if (opcion === '2' || methodCode) {
-if ((global._pairingRetries || 0) >= 8) return
+if ((global._pairingRetries || 0) >= pairingRetryLimit) return
 global._pairingRetries = (global._pairingRetries || 0) + 1
-await delay(5000)
+await delay(pairingRetryDelay)
 await global.reloadHandler(true).catch(console.error)
 }
 return
@@ -404,9 +414,9 @@ await global.reloadHandler(true).catch(console.error)
     } else {
         if (!isAuthenticated) {
 if (opcion === '2' || methodCode) {
-if ((global._pairingRetries || 0) >= 8) return
+if ((global._pairingRetries || 0) >= pairingRetryLimit) return
 global._pairingRetries = (global._pairingRetries || 0) + 1
-await delay(5000)
+await delay(pairingRetryDelay)
 await global.reloadHandler(true).catch(console.error)
 }
 return
