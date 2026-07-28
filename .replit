@@ -25,7 +25,7 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm start -- --code"
+args = "npm start"
 
 [nix]
 channel = "stable-25_05"
