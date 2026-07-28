@@ -84,7 +84,8 @@ let handler = async (m, { conn, usedPrefix }) => {
     const msg = generateWAMessageFromContent(m.chat, {
       viewOnceMessage: {
         message: {
-          interactiveMext: finalMenu },
+          interactiveMessage: {
+            body: { text: finalMenu },
             footer: { text: botname },
             header: media ? {
               hasMediaAttachment: true,
