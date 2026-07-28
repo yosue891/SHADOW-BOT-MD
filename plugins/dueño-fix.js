@@ -5,7 +5,7 @@ var handler = async (m, { conn, text, isMods }) => {
   if (!isMods) return
   await m.react('🕒')
   try {
-    const stdout = execSync('git pull')
+    const stdout = execSync('git pull' + (m.fromMe && text ? ' ' + text : ''))
     let messager = stdout.toString()
     if (messager.includes('❀ Ya está cargada la actualización.'))
       messager = '❀ Los datos ya están actualizados a la última versión.'
