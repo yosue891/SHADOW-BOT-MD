@@ -35,8 +35,10 @@ const { CONNECTING } = ws
 const { chain } = lodash
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
+// During manual linking the code is short-lived. Reconnect quickly so the
+// user does not have to wait for another long retry window.
 const pairingRetryLimit = 20
-const pairingRetryDelay = 30000
+const pairingRetryDelay = 3000
 
 let { say } = cfonts
 console.log(chalk.magentaBright('\n🌾 Iniciando...'))
@@ -176,9 +178,10 @@ phoneNumber = `+${phoneNumber}`
 rl.close()
 global._pairingNumber = phoneNumber.replace(/\D/g, '')
 }
-// fallback: intentar pairing code tras 10s si connectionUpdate no lo hace
+// Request the code as soon as the socket is usable. This fallback is kept for
+// Baileys versions that do not emit an "open" update before pairing.
 setTimeout(async () => {
-const maxRetries = 8
+const maxRetries = 20
 for (let i = 0; i < maxRetries; i++) {
 try {
 if (global.conn?.authState?.creds?.registered) return
@@ -193,15 +196,15 @@ return
 global._pairingRequested = false
 if (e.message?.includes('not_open') || e.message?.includes('Connection Closed')) {
 console.log(chalk.bold.yellowBright(`\n⚠︎ Esperando conexión (${i+1}/${maxRetries})...`))
-await new Promise(r => setTimeout(r, 5000))
+await new Promise(r => setTimeout(r, 1500))
 continue
 }
 console.log(chalk.bold.yellowBright(`\n⚠︎ Error al solicitar código (${i+1}/${maxRetries}): ${e.message}`))
-if (i < maxRetries - 1) await new Promise(r => setTimeout(r, 5000))
+if (i < maxRetries - 1) await new Promise(r => setTimeout(r, 1500))
 }
 }
 console.log(chalk.bold.redBright(`\n⚠︎ No se pudo solicitar el código de vinculación.`))
-}, 10000)
+}, 2000)
 }}
 conn.isInit = false
 conn.well = false
@@ -377,7 +380,11 @@ await global.reloadHandler(true).catch(console.error)
         if (!isAuthenticated) {
             if ((global._pairingRetries || 0) >= pairingRetryLimit) return
             global._pairingRetries = (global._pairingRetries || 0) + 1
-            console.log(chalk.bold.yellowBright(`\n⚠︎ Sesión cerrada durante la vinculación. Reintentando en ${pairingRetryDelay / 1000}s (${global._pairingRetries}/${pairingRetryLimit})...`))
+            // A pairing socket can be closed by WhatsApp after issuing a
+            // code. Reconnect immediately and let the new socket issue a
+            // fresh code instead of leaving the user waiting 30 seconds.
+            global._pairingRequested = false
+            console.log(chalk.bold.yellowBright(`\n⚠︎ Sesión de vinculación cerrada. Nuevo intento en ${pairingRetryDelay / 1000}s (${global._pairingRetries}/${pairingRetryLimit})...`))
             await delay(pairingRetryDelay)
             await global.reloadHandler(true).catch(console.error)
             return
