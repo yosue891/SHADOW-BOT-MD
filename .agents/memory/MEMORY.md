@@ -1,1 +1,0 @@
-- [WhatsApp pairing stability](whatsapp-pairing.md) — one guarded code request and one socket must remain active until manual linking finishes.
