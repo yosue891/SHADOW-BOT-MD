@@ -96,6 +96,22 @@ global.db.chain = chain(global.db.data)
 }
 loadDatabase()
 
+// An interrupted pairing attempt leaves a creds.json with registered=false.
+// Treat it as no session so the next start shows the pairing menu instead of
+// endlessly reconnecting with an invalid authentication state.
+const sessionCredsPath = join(global.sessions, 'creds.json')
+if (existsSync(sessionCredsPath)) {
+try {
+const sessionCreds = JSON.parse(readFileSync(sessionCredsPath, 'utf8'))
+if (sessionCreds?.registered !== true) {
+rmSync(global.sessions, { recursive: true, force: true })
+console.log(chalk.yellowBright('\n⚠ Sesión de vinculación incompleta eliminada. Iniciando una nueva vinculación...\n'))
+}
+} catch {
+rmSync(global.sessions, { recursive: true, force: true })
+}
+}
+
 const {state, saveState, saveCreds} = await useMultiFileAuthState(global.sessions)
 const msgRetryCounterMap = new Map()
 const msgRetryCounterCache = new NodeCache({ stdTTL: 0, checkperiod: 0 })
