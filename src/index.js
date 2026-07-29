@@ -35,10 +35,10 @@ const { CONNECTING } = ws
 const { chain } = lodash
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
-// During manual linking the code is short-lived. Reconnect quickly so the
-// user does not have to wait for another long retry window.
+// During manual linking, keep the issued code stable so the user has time to
+// copy it and confirm the link in WhatsApp.
 const pairingRetryLimit = 20
-const pairingRetryDelay = 3000
+const pairingRetryDelay = 120000
 
 let { say } = cfonts
 console.log(chalk.magentaBright('\n🌾 Iniciando...'))
@@ -179,6 +179,7 @@ global.conn = makeWASocket(connectionOptions)
 try { conn.ev.on('connection.update', connectionUpdate.bind(global.conn)) } catch {}
 conn.ev.on('creds.update', saveCreds.bind(global.conn, true))
 global._reconnectAttempts = 0
+global._pairingCodeIssued = false
 if (!state.creds.registered) {
 if (opcion === '2' || methodCode) {
 opcion = '2'
@@ -206,6 +207,7 @@ global._pairingRequested = true
 console.log(chalk.cyanBright(`\n📱 Solicitando código de vinculación para +${global._pairingNumber}...`))
 let codeBot = await global.conn.requestPairingCode(global._pairingNumber)
 codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
+global._pairingCodeIssued = true
 console.log(chalk.bold.white(chalk.bgMagenta(`[ ✿ ]  Código:`)), chalk.bold.white(chalk.white(codeBot)))
 return
 } catch (e) {
@@ -349,6 +351,7 @@ console.log(chalk.cyanBright(`\n📱 Solicitando código de vinculación para +$
 try {
 let codeBot = await conn.requestPairingCode(global._pairingNumber)
 codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
+global._pairingCodeIssued = true
 console.log(chalk.bold.white(chalk.bgMagenta(`[ ✿ ]  Código:`)), chalk.bold.white(chalk.white(codeBot)))
 } catch (e) {
 global._pairingRequested = false
@@ -359,6 +362,23 @@ console.log(chalk.bold.yellowBright(`\n⚠︎ Error al solicitar código: ${e.me
 let reason = new Boom(lastDisconnect?.error)?.output?.statusCode
 if (connection === 'close') {
     const isAuthenticated = !!(conn?.user?.id)
+    if (!isAuthenticated && global._pairingCodeIssued && (opcion === '2' || methodCode)) {
+        // Do not rotate the code while the user is entering it in WhatsApp.
+        // Give the user two full minutes before trying a new pairing attempt.
+        console.log(chalk.bold.yellowBright(`\n⚠︎ El código actual se mantiene durante 2 minutos. Vincúlalo en WhatsApp con calma; no se generará otro código antes.`))
+        if (!global._pairingReconnectScheduled) {
+            global._pairingReconnectScheduled = true
+            setTimeout(async () => {
+                global._pairingReconnectScheduled = false
+                if (global.conn?.authState?.creds?.registered || global.conn?.user?.id) return
+                global._pairingCodeIssued = false
+                global._pairingRequested = false
+                global._pairingRetries = (global._pairingRetries || 0) + 1
+                await global.reloadHandler(true).catch(console.error)
+            }, pairingRetryDelay)
+        }
+        return
+    }
     if (reason === DisconnectReason.badSession) {
 console.log(chalk.bold.cyanBright(`\n⚠︎ Sesión incorrecta, borra la session principal del Bot, y conectate nuevamente.`))
 } else if (reason === DisconnectReason.connectionClosed) {
