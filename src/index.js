@@ -35,8 +35,8 @@ const { CONNECTING } = ws
 const { chain } = lodash
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
-// During manual linking, keep the issued code stable so the user has time to
-// copy it and confirm the link in WhatsApp.
+// During manual linking, keep one socket and one issued code. Replacing the
+// socket invalidates the code before the user can enter it in WhatsApp.
 const pairingRetryLimit = 20
 const pairingRetryDelay = 120000
 
@@ -180,6 +180,8 @@ try { conn.ev.on('connection.update', connectionUpdate.bind(global.conn)) } catc
 conn.ev.on('creds.update', saveCreds.bind(global.conn, true))
 global._reconnectAttempts = 0
 global._pairingCodeIssued = false
+global._pairingRequestStarted = false
+global._pairingReconnectScheduled = false
 if (!state.creds.registered) {
 if (opcion === '2' || methodCode) {
 opcion = '2'
@@ -195,14 +197,15 @@ phoneNumber = `+${phoneNumber}`
 rl.close()
 global._pairingNumber = phoneNumber.replace(/\D/g, '')
 }
-// Request the code as soon as the socket is usable. This fallback is kept for
-// Baileys versions that do not emit an "open" update before pairing.
+// Request exactly one code. The old implementation also requested one from
+// connection.update, which raced this timer and caused duplicate sessions.
 setTimeout(async () => {
-const maxRetries = 20
+const maxRetries = 8
 for (let i = 0; i < maxRetries; i++) {
 try {
 if (global.conn?.authState?.creds?.registered) return
-if (global._pairingRequested) return
+if (global._pairingRequestStarted || global._pairingCodeIssued) return
+global._pairingRequestStarted = true
 global._pairingRequested = true
 console.log(chalk.cyanBright(`\n📱 Solicitando código de vinculación para +${global._pairingNumber}...`))
 let codeBot = await global.conn.requestPairingCode(global._pairingNumber)
@@ -211,18 +214,19 @@ global._pairingCodeIssued = true
 console.log(chalk.bold.white(chalk.bgMagenta(`[ ✿ ]  Código:`)), chalk.bold.white(chalk.white(codeBot)))
 return
 } catch (e) {
+global._pairingRequestStarted = false
 global._pairingRequested = false
 if (e.message?.includes('not_open') || e.message?.includes('Connection Closed')) {
 console.log(chalk.bold.yellowBright(`\n⚠︎ Esperando conexión (${i+1}/${maxRetries})...`))
-await new Promise(r => setTimeout(r, 1500))
+await new Promise(r => setTimeout(r, 5000))
 continue
 }
 console.log(chalk.bold.yellowBright(`\n⚠︎ Error al solicitar código (${i+1}/${maxRetries}): ${e.message}`))
-if (i < maxRetries - 1) await new Promise(r => setTimeout(r, 1500))
+if (i < maxRetries - 1) await new Promise(r => setTimeout(r, 5000))
 }
 }
 console.log(chalk.bold.redBright(`\n⚠︎ No se pudo solicitar el código de vinculación.`))
-}, 2000)
+}, 5000)
 }}
 conn.isInit = false
 conn.well = false
@@ -344,24 +348,21 @@ const userJid = jidNormalizedUser(conn.user.id)
 const userName = conn.user.name || conn.user.verifiedName || "Desconocido"
 await joinChannels(conn)
 console.log(chalk.green.bold(`[ ✿ ]  Conectado a: ${userName}`))
-} else if (!conn.user?.id && (methodCode || opcion === '2') && global._pairingNumber) {
-if (!global._pairingRequested) {
-global._pairingRequested = true
-console.log(chalk.cyanBright(`\n📱 Solicitando código de vinculación para +${global._pairingNumber}...`))
-try {
-let codeBot = await conn.requestPairingCode(global._pairingNumber)
-codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
-global._pairingCodeIssued = true
-console.log(chalk.bold.white(chalk.bgMagenta(`[ ✿ ]  Código:`)), chalk.bold.white(chalk.white(codeBot)))
-} catch (e) {
-global._pairingRequested = false
-console.log(chalk.bold.yellowBright(`\n⚠︎ Error al solicitar código: ${e.message}`))
-}
-}
 }}
 let reason = new Boom(lastDisconnect?.error)?.output?.statusCode
 if (connection === 'close') {
     const isAuthenticated = !!(conn?.user?.id)
+    const manualPairing = !isAuthenticated && (opcion === '2' || methodCode)
+    if (manualPairing) {
+        // Never replace this socket during manual linking. A replacement
+        // invalidates the code currently shown to the user.
+        if (global._pairingCodeIssued) {
+            console.log(chalk.bold.yellowBright(`\n⚠︎ El código sigue reservado para esta vinculación. No se generará otra sesión automáticamente.`))
+        } else {
+            console.log(chalk.bold.yellowBright(`\n⚠︎ El canal de vinculación se cerró antes del código. Mantén esta consola abierta y reinicia manualmente para intentar de nuevo.`))
+        }
+        return
+    }
     if (!isAuthenticated && global._pairingCodeIssued && (opcion === '2' || methodCode)) {
         // Do not rotate the code while the user is entering it in WhatsApp.
         // Give the user two full minutes before trying a new pairing attempt.
