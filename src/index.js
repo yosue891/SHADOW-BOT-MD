@@ -218,6 +218,17 @@ await delay(2000)
 return global._pairingCodePromise
 }
 
+async function requestPairingCodeWhenSocketIsReady() {
+for (let attempt = 0; attempt < 50; attempt++) {
+if (global.conn?.ws?.isOpen) {
+return requestPairingCodeOnce()
+}
+if (global.conn?.ws?.isClosed || global.conn?.ws?.isClosing) return
+await delay(100)
+}
+console.log(chalk.yellowBright('\n⚠︎ El canal de WhatsApp no estuvo listo para solicitar el código.'))
+}
+
 if (!state.creds.registered) {
 if (opcion === '2' || methodCode) {
 opcion = '2'
@@ -356,14 +367,16 @@ const {connection, lastDisconnect, isNewLogin} = update
 global.stopped = connection
 if (isNewLogin) conn.isInit = true
 if (global.db.data == null) loadDatabase()
+if (connection === 'connecting' && !state.creds.registered && (opcion === '2' || methodCode) && global._pairingNumber && !global._pairingCodeIssued && !global._pairingRequestStarted) {
+void requestPairingCodeWhenSocketIsReady().catch(error => {
+console.log(chalk.redBright(`\n⚠︎ No se pudo solicitar el código: ${error.message}`))
+})
+}
 if (update.qr != 0 && update.qr != undefined || methodCodeQR) {
 if (opcion == '1' || methodCodeQR) {
 console.log(chalk.green.bold(`[ ✿ ]  Escanea este código QR`))}
 }
  if (connection === "open") {
-if (!state.creds.registered && (opcion === '2' || methodCode) && global._pairingNumber && !global._pairingCodeIssued && !global._pairingRequestStarted) {
-await requestPairingCodeOnce()
-}
 if (conn.user?.id) {
 global._pairingRetries = 0
 const userJid = jidNormalizedUser(conn.user.id)
