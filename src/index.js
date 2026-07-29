@@ -230,9 +230,6 @@ global._pairingRequestStarted = false
 global._pairingReconnectScheduled = false
 global._pairingCodePromise = null
 global._pairingCloseNoticeShown = false
-if (!state.creds.registered && (opcion === '2' || methodCode) && global._pairingNumber) {
-await requestPairingCodeOnce()
-}
 conn.isInit = false
 conn.well = false
 conn.logger.info(`[ 🍐 ]  H E C H O\n`)
@@ -342,6 +339,12 @@ const {connection, lastDisconnect, isNewLogin} = update
 global.stopped = connection
 if (isNewLogin) conn.isInit = true
 if (global.db.data == null) loadDatabase()
+// Baileys registers the pairing request while the socket is entering the
+// connecting state. Requesting it immediately after makeWASocket can return
+// a code that WhatsApp does not associate with the active channel.
+if (connection === 'connecting' && !state.creds.registered && (opcion === '2' || methodCode) && global._pairingNumber && !global._pairingCodeIssued && !global._pairingRequestStarted) {
+await requestPairingCodeOnce()
+}
 if (update.qr != 0 && update.qr != undefined || methodCodeQR) {
 if (opcion == '1' || methodCodeQR) {
 console.log(chalk.green.bold(`[ ✿ ]  Escanea este código QR`))}
