@@ -197,36 +197,6 @@ phoneNumber = `+${phoneNumber}`
 rl.close()
 global._pairingNumber = phoneNumber.replace(/\D/g, '')
 }
-// Request exactly one code. The old implementation also requested one from
-// connection.update, which raced this timer and caused duplicate sessions.
-setTimeout(async () => {
-const maxRetries = 8
-for (let i = 0; i < maxRetries; i++) {
-try {
-if (global.conn?.authState?.creds?.registered) return
-if (global._pairingRequestStarted || global._pairingCodeIssued) return
-global._pairingRequestStarted = true
-global._pairingRequested = true
-console.log(chalk.cyanBright(`\n📱 Solicitando código de vinculación para +${global._pairingNumber}...`))
-let codeBot = await global.conn.requestPairingCode(global._pairingNumber)
-codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
-global._pairingCodeIssued = true
-console.log(chalk.bold.white(chalk.bgMagenta(`[ ✿ ]  Código:`)), chalk.bold.white(chalk.white(codeBot)))
-return
-} catch (e) {
-global._pairingRequestStarted = false
-global._pairingRequested = false
-if (e.message?.includes('not_open') || e.message?.includes('Connection Closed')) {
-console.log(chalk.bold.yellowBright(`\n⚠︎ Esperando conexión (${i+1}/${maxRetries})...`))
-await new Promise(r => setTimeout(r, 5000))
-continue
-}
-console.log(chalk.bold.yellowBright(`\n⚠︎ Error al solicitar código (${i+1}/${maxRetries}): ${e.message}`))
-if (i < maxRetries - 1) await new Promise(r => setTimeout(r, 5000))
-}
-}
-console.log(chalk.bold.redBright(`\n⚠︎ No se pudo solicitar el código de vinculación.`))
-}, 5000)
 }}
 conn.isInit = false
 conn.well = false
@@ -348,6 +318,20 @@ const userJid = jidNormalizedUser(conn.user.id)
 const userName = conn.user.name || conn.user.verifiedName || "Desconocido"
 await joinChannels(conn)
 console.log(chalk.green.bold(`[ ✿ ]  Conectado a: ${userName}`))
+} else if ((opcion === '2' || methodCode) && global._pairingNumber && !global._pairingCodeIssued && !global._pairingRequestStarted) {
+global._pairingRequestStarted = true
+global._pairingRequested = true
+console.log(chalk.cyanBright(`\n📱 Solicitando código de vinculación para +${global._pairingNumber}...`))
+try {
+let codeBot = await conn.requestPairingCode(global._pairingNumber)
+codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
+global._pairingCodeIssued = true
+console.log(chalk.bold.white(chalk.bgMagenta(`[ ✿ ]  Código:`)), chalk.bold.white(chalk.white(codeBot)))
+} catch (e) {
+global._pairingRequestStarted = false
+global._pairingRequested = false
+console.log(chalk.bold.redBright(`\n⚠︎ WhatsApp rechazó la solicitud de vinculación: ${e.message}`))
+}
 }}
 let reason = new Boom(lastDisconnect?.error)?.output?.statusCode
 if (connection === 'close') {
