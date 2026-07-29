@@ -360,6 +360,10 @@ if (connection === 'close') {
     const isAuthenticated = !!(conn?.user?.id)
     const manualPairing = !isAuthenticated && (opcion === '2' || methodCode)
     if (manualPairing) {
+        // Diagnostic: show the real close reason WhatsApp sent, so we know
+        // whether this is a code/version issue (401/428/515) vs a network/IP
+        // issue (ECONNRESET, timeout, no statusCode at all).
+        console.log(chalk.bold.redBright(`\n[DEBUG] Motivo de cierre -> código: ${reason || 'sin código'} | mensaje: ${lastDisconnect?.error?.message || 'sin mensaje'}`))
         if (global._pairingCodeIssued && !global._pairingCloseNoticeShown) {
             global._pairingCloseNoticeShown = true
             console.log(chalk.bold.yellowBright(`\n⚠︎ Conexión cerrada. Reintentando para mantener el vínculo activo...`))
