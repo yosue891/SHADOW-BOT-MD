@@ -175,13 +175,32 @@ while (!reloadHandlerImpl) await delay(100)
 return reloadHandlerImpl(...args)
 }
 
-global.conn = makeWASocket(connectionOptions)
-try { conn.ev.on('connection.update', connectionUpdate.bind(global.conn)) } catch {}
-conn.ev.on('creds.update', saveCreds.bind(global.conn, true))
-global._reconnectAttempts = 0
-global._pairingCodeIssued = false
-global._pairingRequestStarted = false
-global._pairingReconnectScheduled = false
+async function requestPairingCodeOnce() {
+if (global._pairingCodePromise) return global._pairingCodePromise
+global._pairingCodePromise = (async () => {
+global._pairingRequestStarted = true
+global._pairingRequested = true
+console.log(chalk.cyanBright(`\n📱 Solicitando código de vinculación para +${global._pairingNumber}...`))
+for (let attempt = 0; attempt < 30; attempt++) {
+try {
+if (global.conn?.authState?.creds?.registered || global._pairingCodeIssued) return
+let codeBot = await global.conn.requestPairingCode(global._pairingNumber)
+codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
+global._pairingCodeIssued = true
+console.log(chalk.bold.white(chalk.bgMagenta(`[ ✿ ]  Código:`)), chalk.bold.white(chalk.white(codeBot)))
+return
+} catch (e) {
+if (attempt === 29) {
+console.log(chalk.bold.redBright(`\n⚠︎ WhatsApp no pudo entregar el código: ${e.message}`))
+return
+}
+await delay(2000)
+}
+}
+})()
+return global._pairingCodePromise
+}
+
 if (!state.creds.registered) {
 if (opcion === '2' || methodCode) {
 opcion = '2'
@@ -198,6 +217,22 @@ rl.close()
 global._pairingNumber = phoneNumber.replace(/\D/g, '')
 }
 }}
+
+// Create the WhatsApp socket only after the pairing choice and phone number
+// are known. Creating it before readline finishes lets WhatsApp close the
+// unauthenticated channel before a pairing request can be sent.
+global.conn = makeWASocket(connectionOptions)
+try { conn.ev.on('connection.update', connectionUpdate.bind(global.conn)) } catch {}
+conn.ev.on('creds.update', saveCreds.bind(global.conn, true))
+global._reconnectAttempts = 0
+global._pairingCodeIssued = false
+global._pairingRequestStarted = false
+global._pairingReconnectScheduled = false
+global._pairingCodePromise = null
+global._pairingCloseNoticeShown = false
+if (!state.creds.registered && (opcion === '2' || methodCode) && global._pairingNumber) {
+await requestPairingCodeOnce()
+}
 conn.isInit = false
 conn.well = false
 conn.logger.info(`[ 🍐 ]  H E C H O\n`)
@@ -311,27 +346,13 @@ if (update.qr != 0 && update.qr != undefined || methodCodeQR) {
 if (opcion == '1' || methodCodeQR) {
 console.log(chalk.green.bold(`[ ✿ ]  Escanea este código QR`))}
 }
-if (connection === "open") {
+ if (connection === "open") {
 if (conn.user?.id) {
 global._pairingRetries = 0
 const userJid = jidNormalizedUser(conn.user.id)
 const userName = conn.user.name || conn.user.verifiedName || "Desconocido"
 await joinChannels(conn)
 console.log(chalk.green.bold(`[ ✿ ]  Conectado a: ${userName}`))
-} else if ((opcion === '2' || methodCode) && global._pairingNumber && !global._pairingCodeIssued && !global._pairingRequestStarted) {
-global._pairingRequestStarted = true
-global._pairingRequested = true
-console.log(chalk.cyanBright(`\n📱 Solicitando código de vinculación para +${global._pairingNumber}...`))
-try {
-let codeBot = await conn.requestPairingCode(global._pairingNumber)
-codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
-global._pairingCodeIssued = true
-console.log(chalk.bold.white(chalk.bgMagenta(`[ ✿ ]  Código:`)), chalk.bold.white(chalk.white(codeBot)))
-} catch (e) {
-global._pairingRequestStarted = false
-global._pairingRequested = false
-console.log(chalk.bold.redBright(`\n⚠︎ WhatsApp rechazó la solicitud de vinculación: ${e.message}`))
-}
 }}
 let reason = new Boom(lastDisconnect?.error)?.output?.statusCode
 if (connection === 'close') {
@@ -340,10 +361,12 @@ if (connection === 'close') {
     if (manualPairing) {
         // Never replace this socket during manual linking. A replacement
         // invalidates the code currently shown to the user.
-        if (global._pairingCodeIssued) {
+        if (global._pairingCodeIssued && !global._pairingCloseNoticeShown) {
+            global._pairingCloseNoticeShown = true
             console.log(chalk.bold.yellowBright(`\n⚠︎ El código sigue reservado para esta vinculación. No se generará otra sesión automáticamente.`))
-        } else {
-            console.log(chalk.bold.yellowBright(`\n⚠︎ El canal de vinculación se cerró antes del código. Mantén esta consola abierta y reinicia manualmente para intentar de nuevo.`))
+        } else if (!global._pairingCodeIssued && !global._pairingCloseNoticeShown) {
+            global._pairingCloseNoticeShown = true
+            console.log(chalk.bold.yellowBright(`\n⚠︎ WhatsApp cerró el canal antes de entregar el código. Reinicia manualmente para intentar una nueva vinculación.`))
         }
         return
     }
