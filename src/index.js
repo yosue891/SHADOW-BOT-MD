@@ -28,7 +28,7 @@ import { proto } from '@whiskeysockets/baileys'
 import pkg from 'google-libphonenumber'
 const { PhoneNumberUtil } = pkg
 const phoneUtil = PhoneNumberUtil.getInstance()
-const { DisconnectReason, useMultiFileAuthState, MessageRetryMap, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser } = await import('@whiskeysockets/baileys')
+const { Browsers, DisconnectReason, useMultiFileAuthState, MessageRetryMap, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser } = await import('@whiskeysockets/baileys')
 import readline, { createInterface } from 'readline'
 import NodeCache from 'node-cache'
 const { CONNECTING } = ws
@@ -113,6 +113,14 @@ rmSync(global.sessions, { recursive: true, force: true })
 }
 
 const {state, saveState, saveCreds} = await useMultiFileAuthState(global.sessions)
+let currentBaileysVersion
+try {
+const latestBaileys = await fetchLatestBaileysVersion()
+currentBaileysVersion = latestBaileys.version
+console.log(chalk.gray(`[ Baileys ] Versión Web: ${currentBaileysVersion.join('.')}`))
+} catch (error) {
+console.log(chalk.gray(`[ Baileys ] Usando versión integrada: ${error.message}`))
+}
 const msgRetryCounterMap = new Map()
 const msgRetryCounterCache = new NodeCache({ stdTTL: 0, checkperiod: 0 })
 const userDevicesCache = new NodeCache({ stdTTL: 0, checkperiod: 0 })
@@ -143,7 +151,8 @@ const connectionOptions = {
 logger: pino({ level: 'silent' }),
 printQRInTerminal: opcion == '1' ? true : methodCodeQR ? true : false,
 mobile: MethodMobile, 
-browser: ["Ubuntu", "Chrome", "120.0.0"],
+browser: Browsers.macOS('Chrome'),
+...(currentBaileysVersion ? { version: currentBaileysVersion } : {}),
 auth: {
 creds: state.creds,
 keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: "fatal" }).child({ level: "fatal" })),
@@ -171,6 +180,16 @@ let reloadHandlerImpl
 global.reloadHandler = async (...args) => {
 while (!reloadHandlerImpl) await delay(100)
 return reloadHandlerImpl(...args)
+}
+
+function resetPairingState() {
+delete state.creds.me
+delete state.creds.pairingCode
+delete state.creds.pairingEphemeralKeyPair
+global._pairingCodeIssued = false
+global._pairingRequestStarted = false
+global._pairingCodePromise = null
+global._pairingRequested = false
 }
 
 async function requestPairingCodeOnce() {
@@ -337,17 +356,14 @@ const {connection, lastDisconnect, isNewLogin} = update
 global.stopped = connection
 if (isNewLogin) conn.isInit = true
 if (global.db.data == null) loadDatabase()
-// Baileys registers the pairing request while the socket is entering the
-// connecting state. Requesting it immediately after makeWASocket can return
-// a code that WhatsApp does not associate with the active channel.
-if (connection === 'connecting' && !state.creds.registered && (opcion === '2' || methodCode) && global._pairingNumber && !global._pairingCodeIssued && !global._pairingRequestStarted) {
-await requestPairingCodeOnce()
-}
 if (update.qr != 0 && update.qr != undefined || methodCodeQR) {
 if (opcion == '1' || methodCodeQR) {
 console.log(chalk.green.bold(`[ ✿ ]  Escanea este código QR`))}
 }
  if (connection === "open") {
+if (!state.creds.registered && (opcion === '2' || methodCode) && global._pairingNumber && !global._pairingCodeIssued && !global._pairingRequestStarted) {
+await requestPairingCodeOnce()
+}
 if (conn.user?.id) {
 global._pairingRetries = 0
 const userJid = jidNormalizedUser(conn.user.id)
@@ -370,6 +386,9 @@ if (connection === 'close') {
         } else if (!global._pairingCodeIssued && !global._pairingCloseNoticeShown) {
             global._pairingCloseNoticeShown = true
             console.log(chalk.bold.yellowBright(`\n⚠︎ WhatsApp cerró el canal antes de entregar el código. Reintentando...`))
+        }
+        if (reason === DisconnectReason.loggedOut || reason === 401) {
+            resetPairingState()
         }
         if ((global._pairingRetries || 0) >= pairingRetryLimit) return
         global._pairingRetries = (global._pairingRetries || 0) + 1
