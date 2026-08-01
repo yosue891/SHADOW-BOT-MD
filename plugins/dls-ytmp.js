@@ -106,10 +106,36 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
     
     let sent = await conn.sendMessage(m.chat, { text: msg }, { quoted: m })
 
-    const apiUrl = type === "mp3"
-      ? `https://api-gohan-v1.onrender.com/download/ytaudio?url=${encodeURIComponent(url)}`
-      : `https://api-gohan-v1.onrender.com/download/ytvideo?url=${encodeURIComponent(url)}`
+    if (type === "mp4") {
+      // Video: API de Lempi
+      const apiUrl = `https://api.lempi.lat/dl/ytv?url=${encodeURIComponent(url)}&quality=360&apikey=lem715`
+      const response = await fetch(apiUrl)
+      const data = await response.json()
 
+      if (!data?.status) throw new Error(data?.message || "La API no devolvió un archivo válido.")
+
+      const downloadUrl = data?.datos?.url
+      if (!downloadUrl) throw new Error("La API no devolvió un archivo válido.")
+
+      const fileTitle = data?.titulo || title
+      const fileThumb = data?.miniatura || thumbnail
+
+      await conn.sendMessage(m.chat, {
+        video: { url: downloadUrl },
+        mimetype: "video/mp4",
+        fileName: cleanTitle
+      }, { quoted: m })
+
+      await conn.sendMessage(m.chat, {
+        text: `🎶 *Shadow — Operación completada*\n\n✨ *Título:* ${fileTitle}\n🌌 Entregada completa uwu.`,
+        edit: sent.key
+      })
+      await m.react("✅")
+      return
+    }
+
+    // Audio: sigue usando la API anterior (Lempi no nos dio endpoint de mp3 todavía)
+    const apiUrl = `https://api-gohan-v1.onrender.com/download/ytaudio?url=${encodeURIComponent(url)}`
     const response = await fetch(apiUrl)
     const data = await response.json()
 
@@ -118,30 +144,22 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
 
     const fileTitle = data?.result?.title || title
 
-    if (type === "mp3") {
-      await conn.sendMessage(m.chat, {
-        audio: { url: downloadUrl },
-        mimetype: "audio/mpeg",
-        fileName: cleanTitle,
-        contextInfo: {
-          externalAdReply: {
-            title: fileTitle,
-            body: "Shadow Ultra 💚",
-            thumbnailUrl: thumbnail,
-            mediaType: 2,
-            mediaUrl: url,
-            sourceUrl: url,
-            showAdAttribution: true
-          }
+    await conn.sendMessage(m.chat, {
+      audio: { url: downloadUrl },
+      mimetype: "audio/mpeg",
+      fileName: cleanTitle,
+      contextInfo: {
+        externalAdReply: {
+          title: fileTitle,
+          body: "Shadow Ultra 💚",
+          thumbnailUrl: thumbnail,
+          mediaType: 2,
+          mediaUrl: url,
+          sourceUrl: url,
+          showAdAttribution: true
         }
-      }, { quoted: m })
-    } else {
-      await conn.sendMessage(m.chat, {
-        video: { url: downloadUrl },
-        mimetype: "video/mp4",
-        fileName: cleanTitle
-      }, { quoted: m })
-    }
+      }
+    }, { quoted: m })
 
     await conn.sendMessage(m.chat, {
       text: `🎶 *Shadow — Operación completada*\n\n✨ *Título:* ${fileTitle}\n🌌 Entregada completa uwu.`,
