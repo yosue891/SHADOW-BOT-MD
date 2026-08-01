@@ -1,2 +1,0 @@
-- [Baileys pairing flow](baileys-pairing-flow.md) — issue pairing codes only after the socket is ready and avoid rotating that socket while the code is active.
-- [Ourin Baileys compatibility](ourin-baileys-compatibility.md) — keep existing Baileys imports and resolve them through the Ourin alias so buttons and plugins remain compatible.
