@@ -14,6 +14,7 @@ import { MichiJadiBot } from '../plugins/subs-conexion.js'
 import chalk from 'chalk'
 import syntaxerror from 'syntax-error'
 import { tmpdir } from 'os'
+import os from 'os'
 import { format } from 'util'
 import boxen from 'boxen'
 import pino from 'pino'
@@ -38,20 +39,59 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
 // During manual linking, keep one socket and one issued code. Replacing the
 // socket invalidates the code before the user can enter it in WhatsApp.
 const pairingRetryLimit = 20
-const pairingRetryDelay = 120000
+const pairingRetryDelay = 5000
 
 let { say } = cfonts
-console.log(chalk.magentaBright('\n🌾 Iniciando...'))
-say('ShadowBot', {
-font: 'simple',
-align: 'left',
-gradient: ['yellow', 'white']
-})
-say('Made with Yosue', {
-font: 'console',
-align: 'center',
-colors: ['red', 'magenta', 'yellow']
-})
+
+function showStartupDesign() {
+  console.clear()
+  say('ShadowBot', {
+    font: 'block',
+    align: 'center',
+    colors: ['cyan', 'magenta'],
+    background: 'transparent',
+    letterSpacing: 1,
+    lineHeight: 1,
+    space: true,
+  })
+  say(`SHADOW-BOT-MD  •  v${global.vs?.replace('^', '') || '1.3.2'}`, {
+    font: 'console',
+    align: 'center',
+    colors: ['magenta', 'cyan'],
+  })
+  console.log('\n' + boxen(
+    chalk.cyanBright.bold('  ✦ Sistema listo para iniciar ✦\n\n') +
+    chalk.white('  Bot          ') + chalk.magenta('ShadowBot\n') +
+    chalk.white('  Plataforma   ') + chalk.magenta('WhatsApp Multi-Device\n') +
+    chalk.white('  Node.js      ') + chalk.magenta(process.version),
+    {
+      padding: { top: 0, bottom: 1, left: 2, right: 3 },
+      margin: { left: 2, right: 2 },
+      borderStyle: 'double',
+      borderColor: 'cyan',
+      title: chalk.cyan.bold(' ✦ SHADOW-BOT-MD ✦ '),
+      titleAlignment: 'center',
+    }
+  ) + '\n')
+}
+
+function showLoginMenu() {
+  console.log(boxen(
+    chalk.yellowBright.bold('  Selecciona el método de inicio:\n\n') +
+    chalk.green.bold('  1') + chalk.white('  ➜ Código QR             ') + chalk.gray('(escanea con la cámara)\n') +
+    chalk.cyan.bold('  2') + chalk.white('  ➜ Código de 8 dígitos   ') + chalk.gray('(vincula con tu número)'),
+    {
+      padding: 1,
+      margin: { left: 2, right: 2 },
+      borderStyle: 'round',
+      borderColor: 'magenta',
+      title: chalk.magenta.bold(' 🚀 INICIO DE SESIÓN '),
+      titleAlignment: 'center',
+    }
+  ) + '\n')
+}
+
+showStartupDesign()
 protoType()
 serialize()
 
@@ -138,8 +178,9 @@ if (methodCodeQR) {
 opcion = '1'
 }
 if (!methodCodeQR && !methodCode && !fs.existsSync(`./${sessions}/creds.json`)) {
+ showLoginMenu()
 do {
-opcion = await question(colors("Seleccione una opción:\n") + qrOption("1. Con código QR\n") + textOption("2. Con código de texto de 8 dígitos\n--> "))
+opcion = await question(chalk.magentaBright('  ➤ Opción [1/2]: '))
 if (!/^[1-2]$/.test(opcion)) {
 console.log(chalk.bold.redBright(`No se permiten numeros que no sean 1 o 2, tampoco letras o símbolos especiales.`))
 }} while (opcion !== '1' && opcion !== '2' || fs.existsSync(`./${sessions}/creds.json`))
@@ -151,7 +192,7 @@ const connectionOptions = {
 logger: pino({ level: 'silent' }),
 printQRInTerminal: opcion == '1' ? true : methodCodeQR ? true : false,
 mobile: MethodMobile, 
-browser: Browsers.macOS('Chrome'),
+browser: ['Ubuntu', 'Chrome', '20.0.04'],
 ...(currentBaileysVersion ? { version: currentBaileysVersion } : {}),
 auth: {
 creds: state.creds,
@@ -206,7 +247,20 @@ try {
 let codeBot = await global.conn.requestPairingCode(global._pairingNumber)
 codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
 global._pairingCodeIssued = true
-console.log(chalk.bold.white(chalk.bgMagenta(`[ ✿ ]  Código:`)), chalk.bold.white(chalk.white(codeBot)))
+ console.log('\n' + boxen(
+   chalk.magentaBright.bold('  ✦ CÓDIGO DE VINCULACIÓN ✦\n\n') +
+   chalk.white('  Ingresa este código en WhatsApp:\n\n') +
+   chalk.bgMagenta.white.bold(`       ${codeBot}       `) +
+     chalk.gray('\n\n  Si WhatsApp cierra el canal, se generará otro código.'),
+   {
+     padding: { top: 0, bottom: 1, left: 2, right: 3 },
+     margin: { left: 2, right: 2 },
+     borderStyle: 'double',
+     borderColor: 'magenta',
+     title: chalk.magenta.bold(' 🔐 SHADOW-BOT-MD '),
+     titleAlignment: 'center',
+   }
+ ) + '\n')
 return
 } catch (e) {
 if (attempt === 29) {
@@ -369,14 +423,17 @@ return message
 }}
 
 async function connectionUpdate(update) {
-const {connection, lastDisconnect, isNewLogin} = update
+const {connection, lastDisconnect, isNewLogin, qr} = update
 global.stopped = connection
 if (isNewLogin) conn.isInit = true
 if (global.db.data == null) loadDatabase()
-if (connection === 'connecting' && !state.creds.registered && (opcion === '2' || methodCode) && global._pairingNumber && !global._pairingCodeIssued && !global._pairingRequestStarted) {
-void requestPairingCodeWhenSocketIsReady().catch(error => {
-console.log(chalk.redBright(`\n⚠︎ No se pudo solicitar el código: ${error.message}`))
-})
+// Baileys emits `qr` after the WebSocket has completed its initial
+// handshake. Requesting the pairing code here matches the stable flow used
+// by the reference bot and avoids sending the request during `connecting`.
+if (qr && !state.creds.registered && (opcion === '2' || methodCode) && global._pairingNumber && !global._pairingCodeIssued && !global._pairingRequestStarted) {
+  void requestPairingCodeOnce().catch(error => {
+    console.log(chalk.redBright(`\n⚠︎ No se pudo solicitar el código: ${error.message}`))
+  })
 }
 if (update.qr != 0 && update.qr != undefined || methodCodeQR) {
 if (opcion == '1' || methodCodeQR) {
@@ -388,12 +445,28 @@ global._pairingRetries = 0
 const userJid = jidNormalizedUser(conn.user.id)
 const userName = conn.user.name || conn.user.verifiedName || "Desconocido"
 await joinChannels(conn)
-console.log(chalk.green.bold(`[ ✿ ]  Conectado a: ${userName}`))
+  const number = conn.user.id?.split(':')[0]?.split('@')[0] || '—'
+  console.log('\n' + boxen(
+    chalk.greenBright.bold('  ✦ BOT CONECTADO EXITOSAMENTE ✦\n\n') +
+    chalk.white('  🤖 Bot        ') + chalk.cyan('ShadowBot\n') +
+    chalk.white('  👤 Cuenta     ') + chalk.cyan(userName) + '\n' +
+    chalk.white('  📱 Número     ') + chalk.cyan(number) + '\n' +
+    chalk.white('  🟢 Node.js    ') + chalk.cyan(process.version) + '\n' +
+    chalk.white('  🖥️  Sistema    ') + chalk.cyan(os.platform()),
+    {
+      padding: { top: 0, bottom: 1, left: 2, right: 3 },
+      margin: { left: 2, right: 2 },
+      borderStyle: 'double',
+      borderColor: 'green',
+      title: chalk.green.bold(' ✦ WhatsApp Online ✦ '),
+      titleAlignment: 'center',
+    }
+  ) + '\n')
 }}
 let reason = new Boom(lastDisconnect?.error)?.output?.statusCode
 if (connection === 'close') {
     const isAuthenticated = !!(conn?.user?.id)
-    const manualPairing = !isAuthenticated && (opcion === '2' || methodCode)
+    const manualPairing = (opcion === '2' || methodCode) && !state.creds.registered
     if (manualPairing) {
         // Diagnostic: show the real close reason WhatsApp sent, so we know
         // whether this is a code/version issue (401/428/515) vs a network/IP
@@ -401,7 +474,7 @@ if (connection === 'close') {
         console.log(chalk.bold.redBright(`\n[DEBUG] Motivo de cierre -> código: ${reason || 'sin código'} | mensaje: ${lastDisconnect?.error?.message || 'sin mensaje'}`))
         if (global._pairingCodeIssued && !global._pairingCloseNoticeShown) {
             global._pairingCloseNoticeShown = true
-            console.log(chalk.bold.yellowBright(`\n⚠︎ Conexión cerrada. Reintentando para mantener el vínculo activo...`))
+            console.log(chalk.bold.yellowBright(`\n⚠︎ WhatsApp cerró el canal (428). Se generará un código nuevo...`))
         } else if (!global._pairingCodeIssued && !global._pairingCloseNoticeShown) {
             global._pairingCloseNoticeShown = true
             console.log(chalk.bold.yellowBright(`\n⚠︎ WhatsApp cerró el canal antes de entregar el código. Reintentando...`))
@@ -410,30 +483,18 @@ if (connection === 'close') {
             resetPairingState()
         }
         if ((global._pairingRetries || 0) >= pairingRetryLimit) return
+        if (global._pairingReconnectScheduled) return
         global._pairingRetries = (global._pairingRetries || 0) + 1
-        global._pairingCloseNoticeShown = false
-        await delay(global._pairingCodeIssued ? pairingRetryDelay : 3000)
-        global._pairingCodeIssued = false
-        global._pairingRequestStarted = false
-        global._pairingCodePromise = null
-        await global.reloadHandler(true).catch(console.error)
-        return
-    }
-    if (!isAuthenticated && global._pairingCodeIssued && (opcion === '2' || methodCode)) {
-        // Do not rotate the code while the user is entering it in WhatsApp.
-        // Give the user two full minutes before trying a new pairing attempt.
-        console.log(chalk.bold.yellowBright(`\n⚠︎ El código actual se mantiene durante 2 minutos. Vincúlalo en WhatsApp con calma; no se generará otro código antes.`))
-        if (!global._pairingReconnectScheduled) {
-            global._pairingReconnectScheduled = true
-            setTimeout(async () => {
-                global._pairingReconnectScheduled = false
-                if (global.conn?.authState?.creds?.registered || global.conn?.user?.id) return
-                global._pairingCodeIssued = false
-                global._pairingRequested = false
-                global._pairingRetries = (global._pairingRetries || 0) + 1
-                await global.reloadHandler(true).catch(console.error)
-            }, pairingRetryDelay)
-        }
+        global._pairingReconnectScheduled = true
+        setTimeout(async () => {
+          global._pairingReconnectScheduled = false
+          global._pairingCloseNoticeShown = false
+          global._pairingCodeIssued = false
+          global._pairingRequested = false
+          global._pairingRequestStarted = false
+          global._pairingCodePromise = null
+          await global.reloadHandler(true).catch(console.error)
+        }, global._pairingCodeIssued ? pairingRetryDelay : 3000)
         return
     }
     if (reason === DisconnectReason.badSession) {
