@@ -1,7 +1,8 @@
-import ws from 'ws'
-
 const handler = async (m, { conn }) => {
-  const subBots = [...new Set([...global.conns.filter((conn) => conn.user && conn.ws.socket && conn.ws.socket.readyState !== ws.CLOSED).map((conn) => conn.user.jid)])]
+  const activeConnections = Array.isArray(global.conns)
+    ? global.conns.filter((socket) => socket?.user?.jid && socket.ws?.readyState !== 3)
+    : []
+  const subBots = [...new Set(activeConnections.map((socket) => socket.user.jid))]
 
   if (global.conn?.user?.jid && !subBots.includes(global.conn.user.jid)) {
     subBots.push(global.conn.user.jid)
