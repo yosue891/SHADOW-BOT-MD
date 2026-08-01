@@ -1,3 +1,5 @@
+import { generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
+
 let handler = async (m, { conn, usedPrefix, command, text }) => {
   conn.apk = conn.apk || {}
 
@@ -7,7 +9,6 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
     }, { quoted: m })
   }
 
-  // Si el texto es número y tiene registro previo
   if (!isNaN(text) && m.sender in conn.apk) {
     const idx = parseInt(text) - 1
     let dt = conn.apk[m.sender]
@@ -41,7 +42,6 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
     return
   }
 
-  // Buscar apps
   let results = await aptoide.search(text)
   if (!results.length) {
     return conn.sendMessage(m.chat, { text: "⚠️ No se encontraron resultados para tu búsqueda."}, { quoted: m })
@@ -53,31 +53,41 @@ let handler = async (m, { conn, usedPrefix, command, text }) => {
     time: setTimeout(() => delete conn.apk[m.sender], 10 * 60 * 1000)
   }
 
-  // Mostrar botones con primeros 3 resultados
   const top3 = results.slice(0, 3)
   const buttons = top3.map((v, i) => ({
-    buttonId: `${usedPrefix + command} ${i + 1}`,
-    buttonText: { displayText: `${i + 1}. ${v.name}` },
-    type: 1
+    name: 'quick_reply',
+    buttonParamsJson: JSON.stringify({
+      display_text: `${i + 1}. ${v.name}`.slice(0, 24),
+      id: `${usedPrefix}${command} ${i + 1}`
+    })
   }))
 
-  await conn.sendMessage(m.chat, {
-    text: `> 🦞 Resultados para: *${text}*\n\nSelecciona una app para descargar el APK:`,
-    footer: `📦 Mostrando top 3 de ${results.length} resultados`,
-    buttons,
-    headerType: 1,
-    ...global.rcanal
+  const bodyText = `> 🦞 Resultados para: *${text}*\n\n` +
+    top3.map((v, i) => `*${i + 1}.* ${v.name}\n📦 ${v.size} | v${v.version}`).join('\n\n') +
+    `\n\nSelecciona una app para descargar el APK:`
+
+  const messageContent = generateWAMessageFromContent(m.chat, {
+    viewOnceMessage: {
+      message: {
+        interactiveMessage: proto.Message.InteractiveMessage.fromObject({
+          body: proto.Message.InteractiveMessage.Body.create({ text: bodyText }),
+          footer: proto.Message.InteractiveMessage.Footer.create({ text: `📦 Mostrando top 3 de ${results.length} resultados` }),
+          nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({ buttons })
+        })
+      }
+    }
   }, { quoted: m })
+
+  await conn.relayMessage(m.chat, messageContent.message, { messageId: messageContent.key.id, ...global.rcanal })
 }
 
 handler.help = ['apk']
 handler.tags = ['descargas']
-handler.command = ['apk']   // corregido para que se registre bien
-handler.register = true     // asegura que se cargue en tu bot
+handler.command = ['apk']
+handler.register = true
 
 export default handler
 
-// Módulo Aptoide
 const aptoide = {
   search: async function (query) {
     let res = await global.fetch(`https://ws75.aptoide.com/api/7/apps/search?query=${encodeURIComponent(query)}&limit=100`)
@@ -106,4 +116,4 @@ const aptoide = {
       link: app.file?.path
     }
   }
-    }
+}
