@@ -1,0 +1,1 @@
+- [Baileys pairing flow](baileys-pairing-flow.md) — issue pairing codes only after the socket is ready and avoid rotating that socket while the code is active.

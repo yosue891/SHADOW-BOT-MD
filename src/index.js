@@ -157,7 +157,9 @@ auth: {
 creds: state.creds,
 keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: "fatal" }).child({ level: "fatal" })),
 },
-markOnlineOnConnect: true, 
+ // Keeping the socket offline while pairing avoids WhatsApp closing the
+ // unauthenticated channel before the pairing request is accepted.
+ markOnlineOnConnect: false,
 generateHighQualityLinkPreview: true, 
 syncFullHistory: false,
 getMessage: async (key) => {
@@ -200,7 +202,7 @@ global._pairingRequested = true
 console.log(chalk.cyanBright(`\n📱 Solicitando código de vinculación para +${global._pairingNumber}...`))
 for (let attempt = 0; attempt < 30; attempt++) {
 try {
-if (global.conn?.authState?.creds?.registered || global._pairingCodeIssued) return
+ if (state.creds.registered || global.conn?.user?.id || global._pairingCodeIssued) return
 let codeBot = await global.conn.requestPairingCode(global._pairingNumber)
 codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
 global._pairingCodeIssued = true
@@ -219,11 +221,15 @@ return global._pairingCodePromise
 }
 
 async function requestPairingCodeWhenSocketIsReady() {
-for (let attempt = 0; attempt < 50; attempt++) {
-if (global.conn?.ws?.isOpen) {
+ for (let attempt = 0; attempt < 150; attempt++) {
+ const socket = global.conn?.ws
+ const readyState = socket?.readyState
+ const socketIsOpen = socket?.isOpen === true || readyState === 1
+ const socketIsClosed = socket?.isClosed === true || socket?.isClosing === true || readyState === 3
+ if (socketIsOpen) {
 return requestPairingCodeOnce()
 }
-if (global.conn?.ws?.isClosed || global.conn?.ws?.isClosing) return
+ if (socketIsClosed) return
 await delay(100)
 }
 console.log(chalk.yellowBright('\n⚠︎ El canal de WhatsApp no estuvo listo para solicitar el código.'))
@@ -251,7 +257,7 @@ global._pairingNumber = phoneNumber.replace(/\D/g, '')
 // unauthenticated channel before a pairing request can be sent.
 global.conn = makeWASocket(connectionOptions)
 try { conn.ev.on('connection.update', connectionUpdate.bind(global.conn)) } catch {}
-conn.ev.on('creds.update', saveCreds.bind(global.conn, true))
+conn.ev.on('creds.update', saveCreds)
 global._reconnectAttempts = 0
 global._pairingCodeIssued = false
 global._pairingRequestStarted = false
