@@ -129,8 +129,18 @@ export async function handler(chatUpdate) {
     this.msgqueque = this.msgqueque || [];
     this.uptime = this.uptime || Date.now();
     if (!chatUpdate) return;
+    const messages = Array.isArray(chatUpdate.messages) ? chatUpdate.messages.filter(Boolean) : [];
+    if (!messages.length) return;
+    // WhatsApp can deliver several messages in one upsert. Processing only the
+    // last one silently drops commands sent in the same batch.
+    if (messages.length > 1) {
+        for (const message of messages) {
+            await handler.call(this, { ...chatUpdate, messages: [message] });
+        }
+        return;
+    }
     this.pushMessage(chatUpdate.messages).catch(console.error);
-    let m = chatUpdate.messages[chatUpdate.messages.length - 1];
+    let m = messages[0];
     if (!m) return;
     if (global.db.data == null) await global.loadDatabase();
     m = smsg(this, m) || m;
@@ -281,41 +291,54 @@ export async function handler(chatUpdate) {
         if (!plugin || plugin.disabled) continue;
 
         const pluginPrefix = plugin.customPrefix || prefixRegex || conn.prefix || global.prefix;
-        const match = (pluginPrefix instanceof RegExp
-            ? [[pluginPrefix.exec(m.text), pluginPrefix]]
+        const match = ((pluginPrefix instanceof RegExp
+            ? (pluginPrefix.lastIndex = 0, [[pluginPrefix.exec(m.text), pluginPrefix]])
             : Array.isArray(pluginPrefix)
-            ? pluginPrefix.map(p => [p instanceof RegExp ? p : new RegExp(p.replace(/[.*+?^${}()|\[\]\\]/g, '\\$1')).exec(m.text), p])
+            ? pluginPrefix.map(p => {
+                const regex = p instanceof RegExp ? p : new RegExp(p.replace(/[.*+?^${}()|\[\]\\]/g, '\\$1'));
+                regex.lastIndex = 0;
+                return [regex.exec(m.text), p];
+            })
             : typeof pluginPrefix === "string"
             ? [[new RegExp(pluginPrefix.replace(/[.*+?^${}()|\[\]\\]/g, '\\$&')).exec(m.text), new RegExp(pluginPrefix)]]
-            : [[[], new RegExp]]).find(p => p[1]);
+            : [[[], new RegExp]]).find(p => p[0]) || [null, null]);
 
         if (typeof plugin.all === "function") {
-            await plugin.all.call(this, m, { chatUpdate, __dirname, __filename: join(___dirname, name), user, chat, settings });
+            try {
+                await plugin.all.call(this, m, { chatUpdate, __dirname, __filename: join(___dirname, name), user, chat, settings });
+            } catch (err) {
+                console.error(`Error en plugin all (${name}):`, err);
+            }
         }
 
         if (!opts["restrict"] && plugin.tags?.includes("admin")) continue;
 
         if (typeof plugin.before === "function") {
-            if (await plugin.before.call(this, m, {
-                match,
-                conn: this,
-                participants,
-                groupMetadata,
-                user: userGroup,
-                bot: botGroup,
-                isROwner,
-                isOwner,
-                isMods,
-                isRAdmin,
-                isAdmin,
-                isBotAdmin,
-                isPrems,
-                chatUpdate,
-                __dirname,
-                __filename: join(___dirname, name),
-                chat,
-                settings
-            })) continue;
+            try {
+                if (await plugin.before.call(this, m, {
+                    match,
+                    conn: this,
+                    participants,
+                    groupMetadata,
+                    user: userGroup,
+                    bot: botGroup,
+                    isROwner,
+                    isOwner,
+                    isMods,
+                    isRAdmin,
+                    isAdmin,
+                    isBotAdmin,
+                    isPrems,
+                    chatUpdate,
+                    __dirname,
+                    __filename: join(___dirname, name),
+                    chat,
+                    settings
+                })) continue;
+            } catch (err) {
+                console.error(`Error en plugin before (${name}):`, err);
+                continue;
+            }
         }
 
         usedPrefix = (match[0] || "")[0];
@@ -327,9 +350,11 @@ export async function handler(chatUpdate) {
         const text = args.join(" ");
         command = (command || "").toLowerCase();
         const isAccept = plugin.command instanceof RegExp
-            ? plugin.command.test(command)
+            ? (plugin.command.lastIndex = 0, plugin.command.test(command))
             : Array.isArray(plugin.command)
-            ? plugin.command.some(cmd => cmd instanceof RegExp ? cmd.test(command) : cmd === command)
+            ? plugin.command.some(cmd => cmd instanceof RegExp
+                ? (cmd.lastIndex = 0, cmd.test(command))
+                : cmd === command)
             : typeof plugin.command === "string"
             ? plugin.command === command
             : false;
@@ -471,6 +496,11 @@ export async function handler(chatUpdate) {
         } catch (err) {
             m.error = err;
             console.error(err);
+            try {
+                await this.reply(m.chat, `❌ No pude completar *${usedPrefix}${command}*.\n> ${err?.message || 'Error interno del comando.'}`, m);
+            } catch (replyError) {
+                console.error('No se pudo enviar el error del comando:', replyError);
+            }
         }
     }
 

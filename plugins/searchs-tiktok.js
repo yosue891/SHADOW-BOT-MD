@@ -32,7 +32,8 @@ const handler = async (m, { conn, text, usedPrefix }) => {
 
     if (isUrl) {
       const res = await axios.get(
-        `https://www.tikwm.com/api/?url=${encodeURIComponent(text)}&hd=1`
+        `https://www.tikwm.com/api/?url=${encodeURIComponent(text)}&hd=1`,
+        { timeout: 20000 }
       )
 
       const data = res.data?.data
@@ -90,7 +91,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
       return conn.reply(m.chat, 'ꕥ No se encontró video descargable en ese enlace.', m)
     }
 
-    conn.reply(m.chat, '✧ *ENVIANDO SUS RESULTADOS..*', m)
+    await conn.reply(m.chat, '✧ *ENVIANDO SUS RESULTADOS..*', m)
 
     const form = new URLSearchParams()
     form.append('keywords', text)
@@ -101,6 +102,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
     const res = await axios({
       method: 'POST',
       url: 'https://tikwm.com/api/feed/search',
+      timeout: 20000,
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
         'Cookie': 'current_language=en',
@@ -119,13 +121,12 @@ const handler = async (m, { conn, text, usedPrefix }) => {
     shuffleArray(results)
     const topResults = results.slice(0, 7)
 
-    const cards = []
-    for (const v of topResults) {
+    const cards = await Promise.all(topResults.map(async v => {
       const title = v.title || 'Video TikTok'
       const author = v.author?.nickname || v.author?.unique_id || 'Desconocido'
       const duration = v.duration ?? 'No disponible'
 
-      cards.push({
+      return {
         body: proto.Message.InteractiveMessage.Body.fromObject({
           text: `✐ ${title}\nⴵ Autor » ${author}\n✰ Duración » ${duration} segundos`
         }),
@@ -140,8 +141,8 @@ const handler = async (m, { conn, text, usedPrefix }) => {
         nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
           buttons: []
         })
-      })
-    }
+      }
+    }))
 
     const msg = generateWAMessageFromContent(
       m.chat,

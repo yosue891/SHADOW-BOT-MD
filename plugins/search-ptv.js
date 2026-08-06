@@ -25,7 +25,8 @@ const handler = async (m, { conn, text, usedPrefix }) => {
 
     if (isUrl) {
       const res = await axios.get(
-        `https://www.tikwm.com/api/?url=${encodeURIComponent(text)}&hd=1`
+        `https://www.tikwm.com/api/?url=${encodeURIComponent(text)}&hd=1`,
+        { timeout: 20000 }
       )
 
       const data = res.data?.data
@@ -111,6 +112,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
     const res = await axios({
       method: 'POST',
       url: 'https://tikwm.com/api/feed/search',
+      timeout: 20000,
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
         'Cookie': 'current_language=en',

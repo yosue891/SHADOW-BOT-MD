@@ -110,7 +110,7 @@ var handler = async (m, { conn, args, usedPrefix, command }) => {
 
     await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
   } catch (error1) {
-    conn.reply(
+    await conn.reply(
       m.chat,
       `[ 🩸 ] Error detectado: ${error1}\nLas sombras no perdonan los errores...`,
       m
@@ -126,6 +126,6 @@ export default handler
 
 async function tiktokdl(url) {
   const tikwm = `https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&hd=1`
-  const response = await (await fetch(tikwm)).json()
+  const response = await (await fetch(tikwm, { signal: AbortSignal.timeout(20000) })).json()
   return response
       }

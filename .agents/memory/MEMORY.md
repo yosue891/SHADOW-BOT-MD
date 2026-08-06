@@ -1,0 +1,1 @@
+- [Plugin dispatch reliability](plugin-reliability.md) — isolate plugin failures and reset stateful regexes so commands do not silently disappear.
