@@ -254,8 +254,8 @@ Inicia el bot nuevamente:
 <a href="https://github.com/⊱: ̗̀SσყMαყƈσʟ࿐">
   <img src="https://github.com/⊱: ̗̀SσყMαყƈσʟ࿐.png" width="80" height="80" style="border-radius:50%">
 </a>
-<a href="https://github.com/naut21 · he/him">
-  <img src="https://github.com/naut21 · he/him.png" width="80" height="80" style="border-radius:50%">
+<a href="https://github.com/naut21">
+  <img src="https://github.com/naut21.png" width="80" height="80" style="border-radius:50%">
 </a>
 <a href="https://github.com/GianPoolS">
   <img src="https://github.com/GianPoolS.png" width="80" height="80" style="border-radius:50%">
