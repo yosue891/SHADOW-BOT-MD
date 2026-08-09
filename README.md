@@ -244,17 +244,18 @@ Inicia el bot nuevamente:
      ```
 
 </details>
-
+
+
 ---
 
 💫 Colaboradores
 
 <p align="center">
-<a href="https://github.com/SoyMaycol">
-  <img src="https://github.com/SoyMaycol.png" width="80" height="80" style="border-radius:50%">
+<a href="https://github.com/⊱: ̗̀SσყMαყƈσʟ࿐">
+  <img src="https://github.com/⊱: ̗̀SσყMαყƈσʟ࿐.png" width="80" height="80" style="border-radius:50%">
 </a>
-<a href="https://github.com/thisAdo1">
-  <img src="https://github.com/thisAdo.png" width="80" height="80" style="border-radius:50%">
+<a href="https://github.com/Naut">
+  <img src="https://github.com/Naut.png" width="80" height="80" style="border-radius:50%">
 </a>
 <a href="https://github.com/GianPoolS">
   <img src="https://github.com/GianPoolS.png" width="80" height="80" style="border-radius:50%">
