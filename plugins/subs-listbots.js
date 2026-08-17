@@ -75,7 +75,7 @@ const handler = async (m, { conn, command, usedPrefix }) => {
         message: {
           messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 },
           interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-            body: proto.Message.InteractiveMessage.Body.create({ text: `🌴 Subbots activos: ${subBotsActivos.length}/20` }),
+            body: proto.Message.InteractiveMessage.Body.create({ text: `🌴 *Pedido en proceso...*\n\n> El bot principal tiene *${subBotsActivos.length}* subbots vinculados de un máximo de *20*.` }),
             footer: proto.Message.InteractiveMessage.Footer.create({ text: "Selecciona un Sub-Bot del carrusel 🌿" }),
             header: proto.Message.InteractiveMessage.Header.create({ hasMediaAttachment: false }),
             carouselMessage: proto.Message.InteractiveMessage.CarouselMessage.fromObject({ cards })
