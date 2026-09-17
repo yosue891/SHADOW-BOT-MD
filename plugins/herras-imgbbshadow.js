@@ -41,7 +41,10 @@ async function sendCustomPedido(m, conn, texto) {
 }
 
 const handler = async (m, { conn, text, command }) => {
-  const ImgBB_API_Key = '60b7b57c73586b5d915df1c3c378a458' // 🔑 API Key actual
+  const ImgBB_API_Key = process.env.IMGBB_API_KEY || global.IMGBB_API_KEY
+  if (!ImgBB_API_Key) {
+    return m.reply('⚠️ Falta configurar la API Key de ImgBB (IMGBB_API_KEY).')
+  }
   const ImgBB_API_Url = `https://api.imgbb.com/1/upload?key=${ImgBB_API_Key}`
     
   const q = m.quoted ? m.quoted : m
