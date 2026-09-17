@@ -20,14 +20,20 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
   }
 
   const groupSize = groupMetadata.participants.length + 1
-  const imageSource = await renderWelcomeCard({
-    backgroundUrl: BACKGROUND,
-    avatarUrl: profileUrl,
-    title: 'Bienvenido',
-    username,
-    groupName,
-    footerLine: `#${groupSize}`
-  })
+  let imageSource
+  try {
+    imageSource = await renderWelcomeCard({
+      backgroundUrl: BACKGROUND,
+      avatarUrl: profileUrl,
+      title: 'Bienvenido',
+      username,
+      groupName,
+      footerLine: `#${groupSize}`
+    })
+  } catch (err) {
+    console.error('[WELCOME] Falló el render con canvas (¿npm install pendiente?), se usa fondo plano:', err.message)
+    imageSource = { url: BACKGROUND }
+  }
 
   const fecha = new Date().toLocaleDateString('es-ES', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'long', year: 'numeric' })
   const desc = groupMetadata.desc?.toString() || 'Sin descripción'
@@ -62,14 +68,20 @@ export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
   }
 
   const groupSize = Math.max(groupMetadata.participants.length - 1, 0)
-  const imageSource = await renderGoodbyeCard({
-    backgroundUrl: BACKGROUND,
-    avatarUrl: profileUrl,
-    title: 'Adiós',
-    username,
-    groupName,
-    footerLine: `Quedan ${groupSize}`
-  })
+  let imageSource
+  try {
+    imageSource = await renderGoodbyeCard({
+      backgroundUrl: BACKGROUND,
+      avatarUrl: profileUrl,
+      title: 'Adiós',
+      username,
+      groupName,
+      footerLine: `Quedan ${groupSize}`
+    })
+  } catch (err) {
+    console.error('[WELCOME] Falló el render con canvas (¿npm install pendiente?), se usa fondo plano:', err.message)
+    imageSource = { url: BACKGROUND }
+  }
 
   const fecha = new Date().toLocaleDateString('es-ES', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'long', year: 'numeric' })
   const desc = groupMetadata.desc?.toString() || 'Sin descripción'
@@ -104,6 +116,8 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
   let rawUser = m.messageStubParameters?.[0]
   if (!rawUser) return !0
 
+  console.log(`[WELCOME] Evento stub=${m.messageStubType} en ${m.chat} para ${rawUser}`)
+
   let userId = rawUser
 
   if (rawUser.startsWith('{')) {
@@ -131,7 +145,10 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
   if (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_ADD || m.messageStubType == 27 || m.messageStubType == 31) {
     try {
       const { imageSource, caption, mentions } = await generarBienvenida({ conn, userId, groupMetadata, chat })
-      await conn.sendMessage(m.chat, { image: imageSource, caption, mentions, contextInfo }, { quoted: null })
+      const opts = { caption, mentions, contextInfo }
+      opts.image = Buffer.isBuffer(imageSource) ? imageSource : imageSource
+      await conn.sendMessage(m.chat, opts, { quoted: null })
+      console.log('[WELCOME] Bienvenida enviada a', userId)
     } catch (err) {
       console.error('[WELCOME PLUGIN] Error enviando bienvenida:', err)
     }
@@ -140,7 +157,10 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
   if (m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_REMOVE || m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_LEAVE || m.messageStubType == 28 || m.messageStubType == 32) {
     try {
       const { imageSource, caption, mentions } = await generarDespedida({ conn, userId, groupMetadata, chat })
-      await conn.sendMessage(m.chat, { image: imageSource, caption, mentions, contextInfo }, { quoted: null })
+      const opts = { caption, mentions, contextInfo }
+      opts.image = Buffer.isBuffer(imageSource) ? imageSource : imageSource
+      await conn.sendMessage(m.chat, opts, { quoted: null })
+      console.log('[WELCOME] Despedida enviada a', userId)
     } catch (err) {
       console.error('[WELCOME PLUGIN] Error enviando despedida:', err)
     }
