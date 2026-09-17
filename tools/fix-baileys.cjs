@@ -15,28 +15,30 @@
 const fs = require('fs')
 const path = require('path')
 
-const barrel = path.join(process.cwd(), 'node_modules', '@whiskeysockets', 'baileys', 'lib', 'Utils', 'index.js')
 const explicit = "export { BufferJSON } from './generics.js'; // fix: resuelve el conflicto de star exports"
 
-try {
-  if (!fs.existsSync(barrel)) {
-    console.log('[fix-baileys] @whiskeysockets/baileys no está instalado todavía; nada que parchear.')
-    process.exit(0)
-  }
-  const src = fs.readFileSync(barrel, 'utf8')
+const candidates = [
+  path.join(process.cwd(), 'node_modules', '@whiskeysockets', 'baileys', 'lib', 'Utils', 'index.js'),
+  path.join(process.cwd(), 'vendor', 'baileys', 'lib', 'Utils', 'index.js')
+]
+
+for (const target of candidates) {
+  if (!fs.existsSync(target)) continue
+  const src = fs.readFileSync(target, 'utf8')
   if (src.includes("BufferJSON } from './generics.js'")) {
-    console.log('[fix-baileys] El parche ya estaba aplicado.')
-    process.exit(0)
+    console.log('[fix-baileys] Parche ya aplicado en:', target)
+    continue
   }
   const needsPatch = src.includes("export * from './generics.js';") &&
     src.includes("export * from './use-sqlite-auth-state.js';")
   if (!needsPatch) {
-    console.log('[fix-baileys] La versión instalada no tiene el conflicto de BufferJSON; nada que hacer.')
-    process.exit(0)
+    console.log('[fix-baileys] Sin conflicto de BufferJSON en:', target)
+    continue
   }
-  fs.writeFileSync(barrel, src.trimEnd() + '\n' + explicit + '\n')
-  console.log('[fix-baileys] Parche aplicado: conflicto de star exports BufferJSON resuelto.')
-} catch (err) {
-  // No romper la instalación si el parche falla.
-  console.error('[fix-baileys] No se pudo aplicar el parche:', err.message)
+  try {
+    fs.writeFileSync(target, src.trimEnd() + '\n' + explicit + '\n')
+    console.log('[fix-baileys] Parche aplicado en:', target)
+  } catch (err) {
+    console.error('[fix-baileys] No se pudo parchear', target, err.message)
+  }
 }
