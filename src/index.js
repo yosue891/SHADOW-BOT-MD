@@ -39,7 +39,7 @@ const PORT = process.env.PORT || process.env.SERVER_PORT || 3000
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
 // During manual linking, keep one socket and one issued code. Replacing the
 // socket invalidates the code before the user can enter it in WhatsApp.
-const pairingRetryLimit = 20
+const pairingRetryLimit = 40
 const pairingRetryDelay = 5000
 
 let { say } = cfonts
@@ -528,7 +528,8 @@ if (connection === 'close') {
           global._pairingRequestStarted = false
           global._pairingCodePromise = null
           await global.reloadHandler(true).catch(console.error)
-        }, global._pairingCodeIssued ? pairingRetryDelay : 3000)
+          requestPairingCodeWhenSocketIsReady().catch(() => {})
+        }, global._pairingCodeIssued ? pairingRetryDelay : 12000)
         return
     }
     if (reason === DisconnectReason.badSession || reason === 502) {
