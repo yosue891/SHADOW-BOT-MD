@@ -8,11 +8,12 @@ const handler = async (m, { conn, usedPrefix, command, args, isOwner, isAdmin, i
   let isAll = false, isUser = false
   let isEnable = chat[type] || false
 
-  if (args[0] === 'on' || args[0] === 'enable') {
+  if (args[0] === 'on' || args[0] === 'enable' || args[0] === '1') {
     isEnable = true
-  } else if (args[0] === 'off' || args[0] === 'disable') {
+  } else if (args[0] === 'off' || args[0] === 'disable' || args[0] === '0') {
     isEnable = false
   } else {
+    if (type === 'welcome' || type === 'bienvenida') return
     const estado = isEnable ? '✓ Activado' : '✗ Desactivado'
     return conn.reply(m.chat, `「✦」Un administrador puede activar o desactivar el *${command}* utilizando:\n\n> ✐ *${usedPrefix}${command} on* para activar.\n> ✐ *${usedPrefix}${command} off* para desactivar.\n\n✧ Estado actual » *${estado}*`, m)
   }
