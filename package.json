@@ -10,7 +10,8 @@
     "src": "src"
   },
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "postinstall": "node tools/fix-baileys.cjs"
   },
   "repository": {
     "type": "git",
@@ -26,7 +27,7 @@
     "@bochilteam/scraper": "^4.2.4",
     "@hapi/boom": "^10.0.1",
     "@vitalets/google-translate-api": "^8.0.0",
-    "@whiskeysockets/baileys": "git@github.com:Andresv27728/baileys-beta.git",
+    "@whiskeysockets/baileys": "https://github.com/Andresv27728/baileys-beta.git",
     "acrcloud": "^1.4.0",
     "aptoide-scraper": "^1.0.1",
     "awesome-phonenumber": "^3.4.0",
@@ -56,6 +57,7 @@
     "performance-now": "^2.1.0",
     "pino": "^8.21.0",
     "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
     "qs": "^6.15.3",
     "ruhend-scraper": "^7.0.6",
     "sharp": "^0.34.5",

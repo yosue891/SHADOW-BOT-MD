@@ -31,6 +31,7 @@ const { PhoneNumberUtil } = pkg
 const phoneUtil = PhoneNumberUtil.getInstance()
 const { Browsers, DisconnectReason, useMultiFileAuthState, MessageRetryMap, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser } = await import('@whiskeysockets/baileys')
 import readline, { createInterface } from 'readline'
+import qrcodeTerminal from 'qrcode-terminal'
 import NodeCache from 'node-cache'
 const { CONNECTING } = ws
 const { chain } = lodash
@@ -178,20 +179,31 @@ if (methodCodeQR) {
 opcion = '1'
 }
 if (!methodCodeQR && !methodCode && !fs.existsSync(`./${sessions}/creds.json`)) {
+if (!process.stdin.isTTY) {
+// En hostings/paneles sin terminal interactiva el prompt nunca recibe
+// respuesta y el bot queda bloqueado para siempre antes de vincularse.
+// Con número configurado se usa el código de 8 dígitos; si no, el QR.
+opcion = phoneNumber ? '2' : '1'
+console.log(chalk.yellowBright(`\n⚠ Sin terminal interactiva: se usará el método ${opcion === '2' ? 'código de 8 dígitos' : 'QR'} automáticamente.\n`))
+} else {
  showLoginMenu()
 do {
 opcion = await question(chalk.magentaBright('  ➤ Opción [1/2]: '))
 if (!/^[1-2]$/.test(opcion)) {
 console.log(chalk.bold.redBright(`No se permiten numeros que no sean 1 o 2, tampoco letras o símbolos especiales.`))
 }} while (opcion !== '1' && opcion !== '2' || fs.existsSync(`./${sessions}/creds.json`))
+}
 } 
 
 console.info = () => { }
 
 const connectionOptions = {
 logger: pino({ level: 'silent' }),
-printQRInTerminal: opcion == '1' ? true : methodCodeQR ? true : false,
-mobile: MethodMobile, 
+// El fork de Baileys ya no imprime el QR (printQRInTerminal está deprecado
+// y solo muestra una advertencia). El QR se muestra manualmente en
+// connectionUpdate usando qrcode-terminal.
+printQRInTerminal: false,
+mobile: MethodMobile,
 browser: ['Ubuntu', 'Chrome', '20.0.04'],
 ...(currentBaileysVersion ? { version: currentBaileysVersion } : {}),
 auth: {
@@ -324,7 +336,11 @@ conn.logger.info(`[ 🍐 ]  H E C H O\n`)
 if (!opts['test']) {
 if (global.db) setInterval(async () => {
 if (global.db.data) await global.db.write()
-if (opts['autocleartmp'] && (global.support || {}).find) (tmp = [os.tmpdir(), 'tmp', `${jadi}`], tmp.forEach((filename) => cp.spawn('find', [filename, '-amin', '3', '-type', 'f', '-delete'])))
+// FIX: `tmp` y `cp` no estaban definidos -> ReferenceError en cada ejecución.
+if (opts['autocleartmp'] && (global.support || {}).find) {
+const tmpDirs = [os.tmpdir(), 'tmp', `${jadi}`]
+tmpDirs.forEach((filename) => spawn('find', [filename, '-amin', '3', '-type', 'f', '-delete']))
+}
 }, 30 * 1000)
 }
 
@@ -435,9 +451,21 @@ if (qr && !state.creds.registered && (opcion === '2' || methodCode) && global._p
     console.log(chalk.redBright(`\n⚠︎ No se pudo solicitar el código: ${error.message}`))
   })
 }
-if (update.qr != 0 && update.qr != undefined || methodCodeQR) {
-if (opcion == '1' || methodCodeQR) {
-console.log(chalk.green.bold(`[ ✿ ]  Escanea este código QR`))}
+if (qr && !state.creds.registered && (opcion == '1' || methodCodeQR)) {
+console.log(chalk.green.bold(`\n[ ✿ ]  Escanea este código QR con WhatsApp:\n`))
+try {
+await new Promise((resolve, reject) => {
+qrcodeTerminal.generate(qr, { small: true }, (output) => {
+if (output) {
+console.log(output)
+resolve()
+} else {
+reject(new Error('No se generó salida para el QR'))
+}})
+})
+} catch (qrError) {
+console.log(chalk.redBright(`[ QR ] No se pudo mostrar el QR en la terminal: ${qrError.message}`))
+}
 }
  if (connection === "open") {
 if (conn.user?.id) {
@@ -638,12 +666,14 @@ global._reloading = false
 }
 return true
 }
-let rtU = join(__dirname, `./${jadi}`)
+// FIX: usar el directorio de trabajo (como hace subs-conexion.js) y no src/,
+// donde nunca hay sesiones; sin esto los sub-bots no se restauran al reiniciar.
+let rtU = join(process.cwd(), jadi)
 if (!existsSync(rtU)) {
-mkdirSync(rtU, { recursive: true }) 
+mkdirSync(rtU, { recursive: true })
 }
 
-global.rutaJadiBot = join(__dirname, `./${jadi}`)
+global.rutaJadiBot = rtU
 if (global.MichiJadibts) {
 if (!existsSync(global.rutaJadiBot)) {
 mkdirSync(global.rutaJadiBot, { recursive: true }) 
