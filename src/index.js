@@ -153,7 +153,19 @@ rmSync(global.sessions, { recursive: true, force: true })
 }
 }
 
-const {state, saveState, saveCreds} = await useMultiFileAuthState(global.sessions)
+const { state, saveCreds: _initialSaveCreds } = await useMultiFileAuthState(global.sessions)
+let saveCreds = _initialSaveCreds
+async function refreshPrincipalAuth() {
+try {
+const fresh = await useMultiFileAuthState(global.sessions)
+state.creds = fresh.state.creds
+state.keys = fresh.state.keys
+saveCreds = fresh.saveCreds
+connectionOptions.auth.creds = state.creds
+connectionOptions.auth.keys = makeCacheableSignalKeyStore(state.keys, Pino({ level: "fatal" }).child({ level: "fatal" }))
+if (global.conn) global.conn.credsUpdate = saveCreds.bind(global.conn, true)
+} catch {}
+}
 let currentBaileysVersion
 try {
 const latestBaileys = await fetchLatestBaileysVersion()
@@ -470,6 +482,7 @@ console.log(chalk.redBright(`[ QR ] No se pudo mostrar el QR en la terminal: ${q
  if (connection === "open") {
 if (conn.user?.id) {
 global._pairingRetries = 0
+global._reconnectAttempts = 0
 const userJid = jidNormalizedUser(conn.user.id)
 const userName = conn.user.name || conn.user.verifiedName || "Desconocido"
 await joinChannels(conn)
@@ -525,8 +538,13 @@ if (connection === 'close') {
         }, global._pairingCodeIssued ? pairingRetryDelay : 3000)
         return
     }
-    if (reason === DisconnectReason.badSession) {
-console.log(chalk.bold.cyanBright(`\n⚠︎ Sesión incorrecta, borra la session principal del Bot, y conectate nuevamente.`))
+    if (reason === DisconnectReason.badSession || reason === 502) {
+global._reconnectAttempts = (global._reconnectAttempts || 0) + 1
+const backoff = Math.min(5000 * Math.pow(2, global._reconnectAttempts - 1), 60000)
+console.log(chalk.bold.cyanBright(`\n⚠︎ Sesión temporalmente inválida (código ${reason}), revalidando sin borrar credenciales y reconectando en ${Math.round(backoff/1000)}s...`))
+await delay(backoff)
+await refreshPrincipalAuth().catch(() => {})
+await global.reloadHandler(true).catch(console.error)
 } else if (reason === DisconnectReason.connectionClosed) {
 if (!isAuthenticated) {
 if (opcion === '2' || methodCode) {
@@ -571,7 +589,12 @@ await global.reloadHandler(true).catch(console.error)
             await global.reloadHandler(true).catch(console.error)
             return
         }
-        console.log(chalk.bold.redBright(`\n⚠︎ Sesión cerrada, intentando reconectar con nueva autenticación...`))
+        console.log(chalk.bold.redBright(`\n⚠︎ Sesión cerrada por WhatsApp, revalidando credenciales guardadas sin borrarlas...`))
+        global._reconnectAttempts = (global._reconnectAttempts || 0) + 1
+        if (global._reconnectAttempts > 10) {
+        console.log(chalk.bold.redBright(`\n⚠︎ Se superó el máximo de reintentos. Vincula de nuevo con "code" o "qr". No se borró Sessions/Principal.`))
+        return
+        }
         await delay(5000)
         await global.reloadHandler(true).catch(console.error)
 } else if (reason === DisconnectReason.restartRequired) {
@@ -636,6 +659,7 @@ console.error(e);
 }
 try {
     if (restatConn) {
+        await refreshPrincipalAuth().catch(() => {})
         const oldChats = global.conn.chats
         try {
             conn.ev.removeAllListeners('connection.update')
