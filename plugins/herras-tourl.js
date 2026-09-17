@@ -1,490 +1,641 @@
-import fetch, { FormData, Blob } from 'node-fetch'
-import crypto from 'crypto'
-import fs from 'fs'
-import { fileTypeFromBuffer } from 'file-type'
-import { generateWAMessageFromContent, getDevice } from '@whiskeysockets/baileys'
-import uploadImgur from '../lib/imgurUpload.js'
+// Tourl de Ourin (ourinv3) adaptado al sistema de plugins de Shadow-BOT-MD.
+// Sube el media respondido a TODOS los hosts y devuelve los enlaces.
+import FormData from "form-data"
+import fetch from "node-fetch"
+import mime from "mime-types"
+import { fileTypeFromBuffer } from "file-type"
+import { downloadMediaMessage, getContentType, generateWAMessageFromContent, proto, generateWAMessage } from "@whiskeysockets/baileys"
+import uploadImage from "../lib/imgdrop.js"
 
-const GITHUB_HARDCODED_REPO = 'UploadsAdonix/archivos'
-const STYLED_THUMBNAIL = 'https://files.catbox.moe/kcpa4c.jpg'
-const STYLED_SOURCE_URL = 'https://api-adonix.ultraplus.click'
+const termaiKey = "AIzaBj7z2z3xBjsk"
+const termaiDomain = "https://c.termai.cc"
 
-const DOCUMENT_TEMPLATE = {
-  url: 'https://mmg.whatsapp.net/v/t62.7119-24/539012045_745537058346694_1512031191239726227_n.enc',
-  mimetype: 'application/pdf',
-  fileSha256: '+gmvvCB6ckJSuuG3ZOzHsTBgRAukejv1nnfwGSSSS/4=',
-  fileLength: '999999999999',
-  pageCount: 0,
-  mediaKey: 'MWO6fI223TY8T0i9onNcwNBBPldWfwp1j1FPKCiJFzw=',
-  fileName: 'Choso🔥',
-  fileEncSha256: 'ZS8v9tio2un1yWVOOG3lwBxiP+mNgaKPY9+wl5pEoi8=',
-  directPath: '/v/t62.7119-24/539012045_745537058346694_1512031191239726227_n.enc'
-}
-
-const buildDocumentMessage = () => ({
-  ...DOCUMENT_TEMPLATE,
-  mediaKeyTimestamp: String(Math.floor(Date.now() / 1000))
-})
-
-const safeDomainFromUrl = (url) => {
+async function detectExt(buffer, fallback = "bin") {
   try {
-    return new URL(url).hostname
+    const type = await fileTypeFromBuffer(buffer)
+    return type?.ext || fallback
   } catch {
-    return 'api-adonix.ultraplus.click'
+    return fallback
   }
 }
 
-const createStyledInteractive = ({
-  mentionJids,
-  externalTitle,
-  bodyText,
-  footerText,
-  sections,
-  listTitle,
-  buttonTitle,
-  buttons = [],
-  thumbUrl = STYLED_THUMBNAIL,
-  sourceUrl = STYLED_SOURCE_URL,
-  limitedText,
-  limitedCopyCode,
-  tapDescription
-}) => {
-  const nativeButtons = [...buttons]
-
-  if (sections && sections.length) {
-    nativeButtons.unshift({
-      name: 'single_select',
-      buttonParamsJson: JSON.stringify({
-        title: buttonTitle || 'Lista de selección',
-        sections,
-        has_multiple_buttons: true
-      })
-    })
-  }
-
-  if (!nativeButtons.length) {
-    nativeButtons.push({
-      name: 'cta_copy',
-      buttonParamsJson: JSON.stringify({
-        display_text: 'Copiar contenido',
-        copy_code: bodyText || '',
-        has_multiple_buttons: true
-      })
-    })
-  }
-
-  const dividerIndices = nativeButtons.map((_, idx) => idx + 1)
-  const domain = safeDomainFromUrl(sourceUrl)
-
-  const params = {
-    bottom_sheet: {
-      in_thread_buttons_limit: Math.max(1, nativeButtons.length),
-      divider_indices: dividerIndices,
-      list_title: listTitle || 'Selecciona una opción',
-      button_title: buttonTitle || 'Abrir'
-    },
-    tap_target_configuration: {
-      title: externalTitle,
-      description: tapDescription || (bodyText ? bodyText.split('\n')[0].slice(0, 80) : ''),
-      canonical_url: sourceUrl,
-      domain,
-      button_index: 0
-    }
-  }
-
-  if (limitedText) {
-    params.limited_time_offer = {
-      text: limitedText,
-      url: sourceUrl,
-      copy_code: limitedCopyCode || '',
-      expiration_time: Math.floor(Date.now() / 1000) + 3600
-    }
-  }
-
-  const messageParamsJson = JSON.stringify(params)
-
-  return {
-    contextInfo: {
-      mentionedJid: mentionJids,
-      externalAdReply: {
-        title: externalTitle,
-        body: '',
-        thumbnailUrl: thumbUrl,
-        sourceUrl,
-        mediaType: 1,
-        renderLargerThumbnail: true
-      }
-    },
-    header: {
-      documentMessage: buildDocumentMessage(),
-      hasMediaAttachment: true
-    },
-    body: {
-      text: bodyText || ' '
-    },
-    footer: {
-      text: footerText || ''
-    },
-    nativeFlowMessage: {
-      messageParamsJson,
-      buttons: nativeButtons
-    }
-  }
-}
-
-const sendStyledInteractive = async (conn, chatId, interactiveMessage, quoted) => {
-  const content = {
-    viewOnceMessage: {
-      message: {
-        interactiveMessage
-      }
-    }
-  }
-  const userJid = conn?.user?.id || conn?.user?.jid
-  const msg = generateWAMessageFromContent(chatId, content, { userJid, quoted })
-  await conn.relayMessage(chatId, msg.message, { messageId: msg.key.id })
-}
-
-async function makeFkontak() {
-  try {
-    const res = await fetch('https://i.postimg.cc/rFfVL8Ps/image.jpg')
-    const thumb2 = Buffer.from(await res.arrayBuffer())
-    return {
-      key: { participants: '0@s.whatsapp.net', remoteJid: 'status@broadcast', fromMe: false, id: 'Halo' },
-      message: { locationMessage: { name: 'Tourl', jpegThumbnail: thumb2 } },
-      participant: '0@s.whatsapp.net'
-    }
-  } catch {
-    return null
-  }
-}
-
-function formatBytes(bytes) {
-  if (bytes === 0) return '0 B'
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(1024))
-  return `${(bytes / (1024 ** i)).toFixed(2)} ${sizes[i]}`
-}
-
-async function uploadGitHub(filename, base64Content) {
-  const token = process.env.GITHUB_TOKEN || global.GITHUB_TOKEN || GITHUB_HARDCODED_TOKEN
-  const repo = process.env.GITHUB_REPO || global.GITHUB_REPO || GITHUB_HARDCODED_REPO
-  if (!token) throw new Error('Falta GITHUB_TOKEN')
-  const path = `images/${filename}`
-  const res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
-    method: 'PUT',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'User-Agent': 'upload-bot' },
-    body: JSON.stringify({ message: `upload ${filename}`, content: base64Content })
+async function uploadToCatbox(buffer, filename) {
+  const form = new FormData()
+  form.append("reqtype", "fileupload")
+  form.append("fileToUpload", buffer, {
+    filename,
+    contentType: mime.lookup(filename) || "application/octet-stream",
   })
+
+  const res = await fetch("https://catbox.moe/user/api.php", {
+    method: "POST",
+    body: form,
+    headers: form.getHeaders(),
+    timeout: 30000,
+  })
+
+  if (!res.ok) throw new Error("Catbox falló")
+  const url = await res.text()
+  if (!url.startsWith("http")) throw new Error("Invalid response")
+  return { host: "Catbox", url, expires: "Permanent" }
+}
+
+async function uploadToLitterbox(buffer, filename) {
+  const form = new FormData()
+  form.append("reqtype", "fileupload")
+  form.append("time", "72h")
+  form.append("fileToUpload", buffer, {
+    filename,
+    contentType: mime.lookup(filename) || "application/octet-stream",
+  })
+
+  const res = await fetch(
+    "https://litterbox.catbox.moe/resources/internals/api.php",
+    {
+      method: "POST",
+      body: form,
+      headers: form.getHeaders(),
+      timeout: 30000,
+    },
+  )
+
+  if (!res.ok) throw new Error("Litterbox falló")
+  const url = await res.text()
+  if (!url.startsWith("http")) throw new Error("Invalid response")
+  return { host: "Litterbox", url, expires: "72 horas" }
+}
+
+async function uploadTo0x0_alt(buffer, filename) {
+  const form = new FormData()
+  form.append("file", buffer, {
+    filename,
+    contentType: mime.lookup(filename) || "application/octet-stream",
+  })
+
+  const res = await fetch("https://0x0.st", {
+    method: "POST",
+    body: form,
+    headers: form.getHeaders(),
+    timeout: 30000,
+  })
+
+  if (!res.ok) throw new Error("Uguu falló")
   const data = await res.json()
-  if (data?.content?.download_url) return data.content.download_url
-  throw new Error(data?.message || 'Fallo al subir a GitHub')
+  if (!data?.data?.url) throw new Error("Invalid response")
+
+  return { host: "Uguu", url: data.files[0].url, expires: "60 minutos" }
 }
 
-async function uploadCatbox(buffer, ext, mime) {
+async function uploadToImgDrop(buffer, filename) {
+  const data = await uploadImage(buffer, filename)
+  if (!data.status || !data.url) throw new Error("ImgDrop falló")
+  return { host: "ImgDrop", url: data.url, expires: "Unknown" }
+}
+
+async function uploadToQuax(buffer, filename) {
   const form = new FormData()
-  form.append('reqtype', 'fileupload')
-  const randomBytes = crypto.randomBytes(5).toString('hex')
-  form.append('fileToUpload', new Blob([buffer], { type: mime || 'application/octet-stream' }), `${randomBytes}.${ext || 'bin'}`)
-  const res = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: form })
-  return (await res.text()).trim()
-}
+  form.append("file", buffer, {
+    filename,
+    contentType: mime.lookup(filename) || "application/octet-stream",
+  })
 
-async function uploadPostImages(buffer, ext, mime) {
-  const form = new FormData()
-  form.append('optsize', '0')
-  form.append('expire', '0')
-  form.append('numfiles', '1')
-  form.append('upload_session', String(Math.random()))
-  form.append('file', new Blob([buffer], { type: mime || 'image/jpeg' }), `${Date.now()}.${ext || 'jpg'}`)
-  const res = await fetch('https://postimages.org/json/rr', { method: 'POST', body: form })
-  const json = await res.json().catch(async () => ({ raw: await res.text() }))
-  return json?.url || json?.images?.[0]?.url || null
-}
+  const res = await fetch("https://qu.ax/upload.php", {
+    method: "POST",
+    body: form,
+    headers: form.getHeaders(),
+    timeout: 60000,
+  })
 
-async function uploadLitterbox(buffer, ext, mime) {
-  const form = new FormData()
-  form.append('file', new Blob([buffer], { type: mime || 'application/octet-stream' }), `upload.${ext || 'bin'}`)
-  form.append('time', '24h')
-  const res = await fetch('https://api.alvianuxio.eu.org/uploader/litterbox', { method: 'POST', body: form })
-  const text = await res.text()
-  try { const j = JSON.parse(text); return j.url || j.data?.url || null } catch { return /https?:\/\/[\w./-]+/i.test(text) ? text.trim() : null }
-}
+  if (!res.ok) throw new Error("Qu.ax falló")
+  const data = await res.json()
 
-async function uploadTmpFiles(buffer, ext, mime) {
-  const form = new FormData()
-  form.append('file', new Blob([buffer], { type: mime || 'application/octet-stream' }), `upload.${ext || 'bin'}`)
-  const res = await fetch('https://api.alvianuxio.eu.org/uploader/tmpfiles', { method: 'POST', body: form })
-  const text = await res.text()
-  try { const j = JSON.parse(text); return j.url || j.data?.url || j.link || null } catch { return /https?:\/\/[\w./-]+/i.test(text) ? text.trim() : null }
-}
-
-async function uploadFreeImageHost(buffer, ext, mime) {
-  const form = new FormData()
-  form.append('key', '6d207e02198a847aa98d0a2a901485a5')
-  form.append('action', 'upload')
-  form.append('source', new Blob([buffer], { type: mime || 'image/jpeg' }), `upload.${ext || 'jpg'}`)
-  const res = await fetch('https://freeimage.host/api/1/upload', { method: 'POST', body: form })
-  const j = await res.json().catch(async () => ({ raw: await res.text() }))
-  return j?.image?.url || j?.data?.image?.url || null
-}
-
-async function uploadServiceByName(name, buffer, ext, mime) {
-  switch ((name || '').toLowerCase()) {
-    case 'github': {
-      const fname = `${crypto.randomBytes(6).toString('hex')}.${ext || 'bin'}`
-      const content = Buffer.from(buffer).toString('base64')
-      return await uploadGitHub(fname, content)
-    }
-    case 'catbox': return await uploadCatbox(buffer, ext, mime)
-    case 'postimages': return await uploadPostImages(buffer, ext, mime)
-    case 'litterbox': return await uploadLitterbox(buffer, ext, mime)
-    case 'tmpfiles': return await uploadTmpFiles(buffer, ext, mime)
-    case 'freeimagehost': return await uploadFreeImageHost(buffer, ext, mime)
-    case 'imgur': {
-      const tmpPath = `./tmp/${crypto.randomBytes(6).toString('hex')}.${ext || 'bin'}`
-      await fs.promises.writeFile(tmpPath, buffer)
-      try {
-        const url = await uploadImgur(tmpPath)
-        return url
-      } finally {
-        try { await fs.promises.unlink(tmpPath) } catch {}
-      }
-    }
-    default: throw new Error('Servicio no soportado')
+  if (!data?.success || !Array.isArray(data.files) || !data.files[0]?.url) {
+    throw new Error("Invalid response")
   }
+
+  return { host: "Qu.ax", url: data.files[0].url, expires: "Permanent" }
 }
 
-const SERVICE_LIST = [
-  { key: 'github', label: 'GitHub' },
-  { key: 'catbox', label: 'Catbox' },
-  { key: 'postimages', label: 'PostImages' },
-  { key: 'litterbox', label: 'Litterbox (24h)' },
-  { key: 'tmpfiles', label: 'TmpFiles' },
-  { key: 'freeimagehost', label: 'FreeImageHost' },
-  { key: 'imgur', label: 'Imgur' },
-  { key: 'all', label: 'Todos los servicios' }
+async function uploadToTermai(buffer) {
+  const ext = await detectExt(buffer, "bin")
+  const form = new FormData()
+  form.append("file", buffer, { filename: `file.${ext}` })
+
+  const res = await fetch(`${termaiDomain}/api/upload?key=${termaiKey}`, {
+    method: "POST",
+    body: form,
+    headers: form.getHeaders(),
+    timeout: 120000,
+  })
+
+  if (!res.ok) throw new Error("Termai falló")
+  const data = await res.json()
+
+  if (!data?.status || !data?.path) {
+    throw new Error("Invalid response")
+  }
+
+  return { host: "Termai", url: data.path, expires: "Unknown" }
+}
+
+async function uploadToPone(buffer, filename) {
+  const form = new FormData()
+  form.append("files[]", buffer, {
+    filename,
+    contentType: mime.lookup(filename) || "application/octet-stream",
+  })
+
+  const res = await fetch("https://pone.rs/upload.php", {
+    method: "POST",
+    body: form,
+    headers: {
+      ...form.getHeaders(),
+      "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36",
+      "accept": "*/*",
+      "origin": "https://pone.rs",
+      "referer": "https://pone.rs/",
+    },
+    timeout: 60000,
+  })
+
+  if (!res.ok) throw new Error("Pone falló")
+  const data = await res.json()
+  const url = data?.files?.[0]?.url?.replaceAll("\\/", "/") || null
+  if (!data?.success || !url) throw new Error("Invalid response")
+  return { host: "Pone", url, expires: "Permanent" }
+}
+
+async function uploadToKappa(buffer, filename) {
+  const form = new FormData()
+  form.append("file", buffer, {
+    filename,
+    contentType: mime.lookup(filename) || "application/octet-stream",
+  })
+
+  const res = await fetch("https://kappa.lol/api/upload", {
+    method: "POST",
+    body: form,
+    headers: {
+      ...form.getHeaders(),
+      "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36",
+      "Accept": "*/*",
+      "Origin": "https://kappa.lol",
+      "Referer": "https://kappa.lol/",
+    },
+    timeout: 60000,
+  })
+
+  if (!res.ok) throw new Error("Kappa falló")
+  const raw = await res.text()
+  const data = JSON.parse(raw)
+  const url = data?.link || null
+  if (!url) throw new Error("Invalid response")
+  return { host: "Kappa", url, expires: "Permanent" }
+}
+
+async function uploadToUploadEe(buffer, filename) {
+  const ext = (filename.match(/\.([^.]+)$/) || [])[1] || "bin"
+  const imageExts = ["jpg", "jpeg", "png", "webp", "gif", "bmp", "svg", "avif"]
+  const isImage = imageExts.includes(ext.toLowerCase())
+  const category = isImage ? "cat_picture" : "cat_file"
+
+  await fetch("https://www.upload.ee/?", {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36",
+    },
+    timeout: 30000,
+  })
+
+  const rnd = Date.now()
+  const idRes = await fetch(`https://www.upload.ee/ubr_link_upload.php?rnd_id=${rnd}`, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36",
+      "Referer": "https://www.upload.ee/?",
+    },
+    timeout: 30000,
+  })
+
+  const idBody = await idRes.text()
+  const idMatch = idBody.match(/startUpload\("([^"]+)"/)
+  if (!idMatch) throw new Error("Upload ID tidak ditemukan")
+  const uploadId = idMatch[1]
+
+  const form = new FormData()
+  form.append("upfile_0", buffer, {
+    filename,
+    contentType: mime.lookup(filename) || "application/octet-stream",
+  })
+  form.append("link", "")
+  form.append("email", "")
+  form.append("category", category)
+  form.append("big_resize", "none")
+  form.append("small_resize", "120x90")
+
+  const uploadUrl = `https://www.upload.ee/cgi-bin/ubr_upload.pl?X-Progress-ID=${uploadId}&upload_id=${uploadId}`
+  await fetch(uploadUrl, {
+    method: "POST",
+    body: form,
+    headers: {
+      ...form.getHeaders(),
+      "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36",
+      "Origin": "https://www.upload.ee",
+      "Referer": "https://www.upload.ee/?",
+    },
+    timeout: 120000,
+  })
+
+  const finishedRes = await fetch(`https://www.upload.ee/?page=finished&upload_id=${uploadId}`, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36",
+      "Referer": uploadUrl,
+    },
+    timeout: 30000,
+  })
+
+  const html = await finishedRes.text()
+  const srcMatch = html.match(/id=["']file_src["'][^>]*value=["']([^"']+)["']/i)
+  const viewMatch = html.match(/View file:\s*<br\s*\/?>\s*<a href=["']?([^"'>\s]+)["']?/i)
+  const rawUrl = srcMatch?.[1] || viewMatch?.[1] || null
+  if (!rawUrl) throw new Error("Upload.ee gagal")
+
+  let resultUrl = rawUrl.replaceAll("&amp;", "&").replaceAll("&quot;", '"')
+  if (isImage) resultUrl = resultUrl.replace("/files/", "/image/").replace(/\.html$/, "")
+
+  return { host: "Upload.ee", url: resultUrl, expires: "Permanent" }
+}
+
+async function uploadToLeopard(buffer, filename) {
+  const uploadPage = "https://leopard.hosting.pecon.us/upload.php"
+
+  await fetch(uploadPage, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36",
+    },
+    timeout: 30000,
+  })
+
+  const form = new FormData()
+  form.append("uploadContent", buffer, {
+    filename,
+    contentType: mime.lookup(filename) || "application/octet-stream",
+  })
+  form.append("password", "")
+  form.append("showname", "yes")
+
+  const res = await fetch(uploadPage, {
+    method: "POST",
+    body: form,
+    headers: {
+      ...form.getHeaders(),
+      "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36",
+      "Origin": "https://leopard.hosting.pecon.us",
+      "Referer": uploadPage,
+    },
+    timeout: 120000,
+  })
+
+  const html = await res.text()
+  const match = html.match(/Download link:\s*<a href=([^>\s]+)>/i)
+  const url = match?.[1] || null
+  if (!url) throw new Error("Leopard falló")
+  return { host: "Leopard", url, expires: "Permanent" }
+}
+
+async function uploadToUguu(buffer, filename) {
+  const form = new FormData()
+  form.append("files[]", buffer, {
+    filename,
+    contentType: mime.lookup(filename) || "application/octet-stream",
+  })
+
+  const res = await fetch("https://uguu.se/upload.php", {
+    method: "POST",
+    body: form,
+    headers: {
+      ...form.getHeaders(),
+      "accept": "*/*",
+      "origin": "https://uguu.se",
+      "referer": "https://uguu.se/",
+      "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36",
+    },
+    timeout: 120000,
+  })
+
+  if (!res.ok) throw new Error("Uguu falló")
+  const data = await res.json()
+  const url = data?.files?.[0]?.url || null
+  if (!data?.success || !url) throw new Error("Invalid response")
+  return { host: "Uguu", url, expires: "48 horas" }
+}
+
+async function uploadTo8upload(buffer, filename) {
+  await fetch("https://8upload.com/", {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36",
+    },
+    timeout: 30000,
+  })
+
+  const form = new FormData()
+  form.append("images[]", buffer, {
+    filename,
+    contentType: mime.lookup(filename) || "application/octet-stream",
+  })
+
+  const res = await fetch("https://8upload.com/upload/mt/", {
+    method: "POST",
+    body: form,
+    headers: {
+      ...form.getHeaders(),
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "origin": "https://8upload.com",
+      "referer": "https://8upload.com/",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36",
+    },
+    timeout: 120000,
+  })
+
+  let html = await res.text()
+  const uploadPath = (typeof html === "string" && html.trim().startsWith("/uploads/"))
+    ? html.trim()
+    : (html.match(/\/uploads\/[a-zA-Z0-9]+/) || [])[0] || null
+
+  if (uploadPath) {
+    const previewRes = await fetch(`https://8upload.com${uploadPath}`, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36",
+        "Referer": "https://8upload.com/",
+      },
+      timeout: 30000,
+    })
+    html = await previewRes.text()
+  }
+
+  const urlMatch = (html || "").match(/https:\/\/i\.8upload\.com\/image\/[^'"<>\s]+/)
+  const url = urlMatch?.[0] || null
+  if (!url) throw new Error("8upload falló")
+  return { host: "8upload", url, expires: "Permanent" }
+}
+
+async function uploadToTop4top(buffer, filename) {
+  const initRes = await fetch("https://top4top.io/", {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36",
+    },
+    timeout: 30000,
+  })
+
+  const initHtml = await initRes.text()
+  const sidMatch = initHtml.match(/name=["']sid["'][^>]*value=["']([^"']+)["']/i)
+  const sid = sidMatch?.[1] || ""
+
+  const form = new FormData()
+  if (sid) form.append("sid", sid)
+  form.append("file_0_", buffer, {
+    filename,
+    contentType: mime.lookup(filename) || "application/octet-stream",
+  })
+  for (let i = 1; i <= 9; i++) form.append(`file_${i}_`, "")
+  form.append("submitr", "[ رفع الملفات ]")
+  for (let i = 0; i <= 9; i++) form.append(`file_${i}_`, "")
+
+  const res = await fetch("https://top4top.io/index.php", {
+    method: "POST",
+    body: form,
+    headers: {
+      ...form.getHeaders(),
+      "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "origin": "https://top4top.io",
+      "referer": "https://top4top.io/",
+      "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36",
+    },
+    timeout: 120000,
+  })
+
+  const html = await res.text()
+  const urlMatch = html.match(/https:\/\/[^'"<>\s]*\/p_[^'"<>\s]*/)
+  const inputMatch = html.match(/value=["'](https:\/\/[^'"]*\/p_[^'"]*)['"]/i)
+  const url = inputMatch?.[1] || urlMatch?.[0] || null
+  if (!url) throw new Error("Top4top falló")
+  return { host: "Top4top", url, expires: "Permanent" }
+}
+
+async function uploadToTmpFiles(buffer, filename) {
+  const form = new FormData()
+  form.append("file", buffer, {
+    filename,
+    contentType: mime.lookup(filename) || "application/octet-stream",
+  })
+  form.append("expire", "21600")
+
+  const res = await fetch("https://tmpfiles.org/api/v1/upload", {
+    method: "POST",
+    body: form,
+    headers: {
+      ...form.getHeaders(),
+      "accept": "application/json",
+      "user-agent": "Mozilla/5.0",
+    },
+    timeout: 120000,
+  })
+
+  if (!res.ok) throw new Error("TmpFiles falló")
+  const data = await res.json()
+  const url = data?.data?.url || null
+  if (data?.status !== "success" || !url) throw new Error("Invalid response")
+  return { host: "TmpFiles", url, expires: "6 horas" }
+}
+
+const UPLOADERS = [
+  { name: "ImgDrop", fn: uploadToImgDrop },
+  { name: "Catbox", fn: uploadToCatbox },
+  { name: "Litterbox", fn: uploadToLitterbox },
+  { name: "Pone", fn: uploadToPone },
+  { name: "Kappa", fn: uploadToKappa },
+  { name: "Uguu", fn: uploadToUguu },
+  { name: "TmpFiles", fn: uploadToTmpFiles },
+  { name: "Upload.ee", fn: uploadToUploadEe },
+  { name: "8upload", fn: uploadTo8upload },
+  { name: "Top4top", fn: uploadToTop4top },
+  { name: "Leopard", fn: uploadToLeopard },
+  { name: "0x0_Backup", fn: uploadTo0x0_alt },
+  { name: "Qu.ax", fn: uploadToQuax },
+  { name: "Termai", fn: uploadToTermai },
 ]
 
-async function sendChooser(m, conn, usedPrefix) {
-  let fkontak = await makeFkontak()
-  if (!fkontak) fkontak = m
-  try {
-    const device = await getDevice(m.key.id)
-    if (device !== 'desktop' && device !== 'web') {
-      const rows = SERVICE_LIST.map((service, index) => ({
-        title: `${index + 1}. ${service.label}`,
-        description: service.key === 'all' ? 'Subir a todos los servicios disponibles' : `Subir archivo a ${service.label}`,
-        id: `${usedPrefix}tourl ${service.key}`
-      }))
-
-      const sections = [
-        {
-          title: 'Opciones disponibles',
-          highlight_label: '📤',
-          rows
-        }
-      ]
-
-      const buttons = [
-        {
-          name: 'cta_url',
-          buttonParamsJson: JSON.stringify({
-            display_text: 'Abrir panel',
-            url: STYLED_SOURCE_URL,
-            has_multiple_buttons: true
-          })
-        },
-        {
-          name: 'cta_copy',
-          buttonParamsJson: JSON.stringify({
-            display_text: 'Copiar comando',
-            copy_code: `${usedPrefix}tourl`,
-            has_multiple_buttons: true
-          })
-        }
-      ]
-
-      const interactiveMessage = createStyledInteractive({
-        mentionJids: [m.sender],
-        externalTitle: '🐢 Tourl Selector',
-        bodyText: 'Selecciona el servicio al que deseas subir tu archivo.',
-        footerText: `${global.dev || ''}`.trim() || 'Selecciona una opción',
-        sections,
-        listTitle: 'Servicios Tourl',
-        buttonTitle: 'Abrir lista',
-        buttons,
-        limitedText: 'CDN 🌲',
-        limitedCopyCode: 'Ado,yosue',
-        tapDescription: 'Sube tus archivos con un estilo interactivo.'
-      })
-
-      await sendStyledInteractive(conn, m.chat, interactiveMessage, fkontak)
-      return true
-    }
-  } catch {}
-  const list = SERVICE_LIST.map(s => `• ${usedPrefix}tourl ${s.key}`).join('\n')
-  await conn.sendMessage(m.chat, { text: `Elige el servicio de subida:\n\n${list}` }, { quoted: fkontak })
-  return true
+function getFileExtension(mimetype) {
+  const mimeMap = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/webp": "webp",
+    "video/mp4": "mp4",
+    "video/3gpp": "3gp",
+    "video/quicktime": "mov",
+    "audio/mpeg": "mp3",
+    "audio/ogg": "ogg",
+    "audio/wav": "wav",
+    "audio/mp4": "m4a",
+    "application/pdf": "pdf",
+    "application/zip": "zip",
+  }
+  return mimeMap[mimetype] || "bin"
 }
 
-const tourSessions = new Map()
+let handler = async (m, { conn, usedPrefix, command }) => {
+  let media = null
+  let mimetype = null
+  let filename = "file"
 
-async function doUpload(m, conn, serviceKey) {
-  const sessKey = m.chat + ':' + m.sender
-  let fromCache = tourSessions.get(sessKey)
-  let buffer, mime
-  if (fromCache && fromCache.buffer) {
-    buffer = fromCache.buffer
-    mime = fromCache.mime || ''
-  } else {
-    const q = m.quoted ? (m.quoted.msg || m.quoted) : m
-    mime = (q.mimetype || q.mediaType || q.mtype || '').toString().toLowerCase()
-    if (!/image|video|audio|sticker|document/.test(mime)) {
-      await conn.reply(m.chat, 'Responde a una imagen / video / audio / documento', m)
-      return true
-    }
-    buffer = await q.download()
-  }
-  if (!buffer || !buffer.length) { await conn.reply(m.chat, 'No se pudo descargar el archivo', m); return true }
-  const sizeBytes = buffer.length
-  if (sizeBytes > 1024 * 1024 * 1024) { await conn.reply(m.chat, 'El archivo supera 1GB', m); return true }
-  const humanSize = formatBytes(sizeBytes)
-  const typeInfo = await fileTypeFromBuffer(buffer) || {}
-  const { ext, mime: realMime } = typeInfo
+  const hasQuoted = m.quoted && m.quoted.message && Object.keys(m.quoted.message).length
 
-  let results = []
-  if ((serviceKey || '').toLowerCase() === 'all') {
-    for (const svc of SERVICE_LIST.filter(s => s.key !== 'all')) {
-      try {
-        const url = await uploadServiceByName(svc.key, buffer, ext, realMime)
-        if (url) results.push({ name: svc.label, url, size: humanSize })
-      } catch {}
+  if (hasQuoted) {
+    const type = getContentType(m.quoted.message)
+    if (!type || type === "conversation" || type === "extendedTextMessage") {
+      return m.reply("⚠️ Responde a un archivo (imagen / video / audio / documento).")
     }
-  } else {
-    const pick = SERVICE_LIST.find(s => s.key === (serviceKey || '').toLowerCase())
-    if (!pick) { await conn.reply(m.chat, 'Servicio inválido', m); return true }
+
     try {
-      const url = await uploadServiceByName(pick.key, buffer, ext, realMime)
-      if (url) results.push({ name: pick.label, url, size: humanSize })
-    } catch (e) { await conn.reply(m.chat, `Error: ${e.message}`, m); return true }
+      try { media = await m.quoted.download() } catch { media = null }
+      if (!media || !media.length) {
+        media = await downloadMediaMessage(
+          { key: m.quoted.key, message: m.quoted.message },
+          "buffer",
+          {},
+        )
+      }
+      const content = m.quoted.message[type]
+      mimetype = content?.mimetype || "application/octet-stream"
+      filename = content?.fileName || `file.${getFileExtension(mimetype)}`
+    } catch (e) {
+      console.error(`Error en ${usedPrefix + command}:`, e)
+      return m.reply("❌ No se pudo descargar el archivo. Inténtalo de nuevo.")
+    }
+  } else if (m.message) {
+    const type = getContentType(m.message)
+    if (!type || type === "conversation" || type === "extendedTextMessage") {
+      let txt = `📤 *MEDIA UPLOADER* 📤\n\n`
+      txt += `Hola! ¿Necesitas un link para tu media? Puedo subirla a varios servidores gratis.\n\n`
+      txt += `*Cómo usar:*\n`
+      txt += `👉 Envía un media con el caption \`${usedPrefix + command}\`\n`
+      txt += `👉 O responde un media existente con \`${usedPrefix + command}\``
+      return m.reply(txt)
+    }
+
+    try {
+      try { media = await m.download() } catch { media = null }
+      if (!media || !media.length) {
+        media = await downloadMediaMessage(
+          { key: m.key, message: m.message },
+          "buffer",
+          {},
+        )
+      }
+      const content = m.message[type]
+      mimetype = content?.mimetype || "application/octet-stream"
+      filename = content?.fileName || `file.${getFileExtension(mimetype)}`
+    } catch (e) {
+      console.error(`Error en ${usedPrefix + command}:`, e)
+      return m.reply("❌ No se pudo descargar el archivo. Inténtalo de nuevo.")
+    }
   }
 
-  if (!results.length) { await conn.reply(m.chat, 'No se obtuvo ninguna URL', m); return true }
-
-  let txt = '乂  L I N K S - E N L A C E S 乂\n\n'
-  for (const r of results) {
-    txt += `*${r.name}*\n• Enlace: ${r.url}\n• Tamaño: ${r.size}\n\n`
+  if (!media || media.length === 0) {
+    return m.reply("❌ No pude leer el media. Intenta enviarla de nuevo.")
   }
 
-  let fkontak = await makeFkontak()
-  if (!fkontak) fkontak = m
+  try { await m.react("🕕") } catch {}
 
-  const buttons = results.map(r => ({
-    name: 'cta_copy',
-    buttonParamsJson: JSON.stringify({
-      display_text: `Copiar ${r.name}`,
-      copy_code: r.url,
-      has_multiple_buttons: true
-    })
-  }))
+  const results = []
+  const failed = []
 
-  const linkRows = results.map((r, index) => ({
-    title: `${index + 1}. ${r.name}`,
-    description: r.url,
-    id: `tourl_link::${Buffer.from(r.url).toString('base64')}`
-  }))
+  for (const uploader of UPLOADERS) {
+    try {
+      const result = await uploader.fn(media, filename)
+      results.push(result)
+    } catch (e) {
+      failed.push(uploader.name)
+    }
+  }
 
-  const sections = linkRows.length
-    ? [
-        {
-          title: 'Enlaces disponibles',
-          highlight_label: '📎',
-          rows: linkRows
-        }
-      ]
-    : []
+  if (results.length === 0) {
+    try { await m.react("❌") } catch {}
+    return m.reply(`❌ Todos los servidores fallaron al subir.\n\n> Fallaron: ${failed.join(", ")}`)
+  }
 
-  const firstUrl = results[0]?.url || STYLED_SOURCE_URL
+  let text = `🚀 *¡SUBIDA EXITOSA!* 🚀\n\n`
+  text += `Tu media ya está en la nube. Elige el link y cópialo con los botones de abajo ✨\n\n`
 
-  const interactiveMessage = createStyledInteractive({
-    mentionJids: [m.sender],
-    externalTitle: '📥 Enlaces generados',
-    bodyText: txt,
-    footerText: 'Selecciona un enlace o copia con los botones.',
-    sections,
-    listTitle: 'Lista de enlaces',
-    buttonTitle: 'Ver enlaces',
-    buttons,
-    thumbUrl: STYLED_THUMBNAIL,
-    sourceUrl: firstUrl,
-    limitedText: 'Enlace destacado',
-    limitedCopyCode: firstUrl,
-    tapDescription: 'Descargas listas para compartir.'
+  let contentTxt = ""
+  results.forEach((r, i) => {
+    const status = r.expires === "Permanent" ? "∞ Permanente" : r.expires
+    contentTxt += `☁️ *Servidor :* ${r.host}\n`
+    contentTxt += `⏳ *Expira :* ${status}\n`
+    contentTxt += `🔗 *Link :*\n`
+    contentTxt += `${r.url}`
+    if (i < results.length - 1) contentTxt += `\n\n`
   })
 
-  await sendStyledInteractive(conn, m.chat, interactiveMessage, fkontak)
-  try { tourSessions.delete(sessKey) } catch {}
-  return true
-}
+  text += contentTxt.split("\n").map(line => `${line}`).join("\n")
 
-let handler = async (m, { conn, args, usedPrefix }) => {
-  const service = (args[0] || '').toLowerCase()
-  if (!service) {
-    const q = m.quoted ? (m.quoted.msg || m.quoted) : m
-    const mime = (q.mimetype || q.mediaType || q.mtype || '').toString().toLowerCase()
-    if (!/image|video|audio|sticker|document/.test(mime)) {
-      await conn.reply(m.chat, 'Responde a una imagen / video / audio / documento', m)
-      return true
-    }
-    const buffer = await q.download()
-    if (!buffer || !buffer.length) { await conn.reply(m.chat, 'No se pudo descargar el archivo', m); return true }
-    const sessKey = m.chat + ':' + m.sender
-    tourSessions.set(sessKey, { buffer, mime, ts: Date.now() })
-    return sendChooser(m, conn, usedPrefix)
+  if (failed.length > 0) {
+    text += `\n\n⚠️ _Fallaron algunos servidores: ${failed.join(", ")}_`
   }
-  return doUpload(m, conn, service)
-}
 
-handler.help = ['tourl [servicio]']
-handler.tags = ['tools']
-handler.command = ['tourl', 'upload']
-
-handler.before = async function (m, { conn, usedPrefix }) {
   try {
-    const msg = m.message || {}
-    let selectedId = null
-    const irm = msg.interactiveResponseMessage
-    if (!selectedId && irm?.nativeFlowResponseMessage) {
-      try {
-        const params = JSON.parse(irm.nativeFlowResponseMessage.paramsJson || '{}')
-        if (typeof params.id === 'string') selectedId = params.id
-        if (!selectedId && typeof params.selectedId === 'string') selectedId = params.selectedId
-        if (!selectedId && typeof params.rowId === 'string') selectedId = params.rowId
-      } catch {}
+    let headerMedia = null
+    if (mimetype.startsWith('image') || mimetype.startsWith('video')) {
+      const preMsg = await generateWAMessage(m.chat, {
+        [mimetype.startsWith('image') ? 'image' : 'video']: media
+      }, { userJid: conn.user.id })
+      headerMedia = mimetype.startsWith('image') ?
+        { imageMessage: preMsg.message.imageMessage } :
+        { videoMessage: preMsg.message.videoMessage }
     }
-    const lrm = msg.listResponseMessage
-    if (!selectedId && lrm?.singleSelectReply?.selectedRowId) selectedId = lrm.singleSelectReply.selectedRowId
-    const brm = msg.buttonsResponseMessage
-    if (!selectedId && brm?.selectedButtonId) selectedId = brm.selectedButtonId
-    if (!selectedId) return false
 
-    const mTourl = /\btourl\b\s+(github|catbox|postimages|litterbox|tmpfiles|freeimagehost|all)/i.exec(selectedId)
-    if (mTourl) {
-      return await doUpload(m, conn, mTourl[1].toLowerCase())
-    }
-    const linkMatch = /^tourl_link::(.+)/.exec(selectedId)
-    if (linkMatch) {
-      try {
-        const decoded = Buffer.from(linkMatch[1], 'base64').toString('utf-8')
-        if (/^https?:\/\//i.test(decoded)) {
-          await conn.reply(m.chat, decoded, m)
-          return true
+    const msg = generateWAMessageFromContent(m.chat, {
+      viewOnceMessage: {
+        message: {
+          messageContextInfo: {
+            deviceListMetadata: {},
+            deviceListMetadataVersion: 2
+          },
+          interactiveMessage: proto.Message.InteractiveMessage.create({
+            body: proto.Message.InteractiveMessage.Body.create({ text: text }),
+            footer: proto.Message.InteractiveMessage.Footer.create({ text: global.dev || 'SHADOW-BOT-MD' }),
+            header: proto.Message.InteractiveMessage.Header.create({
+              title: "T O U R L",
+              hasMediaAttachment: !!headerMedia,
+              ...headerMedia
+            }),
+            nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
+              buttons: results.slice(0, 5).map((r, i) => ({
+                name: "cta_copy",
+                buttonParamsJson: JSON.stringify({
+                  display_text: `📋 Copiar Link ${r.host}`,
+                  id: `copy_${i}`,
+                  copy_code: r.url
+                })
+              }))
+            })
+          })
         }
-      } catch {}
-    }
-    return false
-  } catch { return false }
+      }
+    }, { quoted: m })
+
+    await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
+  } catch (err) {
+    await m.reply(text)
+  }
+
+  try { await m.react("✅") } catch {}
 }
+
+handler.help = ['tourl (responde a un archivo)']
+handler.tags = ['tools']
+handler.command = ['tourl', 'upload', 'url']
 
 export default handler
+// Named export auxiliar para pruebas de los hosts sin conectar a WhatsApp.
+export { UPLOADERS }
