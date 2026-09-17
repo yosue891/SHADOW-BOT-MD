@@ -102,7 +102,7 @@ ${readMore}
     try {
       const ctrl = new AbortController()
       const t = setTimeout(() => ctrl.abort(), 4000)
-      let resIcon = await fetch(banner, { signal: ctrl.signal })
+      let resIcon = await fetch(icons, { signal: ctrl.signal })
       if (resIcon.ok) {
         Shadow_url = await resIcon.buffer()
       } else {
@@ -159,9 +159,20 @@ ${readMore}
     }
 
     if (isVideo) {
-      messageOptions.video = { url: finalBanner }
-      messageOptions.gifPlayback = true
-      messageOptions.mimetype = 'video/mp4'
+      try {
+        await conn.sendMessage(m.chat, {
+          video: { url: finalBanner },
+          gifPlayback: true,
+          mimetype: 'video/mp4',
+          caption: `${botname} • Menú completo`,
+          contextInfo: messageOptions.contextInfo
+        }, { quoted: fkontak })
+      } catch (ev) {
+        console.error('No se pudo enviar el video del menú:', ev)
+      }
+      delete messageOptions.caption
+      messageOptions.text = infoUser + menuTexto
+      messageOptions.mentionedJid = [mentionedJid]
     } else {
       messageOptions.image = { url: finalBanner }
     }
