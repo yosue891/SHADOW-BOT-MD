@@ -380,9 +380,6 @@ export async function MichiJadiBot(options) {
     return
   }
 
-  // FIX: si la consulta de versión falla (sin red, rate-limit), antes lanzaba
-  // una excepción y el sub-bot nunca se creaba. Ahora se usa la versión
-  // integrada como respaldo.
   let version
   try {
     const latest = await fetchLatestBaileysVersion()
@@ -390,8 +387,6 @@ export async function MichiJadiBot(options) {
   } catch (e) {
     console.error('[SUB-BOT] No se pudo obtener la versión reciente de WhatsApp Web:', e.message)
   }
-  // FIX: Baileys no reconoce las claves `msgRetry` ni `msgRetryCache`;
-  // la opción correcta es `msgRetryCounterCache`.
   const msgRetryCounterCache = new NodeCache()
   const { state, saveCreds } = await useMultiFileAuthState(pathMichiJadiBot)
   const connectionOptions = {
@@ -402,8 +397,6 @@ export async function MichiJadiBot(options) {
     browser: ['Ubuntu', 'Chrome', '20.0.04'],
     ...(version ? { version } : {}),
     generateHighQualityLinkPreview: true,
-    // FIX: al marcar el socket online durante la vinculación, WhatsApp cerraba
-    // el canal no autenticado (error 428) antes de aceptar el código de 8 dígitos.
     markOnlineOnConnect: false,
     syncFullHistory: false,
     keepAliveIntervalMs: 45000,

@@ -637,5 +637,4 @@ handler.tags = ['tools']
 handler.command = ['tourl', 'upload', 'url']
 
 export default handler
-// Named export auxiliar para pruebas de los hosts sin conectar a WhatsApp.
 export { UPLOADERS }

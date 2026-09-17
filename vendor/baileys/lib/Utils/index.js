@@ -33,4 +33,4 @@ export * from './rich-message-utils.js';
 export * from './reporting-utils.js';
 export * from './use-sqlite-auth-state.js';
 //# sourceMappingURL=index.js.map
-export { BufferJSON } from './generics.js'; // fix: resuelve el conflicto de star exports
+export { BufferJSON } from './generics.js';

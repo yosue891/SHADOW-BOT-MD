@@ -192,9 +192,6 @@ opcion = '1'
 }
 if (!methodCodeQR && !methodCode && !fs.existsSync(`./${sessions}/creds.json`)) {
 if (!process.stdin.isTTY) {
-// En hostings/paneles sin terminal interactiva el prompt nunca recibe
-// respuesta y el bot queda bloqueado para siempre antes de vincularse.
-// Con número configurado se usa el código de 8 dígitos; si no, el QR.
 opcion = phoneNumber ? '2' : '1'
 console.log(chalk.yellowBright(`\n⚠ Sin terminal interactiva: se usará el método ${opcion === '2' ? 'código de 8 dígitos' : 'QR'} automáticamente.\n`))
 } else {
@@ -211,9 +208,6 @@ console.info = () => { }
 
 const connectionOptions = {
 logger: pino({ level: 'silent' }),
-// El fork de Baileys ya no imprime el QR (printQRInTerminal está deprecado
-// y solo muestra una advertencia). El QR se muestra manualmente en
-// connectionUpdate usando qrcode-terminal.
 printQRInTerminal: false,
 mobile: MethodMobile,
 browser: ['Ubuntu', 'Chrome', '20.0.04'],
@@ -348,7 +342,6 @@ conn.logger.info(`[ 🍐 ]  H E C H O\n`)
 if (!opts['test']) {
 if (global.db) setInterval(async () => {
 if (global.db.data) await global.db.write()
-// FIX: `tmp` y `cp` no estaban definidos -> ReferenceError en cada ejecución.
 if (opts['autocleartmp'] && (global.support || {}).find) {
 const tmpDirs = [os.tmpdir(), 'tmp', `${jadi}`]
 tmpDirs.forEach((filename) => spawn('find', [filename, '-amin', '3', '-type', 'f', '-delete']))
@@ -690,8 +683,6 @@ global._reloading = false
 }
 return true
 }
-// FIX: usar el directorio de trabajo (como hace subs-conexion.js) y no src/,
-// donde nunca hay sesiones; sin esto los sub-bots no se restauran al reiniciar.
 let rtU = join(process.cwd(), jadi)
 if (!existsSync(rtU)) {
 mkdirSync(rtU, { recursive: true })
