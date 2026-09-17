@@ -3,6 +3,7 @@ import { xpRange } from '../lib/levelling.js'
 import fs from 'fs'
 import PhoneNumber from 'awesome-phonenumber'
 import moment from 'moment-timezone'
+import { prepareWAMessageMedia, generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
 
 const botname = global.botname || "Shadow Garden"
 const dev = global.dev || "Cid Kagenou"
@@ -159,20 +160,66 @@ ${readMore}
     }
 
     if (isVideo) {
+      let sent = false
       try {
-        await conn.sendMessage(m.chat, {
-          video: { url: finalBanner },
-          gifPlayback: true,
-          mimetype: 'video/mp4',
-          caption: `${botname} • Menú completo`,
-          contextInfo: messageOptions.contextInfo
+        const media = await prepareWAMessageMedia(
+          { video: { url: finalBanner }, gifPlayback: true },
+          { upload: conn.waUploadToServer }
+        )
+        const msg = generateWAMessageFromContent(m.chat, {
+          viewOnceMessage: {
+            message: {
+              messageContextInfo: {
+                deviceListMetadata: {},
+                deviceListMetadataVersion: 2
+              },
+              interactiveMessage: proto.Message.InteractiveMessage.create({
+                body: proto.Message.InteractiveMessage.Body.create({ text: infoUser + menuTexto }),
+                footer: proto.Message.InteractiveMessage.Footer.create({ text: `${global.dev || dev} • Menú completo` }),
+                header: proto.Message.InteractiveMessage.Header.create({
+                  title: `${botname}`,
+                  hasMediaAttachment: true,
+                  videoMessage: media.videoMessage
+                }),
+                nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
+                  buttons: [
+                    {
+                      name: 'cta_url',
+                      buttonParamsJson: JSON.stringify({
+                        display_text: '📢 Canal Oficial',
+                        url: global.channel || 'https://whatsapp.com',
+                        has_multiple_buttons: true
+                      })
+                    }
+                  ]
+                })
+              })
+            }
+          }
         }, { quoted: fkontak })
+        await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
+        sent = true
       } catch (ev) {
-        console.error('No se pudo enviar el video del menú:', ev)
+        console.error('No se pudo enviar el menú interactivo con video:', ev)
       }
-      delete messageOptions.caption
-      messageOptions.text = infoUser + menuTexto
-      messageOptions.mentionedJid = [mentionedJid]
+      if (!sent) {
+        try {
+          await conn.sendMessage(m.chat, {
+            video: { url: finalBanner },
+            gifPlayback: true,
+            mimetype: 'video/mp4',
+            caption: `${botname} • Menú completo`,
+            contextInfo: messageOptions.contextInfo
+          }, { quoted: fkontak })
+        } catch (ev2) {
+          console.error('No se pudo enviar el video del menú:', ev2)
+        }
+        delete messageOptions.caption
+        messageOptions.text = infoUser + menuTexto
+        messageOptions.mentionedJid = [mentionedJid]
+        await conn.sendMessage(m.chat, messageOptions, { quoted: fkontak })
+      }
+      return
     } else {
       messageOptions.image = { url: finalBanner }
     }
