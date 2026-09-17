@@ -6,7 +6,7 @@ import moment from 'moment-timezone'
 
 const botname = global.botname || "Shadow Garden"
 const dev = global.dev || "Cid Kagenou"
-const banner = global.banner || "https://raw.githubusercontent.com/yosue891/Shadow-MD/refs/heads/main/G9i8jTSWgAAppEQ.jpg"
+const banner = "https://u.pone.rs/usqizddv.mp4"
 const channelRD = global.channelRD || { id: "0@newsletter", name: "Shadow Channel" }
 
 let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
