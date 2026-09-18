@@ -199,6 +199,7 @@ export async function handler(chatUpdate) {
         welcome: true,
         sWelcome: "",
         sBye: "",
+        sGoodbye: "",
         detect: true,
         primaryBot: null,
         modoadmin: false,

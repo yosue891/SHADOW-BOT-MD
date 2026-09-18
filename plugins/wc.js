@@ -63,12 +63,18 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     }
 
     const desc = groupMetadata?.desc?.toString() || 'Sin descripción'
-    const chat = global.db?.data?.chats?.[m.chat]
+    const chat = (m.isGroup && global.db?.data?.chats?.[m.chat]) || {}
     const defaultWelcome = '¡Bienvenido/a a las sombras! Que tu estancia sea legendaria.'
-    const mensaje = (chat?.sWelcome || defaultWelcome)
-      .replace(/{usuario}/g, `@${targetNumber}`)
-      .replace(/{grupo}/g, `*${groupName}*`)
-      .replace(/{desc}/g, `${desc}`)
+    const rawWelcome = chat?.sWelcome || chat?.sBienvenida || defaultWelcome
+    const mensaje = rawWelcome
+      .replace(/@{usuario}/gi, `@${targetNumber}`)
+      .replace(/{usuario}/gi, `@${targetNumber}`)
+      .replace(/{user}/gi, `@${targetNumber}`)
+      .replace(/{grupo}/gi, `*${groupName}*`)
+      .replace(/{group}/gi, `*${groupName}*`)
+      .replace(/{desc}/gi, `${desc}`)
+      .replace(/{miembros}/gi, `${groupSize}`)
+      .replace(/{fecha}/gi, `${fecha}`)
     const fecha = new Date().toLocaleDateString('es-ES', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'long', year: 'numeric' })
 
     const caption = `> ── ⚔️ *SHADOW GARDEN* ⚔️ ──

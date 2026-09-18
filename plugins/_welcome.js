@@ -74,10 +74,16 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
   const fecha = new Date().toLocaleDateString('es-ES', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'long', year: 'numeric' })
   const desc = groupMetadata?.desc?.toString() || 'Sin descripción'
   const defaultWelcome = '¡Bienvenido/a a las sombras! Que tu estancia sea legendaria.'
-  const mensaje = (chat?.sWelcome || defaultWelcome)
-    .replace(/{usuario}/g, `${username}`)
-    .replace(/{grupo}/g, `*${groupName}*`)
-    .replace(/{desc}/g, `${desc}`)
+  const rawWelcome = chat?.sWelcome || chat?.sBienvenida || defaultWelcome
+  const mensaje = rawWelcome
+    .replace(/@{usuario}/gi, `${username}`)
+    .replace(/{usuario}/gi, `${username}`)
+    .replace(/{user}/gi, `${username}`)
+    .replace(/{grupo}/gi, `*${groupName}*`)
+    .replace(/{group}/gi, `*${groupName}*`)
+    .replace(/{desc}/gi, `${desc}`)
+    .replace(/{miembros}/gi, `${groupSize}`)
+    .replace(/{fecha}/gi, `${fecha}`)
 
   const caption = `> ── ⚔️ *SHADOW GARDEN* ⚔️ ──
 > ​
@@ -127,10 +133,16 @@ export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
   const fecha = new Date().toLocaleDateString('es-ES', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'long', year: 'numeric' })
   const desc = groupMetadata?.desc?.toString() || 'Sin descripción'
   const defaultBye = 'Ha abandonado la orden. Que las sombras guíen su nuevo camino.'
-  const mensaje = (chat?.sBye || defaultBye)
-    .replace(/{usuario}/g, `${username}`)
-    .replace(/{grupo}/g, `*${groupName}*`)
-    .replace(/{desc}/g, `*${desc}*`)
+  const rawBye = chat?.sBye || chat?.sGoodbye || chat?.sDespedida || defaultBye
+  const mensaje = rawBye
+    .replace(/@{usuario}/gi, `${username}`)
+    .replace(/{usuario}/gi, `${username}`)
+    .replace(/{user}/gi, `${username}`)
+    .replace(/{grupo}/gi, `*${groupName}*`)
+    .replace(/{group}/gi, `*${groupName}*`)
+    .replace(/{desc}/gi, `*${desc}*`)
+    .replace(/{miembros}/gi, `${groupSize}`)
+    .replace(/{fecha}/gi, `${fecha}`)
 
   const caption = `> ── ⚔️ *SHADOW GARDEN* ⚔️ ──
 > ​
