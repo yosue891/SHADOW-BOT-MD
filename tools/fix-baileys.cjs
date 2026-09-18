@@ -1,6 +1,34 @@
 const fs = require('fs')
 const path = require('path')
 
+// --- Shim para 'ourin' alias (ourin-baileys) ---
+// Algunos paneles/hostings usan npm viejo o no resuelven "ourin": "npm:ourin-baileys"
+// Aseguramos node_modules/ourin -> ourin-baileys y @ffmpeg-installer
+try {
+  const ourinPath = path.join(process.cwd(), 'node_modules', 'ourin')
+  const baileysPath = path.join(process.cwd(), 'node_modules', 'ourin-baileys')
+  if (!fs.existsSync(ourinPath) && fs.existsSync(baileysPath)) {
+    try {
+      const type = process.platform === 'win32' ? 'junction' : 'dir'
+      fs.symlinkSync('ourin-baileys', ourinPath, type)
+      console.log('[fix-baileys] Symlink creado: node_modules/ourin -> ourin-baileys')
+    } catch (e) {
+      // fallback: copiar
+      try {
+        fs.cpSync(baileysPath, ourinPath, { recursive: true, force: true })
+        console.log('[fix-baileys] Copia creada: node_modules/ourin desde ourin-baileys')
+      } catch {}
+    }
+  }
+  // Verificar @ffmpeg-installer/ffmpeg
+  const ffmpegPath = path.join(process.cwd(), 'node_modules', '@ffmpeg-installer', 'ffmpeg')
+  if (!fs.existsSync(ffmpegPath)) {
+    console.warn('[fix-baileys] ADVERTENCIA: @ffmpeg-installer/ffmpeg no encontrado. Ejecuta: npm install @ffmpeg-installer/ffmpeg')
+  }
+} catch (e) {
+  console.error('[fix-baileys] Error shim ourin', e.message)
+}
+
 const explicit = "export { BufferJSON } from './generics.js';"
 
 const candidates = [

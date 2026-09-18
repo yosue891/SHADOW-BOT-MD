@@ -57,6 +57,7 @@
     "node-os-utils": "^1.3.7",
     "node-webpmux": "^3.2.1",
     "ourin": "npm:ourin-baileys@^9.0.21",
+    "ourin-baileys": "^9.0.21",
     "performance-now": "^2.1.0",
     "pino": "^8.21.0",
     "qrcode": "^1.5.4",
