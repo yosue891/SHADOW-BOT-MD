@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { renderWelcomeCard } from '../lib/welcome-card.js'
+import { renderWelcomeCard, renderGoodbyeCard } from '../lib/welcome-card.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DEFAULT_BG = 'https://u.pone.rs/glqjtzaj.jpg'
@@ -24,6 +24,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   try {
     await conn.sendMessage(m.chat, { react: { text: '⏳', key: m.key } })
 
+    const isGoodbye = ['goodbye', 'bye', 'despedida'].includes(command.toLowerCase())
     const mentioned = m.mentionedJid && m.mentionedJid.length > 0 ? m.mentionedJid[0] : null
     const quoted = m.quoted ? m.quoted.sender : null
     const targetJid = mentioned || quoted || m.sender
@@ -38,21 +39,33 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     const groupMetadata = m.isGroup ? await conn.groupMetadata(m.chat).catch(() => ({})) : {}
     const groupName = groupMetadata?.subject || 'Shadow Garden'
-    const groupSize = groupMetadata?.participants ? `${groupMetadata.participants.length}` : '—'
+    const groupParticipants = groupMetadata?.participants ? groupMetadata.participants.length : 1
+    const groupSize = `${groupParticipants}`
 
     const opts = parseArgs(text || '')
 
     let imageBuffer = null
     try {
-      imageBuffer = await renderWelcomeCard({
-        backgroundUrl: opts.bg || DEFAULT_BG,
-        avatarUrl: profileUrl,
-        title: opts.texto1 || 'Bienvenido',
-        eyebrow: opts.marca || 'S H A D O W  G A R D E N',
-        username: `@${targetNumber}`,
-        groupName: opts.texto2 || groupName,
-        footerLine: opts.texto3 || `#${groupSize}`
-      })
+      if (isGoodbye) {
+        imageBuffer = await renderGoodbyeCard({
+          backgroundUrl: opts.bg || DEFAULT_BG,
+          avatarUrl: profileUrl,
+          title: opts.texto1 || 'Adiós',
+          username: `@${targetNumber}`,
+          groupName: opts.texto2 || groupName,
+          footerLine: opts.texto3 || `Quedan ${groupSize}`
+        })
+      } else {
+        imageBuffer = await renderWelcomeCard({
+          backgroundUrl: opts.bg || DEFAULT_BG,
+          avatarUrl: profileUrl,
+          title: opts.texto1 || 'Bienvenido',
+          eyebrow: opts.marca || 'S H A D O W  G A R D E N',
+          username: `@${targetNumber}`,
+          groupName: opts.texto2 || groupName,
+          footerLine: opts.texto3 || `#${groupSize}`
+        })
+      }
     } catch (renderError) {
       console.warn('[welcome-banner] Falló render canvas, usando respaldo local:', renderError.message)
       if (fs.existsSync(LOCAL_BG)) {
@@ -62,32 +75,65 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       }
     }
 
+    const fecha = new Date().toLocaleDateString('es-ES', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'long', year: 'numeric' })
     const desc = groupMetadata?.desc?.toString() || 'Sin descripción'
     const chat = (m.isGroup && global.db?.data?.chats?.[m.chat]) || {}
-    const defaultWelcome = '¡Bienvenido/a a las sombras! Que tu estancia sea legendaria.'
-    const rawWelcome = chat?.sWelcome || chat?.sBienvenida || defaultWelcome
-    const mensaje = rawWelcome
-      .replace(/@{usuario}/gi, `@${targetNumber}`)
-      .replace(/{usuario}/gi, `@${targetNumber}`)
-      .replace(/{user}/gi, `@${targetNumber}`)
-      .replace(/{grupo}/gi, `*${groupName}*`)
-      .replace(/{group}/gi, `*${groupName}*`)
-      .replace(/{desc}/gi, `${desc}`)
-      .replace(/{miembros}/gi, `${groupSize}`)
-      .replace(/{fecha}/gi, `${fecha}`)
-    const fecha = new Date().toLocaleDateString('es-ES', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'long', year: 'numeric' })
 
-    const caption = `> ── ⚔️ *SHADOW GARDEN* ⚔️ ──
+    let caption = ''
+
+    if (isGoodbye) {
+      const defaultBye = 'Ha abandonado la orden. Que las sombras guíen su nuevo camino.'
+      const rawBye = chat?.sBye || chat?.sGoodbye || chat?.sDespedida || defaultBye
+      const mensaje = rawBye
+        .replace(/@{usuario}/gi, `@${targetNumber}`)
+        .replace(/{usuario}/gi, `@${targetNumber}`)
+        .replace(/{user}/gi, `@${targetNumber}`)
+        .replace(/{grupo}/gi, `*${groupName}*`)
+        .replace(/{group}/gi, `*${groupName}*`)
+        .replace(/{desc}/gi, `*${desc}*`)
+        .replace(/{miembros}/gi, `${groupSize}`)
+        .replace(/{fecha}/gi, `${fecha}`)
+
+      const formattedMensaje = mensaje.split('\n').join('\n> ')
+
+      caption = `> ── ⚔️ *SHADOW GARDEN* ⚔️ ──
+> ​
+> 🥀 *UNA SOMBRA SE HA DESVANECIDO*
+> ​
+> ◈ 👤 *Identificación:* @${targetNumber}
+> ◈ 🏰 *Sector:* *${groupName}*
+> ◈ 👥 *Fuerza restante:* ${groupSize} unidades
+> ◈ 📜 *Mensaje:* ${formattedMensaje}
+> ◈ ⏳ *Registro:* ${fecha}
+> ​
+> ⛓️ _« La oscuridad ha borrado todo su rastro. »_`
+    } else {
+      const defaultWelcome = '¡Bienvenido/a a las sombras! Que tu estancia sea legendaria.'
+      const rawWelcome = chat?.sWelcome || chat?.sBienvenida || defaultWelcome
+      const mensaje = rawWelcome
+        .replace(/@{usuario}/gi, `@${targetNumber}`)
+        .replace(/{usuario}/gi, `@${targetNumber}`)
+        .replace(/{user}/gi, `@${targetNumber}`)
+        .replace(/{grupo}/gi, `*${groupName}*`)
+        .replace(/{group}/gi, `*${groupName}*`)
+        .replace(/{desc}/gi, `${desc}`)
+        .replace(/{miembros}/gi, `${groupSize}`)
+        .replace(/{fecha}/gi, `${fecha}`)
+
+      const formattedMensaje = mensaje.split('\n').join('\n> ')
+
+      caption = `> ── ⚔️ *SHADOW GARDEN* ⚔️ ──
 > ​
 > 🗡️ *TARJETA DE BIENVENIDA*
 > ​
 > ◈ 👤 *Recluta:* @${targetNumber}
 > ◈ 🏰 *Sector:* *${groupName}*
 > ◈ 👥 *Fuerza total:* ${groupSize} miembros
-> ◈ 📜 *Dictamen:* ${mensaje}
+> ◈ 📜 *Mensaje:* ${formattedMensaje}
 > ◈ ⏳ *Registro:* ${fecha}
 > ​
 > ⛓️ _« I am atomic... The eminence in shadow. »_`
+    }
 
     const canalId = global.channelRD?.id || '120363403739366547@newsletter'
     const canalName = global.channelRD?.name || 'SHADOW-BOT'
@@ -116,13 +162,13 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     console.error('[welcome-banner] Error:', error)
     await conn.sendMessage(m.chat, { react: { text: '❌', key: m.key } })
     await conn.sendMessage(m.chat, {
-      text: `❌ Ocurrió un error generando el banner de bienvenida.\n\n${error?.message || error}`
+      text: `❌ Ocurrió un error generando el banner:\n\n${error?.message || error}`
     }, { quoted: m })
   }
 }
 
-handler.help = ['welcome', 'welcome @usuario']
+handler.help = ['welcome [@usuario]', 'goodbye [@usuario]']
 handler.tags = ['grupos']
-handler.command = ['welcome', 'bienvenida', 'banner']
+handler.command = ['welcome', 'bienvenida', 'banner', 'goodbye', 'bye', 'despedida']
 
 export default handler

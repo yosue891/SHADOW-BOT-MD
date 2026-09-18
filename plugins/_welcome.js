@@ -85,6 +85,8 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
     .replace(/{miembros}/gi, `${groupSize}`)
     .replace(/{fecha}/gi, `${fecha}`)
 
+  const formattedMensaje = mensaje.split('\n').join('\n> ')
+
   const caption = `> ── ⚔️ *SHADOW GARDEN* ⚔️ ──
 > ​
 > 🗡️ *UN NUEVO CONTRATISTA DESPIERTA*
@@ -92,7 +94,7 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
 > ◈ 👤 *Recluta:* ${username}
 > ◈ 🏰 *Sector:* *${groupName}*
 > ◈ 👥 *Fuerza total:* ${groupSize} unidades reunidas
-> ◈ 📜 *Dictamen:* ${mensaje}
+> ◈ 📜 *Mensaje:* ${formattedMensaje}
 > ◈ ⏳ *Registro:* ${fecha}
 > ​
 > ⛓️ _« I am atomic... The eminence in shadow. »_`
@@ -144,6 +146,8 @@ export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
     .replace(/{miembros}/gi, `${groupSize}`)
     .replace(/{fecha}/gi, `${fecha}`)
 
+  const formattedMensaje = mensaje.split('\n').join('\n> ')
+
   const caption = `> ── ⚔️ *SHADOW GARDEN* ⚔️ ──
 > ​
 > 🥀 *UNA SOMBRA SE HA DESVANECIDO*
@@ -151,7 +155,7 @@ export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
 > ◈ 👤 *Identificación:* ${username}
 > ◈ 🏰 *Sector:* *${groupName}*
 > ◈ 👥 *Fuerza restante:* ${groupSize} unidades
-> ◈ 📜 *Dictamen:* ${mensaje}
+> ◈ 📜 *Mensaje:* ${formattedMensaje}
 > ◈ ⏳ *Registro:* ${fecha}
 > ​
 > ⛓️ _« La oscuridad ha borrado todo su rastro. »_`
