@@ -5,6 +5,9 @@ import {
   generateWAMessageContent
 } from '@whiskeysockets/baileys'
 
+const NYX_BASE = 'https://nyxdlapi.vercel.app'
+const NYX_APIKEY = 'nyx_shadow'
+
 const handler = async (m, { conn, text, usedPrefix }) => {
   if (!text) {
     return conn.reply(m.chat, '✐ Por favor, ingresa un término de búsqueda o un enlace de TikTok.', m)
@@ -93,26 +96,18 @@ const handler = async (m, { conn, text, usedPrefix }) => {
 
     await conn.reply(m.chat, '✧ *ENVIANDO SUS RESULTADOS..*', m)
 
-    const form = new URLSearchParams()
-    form.append('keywords', text)
-    form.append('count', '20')
-    form.append('cursor', '0')
-    form.append('HD', '1')
+    const res = await axios.get(
+      `${NYX_BASE}/api/search/tiktoksearch?apikey=${NYX_APIKEY}&query=${encodeURIComponent(text)}`,
+      { timeout: 20000 }
+    )
 
-    const res = await axios({
-      method: 'POST',
-      url: 'https://tikwm.com/api/feed/search',
-      timeout: 20000,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-        'Cookie': 'current_language=en',
-        'User-Agent':
-          'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36'
-      },
-      data: form.toString()
-    })
+    let results = (res.data?.result?.results || [])
+      .filter(v => v.video)
+      .map(v => ({
+        ...v,
+        play: /^https?:\/\//i.test(v.video) ? v.video : `${NYX_BASE}${v.video}`
+      }))
 
-    let results = res.data?.data?.videos?.filter(v => v.play) || []
     if (results.length < 2) {
       if (m.react) await m.react('✖️')
       return conn.reply(m.chat, 'ꕥ Se requieren al menos 2 resultados válidos con contenido.', m)
@@ -123,7 +118,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
 
     const cards = await Promise.all(topResults.map(async v => {
       const title = v.title || 'Video TikTok'
-      const author = v.author?.nickname || v.author?.unique_id || 'Desconocido'
+      const author = v.author?.name || v.author?.username || 'Desconocido'
       const duration = v.duration ?? 'No disponible'
 
       return {
