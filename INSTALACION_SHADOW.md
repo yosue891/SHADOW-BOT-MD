@@ -13,14 +13,13 @@
 ```bash
 git config --global user.name "yosue891"
 git config --global user.email "yosueortega630@gmail.com"
-git clone https://yosue891:ghp_***@github.com/yosue891/SHADOW-BOT-MD.git
+git clone https://github.com/yosue891/SHADOW-BOT-MD.git
 cd SHADOW-BOT-MD
 ```
 
-> ⚠️ **Seguridad:** Tu token `ghp_lXu8U...` quedó en `git remote -v`. Te recomiendo **revocarlo y generar uno nuevo** en https://github.com/settings/tokens después de usarlo. Para futuro usa:
+> ⚠️ **Seguridad:** Nunca guardes un token de GitHub en la URL del remoto ni lo subas al repositorio. Si un token se expuso, revócalo y genera uno nuevo en https://github.com/settings/tokens. Para dejar el remoto limpio usa:
 > ```bash
 > git remote set-url origin https://github.com/yosue891/SHADOW-BOT-MD.git
-> # Git te pedirá usuario/token al hacer push
 > ```
 
 ---
