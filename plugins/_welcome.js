@@ -74,7 +74,11 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
   const fecha = new Date().toLocaleDateString('es-ES', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'long', year: 'numeric' })
   const desc = groupMetadata?.desc?.toString() || 'Sin descripción'
   const defaultWelcome = '¡Bienvenido/a a las sombras! Que tu estancia sea legendaria.'
-  const rawWelcome = chat?.sWelcome || chat?.sBienvenida || defaultWelcome
+
+  // Detectar si el admin personalizó el mensaje (literal)
+  const hasCustomWelcome = !!(chat?.sWelcome?.trim() || chat?.sBienvenida?.trim())
+  const rawWelcome = hasCustomWelcome ? (chat.sWelcome || chat.sBienvenida) : defaultWelcome
+
   const mensaje = rawWelcome
     .replace(/@{usuario}/gi, `${username}`)
     .replace(/{usuario}/gi, `${username}`)
@@ -85,9 +89,15 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
     .replace(/{miembros}/gi, `${groupSize}`)
     .replace(/{fecha}/gi, `${fecha}`)
 
-  const formattedMensaje = mensaje.split('\n').join('\n> ')
-
-  const caption = `> ── ⚔️ *SHADOW GARDEN* ⚔️ ──
+  let caption
+  if (hasCustomWelcome) {
+    // MODO LITERAL: si el admin puso "hola xd", se queda SOLO con "hola xd"
+    // Solo se reemplazan variables, sin marco decorativo
+    caption = mensaje
+  } else {
+    // MODO POR DEFECTO: marco decorativo cuando no hay personalización
+    const formattedMensaje = mensaje.split('\n').join('\n> ')
+    caption = `> ── ⚔️ *SHADOW GARDEN* ⚔️ ──
 > ​
 > 🗡️ *UN NUEVO CONTRATISTA DESPIERTA*
 > ​
@@ -98,8 +108,9 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
 > ◈ ⏳ *Registro:* ${fecha}
 > ​
 > ⛓️ _« I am atomic... The eminence in shadow. »_`
+  }
 
-  return { imageSource, caption, mentions: [userId] }
+  return { imageSource, caption, mentions: [userId], hasCustom: hasCustomWelcome }
 }
 
 export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
@@ -135,7 +146,10 @@ export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
   const fecha = new Date().toLocaleDateString('es-ES', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'long', year: 'numeric' })
   const desc = groupMetadata?.desc?.toString() || 'Sin descripción'
   const defaultBye = 'Ha abandonado la orden. Que las sombras guíen su nuevo camino.'
-  const rawBye = chat?.sBye || chat?.sGoodbye || chat?.sDespedida || defaultBye
+
+  const hasCustomBye = !!(chat?.sBye?.trim() || chat?.sGoodbye?.trim() || chat?.sDespedida?.trim())
+  const rawBye = hasCustomBye ? (chat.sBye || chat.sGoodbye || chat.sDespedida) : defaultBye
+
   const mensaje = rawBye
     .replace(/@{usuario}/gi, `${username}`)
     .replace(/{usuario}/gi, `${username}`)
@@ -146,9 +160,13 @@ export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
     .replace(/{miembros}/gi, `${groupSize}`)
     .replace(/{fecha}/gi, `${fecha}`)
 
-  const formattedMensaje = mensaje.split('\n').join('\n> ')
-
-  const caption = `> ── ⚔️ *SHADOW GARDEN* ⚔️ ──
+  let caption
+  if (hasCustomBye) {
+    // MODO LITERAL: "hola xd" se queda solo con "hola xd"
+    caption = mensaje
+  } else {
+    const formattedMensaje = mensaje.split('\n').join('\n> ')
+    caption = `> ── ⚔️ *SHADOW GARDEN* ⚔️ ──
 > ​
 > 🥀 *UNA SOMBRA SE HA DESVANECIDO*
 > ​
@@ -159,8 +177,9 @@ export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
 > ◈ ⏳ *Registro:* ${fecha}
 > ​
 > ⛓️ _« La oscuridad ha borrado todo su rastro. »_`
+  }
 
-  return { imageSource, caption, mentions: [userId] }
+  return { imageSource, caption, mentions: [userId], hasCustom: hasCustomBye }
 }
 
 let handler = m => m

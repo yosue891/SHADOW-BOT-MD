@@ -10,7 +10,7 @@ const LOCAL_AVATAR = path.join(__dirname, '..', 'lib', 'catalogo.jpg')
 
 function parseArgs(text) {
   const args = {}
-  const regex = /--(\w+)=(?:"([^"]*)"|'([^']*)'|(\S+))/g
+  const regex = /--(\w+)=(?:\"([^\"]*)\"|'([^']*)'|(\S+))/g
   let match
   while ((match = regex.exec(text)) !== null) {
     const key = match[1]
@@ -83,7 +83,8 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     if (isGoodbye) {
       const defaultBye = 'Ha abandonado la orden. Que las sombras guíen su nuevo camino.'
-      const rawBye = chat?.sBye || chat?.sGoodbye || chat?.sDespedida || defaultBye
+      const hasCustomBye = !!(chat?.sBye?.trim() || chat?.sGoodbye?.trim() || chat?.sDespedida?.trim())
+      const rawBye = hasCustomBye ? (chat.sBye || chat.sGoodbye || chat.sDespedida) : defaultBye
       const mensaje = rawBye
         .replace(/@{usuario}/gi, `@${targetNumber}`)
         .replace(/{usuario}/gi, `@${targetNumber}`)
@@ -94,9 +95,12 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         .replace(/{miembros}/gi, `${groupSize}`)
         .replace(/{fecha}/gi, `${fecha}`)
 
-      const formattedMensaje = mensaje.split('\n').join('\n> ')
-
-      caption = `> ── ⚔️ *SHADOW GARDEN* ⚔️ ──
+      if (hasCustomBye) {
+        // MODO LITERAL: si pusiste "hola xd" se queda solo con "hola xd"
+        caption = mensaje
+      } else {
+        const formattedMensaje = mensaje.split('\n').join('\n> ')
+        caption = `> ── ⚔️ *SHADOW GARDEN* ⚔️ ──
 > ​
 > 🥀 *UNA SOMBRA SE HA DESVANECIDO*
 > ​
@@ -107,9 +111,11 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 > ◈ ⏳ *Registro:* ${fecha}
 > ​
 > ⛓️ _« La oscuridad ha borrado todo su rastro. »_`
+      }
     } else {
       const defaultWelcome = '¡Bienvenido/a a las sombras! Que tu estancia sea legendaria.'
-      const rawWelcome = chat?.sWelcome || chat?.sBienvenida || defaultWelcome
+      const hasCustomWelcome = !!(chat?.sWelcome?.trim() || chat?.sBienvenida?.trim())
+      const rawWelcome = hasCustomWelcome ? (chat.sWelcome || chat.sBienvenida) : defaultWelcome
       const mensaje = rawWelcome
         .replace(/@{usuario}/gi, `@${targetNumber}`)
         .replace(/{usuario}/gi, `@${targetNumber}`)
@@ -120,9 +126,12 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         .replace(/{miembros}/gi, `${groupSize}`)
         .replace(/{fecha}/gi, `${fecha}`)
 
-      const formattedMensaje = mensaje.split('\n').join('\n> ')
-
-      caption = `> ── ⚔️ *SHADOW GARDEN* ⚔️ ──
+      if (hasCustomWelcome) {
+        // MODO LITERAL: si pusiste "hola xd" se queda solo con "hola xd"
+        caption = mensaje
+      } else {
+        const formattedMensaje = mensaje.split('\n').join('\n> ')
+        caption = `> ── ⚔️ *SHADOW GARDEN* ⚔️ ──
 > ​
 > 🗡️ *TARJETA DE BIENVENIDA*
 > ​
@@ -133,6 +142,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 > ◈ ⏳ *Registro:* ${fecha}
 > ​
 > ⛓️ _« I am atomic... The eminence in shadow. »_`
+      }
     }
 
     const canalId = global.channelRD?.id || '120363403739366547@newsletter'
