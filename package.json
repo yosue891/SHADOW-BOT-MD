@@ -11,6 +11,7 @@
   },
   "scripts": {
     "start": "node src/index.js",
+    "test": "node --test tests/*.test.mjs",
     "postinstall": "node tools/fix-baileys.cjs"
   },
   "repository": {
