@@ -779,6 +779,9 @@ conn.logger.error(e)
 delete global.plugins[filename]
 }}}
 await filesInit()
+// Ourin (ourin-baileys) overwrites $protobuf.roots["default"].proto on import,
+// so we must re-apply serialize getters to the new proto (handled in lib/simple.js)
+try { serialize() } catch (e) { console.error('re-serialize after filesInit failed', e) }
 console.log(chalk.cyan(`[ ✿ ] Plugins cargados: ${Object.keys(global.plugins).length}`))
 
 global.reload = async (_ev, filename) => {
@@ -793,12 +796,16 @@ return delete global.plugins[filename]
 const err = syntaxerror(readFileSync(dir), filename, {
 sourceType: 'module',
 allowAwaitOutsideFunction: true,
+allowReturnOutsideFunction: true,
+allowImportExportEverywhere: true,
+ecmaVersion: 'latest',
 });
 if (err) conn.logger.error(`syntax error while loading '${filename}'\n${format(err)}`)
 else {
 try {
 const mod = (await import(`${global.__filename(dir)}?update=${Date.now()}`));
 global.plugins[filename] = normalizeOurinPlugin(mod);
+try { if (mod?.config || mod?.default?.config) serialize() } catch {}
 } catch (e) {
 conn.logger.error(`error require plugin '${filename}\n${format(e)}'`)
 } finally {
