@@ -79,18 +79,16 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
     .replace(/{grupo}/g, `*${groupName}*`)
     .replace(/{desc}/g, `${desc}`)
 
-  const caption = `> ┏━━━━━━━━━━━━━━━━━━━━━━━┓
->    ⚔️  *S H A D O W   G A R D E N*  ⚔️
-> ┗━━━━━━━━━━━━━━━━━━━━━━━┛
-> 
+  const caption = `> ── ⚔️ *SHADOW GARDEN* ⚔️ ──
+> ​
 > 🗡️ *UN NUEVO CONTRATISTA DESPIERTA*
-> 
+> ​
 > ◈ 👤 *Recluta:* ${username}
 > ◈ 🏰 *Sector:* *${groupName}*
 > ◈ 👥 *Fuerza total:* ${groupSize} unidades reunidas
 > ◈ 📜 *Dictamen:* ${mensaje}
 > ◈ ⏳ *Registro:* ${fecha}
-> 
+> ​
 > ⛓️ _« I am atomic... The eminence in shadow. »_`
 
   return { imageSource, caption, mentions: [userId] }
@@ -134,18 +132,16 @@ export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
     .replace(/{grupo}/g, `*${groupName}*`)
     .replace(/{desc}/g, `*${desc}*`)
 
-  const caption = `> ┏━━━━━━━━━━━━━━━━━━━━━━━┓
->    ⚔️  *S H A D O W   G A R D E N*  ⚔️
-> ┗━━━━━━━━━━━━━━━━━━━━━━━┛
-> 
+  const caption = `> ── ⚔️ *SHADOW GARDEN* ⚔️ ──
+> ​
 > 🥀 *UNA SOMBRA SE HA DESVANECIDO*
-> 
+> ​
 > ◈ 👤 *Identificación:* ${username}
 > ◈ 🏰 *Sector:* *${groupName}*
 > ◈ 👥 *Fuerza restante:* ${groupSize} unidades
 > ◈ 📜 *Dictamen:* ${mensaje}
 > ◈ ⏳ *Registro:* ${fecha}
-> 
+> ​
 > ⛓️ _« La oscuridad ha borrado todo su rastro. »_`
 
   return { imageSource, caption, mentions: [userId] }

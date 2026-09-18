@@ -71,18 +71,16 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       .replace(/{desc}/g, `${desc}`)
     const fecha = new Date().toLocaleDateString('es-ES', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'long', year: 'numeric' })
 
-    const caption = `> ┏━━━━━━━━━━━━━━━━━━━━━━━┓
->    ⚔️  *S H A D O W   G A R D E N*  ⚔️
-> ┗━━━━━━━━━━━━━━━━━━━━━━━┛
-> 
+    const caption = `> ── ⚔️ *SHADOW GARDEN* ⚔️ ──
+> ​
 > 🗡️ *TARJETA DE BIENVENIDA*
-> 
+> ​
 > ◈ 👤 *Recluta:* @${targetNumber}
 > ◈ 🏰 *Sector:* *${groupName}*
 > ◈ 👥 *Fuerza total:* ${groupSize} miembros
 > ◈ 📜 *Dictamen:* ${mensaje}
 > ◈ ⏳ *Registro:* ${fecha}
-> 
+> ​
 > ⛓️ _« I am atomic... The eminence in shadow. »_`
 
     await conn.sendMessage(m.chat, {
