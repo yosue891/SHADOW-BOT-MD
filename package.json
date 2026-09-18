@@ -26,6 +26,7 @@
   "dependencies": {
     "@bochilteam/scraper": "^4.2.4",
     "@hapi/boom": "^10.0.1",
+    "@napi-rs/canvas": "^1.0.9",
     "@vitalets/google-translate-api": "^8.0.0",
     "@whiskeysockets/baileys": "file:vendor/baileys",
     "acrcloud": "^1.4.0",
