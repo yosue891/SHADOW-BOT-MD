@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { generateWAMessageFromContent } from "ourin";
-import te from "../../src/lib/ourin-error.js";
+import te from "../src/lib/ourin-error.js";
 
 const pluginConfig = {
   name: "prueba13",

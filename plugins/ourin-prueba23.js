@@ -7,7 +7,7 @@
  * Audio con la misma cadena de proveedores de .play (ytdl → yosoyyo → nexray).
  */
 
-import te from "../../src/lib/ourin-error.js";
+import te from "../src/lib/ourin-error.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -16,7 +16,7 @@ import yts from "yt-search";
 import sharp from "sharp";
 import fluentFfmpeg from "fluent-ffmpeg";
 import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
-import ytdl from "../../src/scraper/ytdl.js";
+import ytdl from "../src/scraper/ytdl.js";
 
 const pluginConfig = {
   name: "prueba23",

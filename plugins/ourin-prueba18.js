@@ -1,4 +1,4 @@
-import te from "../../src/lib/ourin-error.js";
+import te from "../src/lib/ourin-error.js";
 
 const pluginConfig = {
   name: "prueba18",

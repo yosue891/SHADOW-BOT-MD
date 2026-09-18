@@ -1,4 +1,4 @@
-import te from "../../src/lib/ourin-error.js";
+import te from "../src/lib/ourin-error.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";

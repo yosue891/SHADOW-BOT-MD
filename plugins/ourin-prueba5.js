@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
 import crypto from "node:crypto";
-import te from "../../src/lib/ourin-error.js";
-import { saluranCtx } from "../../src/lib/ourin-context.js";
+import te from "../src/lib/ourin-error.js";
+import { saluranCtx } from "../src/lib/ourin-context.js";
 
 const pluginConfig = {
   name: "prueba5",

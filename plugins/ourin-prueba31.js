@@ -19,7 +19,7 @@
  *   Opciones: Síii · Noo · Dame a maycol y ado 🗣️🗣️ (una selección)
  */
 
-import te from "../../src/lib/ourin-error.js";
+import te from "../src/lib/ourin-error.js";
 import { randomBytes } from "node:crypto";
 
 const pluginConfig = {

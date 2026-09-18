@@ -1,8 +1,8 @@
 import crypto from "node:crypto";
 import axios from "axios";
-import { getAssetBuffer } from "../../src/lib/ourin-asset-manager.js";
-import { saluranCtx } from "../../src/lib/ourin-context.js";
-import te from "../../src/lib/ourin-error.js";
+import { getAssetBuffer } from "../src/lib/ourin-asset-manager.js";
+import { saluranCtx } from "../src/lib/ourin-context.js";
+import te from "../src/lib/ourin-error.js";
 
 const HERO_IMAGE = "https://picsum.photos/seed/dxrkchan/800/400";
 const GOOGLE_URL = "https://www.google.com";

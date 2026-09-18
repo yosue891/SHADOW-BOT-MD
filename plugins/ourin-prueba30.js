@@ -12,8 +12,8 @@
  * El HTML es autónomo (CSS + JS inline, sin recursos externos).
  */
 
-import te from "../../src/lib/ourin-error.js";
-import config from "../../config.js";
+import te from "../src/lib/ourin-error.js";
+import config from "../config.js";
 
 const pluginConfig = {
   name: "prueba30",

@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { prepareWAMessageMedia, generateWAMessageFromContent } from "ourin";
-import te from "../../src/lib/ourin-error.js";
+import te from "../src/lib/ourin-error.js";
 
 const IMAGE_URL = "https://cdn.ornzora.eu.cc/a6a1e8f4-b83d-4694-9bba-0f22a58bfd4f-FIORA.jpg";
 const VIDEO_URL = "https://cdn.ornzora.eu.cc/ed7ebb66-9bf4-44b6-858a-b6b7405e53c5-FIORA.mp4";

@@ -1,5 +1,5 @@
-import { AIRich } from "../../src/lib/ourin-builder.js";
-import te from "../../src/lib/ourin-error.js";
+import { AIRich } from "../src/lib/ourin-builder.js";
+import te from "../src/lib/ourin-error.js";
 
 const pluginConfig = {
   name: "prueba12",

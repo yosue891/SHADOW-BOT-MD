@@ -10,9 +10,9 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import te from "../../src/lib/ourin-error.js";
-import { getAssetBuffer } from "../../src/lib/ourin-asset-manager.js";
-import config from "../../config.js";
+import te from "../src/lib/ourin-error.js";
+import { getAssetBuffer } from "../src/lib/ourin-asset-manager.js";
+import config from "../config.js";
 
 /* Imágenes de carrusel (reels) del catálogo — debajo de la imagen del menú */
 const REEL_CAROUSEL_IMAGES = [

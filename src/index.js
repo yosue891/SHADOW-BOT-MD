@@ -710,12 +710,70 @@ MichiJadiBot({pathMichiJadiBot: botPath, m: null, conn, args: '', usedPrefix: '/
 const pluginFolder = join(__dirname, '../plugins')
 const pluginFilter = (filename) => /\.js$/.test(filename)
 global.plugins = {}
+
+// Compatibilidad para plugins estilo Ourin (config + handler con sock)
+function wrapOurinHandler(ourinHandler) {
+  return async function(m, ctx) {
+    const conn = ctx.conn || this
+    // Enriquecer m para que Ourin plugins tengan lo que esperan
+    if (!m.prefix) m.prefix = ctx.usedPrefix || global.prefix?.toString?.()?.[0] || "."
+    if (!m.command) m.command = ctx.command || ""
+    if (!m.args) m.args = ctx.args || (ctx.text ? ctx.text.split(" ").filter(Boolean) : [])
+    if (!m.pushName) m.pushName = m.pushName || m.name || conn.getName?.(m.sender)?.catch?.(()=>{}) || "Usuario"
+    if (!m.sender) m.sender = m.sender || m.key?.participant || m.key?.remoteJid
+    // Asegurar reply/react existan (ya vienen de smsg)
+    const sock = conn
+    // Proveer helpers que Ourin espera en sock
+    if (!sock.sendMedia) {
+      sock.sendMedia = async (jid, url, _unused, m, opts = {}) => {
+        const type = opts.type || "document"
+        if (type === "audio") return sock.sendMessage(jid, { audio: { url }, mimetype: opts.mimetype || "audio/mpeg", fileName: opts.fileName, ptt: !!opts.ptt }, { quoted: m })
+        if (type === "video") return sock.sendMessage(jid, { video: { url }, mimetype: opts.mimetype || "video/mp4", fileName: opts.fileName }, { quoted: m })
+        if (type === "image") return sock.sendMessage(jid, { image: { url }, caption: opts.caption }, { quoted: m })
+        return sock.sendMessage(jid, { document: { url }, mimetype: opts.mimetype, fileName: opts.fileName }, { quoted: m })
+      }
+    }
+    if (!sock.sendPreview) sock.sendPreview = sock.sendMessage.bind(sock)
+    return ourinHandler(m, { sock, ...ctx, text: ctx.text ?? m.text ?? "" })
+  }
+}
+function normalizeOurinPlugin(mod) {
+  // Si es estilo Ourin: export { config, handler }
+  if (mod && mod.config && typeof mod.handler === "function") {
+    const cfg = mod.config
+    const h = mod.handler
+    // Mapear config a handler.* esperado por Shadow handler
+    h.command = [cfg.name, ...(cfg.alias || [])].filter(Boolean)
+    h.help = [cfg.usage || cfg.name]
+    h.tags = [cfg.category || "tools"]
+    h.disabled = cfg.isEnabled === false
+    // flags ourin -> shadow
+    if (cfg.isOwner) h.rowner = true
+    if (cfg.isPremium) h.premium = true
+    if (cfg.isGroup) h.group = true
+    if (cfg.isPrivate) h.private = true
+    // Envolver para compatibilidad sock/conn y m.*
+    const wrapped = wrapOurinHandler(h)
+    // Copiar props
+    Object.assign(wrapped, h)
+    wrapped.command = h.command
+    return wrapped
+  }
+  // Si es estilo Shadow con default, devolverlo
+  const base = mod?.default || mod
+  // Si default también es estilo Ourin (a veces export default { config, handler })
+  if (base && base.config && typeof base.handler === "function") {
+    return normalizeOurinPlugin(base)
+  }
+  return base
+}
 async function filesInit() {
 for (const filename of readdirSync(pluginFolder).filter(pluginFilter)) {
 try {
 const file = global.__filename(join(pluginFolder, filename))
-const module = await import(file)
-global.plugins[filename] = module.default || module
+const mod = await import(file)
+const normalized = normalizeOurinPlugin(mod)
+global.plugins[filename] = normalized
 } catch (e) {
 conn.logger.error(e)
 delete global.plugins[filename]
@@ -739,8 +797,8 @@ allowAwaitOutsideFunction: true,
 if (err) conn.logger.error(`syntax error while loading '${filename}'\n${format(err)}`)
 else {
 try {
-const module = (await import(`${global.__filename(dir)}?update=${Date.now()}`));
-global.plugins[filename] = module.default || module;
+const mod = (await import(`${global.__filename(dir)}?update=${Date.now()}`));
+global.plugins[filename] = normalizeOurinPlugin(mod);
 } catch (e) {
 conn.logger.error(`error require plugin '${filename}\n${format(e)}'`)
 } finally {

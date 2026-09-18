@@ -1,8 +1,8 @@
 import axios from "axios";
-import { ButtonV2 } from "../../src/lib/ourin-builder.js";
-import { getAssetBuffer } from "../../src/lib/ourin-asset-manager.js";
-import { saluranCtx } from "../../src/lib/ourin-context.js";
-import te from "../../src/lib/ourin-error.js";
+import { ButtonV2 } from "../src/lib/ourin-builder.js";
+import { getAssetBuffer } from "../src/lib/ourin-asset-manager.js";
+import { saluranCtx } from "../src/lib/ourin-context.js";
+import te from "../src/lib/ourin-error.js";
 
 const THUMBNAIL_URL = "https://c.termai.cc/i117/ZKqHH.jpg";
 

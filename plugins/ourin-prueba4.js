@@ -1,7 +1,7 @@
 import axios from "axios";
 import sharp from "sharp";
-import te from "../../src/lib/ourin-error.js";
-import { getAssetBuffer } from "../../src/lib/ourin-asset-manager.js";
+import te from "../src/lib/ourin-error.js";
+import { getAssetBuffer } from "../src/lib/ourin-asset-manager.js";
 
 const pluginConfig = {
   name: "prueba4",

@@ -21,8 +21,8 @@
  */
 
 import { proto, generateWAMessageFromContent, generateMessageID } from "ourin";
-import te from "../../src/lib/ourin-error.js";
-import config from "../../config.js";
+import te from "../src/lib/ourin-error.js";
+import config from "../config.js";
 
 const pluginConfig = {
   name: "prueba32",

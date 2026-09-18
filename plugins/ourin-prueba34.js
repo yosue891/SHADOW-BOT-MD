@@ -13,7 +13,7 @@
  * Comando: >prueba34
  */
 
-import te from "../../src/lib/ourin-error.js";
+import te from "../src/lib/ourin-error.js";
 
 const pluginConfig = {
   name: "prueba34",

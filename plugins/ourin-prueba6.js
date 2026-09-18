@@ -25,9 +25,9 @@
 
 import crypto from "crypto";
 import { generateWAMessageFromContent } from "ourin";
-import config from "../../config.js";
-import { saluranCtx } from "../../src/lib/ourin-context.js";
-import te from "../../src/lib/ourin-error.js";
+import config from "../config.js";
+import { saluranCtx } from "../src/lib/ourin-context.js";
+import te from "../src/lib/ourin-error.js";
 
 class A2UI {
   constructor({ catalogId = "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json", version = "v0.9" } = {}) {

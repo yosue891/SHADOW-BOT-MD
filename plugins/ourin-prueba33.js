@@ -16,7 +16,7 @@
  *     del bot IA) y title = "holaaa bandaaa xd".
  */
 
-import te from "../../src/lib/ourin-error.js";
+import te from "../src/lib/ourin-error.js";
 
 const pluginConfig = {
   name: "prueba33",

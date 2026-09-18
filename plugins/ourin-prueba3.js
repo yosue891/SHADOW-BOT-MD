@@ -1,5 +1,5 @@
-import { delay } from "../../src/lib/ourin-utils.js";
-import te from "../../src/lib/ourin-error.js";
+import { delay } from "../src/lib/ourin-utils.js";
+import te from "../src/lib/ourin-error.js";
 
 const pluginConfig = {
   name: "prueba3",

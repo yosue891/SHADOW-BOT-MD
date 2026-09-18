@@ -6,8 +6,8 @@ import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { prepareWAMessageMedia, generateWAMessageFromContent } from "ourin";
-import te from "../../src/lib/ourin-error.js";
-import { saluranCtx } from "../../src/lib/ourin-context.js";
+import te from "../src/lib/ourin-error.js";
+import { saluranCtx } from "../src/lib/ourin-context.js";
 
 const execFileAsync = promisify(execFile);
 
