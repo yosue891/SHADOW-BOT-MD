@@ -6,7 +6,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
   if (!text) return m.reply(`💫 *Shadow invocando*\n\n🎶 Pronuncia el nombre del video o entrega el enlace de YouTube.`)
 
   const isDirectAudio = ["ytmp3"].includes(command)
-  const isDirectVideo = ["playvid", "ytmp4", "play2"].includes(command)
+  const isDirectVideo = ["playvid", "ytmp4"].includes(command)
   const isSearchAction = ["yt", "ytv"].includes(command)
 
   try {
@@ -175,7 +175,7 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
 
 const cleanName = (name) => name.replace(/[^\w\s-_.]/gi, "").substring(0, 50)
 
-handler.command = ["ytmp3", "playvid", "ytv", "ytmp4", "play2", "yt"]
+handler.command = ["ytmp3", "playvid", "ytv", "ytmp4", "yt"]
 handler.tags = ["descargas"]
 handler.register = true
 
