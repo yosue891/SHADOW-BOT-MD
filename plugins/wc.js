@@ -38,7 +38,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     const groupMetadata = m.isGroup ? await conn.groupMetadata(m.chat).catch(() => ({})) : {}
     const groupName = groupMetadata?.subject || 'Shadow Garden'
-    const groupSize = groupMetadata?.participants ? `#${groupMetadata.participants.length}` : '—'
+    const groupSize = groupMetadata?.participants ? `${groupMetadata.participants.length}` : '—'
 
     const opts = parseArgs(text || '')
 
@@ -51,7 +51,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         eyebrow: opts.marca || 'S H A D O W  G A R D E N',
         username: `@${targetNumber}`,
         groupName: opts.texto2 || groupName,
-        footerLine: opts.texto3 || groupSize
+        footerLine: opts.texto3 || `#${groupSize}`
       })
     } catch (renderError) {
       console.warn('[welcome-banner] Falló render canvas, usando respaldo local:', renderError.message)
@@ -64,13 +64,26 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     const desc = groupMetadata?.desc?.toString() || 'Sin descripción'
     const chat = global.db?.data?.chats?.[m.chat]
-    const mensaje = (chat?.sWelcome || 'Edita con el comando "setwelcome"')
+    const defaultWelcome = '¡Bienvenido/a a las sombras! Que tu estancia sea legendaria.'
+    const mensaje = (chat?.sWelcome || defaultWelcome)
       .replace(/{usuario}/g, `@${targetNumber}`)
       .replace(/{grupo}/g, `*${groupName}*`)
       .replace(/{desc}/g, `${desc}`)
     const fecha = new Date().toLocaleDateString('es-ES', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'long', year: 'numeric' })
 
-    const caption = `❀ Bienvenido a *"_${groupName}_"*\n✰ _Usuario_ » @${targetNumber}\n● ${mensaje}\n◆ _Ahora somos ${groupSize.replace('#', '')} Miembros._\nꕥ Fecha » ${fecha}\n૮꒰ ˶• ᴗ •˶꒱a Disfruta tu estadía en el grupo!\n> *➮ Puedes usar _#help_ para ver la lista de comandos.*`
+    const caption = `> ┏━━━━━━━━━━━━━━━━━━━━━━━┓
+>    ⚔️  *S H A D O W   G A R D E N*  ⚔️
+> ┗━━━━━━━━━━━━━━━━━━━━━━━┛
+> 
+> 🗡️ *TARJETA DE BIENVENIDA*
+> 
+> ◈ 👤 *Recluta:* @${targetNumber}
+> ◈ 🏰 *Sector:* *${groupName}*
+> ◈ 👥 *Fuerza total:* ${groupSize} miembros
+> ◈ 📜 *Dictamen:* ${mensaje}
+> ◈ ⏳ *Registro:* ${fecha}
+> 
+> ⛓️ _« I am atomic... The eminence in shadow. »_`
 
     await conn.sendMessage(m.chat, {
       image: imageBuffer,

@@ -42,7 +42,7 @@ function extractUserId(rawUser) {
 }
 
 export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
-  const targetNumber = userId.split('@')[0].split(':')[0]
+  const targetNumber = (userId || '').split('@')[0].split(':')[0].replace(/[^0-9]/g, '') || (userId || '').split('@')[0] || 'usuario'
   const username = `@${targetNumber}`
   const groupName = groupMetadata?.subject || 'el Grupo'
 
@@ -67,35 +67,37 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
       footerLine: `#${groupSize}`
     })
   } catch (err) {
-    console.error('[WELCOME] Falló el render con canvas, usando fondo plano:', err.message)
+    console.error('[WELCOME] Falló el render de tarjeta, usando fondo de respaldo:', err.message)
     imageSource = fs.existsSync(LOCAL_BG) ? fs.readFileSync(LOCAL_BG) : { url: BACKGROUND }
   }
 
   const fecha = new Date().toLocaleDateString('es-ES', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'long', year: 'numeric' })
   const desc = groupMetadata?.desc?.toString() || 'Sin descripción'
-  const mensaje = (chat?.sWelcome || 'Edita con el comando "setwelcome"')
+  const defaultWelcome = '¡Bienvenido/a a las sombras! Que tu estancia sea legendaria.'
+  const mensaje = (chat?.sWelcome || defaultWelcome)
     .replace(/{usuario}/g, `${username}`)
     .replace(/{grupo}/g, `*${groupName}*`)
     .replace(/{desc}/g, `${desc}`)
 
-  const caption = `> ⚔ ── ── ── ── ── ── ⚔
->  ── ── ✦ 🔖𝔥𝔞𝔡𝔬𝔴 𝔊𝔞𝔯𝔡𝔢𝔫 ✦ ── ──
+  const caption = `> ┏━━━━━━━━━━━━━━━━━━━━━━━┓
+>    ⚔️  *S H A D O W   G A R D E N*  ⚔️
+> ┗━━━━━━━━━━━━━━━━━━━━━━━┛
 > 
-> 𝔘𝔫 𝔫𝔲𝔢𝔳𝔬 𝔠𝔬𝔫𝔱𝔯𝔞𝔱𝔦𝔰𝔱𝔞 𝔰𝔢 𝔲𝔫𝔢 𝔞 𝔩𝔞𝔰 𝔰𝔬𝔪𝔟𝔯𝔞𝔰.
+> 🗡️ *UN NUEVO CONTRATISTA DESPIERTA*
 > 
-> ❖ 𝔖𝔢𝔠𝔱𝔬𝔯 ⪢ _${groupName}_
-> ❖ ℑ𝔡𝔢𝔫𝔱𝔦𝔣𝔦𝔠𝔞𝔠𝔦𝔬́𝔫 ⪢ ${username}
-> ❖ 𝔇𝔦𝔠𝔱𝔞𝔪𝔢𝔫 ⪢ ${mensaje}
-> ❖ ℭ𝔬𝔫𝔱𝔢𝔫𝔠𝔦𝔬́𝔫 ⪢ ${groupSize} unidades reunidas.
-> ❖ ℭ𝔯𝔬𝔫𝔬𝔰 ⪢ ${fecha}
+> ◈ 👤 *Recluta:* ${username}
+> ◈ 🏰 *Sector:* *${groupName}*
+> ◈ 👥 *Fuerza total:* ${groupSize} unidades reunidas
+> ◈ 📜 *Dictamen:* ${mensaje}
+> ◈ ⏳ *Registro:* ${fecha}
 > 
-> ⛓ ── ℑ 𝔞𝔪 𝔞𝔱𝔬𝔪𝔦𝔠... 𝔗𝔥𝔢 𝔢𝔪𝔦𝔫𝔢𝔢 𝔦𝔫 𝔰𝔥𝔞𝔡𝔬𝔴. ── ⛓`
+> ⛓️ _« I am atomic... The eminence in shadow. »_`
 
   return { imageSource, caption, mentions: [userId] }
 }
 
 export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
-  const targetNumber = userId.split('@')[0].split(':')[0]
+  const targetNumber = (userId || '').split('@')[0].split(':')[0].replace(/[^0-9]/g, '') || (userId || '').split('@')[0] || 'usuario'
   const username = `@${targetNumber}`
   const groupName = groupMetadata?.subject || 'el Grupo'
 
@@ -120,29 +122,31 @@ export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
       footerLine: `Quedan ${groupSize}`
     })
   } catch (err) {
-    console.error('[WELCOME] Falló el render con canvas, usando fondo plano:', err.message)
+    console.error('[WELCOME] Falló el render de tarjeta, usando fondo de respaldo:', err.message)
     imageSource = fs.existsSync(LOCAL_BG) ? fs.readFileSync(LOCAL_BG) : { url: BACKGROUND }
   }
 
   const fecha = new Date().toLocaleDateString('es-ES', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'long', year: 'numeric' })
   const desc = groupMetadata?.desc?.toString() || 'Sin descripción'
-  const mensaje = (chat?.sBye || 'Edita con el comando "setbye"')
+  const defaultBye = 'Ha abandonado la orden. Que las sombras guíen su nuevo camino.'
+  const mensaje = (chat?.sBye || defaultBye)
     .replace(/{usuario}/g, `${username}`)
-    .replace(/{grupo}/g, `${groupName}`)
+    .replace(/{grupo}/g, `*${groupName}*`)
     .replace(/{desc}/g, `*${desc}*`)
 
-  const caption = `> ⚔ ── ── ── ── ── ── ⚔
->  ── ── ✦ 𝔖𝔥𝔞𝔡𝔬𝔴 𝔊𝔞𝔯𝔡𝔢𝔫 ✦ ── ──
+  const caption = `> ┏━━━━━━━━━━━━━━━━━━━━━━━┓
+>    ⚔️  *S H A D O W   G A R D E N*  ⚔️
+> ┗━━━━━━━━━━━━━━━━━━━━━━━┛
 > 
-> 𝔘𝔫𝔞 𝔭𝔯𝔢𝔰𝔢𝔫𝔠𝔦𝔞 𝔰𝔢 𝔥𝔞 𝔡𝔢𝔰𝔳𝔞𝔫𝔢𝔠𝔦𝔡𝔬.
+> 🥀 *UNA SOMBRA SE HA DESVANECIDO*
 > 
-> ❖ 𝔖𝔢𝔠𝔱𝔬xr ⪢ _${groupName}_
-> ❖ ℑ𝔡𝔢𝔫𝔱𝔦𝔣𝔦𝔠𝔞𝔠𝔦𝔬́𝔫 ⪢ ${username}
-> ❖ 𝔇𝔦𝔠𝔱𝔞𝔪𝔢𝔫 ⪢ ${mensaje}
-> ❖ ℭ𝔬𝔫𝔱𝔢𝔫𝔠𝔦𝔬́𝔫 ⪢ ${groupSize} unidades restantes.
-> ❖ ℭ𝔯𝔬𝔫𝔬𝔰 ⪢ ${fecha}
+> ◈ 👤 *Identificación:* ${username}
+> ◈ 🏰 *Sector:* *${groupName}*
+> ◈ 👥 *Fuerza restante:* ${groupSize} unidades
+> ◈ 📜 *Dictamen:* ${mensaje}
+> ◈ ⏳ *Registro:* ${fecha}
 > 
-> ⛓ ── 𝔏𝔞 𝔬𝔰𝔠𝔲𝔯𝔦𝔡𝔞𝔡 𝔥𝔞 𝔟𝔬𝔯𝔯𝔞𝔡𝔬 𝔰𝔲 𝔯𝔞𝔰𝔱𝔯𝔬. ── ⛓`
+> ⛓️ _« La oscuridad ha borrado todo su rastro. »_`
 
   return { imageSource, caption, mentions: [userId] }
 }
