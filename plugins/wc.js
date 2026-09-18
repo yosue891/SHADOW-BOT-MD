@@ -83,10 +83,25 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 > ​
 > ⛓️ _« I am atomic... The eminence in shadow. »_`
 
+    const canalId = global.channelRD?.id || '120363403739366547@newsletter'
+    const canalName = global.channelRD?.name || 'SHADOW-BOT'
+
+    const contextInfo = {
+      mentionedJid: [targetJid],
+      isForwarded: true,
+      forwardingScore: 0,
+      forwardedNewsletterMessageInfo: {
+        newsletterJid: canalId,
+        serverMessageId: null,
+        newsletterName: canalName
+      }
+    }
+
     await conn.sendMessage(m.chat, {
       image: imageBuffer,
       caption,
-      mentions: [targetJid]
+      mentions: [targetJid],
+      contextInfo
     }, { quoted: m })
 
     await conn.sendMessage(m.chat, { react: { text: '✅', key: m.key } })

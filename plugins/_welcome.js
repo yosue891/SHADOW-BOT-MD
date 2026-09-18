@@ -5,8 +5,8 @@ import { WAMessageStubType } from '@whiskeysockets/baileys'
 import { renderWelcomeCard, renderGoodbyeCard } from '../lib/welcome-card.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const canalId = '120363403739366547@newsletter'
-const canalName = 'SHADOW-BOT'
+const canalId = global.channelRD?.id || '120363403739366547@newsletter'
+const canalName = global.channelRD?.name || 'SHADOW-BOT'
 const BACKGROUND = 'https://u.pone.rs/glqjtzaj.jpg'
 const LOCAL_BG = path.join(__dirname, '..', 'lib', 'welcome-bg.jpg')
 const LOCAL_AVATAR = path.join(__dirname, '..', 'lib', 'catalogo.jpg')
@@ -192,7 +192,7 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
     const contextInfo = {
       mentionedJid: [userId],
       isForwarded: true,
-      forwardingScore: 99,
+      forwardingScore: 0,
       forwardedNewsletterMessageInfo: {
         newsletterJid: canalId,
         serverMessageId: null,
