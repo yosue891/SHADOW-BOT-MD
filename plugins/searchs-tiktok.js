@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const NYX_BASE = 'https://nyxdlapi.vercel.app'
 const NYX_SEARCH_URL = `${NYX_BASE}/api/search/tiktoksearch`
-const NYX_API_KEY = 'nyx_NVRMcX8rP-YsEmGl-lyaLtks680B_ccH'
+const NYX_API_KEY = 'nyx_shadow'
 
 const handler = async (m, { conn, text, usedPrefix }) => {
   if (!text) {
