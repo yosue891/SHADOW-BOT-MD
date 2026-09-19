@@ -1,9 +1,4 @@
 import axios from 'axios'
-import {
-  proto,
-  generateWAMessageFromContent,
-  generateWAMessageContent
-} from '@whiskeysockets/baileys'
 
 const NYX_BASE = 'https://nyxdlapi.vercel.app'
 const NYX_APIKEY = 'nyx_shadow'
@@ -14,14 +9,6 @@ const handler = async (m, { conn, text, usedPrefix }) => {
   }
 
   const isUrl = /(?:https?:\/\/)?(?:www\.|vm\.|vt\.|t\.)?tiktok\.com\/[^\s&]+/i.test(text)
-
-  async function createVideoMessage(video) {
-    const { videoMessage } = await generateWAMessageContent(
-      { video },
-      { upload: conn.waUploadToServer }
-    )
-    return videoMessage
-  }
 
   async function getVideoBuffer(v) {
     const urls = [v.play, v.direct].filter(Boolean)
@@ -52,6 +39,11 @@ const handler = async (m, { conn, text, usedPrefix }) => {
       const j = Math.floor(Math.random() * (i + 1))
       ;[array[i], array[j]] = [array[j], array[i]]
     }
+  }
+
+  const clip = (s, n) => {
+    const t = String(s).replace(/\s+/g, ' ').trim()
+    return t.length > n ? t.slice(0, n - 1) + '…' : t
   }
 
   try {
@@ -156,59 +148,40 @@ const handler = async (m, { conn, text, usedPrefix }) => {
     shuffleArray(results)
     const topResults = results.slice(0, 7)
 
-    const cards = await Promise.all(topResults.map(async v => {
-      const title = v.title || 'Video TikTok'
-      const author = v.author?.name || v.author?.username || 'Desconocido'
-      const duration = v.duration ?? 'No disponible'
+    const downloads = await Promise.allSettled(topResults.map(v => getVideoBuffer(v)))
+    const videos = []
+    downloads.forEach((d, i) => {
+      if (d.status === 'fulfilled') videos.push({ buffer: d.value, v: topResults[i] })
+    })
+    if (!videos.length) throw downloads[0].reason
 
-      return {
-        body: proto.Message.InteractiveMessage.Body.fromObject({
-          text: `✐ ${title}\nⴵ Autor » ${author}\n✰ Duración » ${duration} segundos`
-        }),
-        footer: proto.Message.InteractiveMessage.Footer.fromObject({
-          text: 'TikTok Search'
-        }),
-        header: proto.Message.InteractiveMessage.Header.fromObject({
-          title: title,
-          hasMediaAttachment: true,
-          videoMessage: await createVideoMessage(await getVideoBuffer(v))
-        }),
-        nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
-          buttons: []
-        })
+    const titleOf = v => v.title || 'Video TikTok'
+    const authorOf = v => v.author?.name || v.author?.username || 'Desconocido'
+    const durationOf = v => v.duration ?? 'No disponible'
+
+    if (videos.length > 1 && typeof conn.sendAlbumMessage === 'function') {
+      const list = videos
+        .map(({ v }, i) => `${i + 1}. ✐ ${clip(titleOf(v), 50)} | ⴵ ${clip(authorOf(v), 20)} | ✰ ${durationOf(v)}s`)
+        .join('\n')
+      const albumCaption = `✧ RESULTADO DE: ${text}\n\n${list}`.slice(0, 1000)
+
+      await conn.sendAlbumMessage(
+        m.chat,
+        videos.map(({ buffer }) => ({ type: 'video', data: buffer })),
+        { caption: albumCaption, quoted: m }
+      )
+    } else {
+      for (const { buffer, v } of videos) {
+        await conn.sendMessage(
+          m.chat,
+          {
+            video: buffer,
+            caption: `✐ ${titleOf(v)}\nⴵ Autor » ${authorOf(v)}\n✰ Duración » ${durationOf(v)} segundos`
+          },
+          { quoted: m }
+        )
       }
-    }))
-
-    const msg = generateWAMessageFromContent(
-      m.chat,
-      {
-        viewOnceMessage: {
-          message: {
-            messageContextInfo: {
-              deviceListMetadata: {},
-              deviceListMetadataVersion: 2
-            },
-            interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-              body: proto.Message.InteractiveMessage.Body.create({
-                text: `✧ RESULTADO DE: ${text}`
-              }),
-              footer: proto.Message.InteractiveMessage.Footer.create({
-                text: 'TikTok Search'
-              }),
-              header: proto.Message.InteractiveMessage.Header.create({
-                hasMediaAttachment: false
-              }),
-              carouselMessage: proto.Message.InteractiveMessage.CarouselMessage.fromObject({
-                cards
-              })
-            })
-          }
-        }
-      },
-      { quoted: m }
-    )
-
-    await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
+    }
 
     if (m.react) await m.react('✔️')
   } catch (e) {
