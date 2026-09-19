@@ -15,12 +15,36 @@ const handler = async (m, { conn, text, usedPrefix }) => {
 
   const isUrl = /(?:https?:\/\/)?(?:www\.|vm\.|vt\.|t\.)?tiktok\.com\/[^\s&]+/i.test(text)
 
-  async function createVideoMessage(url) {
+  async function createVideoMessage(video) {
     const { videoMessage } = await generateWAMessageContent(
-      { video: { url } },
+      { video },
       { upload: conn.waUploadToServer }
     )
     return videoMessage
+  }
+
+  async function getVideoBuffer(v) {
+    const urls = [v.play, v.direct].filter(Boolean)
+    let firstErr
+    for (const u of urls) {
+      try {
+        const headers = { 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36' }
+        if (u.startsWith(NYX_BASE)) {
+          headers['x-api-key'] = NYX_APIKEY
+          headers['apikey'] = NYX_APIKEY
+        }
+        const r = await axios.get(u, {
+          responseType: 'arraybuffer',
+          timeout: 30000,
+          maxContentLength: 100 * 1024 * 1024,
+          headers
+        })
+        return Buffer.from(r.data)
+      } catch (err) {
+        if (!firstErr) firstErr = err
+      }
+    }
+    throw firstErr
   }
 
   function shuffleArray(array) {
@@ -98,15 +122,31 @@ const handler = async (m, { conn, text, usedPrefix }) => {
 
     const res = await axios.get(
       `${NYX_BASE}/api/search/tiktoksearch?apikey=${NYX_APIKEY}&query=${encodeURIComponent(text)}`,
-      { timeout: 20000 }
+      {
+        timeout: 20000,
+        headers: {
+          'x-api-key': NYX_APIKEY,
+          'apikey': NYX_APIKEY
+        }
+      }
     )
 
     let results = (res.data?.result?.results || [])
       .filter(v => v.video)
-      .map(v => ({
-        ...v,
-        play: /^https?:\/\//i.test(v.video) ? v.video : `${NYX_BASE}${v.video}`
-      }))
+      .map(v => {
+        const full = /^https?:\/\//i.test(v.video) ? v.video : `${NYX_BASE}${v.video}`
+        let direct
+        try {
+          const token = new URL(full).searchParams.get('token')
+          const decoded = token ? Buffer.from(token, 'base64').toString('utf8') : ''
+          if (/^https?:\/\//i.test(decoded)) direct = decoded
+        } catch {}
+        return {
+          ...v,
+          play: full.includes('apikey=') ? full : `${full}${full.includes('?') ? '&' : '?'}apikey=${NYX_APIKEY}`,
+          direct
+        }
+      })
 
     if (results.length < 2) {
       if (m.react) await m.react('✖️')
@@ -131,7 +171,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
         header: proto.Message.InteractiveMessage.Header.fromObject({
           title: title,
           hasMediaAttachment: true,
-          videoMessage: await createVideoMessage(v.play)
+          videoMessage: await createVideoMessage(await getVideoBuffer(v))
         }),
         nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
           buttons: []
@@ -173,9 +213,10 @@ const handler = async (m, { conn, text, usedPrefix }) => {
     if (m.react) await m.react('✔️')
   } catch (e) {
     if (m.react) await m.react('✖️')
+    const failedUrl = String(e.config?.url || e.response?.config?.url || '').replace(/apikey=[^&]+/gi, 'apikey=***')
     await conn.reply(
       m.chat,
-      `⚠︎ Se ha producido un problema.\n> Usa *${usedPrefix}report* para informarlo.\n\n🜸 Detalles: ${e.message}`,
+      `⚠︎ Se ha producido un problema.\n> Usa *${usedPrefix}report* para informarlo.\n\n🜸 Detalles: ${e.message}${failedUrl ? `\n🜸 URL: ${failedUrl}` : ''}`,
       m
     )
   }
