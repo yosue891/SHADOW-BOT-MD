@@ -1,154 +1,159 @@
 import axios from 'axios'
 
-const NYXDL_API_KEY = 'nyx_NVRMcX8rP-YsEmGl-lyaLtks680B_ccH'
-const NYXDL_BASE = 'https://nyxdlapi.vercel.app'
-const NYXDL_TT_SEARCH = 'https://nyxdlapi.vercel.app/api/search/tiktoksearch'
-const MAX_VIDEOS = 12
+const NYX_BASE = 'https://nyxdlapi.vercel.app'
+const NYX_SEARCH_URL = `${NYX_BASE}/api/search/tiktoksearch`
+const NYX_API_KEY = 'nyx_NVRMcX8rP-YsEmGl-lyaLtks680B_ccH'
 
-function formatCount(n) {
-  var num = Number(n || 0)
-  if (Number.isNaN(num)) return '0'
-  return num.toLocaleString()
-}
-
-function getTitle(v) {
-  var t = (v && v.title) || 'Sin descripción'
-  if (t.length > 80) return t.slice(0, 80) + '...'
-  return t
-}
-
-function getAuthor(v) {
-  if (!v) return 'desconocido'
-  if (v.author && typeof v.author === 'object') {
-    return v.author.username || v.author.name || 'desconocido'
+const handler = async (m, { conn, text, usedPrefix }) => {
+  if (!text) {
+    return conn.reply(m.chat, '✐ Por favor, ingresa un término de búsqueda o un enlace de TikTok.', m)
   }
-  return v.username || v.author || 'desconocido'
-}
 
-function getStats(v) {
-  var s = (v && v.statistics) || {}
-  return {
-    likes: s.likes || v.likes || 0,
-    views: s.vistas || s.views || v.views || 0,
+  const isUrl = /(?:https?:\/\/)?(?:www\.|vm\.|vt\.|t\.)?tiktok\.com\/[^\s&]+/i.test(text)
+
+  function toAbsolute(u) {
+    if (!u || typeof u !== 'string') return null
+    const s = u.trim()
+    if (!s) return null
+    let abs = null
+    if (/^https?:\/\//i.test(s)) abs = s
+    else if (s.startsWith('//')) abs = `https:${s}`
+    else if (s.startsWith('/')) abs = `${NYX_BASE}${s}`
+    if (!abs) return null
+    if (abs.startsWith(NYX_BASE) && !abs.includes('apikey=')) {
+      abs += `${abs.includes('?') ? '&' : '?'}apikey=${encodeURIComponent(NYX_API_KEY)}`
+    }
+    return abs
   }
-}
 
-function toAbsolute(u) {
-  if (!u || typeof u !== 'string') return null
-  var s = u.trim()
-  if (!s) return null
-  var abs = null
-  if (/^https?:\/\//i.test(s)) abs = s
-  else if (s.indexOf('//') === 0) abs = 'https:' + s
-  else if (s.charAt(0) === '/') abs = NYXDL_BASE + s
-  if (!abs) return null
-  if (abs.indexOf(NYXDL_BASE) === 0 && abs.indexOf('apikey=') === -1) {
-    abs += (abs.indexOf('?') === -1 ? '?' : '&') + 'apikey=' + encodeURIComponent(NYXDL_API_KEY)
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[array[i], array[j]] = [array[j], array[i]]
+    }
   }
-  return abs
-}
 
-export default {
-  command: ['tiktoks', 'tiktoksearch', 'ttss'],
-  category: 'search',
+  try {
+    if (m.react) await m.react('🕒')
 
-  run: async function (ctx) {
-    var client = ctx.client
-    var m = ctx.m
-    var args = ctx.args || []
+    if (isUrl) {
+      const res = await axios.get(
+        `https://www.tikwm.com/api/?url=${encodeURIComponent(text)}&hd=1`,
+        { timeout: 20000 }
+      )
 
-    if (!args.length) {
-      return m.reply('✧ Ingresa algo para buscar en TikTok.')
+      const data = res.data?.data
+      if (!data?.play && !data?.images) {
+        if (m.react) await m.react('✖️')
+        return conn.reply(m.chat, 'ꕥ Enlace inválido o sin contenido descargable.', m)
+      }
+
+      const { title, duration, author, created_at, type, images, music, play } = data
+
+      const caption = `✐ Título » ${title || 'Contenido TikTok'}
+ⴵ Autor » ${author?.nickname || author?.unique_id || 'No disponible'}
+✰ Duración » ${duration ?? 'No disponible'} segundos
+❒ Fecha » ${created_at ?? 'No disponible'}`
+
+      if (type === 'image' && Array.isArray(images) && images.length) {
+        for (let i = 0; i < Math.min(images.length, 10); i++) {
+          await conn.sendMessage(
+            m.chat,
+            { image: { url: images[i] }, caption: i === 0 ? caption : undefined },
+            { quoted: m }
+          )
+        }
+
+        if (music) {
+          await conn.sendMessage(
+            m.chat,
+            {
+              audio: { url: music },
+              mimetype: 'audio/mp4',
+              fileName: 'tiktok_audio.mp4'
+            },
+            { quoted: m }
+          )
+        }
+
+        if (m.react) await m.react('✔️')
+        return
+      }
+
+      if (play) {
+        await conn.sendMessage(
+          m.chat,
+          {
+            video: { url: play },
+            caption
+          },
+          { quoted: m }
+        )
+        if (m.react) await m.react('✔️')
+        return
+      }
+
+      if (m.react) await m.react('✖️')
+      return conn.reply(m.chat, 'ꕥ No se encontró video descargable en ese enlace.', m)
     }
 
-    var query = args.join(' ').trim()
+    await conn.reply(m.chat, '✧ *ENVIANDO SUS RESULTADOS..*', m)
+
+    const res = await axios.get(NYX_SEARCH_URL, {
+      params: { q: text, apikey: NYX_API_KEY },
+      timeout: 30000,
+      headers: { Accept: 'application/json' }
+    })
+
+    const data = res.data
+    const list = data?.result?.results || data?.result?.resultados || data?.results || []
+
+    const results = (Array.isArray(list) ? list : [])
+      .map(v => ({ ...v, play: toAbsolute(v.video || v.videoWatermarked) }))
+      .filter(v => v.play)
+
+    if (results.length < 2) {
+      if (m.react) await m.react('✖️')
+      return conn.reply(m.chat, 'ꕥ Se requieren al menos 2 resultados válidos con contenido.', m)
+    }
+
+    shuffleArray(results)
+    const topResults = results.slice(0, 7)
+
+    const album = topResults.map(v => {
+      const title = v.title || 'Video TikTok'
+      const author = v.author?.name || v.author?.username || v.author?.nickname || v.author?.unique_id || 'Desconocido'
+      const duration = v.duration ?? 'No disponible'
+
+      return {
+        video: { url: v.play },
+        caption: `✧ RESULTADO DE: ${text}\n\n✐ ${title}\nⴵ Autor » ${author}\n✰ Duración » ${duration} segundos\n\nTikTok Search`
+      }
+    })
 
     try {
-      var searchUrl =
-        NYXDL_TT_SEARCH +
-        '?q=' +
-        encodeURIComponent(query) +
-        '&apikey=' +
-        encodeURIComponent(NYXDL_API_KEY)
-
-      var res = await axios.get(searchUrl, {
-        timeout: 30000,
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-          Accept: 'application/json',
-        },
-      })
-
-      var data = res.data
-      var results =
-        (data && data.result && data.result.results) ||
-        (data && data.result && data.result.resultados) ||
-        (data && data.results) ||
-        []
-
-      if (!Array.isArray(results) || !results.length) {
-        return m.reply('✘ No encontré resultados para *' + query + '*')
+      await conn.sendMessage(m.chat, { album }, { quoted: m })
+    } catch {
+      for (const item of album) {
+        await conn.sendMessage(m.chat, item, { quoted: m })
       }
-
-      var usable = results
-        .map(function (v) {
-          var stats = getStats(v)
-          return {
-            url: toAbsolute(v.video || v.videoWatermarked),
-            title: getTitle(v),
-            author: getAuthor(v),
-            likes: stats.likes,
-            views: stats.views,
-            link: v.url || null,
-          }
-        })
-        .filter(function (v) {
-          return !!v.url
-        })
-        .slice(0, MAX_VIDEOS)
-
-      if (!usable.length) {
-        return m.reply(
-          '✘ Encontré resultados, pero no pude obtener los videos para *' + query + '*'
-        )
-      }
-
-      await m.reply(
-        '✐ Encontré *' + results.length + '* resultados. ᗴᑎᐯIᗩᑎᗪO *' + usable.length + '* ᐯIᗪᗴOՏ...'
-      )
-
-      var album = usable.map(function (v, idx) {
-        var caption =
-          '*ꕤ Tiktoksearch*\n' +
-          '⌗» ' +
-          (idx + 1) +
-          '. ' +
-          v.title +
-          '\n' +
-          '♡ @' +
-          v.author +
-          '\n' +
-          '♡ ' +
-          formatCount(v.likes) +
-          ' Likes  •  ▶ ' +
-          formatCount(v.views) +
-          ' Views'
-
-        return {
-          video: { url: v.url },
-          caption: caption,
-        }
-      })
-
-      await client.sendMessage(m.chat, { album: album }, { quoted: m })
-    } catch (e) {
-      console.log(
-        '[tiktoksearch] ERROR:',
-        e && e.response && e.response.status,
-        (e && e.response && e.response.data) || e.message
-      )
-      m.reply('❌ Error al buscar videos.\n\n' + (e.message || e))
     }
-  },
+
+    if (m.react) await m.react('✔️')
+  } catch (e) {
+    if (m.react) await m.react('✖️')
+    await conn.reply(
+      m.chat,
+      `⚠︎ Se ha producido un problema.\n> Usa *${usedPrefix}report* para informarlo.\n\n🜸 Detalles: ${e.message}`,
+      m
+    )
+  }
 }
+
+handler.help = ['tiktoks <texto|link>', 'tiktoksearch <texto|link>']
+handler.tags = ['search']
+handler.command = ['tiktoks', 'tiktoksearch', 'ttss']
+handler.group = true
+handler.coin = 23
+
+export default handler
