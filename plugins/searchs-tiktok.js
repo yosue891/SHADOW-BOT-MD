@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const NYX_BASE = 'https://nyxdlapi.vercel.app'
-const NYX_APIKEY = 'nyx_shadow'
+const NYX_APIKEY = 'nyx_vDSYgjTlKOOLhz-_XmojwHjvH1_hp5c2'
 
 const handler = async (m, { conn, text, usedPrefix }) => {
   if (!text) {
