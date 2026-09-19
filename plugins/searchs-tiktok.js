@@ -15,8 +15,6 @@ const handler = async (m, { conn, text, usedPrefix }) => {
     )
   }
 
-  // Si el video viene por /api/media de Nyx, se descarga con la key;
-  // si falla, se usa la dirección directa que trae el token.
   async function getVideo(u) {
     if (!u.startsWith(NYX_BASE)) return { url: u }
 
@@ -64,7 +62,6 @@ const handler = async (m, { conn, text, usedPrefix }) => {
 
     const result = json?.result
 
-    // Preferimos la versión sin marca de agua; si no viene, usamos la normal
     let videoUrl = result?.downloadNoWatermark || result?.download
 
     if (!result || !videoUrl) {
