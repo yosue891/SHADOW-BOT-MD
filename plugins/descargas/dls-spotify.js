@@ -12,6 +12,17 @@ function detailOf(e) {
   return parts.join(': ')
 }
 
+async function getBuffer(url) {
+  const res = await axios.get(url, {
+    responseType: 'arraybuffer',
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    },
+    timeout: 60000
+  })
+  return Buffer.from(res.data)
+}
+
 async function fetchSpotify(text) {
   let lastErr
 
@@ -33,20 +44,6 @@ async function fetchSpotify(text) {
         thumbnail: data?.data?.image || data?.thumbnail,
         audioUrl: data?.data?.url || data?.url || data?.data?.download
       })
-    },
-    {
-      url: 'https://dlapixy.vercel.app/api/downloads/spotify',
-      param: 'url',
-      extractor: (data) => {
-        const info = data?.data || data
-        const files = Array.isArray(info?.files) ? info.files : []
-        const audioFile = files.find(f => f?.kind === 'audio' && f?.url) || files.find(f => f?.url)
-        return {
-          title: info?.title,
-          thumbnail: info?.thumbnail,
-          audioUrl: audioFile?.url || info?.downloadUrl || info?.url
-        }
-      }
     }
   ]
 
@@ -62,37 +59,12 @@ async function fetchSpotify(text) {
       if (extracted.audioUrl) {
         return extracted
       }
-
-      lastErr = new Error('Respuesta inválida de la API')
     } catch (err) {
       lastErr = err
     }
   }
 
-  throw lastErr
-}
-
-async function sendAudio(conn, m, fileUrl) {
-  const mimetype = 'audio/mpeg'
-
-  try {
-    await conn.sendMessage(
-      m.chat,
-      { audio: { url: fileUrl }, mimetype },
-      { quoted: m }
-    )
-  } catch {
-    const r = await axios.get(fileUrl, {
-      responseType: 'arraybuffer',
-      timeout: 120000,
-      maxContentLength: 100 * 1024 * 1024
-    })
-    await conn.sendMessage(
-      m.chat,
-      { audio: Buffer.from(r.data), mimetype },
-      { quoted: m }
-    )
-  }
+  throw lastErr || new Error('Ninguna API de Spotify respondió con un enlace válido.')
 }
 
 let handler = async (m, { conn, command, text, usedPrefix }) => {
@@ -116,20 +88,15 @@ let handler = async (m, { conn, command, text, usedPrefix }) => {
 
     const titulo = result.title || 'Sin título'
     const miniatura = result.thumbnail
-
     const mensaje = `🎵 *Título:* ${titulo}\n🌑 Refinado en las sombras`
 
     stage = 'envío de la portada'
 
     if (miniatura) {
       try {
-        await conn.sendMessage(
-          m.chat,
-          { image: { url: miniatura }, caption: mensaje },
-          { quoted: m }
-        )
+        const imgBuffer = await getBuffer(miniatura)
+        await conn.sendMessage(m.chat, { image: imgBuffer, caption: mensaje }, { quoted: m })
       } catch (e) {
-        console.error('Error enviando la portada:', e)
         await conn.reply(m.chat, mensaje, m)
       }
     } else {
@@ -138,13 +105,19 @@ let handler = async (m, { conn, command, text, usedPrefix }) => {
 
     stage = 'envío del audio'
 
-    await sendAudio(conn, m, result.audioUrl)
+    const audioBuffer = await getBuffer(result.audioUrl)
+    await conn.sendMessage(
+      m.chat,
+      { audio: audioBuffer, mimetype: 'audio/mpeg', ptt: false },
+      { quoted: m }
+    )
 
     await m.react('✅')
 
   } catch (error) {
-    console.error(`[spotify] ${stage}:`, error?.response?.status, error?.response?.data || error)
+    console.error(`[SPOTIFY ERROR] Ocurrió en etapa "${stage}":`, error)
     await m.react('❌')
+    
     conn.reply(
       m.chat,
       `🕷️ El ritual falló... no pude procesar tu solicitud.\n\n🜸 Etapa: ${stage}\n🜸 Detalles: ${detailOf(error)}`,
