@@ -1,5 +1,29 @@
-import fetch from 'node-fetch'
-import yts from 'yt-search'
+import axios from 'axios'
+
+const SPOTIFY_API = 'https://dlapixy.vercel.app/api/downloads/spotify'
+
+async function sendAudio(conn, m, file) {
+  const mimetype = file.mimeType || 'audio/mpeg'
+
+  try {
+    await conn.sendMessage(
+      m.chat,
+      { audio: { url: file.url }, mimetype },
+      { quoted: m }
+    )
+  } catch {
+    const r = await axios.get(file.url, {
+      responseType: 'arraybuffer',
+      timeout: 120000,
+      maxContentLength: 100 * 1024 * 1024
+    })
+    await conn.sendMessage(
+      m.chat,
+      { audio: Buffer.from(r.data), mimetype },
+      { quoted: m }
+    )
+  }
+}
 
 let handler = async (m, { conn, command, text, usedPrefix }) => {
   if (!text) {
@@ -14,50 +38,42 @@ let handler = async (m, { conn, command, text, usedPrefix }) => {
   await m.react('🕓')
 
   try {
-    let spotifyURL = text
+    const { data: result } = await axios.get(SPOTIFY_API, {
+      params: { url: text, q: text, query: text },
+      timeout: 60000
+    })
 
-    if (!text.includes('open.spotify.com')) {
-      const search = await yts(text)
+    const files = Array.isArray(result?.files) ? result.files : []
+    const file = files.find(f => f?.kind === 'audio' && f?.url) || files.find(f => f?.url)
 
-      if (!search?.videos?.length) {
-        await m.react('❌')
-        return conn.reply(m.chat, '🕸️ No encontré ninguna canción con ese nombre.', m)
-      }
-
-      const ytUrl = search.videos[0].url
-
-      const convert = await fetch(`https://apiaxi.i11.eu/down/spotify?url=${encodeURIComponent(ytUrl)}`)
-      const convertJson = await convert.json()
-
-      if (!convertJson.status || !convertJson.resultado?.url_dl) {
-        await m.react('❌')
-        return conn.reply(m.chat, '🕸️ No pude convertir esa canción.', m)
-      }
-
-      spotifyURL = ytUrl
-    }
-
-    const response = await fetch(`https://apiaxi.i11.eu/down/spotify?url=${encodeURIComponent(spotifyURL)}`)
-    const result = await response.json()
-
-    if (result.status) {
-      const { titulo, miniatura, url_dl } = result.resultado
-
-      const mensaje = `🎵 *Título:* ${titulo}\n🌑 Refinado en las sombras`
-
-      await conn.sendFile(m.chat, miniatura, 'cover.jpg', mensaje, m)
-
-      await conn.sendMessage(
-        m.chat,
-        { audio: { url: url_dl }, mimetype: 'audio/mpeg' },
-        { quoted: m }
-      )
-
-      await m.react('✅')
-    } else {
+    if (!result?.ok || !file) {
       await m.react('❌')
-      conn.reply(m.chat, '🕸️ No se pudo obtener la música desde las sombras.', m)
+      return conn.reply(m.chat, '🕸️ No se pudo obtener la música desde las sombras.', m)
     }
+
+    const titulo = result.title || 'Sin título'
+    const miniatura = result.thumbnail
+
+    const mensaje = `🎵 *Título:* ${titulo}\n🌑 Refinado en las sombras`
+
+    if (miniatura) {
+      try {
+        await conn.sendMessage(
+          m.chat,
+          { image: { url: miniatura }, caption: mensaje },
+          { quoted: m }
+        )
+      } catch (e) {
+        console.error('Error enviando la portada:', e)
+        await conn.reply(m.chat, mensaje, m)
+      }
+    } else {
+      await conn.reply(m.chat, mensaje, m)
+    }
+
+    await sendAudio(conn, m, file)
+
+    await m.react('✅')
 
   } catch (error) {
     console.error(error)
