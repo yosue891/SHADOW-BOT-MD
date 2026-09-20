@@ -1,12 +1,26 @@
 import fs from 'fs'
 import path from 'path'
 
+const RAIZ = path.join(process.cwd(), 'plugins')
+
+// Lista todos los plugins de plugins/ y sus subcarpetas (categorías).
+function listarPlugins(dir = RAIZ, base = '', out = []) {
+    let entradas = []
+    try { entradas = fs.readdirSync(dir, { withFileTypes: true }) } catch { return out }
+    for (const e of entradas) {
+        if (e.name.startsWith('.')) continue
+        const rel = base ? `${base}/${e.name}` : e.name
+        if (e.isDirectory()) listarPlugins(path.join(dir, e.name), rel, out)
+        else if (e.name.endsWith('.js')) out.push(rel)
+    }
+    return out
+}
+
 let handler = async (m, { conn }) => {
     try {
         await m.react('👁️')
 
-        const pluginsDir = './plugins'
-        const files = fs.readdirSync(pluginsDir).filter(file => file.endsWith('.js'))
+        const files = listarPlugins()
 
         let response = `⚫ *Shadow Garden – Escaneo de Corrupción* ⚫\n\n`
         response += `「 𝘌𝘭 𝘚𝘰𝘮𝘣𝘳𝘢 𝘚𝘶𝘱𝘳𝘦𝘮𝘰 𝘪𝘯𝘪𝘤𝘪𝘢 𝘦𝘭 𝘢𝘯𝘢́𝘭𝘪𝘴𝘪𝘴 」\n\n`
@@ -18,7 +32,7 @@ let handler = async (m, { conn }) => {
 
         for (const file of files) {
             try {
-                await import(path.resolve(pluginsDir, file))
+                await import(path.join(RAIZ, file))
             } catch (error) {
                 hasErrors = true
                 errorCount++

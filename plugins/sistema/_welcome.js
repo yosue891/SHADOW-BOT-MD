@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { WAMessageStubType } from '@whiskeysockets/baileys'
-import { renderWelcomeCard, renderGoodbyeCard } from '../lib/welcome-card.js'
+import { renderWelcomeCard, renderGoodbyeCard } from '../../lib/welcome-card.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const canalId = global.channelRD?.id || '120363403739366547@newsletter'

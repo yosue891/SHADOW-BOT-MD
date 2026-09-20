@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { renderWelcomeCard, renderGoodbyeCard } from '../lib/welcome-card.js'
+import { renderWelcomeCard, renderGoodbyeCard } from '../../lib/welcome-card.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DEFAULT_BG = 'https://u.pone.rs/glqjtzaj.jpg'

@@ -5,7 +5,7 @@ import fetch from "node-fetch"
 import mime from "mime-types"
 import { fileTypeFromBuffer } from "file-type"
 import { downloadMediaMessage, getContentType, generateWAMessageFromContent, proto, generateWAMessage } from "@whiskeysockets/baileys"
-import uploadImage from "../lib/imgdrop.js"
+import uploadImage from "../../lib/imgdrop.js"
 
 const termaiKey = "AIzaBj7z2z3xBjsk"
 const termaiDomain = "https://c.termai.cc"

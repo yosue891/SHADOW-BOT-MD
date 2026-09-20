@@ -1,4 +1,4 @@
-import { canLevelUp, xpRange } from '../lib/levelling.js'
+import { canLevelUp, xpRange } from '../../lib/levelling.js'
 
 let handler = m => m
 handler.before = async function (m, { conn }) {

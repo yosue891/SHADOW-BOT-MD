@@ -1,7 +1,7 @@
 let handler = async (m, { conn }) => {
   await (async () => {
     const crypto = await import('crypto');
-    const { sticker } = await import('../lib/sticker.js');
+    const { sticker } = await import('../../lib/sticker.js');
 
     const stickers = [
       'https://iili.io/K030s44.jpg',

@@ -1,6 +1,6 @@
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1'
 import './settings.js'
-import '../plugins/_fakes.js'
+import '../plugins/sistema/_fakes.js'
 import cfonts from 'cfonts'
 import { createRequire } from 'module'
 import { fileURLToPath, pathToFileURL } from 'url'
@@ -10,7 +10,7 @@ import fs, { readdirSync, statSync, unlinkSync, existsSync, mkdirSync, readFileS
 import yargs from 'yargs'
 import { spawn, execSync } from 'child_process'
 import lodash from 'lodash'
-import { MichiJadiBot } from '../plugins/subs-conexion.js'
+import { MichiJadiBot } from '../plugins/subbots/subs-conexion.js'
 import chalk from 'chalk'
 import syntaxerror from 'syntax-error'
 import { tmpdir } from 'os'
@@ -711,6 +711,44 @@ const pluginFolder = join(__dirname, '../plugins')
 const pluginFilter = (filename) => /\.js$/.test(filename)
 global.plugins = {}
 
+// ── Plugins organizados en carpetas ────────────────────────────────────────
+// plugins/
+//   owner/ ia/ menus/ grupos/ economia/ gacha/ anime/ nsfw/ descargas/
+//   herramientas/ stickers/ fun/ subbots/ registro/ info/ ajustes/
+//   sistema/ pruebas/
+// La clave de cada plugin en global.plugins es su ruta relativa, por ejemplo
+// "grupos/group-kick.js". Los archivos sueltos en la raíz de plugins/ siguen
+// funcionando igual (clave = "archivo.js").
+function scanPluginFiles(dir = pluginFolder, base = '') {
+  const found = []
+  let entries = []
+  try { entries = readdirSync(dir, { withFileTypes: true }) } catch { return found }
+  for (const entry of entries) {
+    if (entry.name.startsWith('.')) continue
+    const rel = base ? `${base}/${entry.name}` : entry.name
+    if (entry.isDirectory()) found.push(...scanPluginFiles(join(dir, entry.name), rel))
+    else if (pluginFilter(entry.name)) found.push(rel)
+  }
+  return found
+}
+
+function sortPlugins() {
+  global.plugins = Object.fromEntries(Object.entries(global.plugins).sort(([a], [b]) => a.localeCompare(b)))
+}
+
+async function loadPluginFile(relPath, cacheBust = false) {
+  const abs = join(pluginFolder, relPath)
+  if (!existsSync(abs)) { delete global.plugins[relPath]; return }
+  try {
+    const url = global.__filename(abs, true)
+    const mod = await import(cacheBust ? `${url}?update=${Date.now()}` : url)
+    global.plugins[relPath] = normalizeOurinPlugin(mod)
+  } catch (e) {
+    conn?.logger?.error?.(`error al cargar plugin '${relPath}': ${e?.message || e}`)
+    delete global.plugins[relPath]
+  }
+}
+
 // Compatibilidad para plugins estilo Ourin (config + handler con sock)
 function wrapOurinHandler(ourinHandler) {
   return async function(m, ctx) {
@@ -768,16 +806,9 @@ function normalizeOurinPlugin(mod) {
   return base
 }
 async function filesInit() {
-for (const filename of readdirSync(pluginFolder).filter(pluginFilter)) {
-try {
-const file = global.__filename(join(pluginFolder, filename))
-const mod = await import(file)
-const normalized = normalizeOurinPlugin(mod)
-global.plugins[filename] = normalized
-} catch (e) {
-conn.logger.error(e)
-delete global.plugins[filename]
-}}}
+for (const relPath of scanPluginFiles()) {
+await loadPluginFile(relPath)
+}}
 await filesInit()
 // Ourin (ourin-baileys) overwrites $protobuf.roots["default"].proto on import,
 // so we must re-apply serialize getters to the new proto (handled in lib/simple.js)
@@ -785,34 +816,54 @@ try { serialize() } catch (e) { console.error('re-serialize after filesInit fail
 console.log(chalk.cyan(`[ ✿ ] Plugins cargados: ${Object.keys(global.plugins).length}`))
 
 global.reload = async (_ev, filename) => {
-if (pluginFilter(filename)) {
-const dir = global.__filename(join(pluginFolder, filename), true);
-if (filename in global.plugins) {
-if (existsSync(dir)) conn.logger.info(` updated plugin - '${filename}'`)
-else {
-conn.logger.warn(`deleted plugin - '${filename}'`)
-return delete global.plugins[filename]
-}} else conn.logger.info(`new plugin - '${filename}'`)
-const err = syntaxerror(readFileSync(dir), filename, {
-sourceType: 'module',
-allowAwaitOutsideFunction: true,
-allowReturnOutsideFunction: true,
-allowImportExportEverywhere: true,
-ecmaVersion: 'latest',
-});
-if (err) conn.logger.error(`syntax error while loading '${filename}'\n${format(err)}`)
-else {
 try {
-const mod = (await import(`${global.__filename(dir)}?update=${Date.now()}`));
-global.plugins[filename] = normalizeOurinPlugin(mod);
-try { if (mod?.config || mod?.default?.config) serialize() } catch {}
+let rel = typeof filename === 'string' ? filename.replace(/\\/g, '/').replace(/^\.\//, '') : ''
+if (rel) {
+if (!pluginFilter(rel)) return
+const existed = rel in global.plugins
+const abs = join(pluginFolder, rel)
+if (!existsSync(abs)) {
+if (existed) conn.logger.warn(`deleted plugin - '${rel}'`)
+delete global.plugins[rel]
+sortPlugins()
+return
+}
+conn.logger.info(`${existed ? 'updated' : 'new'} plugin - '${rel}'`)
+await loadPluginFile(rel, true)
+sortPlugins()
+return
+}
 } catch (e) {
-conn.logger.error(`error require plugin '${filename}\n${format(e)}'`)
-} finally {
-global.plugins = Object.fromEntries(Object.entries(global.plugins).sort(([a], [b]) => a.localeCompare(b)))
-}}}}
+conn?.logger?.error?.(`error al recargar plugin: ${e?.message || e}`)
+}
+// Sin nombre de archivo (por ejemplo, una carpeta nueva): reescanear todo
+try {
+const files = scanPluginFiles()
+const before = Object.keys(global.plugins)
+for (const relPath of files) if (!before.includes(relPath)) { conn.logger.info(`new plugin - '${relPath}'`); await loadPluginFile(relPath) }
+for (const relPath of before) if (!files.includes(relPath)) { conn.logger.warn(`deleted plugin - '${relPath}'`); delete global.plugins[relPath] }
+sortPlugins()
+} catch (e) {
+conn?.logger?.error?.(`error al reescanear plugins: ${e?.message || e}`)
+}
+}
 Object.freeze(global.reload)
-watch(pluginFolder, global.reload)
+// Vigila plugins/ y todas sus subcarpetas (recursive es la vía rápida;
+// si el sistema no lo soporta, se vigila cada carpeta por separado).
+function watchPlugins(dir = pluginFolder) {
+try {
+watch(dir, { recursive: true }, global.reload)
+} catch {
+const walk = (d) => {
+try { watch(d, global.reload) } catch {}
+for (const entry of readdirSync(d, { withFileTypes: true })) {
+if (entry.isDirectory() && !entry.name.startsWith('.')) walk(join(d, entry.name))
+}
+}
+walk(dir)
+}
+}
+watchPlugins()
 await global.reloadHandler()
 async function _quickTest() {
 const test = await Promise.all([

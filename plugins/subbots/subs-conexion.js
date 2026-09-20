@@ -6,7 +6,7 @@ import path from 'path'
 import { fileURLToPath, pathToFileURL } from 'url'
 import pino from 'pino'
 import chalk from 'chalk'
-import { makeWASocket } from '../lib/simple.js'
+import { makeWASocket } from '../../lib/simple.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
