@@ -15,7 +15,7 @@ const config = {
 
   owner: {
     name: "yosue", // Nombre del owner
-    number: ["584242773183", "573133374132"], // Formato: 628xxx (sin + o 0)
+    number: ["584242773183", "573133374132", "584241819270"], // Formato: 628xxx (sin + o 0)
     names: { "573133374132": "Yo Soy Yo" }, // Nombres específicos por número (opcional)
   },
 
