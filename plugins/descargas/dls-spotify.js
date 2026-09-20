@@ -2,6 +2,42 @@ import axios from 'axios'
 
 const SPOTIFY_API = 'https://dlapixy.vercel.app/api/downloads/spotify'
 
+function detailOf(e) {
+  const st = e?.response?.status
+  const body = e?.response?.data
+  const msg = typeof body === 'string'
+    ? body
+    : (body?.error || body?.message || (body ? JSON.stringify(body) : ''))
+  const parts = []
+  if (st) parts.push(`HTTP ${st}`)
+  parts.push(msg ? String(msg).slice(0, 200) : (e?.message || 'Error desconocido'))
+  return parts.join(': ')
+}
+
+async function fetchSpotify(text) {
+  let lastErr
+
+  for (const key of ['url', 'q', 'query']) {
+    try {
+      const { data } = await axios.get(SPOTIFY_API, {
+        params: { [key]: text },
+        timeout: 60000
+      })
+
+      const files = Array.isArray(data?.files) ? data.files : []
+      if (data?.ok && files.some(f => f?.url)) return data
+
+      lastErr = new Error(data?.error || data?.message || 'La API no devolvió audio')
+    } catch (err) {
+      lastErr = err
+      const st = err?.response?.status
+      if (!st || st >= 500 || st === 401 || st === 403 || st === 429) throw err
+    }
+  }
+
+  throw lastErr
+}
+
 async function sendAudio(conn, m, file) {
   const mimetype = file.mimeType || 'audio/mpeg'
 
@@ -37,24 +73,20 @@ let handler = async (m, { conn, command, text, usedPrefix }) => {
 
   await m.react('🕓')
 
+  let stage = 'consulta a la API'
+
   try {
-    const { data: result } = await axios.get(SPOTIFY_API, {
-      params: { url: text, q: text, query: text },
-      timeout: 60000
-    })
+    const result = await fetchSpotify(text)
 
-    const files = Array.isArray(result?.files) ? result.files : []
+    const files = result.files
     const file = files.find(f => f?.kind === 'audio' && f?.url) || files.find(f => f?.url)
-
-    if (!result?.ok || !file) {
-      await m.react('❌')
-      return conn.reply(m.chat, '🕸️ No se pudo obtener la música desde las sombras.', m)
-    }
 
     const titulo = result.title || 'Sin título'
     const miniatura = result.thumbnail
 
     const mensaje = `🎵 *Título:* ${titulo}\n🌑 Refinado en las sombras`
+
+    stage = 'envío de la portada'
 
     if (miniatura) {
       try {
@@ -71,14 +103,20 @@ let handler = async (m, { conn, command, text, usedPrefix }) => {
       await conn.reply(m.chat, mensaje, m)
     }
 
+    stage = 'envío del audio'
+
     await sendAudio(conn, m, file)
 
     await m.react('✅')
 
   } catch (error) {
-    console.error(error)
+    console.error(`[spotify] ${stage}:`, error?.response?.status, error?.response?.data || error)
     await m.react('❌')
-    conn.reply(m.chat, '🕷️ El ritual falló... no pude procesar tu solicitud.', m)
+    conn.reply(
+      m.chat,
+      `🕷️ El ritual falló... no pude procesar tu solicitud.\n\n🜸 Etapa: ${stage}\n🜸 Detalles: ${detailOf(error)}`,
+      m
+    )
   }
 }
 
