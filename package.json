@@ -11,7 +11,7 @@
   },
   "scripts": {
     "start": "node src/index.js",
-    "test": "node --test tests/",
+    "test": "node -e \"const {existsSync}=require('fs'), cp=require('child_process'); if(!existsSync('tests')){console.log('Sin tests definidos (no existe la carpeta tests/)');process.exit(0)} process.exit(cp.spawnSync(process.execPath,['--test','tests/'],{stdio:'inherit'}).status ?? 1)\"",
     "postinstall": "node tools/fix-baileys.cjs"
   },
   "repository": {
