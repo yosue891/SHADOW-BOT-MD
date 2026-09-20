@@ -1,7 +1,3 @@
-/*
-	* Adaptado al sistema del bot original
-	* Basado en el código de Fede Uchiha / the-xyzz
-*/
 import { generateWAMessageContent, generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
 
 let handler = async (m, { conn, command, args, text }) => {
