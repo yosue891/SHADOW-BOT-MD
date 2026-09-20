@@ -26,20 +26,9 @@ let handler = async (m, { conn, usedPrefix }) => {
     }
     
     if (m.isGroup) {
-        let pp = 'https://adofiles.i11.eu/dl/entd.mp4'; 
-        let pp2 = 'https://adofiles.i11.eu/dl/6ztu.mp4'; 
-        let pp3 = 'https://adofiles.i11.eu/dl/6iya.mp4';
-        let pp4 = 'https://adofiles.i11.eu/dl/w5bg.mp4';
-        let pp5 = 'https://adofiles.i11.eu/dl/brpr.mp4';
-        let pp6 = 'https://adofiles.i11.eu/dl/bpek.mp4';
-        let pp7 = 'https://adofiles.i11.eu/dl/uo63.mp4';
-        let pp8 = 'https://adofiles.i11.eu/dl/7udw.mp4';
-        
-        const videos = [pp, pp2, pp3, pp4, pp5, pp6, pp7, pp8];
-        const video = videos[Math.floor(Math.random() * videos.length)];
-
+        // GIFs eliminados: las URLs (adofiles.i11.eu) ya no funcionan (402).
         let mentions = [who];
-        conn.sendMessage(m.chat, { video: { url: video }, gifPlayback: true, caption: str, mentions }, { quoted: m });
+        await conn.sendMessage(m.chat, { text: str, mentions }, { quoted: m });
     }
 }
 

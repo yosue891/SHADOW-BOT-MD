@@ -24,27 +24,10 @@ let handler = async (m, { conn, usedPrefix}) => {
 }
 
     if (m.isGroup) {
-        let v1 = 'https://adofiles.i11.eu/dl/ths5.mp4';
-        let v2 = 'https://adofiles.i11.eu/dl/y3dj.mp4';
-        let v3 = 'https://adofiles.i11.eu/dl/d24u.mp4';
-        let v4 = 'https://adofiles.i11.eu/dl/604q.mp4';
-        let v5 = 'https://adofiles.i11.eu/dl/6820.mp4';
-        let v6 = 'https://adofiles.i11.eu/dl/53o5.mp4';
-        let v7 = 'https://adofiles.i11.eu/dl/6820.mp4';
-        let v8 = 'https://adofiles.i11.eu/dl/53o5.mp4';
-        let v9 = 'https://adofiles.i11.eu/dl/604q.mp4';
-
-        const videos = [v1, v2, v3, v4, v5, v6, v7, v8, v9];
-        const video = videos[Math.floor(Math.random() * videos.length)];
-
+        // GIFs eliminados: las URLs (adofiles.i11.eu) ya no funcionan (402).
         let mentions = [who];
-        conn.sendMessage(m.chat, {
-            video: { url: video},
-            gifPlayback: true,
-            caption: str,
-            mentions
-}, { quoted: m});
-}
+        await conn.sendMessage(m.chat, { text: str, mentions }, { quoted: m });
+    }
 };
 
 handler.help = ['morder @tag'];

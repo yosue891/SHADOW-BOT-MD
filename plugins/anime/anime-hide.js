@@ -26,10 +26,9 @@ let handler = async (m, { conn, usedPrefix }) => {
     }
     
     if (m.isGroup) {
-        let imagen = 'https://i.ibb.co/3NfYh9k/default-avatar.png';
-
+        // Imagen eliminada: i.ibb.co/3NfYh9k/default-avatar.png ya no existe (404).
         let mentions = [who];
-        conn.sendMessage(m.chat, { image: { url: imagen }, caption: str, mentions }, { quoted: m });
+        await conn.sendMessage(m.chat, { text: str, mentions }, { quoted: m });
     }
 }
 
