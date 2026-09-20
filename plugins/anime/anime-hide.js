@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { enviarReaccionAnime } from '../../lib/anime-media.js'
 
 let handler = async (m, { conn, usedPrefix }) => {
     let who;
@@ -26,9 +27,13 @@ let handler = async (m, { conn, usedPrefix }) => {
     }
     
     if (m.isGroup) {
-        // Imagen eliminada: i.ibb.co/3NfYh9k/default-avatar.png ya no existe (404).
-        let mentions = [who];
-        await conn.sendMessage(m.chat, { text: str, mentions }, { quoted: m });
+        try {
+            // GIF aleatorio desde APIs de anime (con respaldo entre proveedores)
+            await enviarReaccionAnime(conn, m, { reaccion: 'peek', caption: str, mentions: [who] });
+        } catch (e) {
+            // Si todas las APIs fallan, el comando responde igual con texto
+            await conn.sendMessage(m.chat, { text: str, mentions: [who] }, { quoted: m });
+        }
     }
 }
 
