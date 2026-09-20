@@ -1,5 +1,4 @@
-import fs from 'fs'
-import path from 'path'
+import { enviarReaccionAnime } from '../../lib/anime-media.js'
 
 let handler = async (m, { conn, usedPrefix }) => {
   let who
@@ -26,26 +25,12 @@ let handler = async (m, { conn, usedPrefix }) => {
   }
 
   if (m.isGroup) {
-    // Lista de videos disponibles
-    const videos = [
-      'https://files.catbox.moe/0p0gsn.mp4',
-      'https://files.catbox.moe/me6rsr.mp4',
-      'https://files.catbox.moe/untes1.mp4',
-      'https://files.catbox.moe/8af0gd.mp4',
-      'https://files.catbox.moe/z27nnd.mp4',
-      'https://files.catbox.moe/c5fxap.mp4',
-      'https://files.catbox.moe/2c3ejd.mp4'
-    ]
-
-    // Selección aleatoria
-    const video = videos[Math.floor(Math.random() * videos.length)]
-
-    let mentions = [who]
-    await conn.sendMessage(
-      m.chat,
-      { video: { url: video }, gifPlayback: true, caption: str, mentions },
-      { quoted: m }
-    )
+    try {
+      await enviarReaccionAnime(conn, m, { reaccion: 'kiss', caption: str, mentions: [who] })
+    } catch (e) {
+      console.error('[anime-kiss2] no se pudo enviar el GIF:', e.message)
+      await conn.sendMessage(m.chat, { text: str, mentions: [who] }, { quoted: m })
+    }
   }
 }
 

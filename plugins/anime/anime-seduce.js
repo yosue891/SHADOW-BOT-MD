@@ -1,5 +1,4 @@
-import fs from 'fs';
-import path from 'path';
+import { enviarReaccionAnime } from '../../lib/anime-media.js'
 
 let handler = async (m, { conn, usedPrefix }) => {
     let who;
@@ -26,20 +25,12 @@ let handler = async (m, { conn, usedPrefix }) => {
     }
     
     if (m.isGroup) { 
-        let pp = 'https://files.catbox.moe/fbdzd6.mp4';
-        let pp2 = 'https://files.catbox.moe/zjzyel.mp4';
-        let pp3 = 'https://files.catbox.moe/bh2rrj.mp4';
-        let pp4 = 'https://files.catbox.moe/37sjyk.mp4';
-        let pp5 = 'https://files.catbox.moe/5kaz6r.mp4';
-        let pp6 = 'https://files.catbox.moe/fbdzd6.mp4';
-        let pp7 = 'https://files.catbox.moe/zjzyel.mp4';
-        let pp8 = 'https://files.catbox.moe/bh2rrj.mp4';
-
-        const videos = [pp, pp2, pp3, pp4, pp5, pp6, pp7, pp8];
-        const video = videos[Math.floor(Math.random() * videos.length)];
-
-        let mentions = [who];
-        conn.sendMessage(m.chat, { video: { url: video }, gifPlayback: true, caption: str, mentions }, { quoted: m });
+        try {
+            await enviarReaccionAnime(conn, m, { reaccion: 'seduce', caption: str, mentions: [who] });
+        } catch (e) {
+            console.error('[anime-seduce] no se pudo enviar el GIF:', e.message)
+            await conn.sendMessage(m.chat, { text: str, mentions: [who] }, { quoted: m });
+        }
     }
 }
 

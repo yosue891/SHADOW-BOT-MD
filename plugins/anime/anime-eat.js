@@ -1,5 +1,4 @@
-import fs from 'fs';
-import path from 'path';
+import { enviarReaccionAnime } from '../../lib/anime-media.js'
 
 let handler = async (m, { conn, usedPrefix }) => {
     let who;
@@ -26,18 +25,12 @@ let handler = async (m, { conn, usedPrefix }) => {
     }
     
     if (m.isGroup) {
-        let pp = 'https://files.catbox.moe/a67a4g.mp4'; 
-        let pp2 = 'https://files.catbox.moe/rzms6b.mp4'; 
-        let pp3 = 'https://files.catbox.moe/j6akt5.mp4';
-        let pp4 = 'https://files.catbox.moe/oew6da.mp4';
-        let pp5 = 'https://files.catbox.moe/mappcr.mp4';
-        let pp6 = 'https://files.catbox.moe/v6b8cq.mp4';
-        
-        const videos = [pp, pp2, pp3, pp4, pp5, pp6];
-        const video = videos[Math.floor(Math.random() * videos.length)];
-
-        let mentions = [who];
-        conn.sendMessage(m.chat, { video: { url: video }, gifPlayback: true, caption: str, mentions }, { quoted: m });
+        try {
+            await enviarReaccionAnime(conn, m, { reaccion: 'nom', caption: str, mentions: [who] });
+        } catch (e) {
+            console.error('[anime-eat] no se pudo enviar el GIF:', e.message)
+            await conn.sendMessage(m.chat, { text: str, mentions: [who] }, { quoted: m });
+        }
     }
 }
 

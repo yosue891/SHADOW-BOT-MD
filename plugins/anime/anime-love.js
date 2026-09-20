@@ -1,5 +1,4 @@
-import fs from 'fs';
-import path from 'path';
+import { enviarReaccionAnime } from '../../lib/anime-media.js'
 
 let handler = async (m, { conn, usedPrefix }) => {
     let who;
@@ -26,21 +25,12 @@ let handler = async (m, { conn, usedPrefix }) => {
     }
     
     if (m.isGroup) {
-        let pp = 'https://telegra.ph/file/5fbd60c40ab190ecc8e1c.mp4'; 
-        let pp2 = 'https://telegra.ph/file/ca30d358d292674698b40.mp4'; 
-        let pp3 = 'https://telegra.ph/file/25f88386dd7d4d6df36fa.mp4';
-        let pp4 = 'https://telegra.ph/file/eb63131df0de6b47c7ab7.mp4';
-        let pp5 = 'https://telegra.ph/file/209990ee46c645506a5fc.mp4';
-        let pp6 = 'https://telegra.ph/file/440f276fcbb2d04cbf1d1.mp4';
-        let pp7 = 'https://telegra.ph/file/42cea67d9b013ed9a9cd0.mp4';
-        let pp8 = 'https://telegra.ph/file/bc0f47b8f3fb9470bc918.mp4';
-        let pp9 = 'https://telegra.ph/file/79ae875090b64ab247b7a.mp4';
-        
-        const videos = [pp, pp2, pp3, pp4, pp5, pp6, pp7, pp8, pp9];
-        const video = videos[Math.floor(Math.random() * videos.length)];
-
-        let mentions = [who];
-        conn.sendMessage(m.chat, { video: { url: video }, gifPlayback: true, caption: str, mentions }, { quoted: m });
+        try {
+            await enviarReaccionAnime(conn, m, { reaccion: 'love', caption: str, mentions: [who] });
+        } catch (e) {
+            console.error('[anime-love] no se pudo enviar el GIF:', e.message)
+            await conn.sendMessage(m.chat, { text: str, mentions: [who] }, { quoted: m });
+        }
     }
 }
 

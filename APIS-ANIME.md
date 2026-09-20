@@ -32,7 +32,16 @@ Si falla, hay respaldo de acción violenta/punch.
 | `stare` | ✅ | ✅ | ✅ | — | — |
 | `pat` | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `yawn` | ✅ | ✅ | ✅ | — | — |
-| `smoke` | ❌ | ❌ | ❌ | ❌ | ❌ |
+| `happy` | ✅ | ✅ | ✅ | — | — |
+| `laugh` | ✅ | ✅ | ✅ | — | — |
+| `pout` | ✅ | ✅ | ✅ | — | — |
+| `sad` | — | ✅ | ✅ | — | — |
+| `love` | ✅ (blush) | ✅ | ✅ (blush) | — | — |
+| `seduce` | ✅ (smug) | ✅ (smug) | ✅ (smug) | — | — |
+| `kisscheek` | ✅ (`kiss?type=cheek`) | ✅ (airkiss) | ✅ (peck) | — | — |
+| `sip` | ✅ | — | ✅ | — | — |
+| `preg` | ✅ (carry) | — | ✅ (carry) | — | — |
+| `smoke` |  | ❌ |  | ❌ |  |
 
 > **`smoke` (fumar):** ninguna API de reacciones lo tiene. El comando responde solo con texto.
 
@@ -42,7 +51,7 @@ Si falla, hay respaldo de acción violenta/punch.
 
 | API | Formato de URL | Notas |
 |---|---|---|
-| **gifukai** | `https://api.gifukai.com/<accion>` | 68 acciones (`kill`, `peek`, `lappillow`, `stare`, `pat`, `bite`, `pun`…) + filtros por género (`?pairing=ff`, `mm`, `fm`, `mf`). Devuelve `anime` de origen. |
+| **gifukai** | `https://api.gifukai.com/<accion>` | 68 acciones (`kill`, `peek`, `lappillow`, `stare`, `pat`, `bite`, `pun`…) + filtros por género (`?pairing=ff`, `mm`, `fm`, `mf`) y por tipo en `kiss` (`?type=cheek`). Devuelve `anime` de origen. Catálogo: `https://api.gifukai.com/actions`. |
 | **otakugifs** | `https://api.otakugifs.xyz/gif?reaction=<x>` | ~70 reacciones (`bite`, `cuddle`, `yawn`, `nuzzle`, `stare`, `peek`…). Sin `kill`. |
 | **nekos.best** | `https://nekos.best/api/v2/<x>` | 63 reacciones + nombre del anime. **Exige User-Agent propio**: rechaza los que empiezan con `Mozilla/5.0 (compatible;`. |
 | **purrbot** | `https://purrbot.site/api/img/sfw/<x>/gif` | `cuddle`, `bite`, `pat`, `kiss`, `hug`. |

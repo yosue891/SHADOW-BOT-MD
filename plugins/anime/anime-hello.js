@@ -1,3 +1,5 @@
+import { enviarReaccionAnime } from '../../lib/anime-media.js'
+
 let handler = async (m, { conn }) => {
   try {
     const getTargetJid = () => {
@@ -33,31 +35,8 @@ let handler = async (m, { conn }) => {
       caption = `\`${name2}\` *saluda a todos los integrantes del grupo, ¿cómo se encuentran?*`
     }
 
-    const videos = [
-      'https://files.catbox.moe/2akfd1.mp4',
-      'https://files.catbox.moe/95gidx.mp4',
-      'https://files.catbox.moe/f31dxs.mp4',
-      'https://files.catbox.moe/ia2xt1.mp4',
-      'https://files.catbox.moe/5p0m2e.mp4',
-      'https://files.catbox.moe/2akfd1.mp4',
-      'https://files.catbox.moe/u1ljt8.mp4',
-      'https://files.catbox.moe/d9z71j.mp4',
-      'https://files.catbox.moe/ng6lk2.mp4',
-      'https://files.catbox.moe/s7fm8r.mp4'
-    ]
-    const video = videos[Math.floor(Math.random() * videos.length)]
-
     const mentions = who ? [who] : []
-    await conn.sendMessage(
-      m.chat,
-      {
-        video: { url: video },
-        gifPlayback: true,
-        caption,
-        mentions
-      },
-      { quoted: m }
-    )
+    await enviarReaccionAnime(conn, m, { reaccion: 'hi', caption, mentions })
   } catch (err) {
     await conn.sendMessage(m.chat, { text: `☽ Error en hola: ${err.message}` }, { quoted: m })
   }

@@ -1,4 +1,4 @@
-import path from 'path';
+import { enviarReaccionAnime } from '../../lib/anime-media.js'
 
 let handler = async (m, { conn, usedPrefix }) => {
     let who;
@@ -25,19 +25,12 @@ let handler = async (m, { conn, usedPrefix }) => {
     }
     
     if (m.isGroup) {
-        let videos = [
-            'https://files.catbox.moe/0d6p41.mp4',
-            'https://files.catbox.moe/q6x7r2.mp4',
-            'https://files.catbox.moe/5cavi9.mp4',
-            'https://files.catbox.moe/a2w8n2.mp4',
-            'https://files.catbox.moe/vwjq3x.mp4',
-            'https://files.catbox.moe/t2depk.mp4',
-            'https://files.catbox.moe/iis5be.mp4'
-        ];
-        const video = videos[Math.floor(Math.random() * videos.length)];
-
-        let mentions = [who];
-        conn.sendMessage(m.chat, { video: { url: video }, gifPlayback: true, caption: str, mentions }, { quoted: m });
+        try {
+            await enviarReaccionAnime(conn, m, { reaccion: 'kisscheek', caption: str, mentions: [who] });
+        } catch (e) {
+            console.error('[anime-kisscheek] no se pudo enviar el GIF:', e.message)
+            await conn.sendMessage(m.chat, { text: str, mentions: [who] }, { quoted: m });
+        }
     }
 }
 

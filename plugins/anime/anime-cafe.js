@@ -1,5 +1,4 @@
-import fs from 'fs';
-import path from 'path';
+import { enviarReaccionAnime } from '../../lib/anime-media.js'
 
 let handler = async (m, { conn, usedPrefix }) => {
     let who;
@@ -24,24 +23,14 @@ let handler = async (m, { conn, usedPrefix }) => {
     }
 
     if (m.isGroup) {
-        const videos = [
-            'https://files.catbox.moe/k6bzj0.mp4', 
-            'https://files.catbox.moe/3pj3nx.mp4', 
-            'https://files.catbox.moe/wcpe4z.mp4',
-            'https://files.catbox.moe/64t3cf.mp4',
-            'https://files.catbox.moe/qy1qmo.mp4',
-            'https://files.catbox.moe/va1mu7.mp4',
-            'https://files.catbox.moe/zqqre3.mp4',
-            'https://files.catbox.moe/duydzw.mp4',
-            'https://files.catbox.moe/4mn95m.mp4'
-        ];
-
-        const video = videos[Math.floor(Math.random() * videos.length)];
-
-        let mentions = [who];
-        conn.sendMessage(m.chat, { video: { url: video }, gifPlayback: true, caption: str, mentions }, { quoted: m });
+        try {
+            await enviarReaccionAnime(conn, m, { reaccion: 'sip', caption: str, mentions: [who] });
+        } catch (e) {
+            console.error('[anime-cafe] no se pudo enviar el GIF:', e.message)
+            await conn.sendMessage(m.chat, { text: str, mentions: [who] }, { quoted: m });
+        }
     } else {
-        conn.sendMessage(m.chat, { text: str }, { quoted: m });
+        await conn.sendMessage(m.chat, { text: str }, { quoted: m });
     }
 };
 
