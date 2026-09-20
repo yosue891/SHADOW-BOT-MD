@@ -1,31 +1,32 @@
 import axios from "axios";
-import {
-  generateWAMessageContent,
-  generateWAMessageFromContent,
-  proto
-} from "@whiskeysockets/baileys";
+
+const NYX_PIN_URL = "https://nyxdlapi.vercel.app/api/search/pinterest";
+const NYX_API_KEY = "nyx_41yhfMefym8Jf09qN400MX9Xopw_ERDN";
 
 async function pinterestSearchV2(query) {
   try {
     const limit = 10;
-    const apiUrl = `https://tester-web.onrender.com/api/pinterest?query=${encodeURIComponent(query)}&limit=${limit}`;
 
-    const { data } = await axios.get(apiUrl, {
+    const { data } = await axios.get(NYX_PIN_URL, {
+      params: { q: query, query, limit, apikey: NYX_API_KEY },
       headers: {
         "User-Agent": "Mozilla/5.0"
       },
       timeout: 30000
     });
 
-    if (!data?.status || !Array.isArray(data.results)) return [];
+    const list = data?.result?.results || data?.results;
 
-    return data.results
-      .filter(v => v?.tipo === "imagen" && v?.descarga)
+    if (!data?.status || !Array.isArray(list)) return [];
+
+    return list
+      .filter(v => (!v?.tipo || /imagen|image/i.test(v.tipo)) && (v?.descarga || v?.image || v?.download))
+      .slice(0, limit)
       .map((v, i) => ({
         title: v.titulo || `Imagen de Pinterest ${i + 1}`,
         author: v.autor || "Desconocido",
         likes: v.likes || "0",
-        image: v.descarga,
+        image: v.descarga || v.image || v.download,
         pinUrl: v.url || "https://pinterest.com"
       }));
   } catch (error) {
@@ -63,95 +64,27 @@ let handler = async (m, { conn, text }) => {
       );
     }
 
-    const cards = [];
-    let counter = 1;
+    const album = results.map((item, i) => {
+      const head = i === 0 ? `📎 *Sombras encontradas para:* ${text}\n\n` : "";
+      const foot = i === results.length - 1 ? `\n☽ Imágenes procesadas por el Reino de las Sombras` : "";
 
-    for (const item of results) {
-      try {
-        const media = await generateWAMessageContent(
-          {
-            image: {
-              url: item.image
-            }
-          },
-          {
-            upload: conn.waUploadToServer
-          }
-        );
-
-        cards.push({
-          body: {
-            text: `☽ Imagen sombría ${counter++}\n𖣔 Autor: ${item.author}\n𖣔 Likes: ${item.likes}`
-          },
-          footer: {
-            text: "✦ Las sombras te entregan este hallazgo"
-          },
-          header: {
-            title: item.title,
-            hasMediaAttachment: true,
-            imageMessage: media.imageMessage
-          },
-          nativeFlowMessage: {
-            buttons: [
-              {
-                name: "cta_url",
-                buttonParamsJson: JSON.stringify({
-                  display_text: "Ver en Pinterest",
-                  url: item.pinUrl,
-                  merchant_url: item.pinUrl
-                })
-              }
-            ]
-          }
-        });
-      } catch (err) {
-        console.error("Error creando card de Pinterest:", err);
-      }
-    }
-
-    if (!cards.length) {
-      await m.react("❌");
-      return conn.reply(
-        m.chat,
-        `☽ No se pudieron procesar las imágenes encontradas.`,
-        m
-      );
-    }
-
-    const msg = generateWAMessageFromContent(
-      m.chat,
-      {
-        viewOnceMessage: {
-          message: {
-            messageContextInfo: {
-              deviceListMetadata: {},
-              deviceListMetadataVersion: 2
-            },
-            interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-              body: {
-                text: `📎 *Sombras encontradas para:* ${text}`
-              },
-              footer: {
-                text: "☽ Imágenes procesadas por el Reino de las Sombras"
-              },
-              header: {
-                hasMediaAttachment: false
-              },
-              carouselMessage: {
-                cards
-              }
-            })
-          }
-        }
-      },
-      {
-        quoted: m
-      }
-    );
-
-    await conn.relayMessage(m.chat, msg.message, {
-      messageId: msg.key.id
+      return {
+        image: { url: item.image },
+        caption: `${head}☽ Imagen sombría ${i + 1}\n𖣔 Título: ${item.title}\n𖣔 Autor: ${item.author}\n𖣔 Likes: ${item.likes}\n𖣔 Pinterest: ${item.pinUrl}\n\n✦ Las sombras te entregan este hallazgo${foot}`
+      };
     });
+
+    try {
+      if (album.length === 1) {
+        await conn.sendMessage(m.chat, album[0], { quoted: m });
+      } else {
+        await conn.sendMessage(m.chat, { album }, { quoted: m });
+      }
+    } catch {
+      for (const item of album) {
+        await conn.sendMessage(m.chat, item, { quoted: m });
+      }
+    }
 
     await m.react("✅");
   } catch (e) {
