@@ -1,3 +1,4 @@
+
 // Ohh sí, para quienes quieran apoyar más el script ourin
 // pueden donar a través de qris: https://imgdrop.web.id/KodpV.webp
 // Gracias por seguir usando este script hasta ahora :b
@@ -14,7 +15,7 @@ const config = {
 
   owner: {
     name: "yosue", // Nombre del owner
-    number: ["584242773183", "573133374132", ""], // Formato: 628xxx (sin + o 0) — agrega más números aquí
+    number: ["584242773183", "573133374132"], // Formato: 628xxx (sin + o 0)
     names: { "573133374132": "Yo Soy Yo" }, // Nombres específicos por número (opcional)
   },
 
