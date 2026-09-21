@@ -6,6 +6,39 @@ const CAFE_VIDEOS = [
   'https://u.pone.rs/cwurrbtn.mp4'
 ]
 
+const UA = 'ShadowBot/1.0 (+https://github.com/yosue891/SHADOW-BOT-MD)'
+
+function mezclar(lista) {
+  const c = [...lista]
+  for (let i = c.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[c[i], c[j]] = [c[j], c[i]]
+  }
+  return c
+}
+
+function esMp4Valido(buf) {
+  if (!buf || buf.length < 1024) return false
+  const ascii = buf.subarray(4, 8).toString('ascii')
+  if (ascii === 'ftyp') return true
+  if (buf.subarray(0, 4).toString('ascii').startsWith('GIF8')) return true
+  return false
+}
+
+async function descargarVideo(url) {
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), 20000)
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': UA }, signal: ctrl.signal })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const buf = Buffer.from(await res.arrayBuffer())
+    if (!esMp4Valido(buf)) throw new Error('no es video válido')
+    return buf
+  } finally {
+    clearTimeout(t)
+  }
+}
+
 let handler = async (m, { conn, usedPrefix }) => {
     let who;
 
@@ -29,11 +62,31 @@ let handler = async (m, { conn, usedPrefix }) => {
     }
 
     if (m.isGroup) {
-        try {
-            const video = CAFE_VIDEOS[Math.floor(Math.random() * CAFE_VIDEOS.length)]
-            await conn.sendMessage(m.chat, { video: { url: video }, mimetype: 'video/mp4', gifPlayback: true, caption: str, mentions: [who] }, { quoted: m });
-        } catch (e) {
-            console.error('[anime-cafe] no se pudo enviar el video:', e.message)
+        // Se descarga en el bot y se manda el buffer (no la URL): así no
+        // depende de que los servidores de WhatsApp puedan descargar pone.rs.
+        // Se prueban los videos en orden aleatorio hasta que uno funcione.
+        let enviado = false
+        let ultimoError = null
+        for (const url of mezclar(CAFE_VIDEOS)) {
+            try {
+                const buf = await descargarVideo(url)
+                try {
+                    await conn.sendMessage(m.chat, { video: buf, mimetype: 'video/mp4', gifPlayback: true, caption: str, mentions: [who] }, { quoted: m });
+                } catch (e) {
+                    // Si falla como GIF, reintento como video normal
+                    console.warn('[anime-cafe] gifPlayback falló, reintento sin gifPlayback:', e.message)
+                    await conn.sendMessage(m.chat, { video: buf, mimetype: 'video/mp4', caption: str, mentions: [who] }, { quoted: m });
+                }
+                console.log(`[anime-cafe] enviado ${url} (${Math.round(buf.length / 1024)} KB)`)
+                enviado = true
+                break
+            } catch (e) {
+                ultimoError = e
+                console.warn('[anime-cafe] falló', url, ':', e.message)
+            }
+        }
+        if (!enviado) {
+            console.error('[anime-cafe] ningún video funcionó:', ultimoError?.message)
             await conn.sendMessage(m.chat, { text: str, mentions: [who] }, { quoted: m });
         }
     } else {
