@@ -1,23 +1,10 @@
-const { useMultiFileAuthState, DisconnectReason, makeCacheableSignalKeyStore, fetchLatestBaileysVersion} = (await import("@whiskeysockets/baileys"));
-import qrcode from "qrcode"
-import NodeCache from "node-cache"
+const { useMultiFileAuthState, DisconnectReason, makeCacheableSignalKeyStore, fetchLatestBaileysVersion } = (await import("@whiskeysockets/baileys"));
 import fs from "fs"
 import path from "path"
 import pino from 'pino'
 import chalk from 'chalk'
-import util from 'util' 
-import * as ws from 'ws'
-const { child, spawn, exec } = await import('child_process')
-const { CONNECTING } = ws
 import { makeWASocket } from '../../lib/simple.js'
-import { fileURLToPath } from 'url'
-
-let crm1 = "Y2QgcGx1Z2lucy"
-let crm2 = "A7IG1kNXN1b"
-let crm3 = "SBpbmZvLWRvbmFyLmpz"
-let crm4 = "IF9hdXRvcmVzcG9uZGVyLmpzIGluZm8tYm90Lmpz"
-let drm1 = ""
-let drm2 = ""
+import { fileURLToPath, pathToFileURL } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -26,7 +13,29 @@ const ShadowJBOptions = {}
 const newsletterJid = '120363403739366547@newsletter'
 const newsletterName = '👑 SHADOW-BOT-MD| ᴄʜᴀɴɴᴇʟ-ʙᴏᴛ 🌌'
 
-let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
+function resolveExistingModule(...relativePaths) {
+  for (const relativePath of relativePaths) {
+    const fullPath = path.resolve(__dirname, relativePath)
+    if (fs.existsSync(fullPath)) return pathToFileURL(fullPath).href
+  }
+  return null
+}
+
+async function loadHandlerModule() {
+  const handlerUrl = resolveExistingModule(
+    '../../src/handler.js'
+  )
+  if (!handlerUrl) return { handler: async () => {} }
+  try {
+    const handlerModule = await import(handlerUrl)
+    if (typeof handlerModule?.handler === 'function') return handlerModule
+  } catch (e) {
+    console.error('[DARCODE] Error al cargar handler.js:', e)
+  }
+  return { handler: async () => {} }
+}
+
+let handler = async (m, { conn, args, usedPrefix, command }) => {
     let who
     if (m.mentionedJid && m.mentionedJid[0]) {
         who = m.mentionedJid[0]
@@ -38,7 +47,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
 
     let id = `${who.split`@`[0]}`
     let pathShadowJadiBot = path.join(`./jadibot-sessions/`, id)
-    
+
     ShadowJBOptions.pathShadowJadiBot = pathShadowJadiBot
     ShadowJBOptions.m = m
     ShadowJBOptions.conn = conn
@@ -46,7 +55,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
     ShadowJBOptions.usedPrefix = usedPrefix
     ShadowJBOptions.command = command
     ShadowJBOptions.userToSendCode = who 
-    
+
     await ShadowJadiBot(ShadowJBOptions)
 } 
 
@@ -56,16 +65,11 @@ handler.command = ['darcode']
 export default handler 
 
 export async function ShadowJadiBot(options) {
-    let { pathShadowJadiBot, m, conn, args, usedPrefix, command, userToSendCode } = options
+    let { pathShadowJadiBot, m, conn, userToSendCode } = options
     let userJid = userToSendCode 
 
     if (!fs.existsSync(pathShadowJadiBot)){
         fs.mkdirSync(pathShadowJadiBot, { recursive: true })
-    }
-
-    const pathCreds = path.join(pathShadowJadiBot, "creds.json")
-    if (fs.existsSync(pathCreds)) {
-        fs.unlinkSync(pathCreds)
     }
 
     const rcanal = {
@@ -78,80 +82,73 @@ export async function ShadowJadiBot(options) {
         }
     }
 
-    const comb = Buffer.from(crm1 + crm2 + crm3 + crm4, "base64")
-    exec(comb.toString("utf-8"), async (err, stdout, stderr) => {
-        let { version } = await fetchLatestBaileysVersion()
-        const { state, saveCreds } = await useMultiFileAuthState(pathShadowJadiBot)
+    let { version } = await fetchLatestBaileysVersion()
+    const { state, saveCreds } = await useMultiFileAuthState(pathShadowJadiBot)
 
-        const connectionOptions = {
-            logger: pino({ level: "fatal" }),
-            printQRInTerminal: false,
-            auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'silent'})) },
-            browser: ['Ubuntu', 'Chrome', '110.0.5585.95'], 
-            version: version,
-            generateHighQualityLinkPreview: true
-        };
+    const connectionOptions = {
+        logger: pino({ level: "fatal" }),
+        printQRInTerminal: false,
+        auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'silent'})) },
+        browser: ['Ubuntu', 'Chrome', '110.0.5585.95'], 
+        version: version,
+        generateHighQualityLinkPreview: true,
+        markOnlineOnConnect: true,
+        keepAliveIntervalMs: 30000
+    };
 
-        let sock = makeWASocket(connectionOptions)
+    let sock = makeWASocket(connectionOptions)
+    let handlerModule = await loadHandlerModule()
 
-        async function connectionUpdate(update) {
-            const { connection, lastDisconnect, qr } = update
-            
-            if (qr) { 
-                try {
-                    let phoneNumber = userJid.split('@')[0];
-                    let rawCode = await sock.requestPairingCode(phoneNumber);
-                    let formattedCode = rawCode.match(/.{1,4}/g)?.join("-");
+    sock.handler = handlerModule.handler.bind(sock)
 
-                    const pairingCodeMessage = `*🔑 Código de Vinculación de Sub-Bot*\n\n> *Hola, ${phoneNumber}.* El dueño del bot te ha generado un código para vincular tu Sub-Bot.\n\n*Código:* \`\`\`${formattedCode}\`\`\``;
-                    
-                    await conn.sendMessage(userJid, { 
-                        text: pairingCodeMessage.trim(),
-                        contextInfo: { ...rcanal }
-                    }, { ephemeralExpiration: 60 * 60 * 24 * 7 });
+    async function connectionUpdate(update) {
+        const { connection, lastDisconnect, qr } = update
 
-                    await conn.reply(m.chat, `✅ *Código enviado exitosamente* al usuario: @${phoneNumber}.\n\n> *El código se envió al privado del usuario*`, m, { 
-                        mentions: [userJid],
-                        contextInfo: { ...rcanal }
-                    });
+        if (qr && !sock.user) { 
+            try {
+                let phoneNumber = userJid.split('@')[0];
+                let rawCode = await sock.requestPairingCode(phoneNumber);
+                let formattedCode = rawCode.match(/.{1,4}/g)?.join("-");
 
-                    setTimeout(async () => {
-                        try {
-                            await sock.ws.close();
-                            sock.ev.removeAllListeners();
-                            if (fs.existsSync(pathShadowJadiBot)) {
-                                fs.rmSync(pathShadowJadiBot, { recursive: true, force: true });
-                            }
-                        } catch (e) {}
-                    }, 3000);
-                    
-                } catch (e) {
-                    console.error('Error al generar o enviar código:', e);
-                    // Aquí ya no saldrá el error si el código se mandó bien
-                }
+                const pairingCodeMessage = `*🔑 Código de Vinculación de Sub-Bot*\n\n> *Hola, ${phoneNumber}.* El dueño del bot te ha generado un código para vincular tu Sub-Bot.\n\n*Código:* \`\`\`${formattedCode}\`\`\``;
+
+                await conn.sendMessage(userJid, { 
+                    text: pairingCodeMessage.trim(),
+                    contextInfo: { ...rcanal }
+                }, { ephemeralExpiration: 60 * 60 * 24 * 7 });
+
+                await conn.reply(m.chat, `✅ *Código enviado exitosamente* al usuario: @${phoneNumber}.\n\n> *El código se envió al privado del usuario*`, m, { 
+                    mentions: [userJid],
+                    contextInfo: { ...rcanal }
+                });
+
+            } catch (e) {
+                console.error('Error al generar o enviar código en darcode:', e);
             }
+        }
 
-            if (connection === 'open') {
-                try {
-                    await sock.ws.close();
-                    sock.ev.removeAllListeners();
-                    if (fs.existsSync(pathShadowJadiBot)) {
-                        fs.rmSync(pathShadowJadiBot, { recursive: true, force: true });
-                    }
-                } catch {}
-            }
+        if (connection === 'open') {
+            console.log(chalk.bold.green(`[DARCODE] Sub-Bot +${userJid.split('@')[0]} vinculado y escuchando mensajes correctamente.`))
+            if (!(global.conns instanceof Array)) global.conns = []
+            if (!global.conns.includes(sock)) global.conns.push(sock)
+        }
 
-            if (connection === 'close') {
-                const reason = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode
-                if (fs.existsSync(pathShadowJadiBot) && (reason === 401 || reason === 405)) {
+        if (connection === 'close') {
+            const reason = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode
+            if (reason === 401 || reason === 405) {
+                try { sock.ev.removeAllListeners() } catch {}
+                try { sock.ws?.close() } catch {}
+                if (fs.existsSync(pathShadowJadiBot)) {
                     fs.rmSync(pathShadowJadiBot, { recursive: true, force: true });
                 }
             }
         }
+    }
 
-        sock.connectionUpdate = connectionUpdate.bind(sock)
-        sock.credsUpdate = saveCreds.bind(sock, true)
-        sock.ev.on("connection.update", sock.connectionUpdate)
-        sock.ev.on("creds.update", sock.credsUpdate)
-    })
+    sock.connectionUpdate = connectionUpdate.bind(sock)
+    sock.credsUpdate = saveCreds.bind(sock, true)
+    
+    sock.ev.on("messages.upsert", sock.handler)
+    sock.ev.on("connection.update", sock.connectionUpdate)
+    sock.ev.on("creds.update", sock.credsUpdate)
 }
