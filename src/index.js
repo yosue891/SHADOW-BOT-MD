@@ -37,62 +37,11 @@ const { CONNECTING } = ws
 const { chain } = lodash
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
-// During manual linking, keep one socket and one issued code. Replacing the
-// socket invalidates the code before the user can enter it in WhatsApp.
 const pairingRetryLimit = 40
 const pairingRetryDelay = 5000
 
 let { say } = cfonts
 
-function showStartupDesign() {
-  console.clear()
-  say('ShadowBot', {
-    font: 'block',
-    align: 'center',
-    colors: ['cyan', 'magenta'],
-    background: 'transparent',
-    letterSpacing: 1,
-    lineHeight: 1,
-    space: true,
-  })
-  say(`SHADOW-BOT-MD  •  v${global.vs?.replace('^', '') || '1.3.2'}`, {
-    font: 'console',
-    align: 'center',
-    colors: ['magenta', 'cyan'],
-  })
-  console.log('\n' + boxen(
-    chalk.cyanBright.bold('  ✦ Sistema listo para iniciar ✦\n\n') +
-    chalk.white('  Bot          ') + chalk.magenta('ShadowBot\n') +
-    chalk.white('  Plataforma   ') + chalk.magenta('WhatsApp Multi-Device\n') +
-    chalk.white('  Node.js      ') + chalk.magenta(process.version),
-    {
-      padding: { top: 0, bottom: 1, left: 2, right: 3 },
-      margin: { left: 2, right: 2 },
-      borderStyle: 'double',
-      borderColor: 'cyan',
-      title: chalk.cyan.bold(' ✦ SHADOW-BOT-MD ✦ '),
-      titleAlignment: 'center',
-    }
-  ) + '\n')
-}
-
-function showLoginMenu() {
-  console.log(boxen(
-    chalk.yellowBright.bold('  Selecciona el método de inicio:\n\n') +
-    chalk.green.bold('  1') + chalk.white('  ➜ Código QR             ') + chalk.gray('(escanea con la cámara)\n') +
-    chalk.cyan.bold('  2') + chalk.white('  ➜ Código de 8 dígitos   ') + chalk.gray('(vincula con tu número)'),
-    {
-      padding: 1,
-      margin: { left: 2, right: 2 },
-      borderStyle: 'round',
-      borderColor: 'magenta',
-      title: chalk.magenta.bold(' 🚀 INICIO DE SESIÓN '),
-      titleAlignment: 'center',
-    }
-  ) + '\n')
-}
-
-showStartupDesign()
 protoType()
 serialize()
 
@@ -137,9 +86,6 @@ global.db.chain = chain(global.db.data)
 }
 loadDatabase()
 
-// An interrupted pairing attempt leaves a creds.json with registered=false.
-// Treat it as no session so the next start shows the pairing menu instead of
-// endlessly reconnecting with an invalid authentication state.
 const sessionCredsPath = join(global.sessions, 'creds.json')
 if (existsSync(sessionCredsPath)) {
 try {
@@ -195,7 +141,6 @@ if (!process.stdin.isTTY) {
 opcion = phoneNumber ? '2' : '1'
 console.log(chalk.yellowBright(`\n⚠ Sin terminal interactiva: se usará el método ${opcion === '2' ? 'código de 8 dígitos' : 'QR'} automáticamente.\n`))
 } else {
- showLoginMenu()
 do {
 opcion = await question(chalk.magentaBright('  ➤ Opción [1/2]: '))
 if (!/^[1-2]$/.test(opcion)) {
@@ -216,8 +161,6 @@ auth: {
 creds: state.creds,
 keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: "fatal" }).child({ level: "fatal" })),
 },
- // Keeping the socket offline while pairing avoids WhatsApp closing the
- // unauthenticated channel before the pairing request is accepted.
  markOnlineOnConnect: false,
 generateHighQualityLinkPreview: true, 
 syncFullHistory: false,
@@ -265,20 +208,7 @@ try {
 let codeBot = await global.conn.requestPairingCode(global._pairingNumber)
 codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
 global._pairingCodeIssued = true
- console.log('\n' + boxen(
-   chalk.magentaBright.bold('  ✦ CÓDIGO DE VINCULACIÓN ✦\n\n') +
-   chalk.white('  Ingresa este código en WhatsApp:\n\n') +
-   chalk.bgMagenta.white.bold(`       ${codeBot}       `) +
-     chalk.gray('\n\n  Si WhatsApp cierra el canal, se generará otro código.'),
-   {
-     padding: { top: 0, bottom: 1, left: 2, right: 3 },
-     margin: { left: 2, right: 2 },
-     borderStyle: 'double',
-     borderColor: 'magenta',
-     title: chalk.magenta.bold(' 🔐 SHADOW-BOT-MD '),
-     titleAlignment: 'center',
-   }
- ) + '\n')
+console.log(codeBot)
 return
 } catch (e) {
 if (attempt === 29) {
@@ -324,9 +254,6 @@ global._pairingNumber = phoneNumber.replace(/\D/g, '')
 }
 }}
 
-// Create the WhatsApp socket only after the pairing choice and phone number
-// are known. Creating it before readline finishes lets WhatsApp close the
-// unauthenticated channel before a pairing request can be sent.
 global.conn = makeWASocket(connectionOptions)
 try { conn.ev.on('connection.update', connectionUpdate.bind(global.conn)) } catch {}
 conn.ev.on('creds.update', saveCreds)
@@ -448,9 +375,6 @@ const {connection, lastDisconnect, isNewLogin, qr} = update
 global.stopped = connection
 if (isNewLogin) conn.isInit = true
 if (global.db.data == null) loadDatabase()
-// Baileys emits `qr` after the WebSocket has completed its initial
-// handshake. Requesting the pairing code here matches the stable flow used
-// by the reference bot and avoids sending the request during `connecting`.
 if (qr && !state.creds.registered && (opcion === '2' || methodCode) && global._pairingNumber && !global._pairingCodeIssued && !global._pairingRequestStarted) {
   void requestPairingCodeOnce().catch(error => {
     console.log(chalk.redBright(`\n⚠︎ No se pudo solicitar el código: ${error.message}`))
@@ -479,32 +403,12 @@ global._reconnectAttempts = 0
 const userJid = jidNormalizedUser(conn.user.id)
 const userName = conn.user.name || conn.user.verifiedName || "Desconocido"
 await joinChannels(conn)
-  const number = conn.user.id?.split(':')[0]?.split('@')[0] || '—'
-  console.log('\n' + boxen(
-    chalk.greenBright.bold('  ✦ BOT CONECTADO EXITOSAMENTE ✦\n\n') +
-    chalk.white('  🤖 Bot        ') + chalk.cyan('ShadowBot\n') +
-    chalk.white('  👤 Cuenta     ') + chalk.cyan(userName) + '\n' +
-    chalk.white('  📱 Número     ') + chalk.cyan(number) + '\n' +
-    chalk.white('  🟢 Node.js    ') + chalk.cyan(process.version) + '\n' +
-    chalk.white('  🖥️  Sistema    ') + chalk.cyan(os.platform()),
-    {
-      padding: { top: 0, bottom: 1, left: 2, right: 3 },
-      margin: { left: 2, right: 2 },
-      borderStyle: 'double',
-      borderColor: 'green',
-      title: chalk.green.bold(' ✦ WhatsApp Online ✦ '),
-      titleAlignment: 'center',
-    }
-  ) + '\n')
 }}
 let reason = new Boom(lastDisconnect?.error)?.output?.statusCode
 if (connection === 'close') {
     const isAuthenticated = !!(conn?.user?.id)
     const manualPairing = (opcion === '2' || methodCode) && !state.creds.registered
     if (manualPairing) {
-        // Diagnostic: show the real close reason WhatsApp sent, so we know
-        // whether this is a code/version issue (401/428/515) vs a network/IP
-        // issue (ECONNRESET, timeout, no statusCode at all).
         console.log(chalk.bold.redBright(`\n[DEBUG] Motivo de cierre -> código: ${reason || 'sin código'} | mensaje: ${lastDisconnect?.error?.message || 'sin mensaje'}`))
         if (global._pairingCodeIssued && !global._pairingCloseNoticeShown) {
             global._pairingCloseNoticeShown = true
@@ -574,9 +478,6 @@ await global.reloadHandler(true).catch(console.error)
         if (!isAuthenticated) {
             if ((global._pairingRetries || 0) >= pairingRetryLimit) return
             global._pairingRetries = (global._pairingRetries || 0) + 1
-            // A pairing socket can be closed by WhatsApp after issuing a
-            // code. Reconnect immediately and let the new socket issue a
-            // fresh code instead of leaving the user waiting 30 seconds.
             global._pairingRequested = false
             console.log(chalk.bold.yellowBright(`\n⚠︎ Sesión de vinculación cerrada. Nuevo intento en ${pairingRetryDelay / 1000}s (${global._pairingRetries}/${pairingRetryLimit})...`))
             await delay(pairingRetryDelay)
@@ -711,14 +612,6 @@ const pluginFolder = join(__dirname, '../plugins')
 const pluginFilter = (filename) => /\.js$/.test(filename)
 global.plugins = {}
 
-// ── Plugins organizados en carpetas ────────────────────────────────────────
-// plugins/
-//   owner/ ia/ menus/ grupos/ economia/ gacha/ anime/ nsfw/ descargas/
-//   herramientas/ stickers/ fun/ subbots/ registro/ info/ ajustes/
-//   sistema/ pruebas/
-// La clave de cada plugin en global.plugins es su ruta relativa, por ejemplo
-// "grupos/group-kick.js". Los archivos sueltos en la raíz de plugins/ siguen
-// funcionando igual (clave = "archivo.js").
 function scanPluginFiles(dir = pluginFolder, base = '') {
   const found = []
   let entries = []
@@ -749,19 +642,15 @@ async function loadPluginFile(relPath, cacheBust = false) {
   }
 }
 
-// Compatibilidad para plugins estilo Ourin (config + handler con sock)
 function wrapOurinHandler(ourinHandler) {
   return async function(m, ctx) {
     const conn = ctx.conn || this
-    // Enriquecer m para que Ourin plugins tengan lo que esperan
     if (!m.prefix) m.prefix = ctx.usedPrefix || global.prefix?.toString?.()?.[0] || "."
     if (!m.command) m.command = ctx.command || ""
     if (!m.args) m.args = ctx.args || (ctx.text ? ctx.text.split(" ").filter(Boolean) : [])
     if (!m.pushName) m.pushName = m.pushName || m.name || conn.getName?.(m.sender)?.catch?.(()=>{}) || "Usuario"
     if (!m.sender) m.sender = m.sender || m.key?.participant || m.key?.remoteJid
-    // Asegurar reply/react existan (ya vienen de smsg)
     const sock = conn
-    // Proveer helpers que Ourin espera en sock
     if (!sock.sendMedia) {
       sock.sendMedia = async (jid, url, _unused, m, opts = {}) => {
         const type = opts.type || "document"
@@ -776,30 +665,23 @@ function wrapOurinHandler(ourinHandler) {
   }
 }
 function normalizeOurinPlugin(mod) {
-  // Si es estilo Ourin: export { config, handler }
   if (mod && mod.config && typeof mod.handler === "function") {
     const cfg = mod.config
     const h = mod.handler
-    // Mapear config a handler.* esperado por Shadow handler
     h.command = [cfg.name, ...(cfg.alias || [])].filter(Boolean)
     h.help = [cfg.usage || cfg.name]
     h.tags = [cfg.category || "tools"]
     h.disabled = cfg.isEnabled === false
-    // flags ourin -> shadow
     if (cfg.isOwner) h.rowner = true
     if (cfg.isPremium) h.premium = true
     if (cfg.isGroup) h.group = true
     if (cfg.isPrivate) h.private = true
-    // Envolver para compatibilidad sock/conn y m.*
     const wrapped = wrapOurinHandler(h)
-    // Copiar props
     Object.assign(wrapped, h)
     wrapped.command = h.command
     return wrapped
   }
-  // Si es estilo Shadow con default, devolverlo
   const base = mod?.default || mod
-  // Si default también es estilo Ourin (a veces export default { config, handler })
   if (base && base.config && typeof base.handler === "function") {
     return normalizeOurinPlugin(base)
   }
@@ -810,8 +692,6 @@ for (const relPath of scanPluginFiles()) {
 await loadPluginFile(relPath)
 }}
 await filesInit()
-// Ourin (ourin-baileys) overwrites $protobuf.roots["default"].proto on import,
-// so we must re-apply serialize getters to the new proto (handled in lib/simple.js)
 try { serialize() } catch (e) { console.error('re-serialize after filesInit failed', e) }
 console.log(chalk.cyan(`[ ✿ ] Plugins cargados: ${Object.keys(global.plugins).length}`))
 
@@ -836,20 +716,17 @@ return
 } catch (e) {
 conn?.logger?.error?.(`error al recargar plugin: ${e?.message || e}`)
 }
-// Sin nombre de archivo (por ejemplo, una carpeta nueva): reescanear todo
 try {
 const files = scanPluginFiles()
 const before = Object.keys(global.plugins)
 for (const relPath of files) if (!before.includes(relPath)) { conn.logger.info(`new plugin - '${relPath}'`); await loadPluginFile(relPath) }
-for (const relPath of before) if (!files.includes(relPath)) { conn.logger.warn(`deleted plugin - '${relPath}'`); delete global.plugins[relPath] }
+for (const relPath of files) if (!files.includes(relPath)) { conn.logger.warn(`deleted plugin - '${relPath}'`); delete global.plugins[relPath] }
 sortPlugins()
 } catch (e) {
 conn?.logger?.error?.(`error al reescanear plugins: ${e?.message || e}`)
 }
 }
 Object.freeze(global.reload)
-// Vigila plugins/ y todas sus subcarpetas (recursive es la vía rápida;
-// si el sistema no lo soporta, se vigila cada carpeta por separado).
 function watchPlugins(dir = pluginFolder) {
 try {
 watch(dir, { recursive: true }, global.reload)
