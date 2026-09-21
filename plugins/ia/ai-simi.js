@@ -86,8 +86,10 @@ Incluye emojis en tus respuestas para darles más personalidad y burla. Usa emoj
 
 Ahora responde lo siguiente`
 
-  // ── 1) Conexión con la API (con timeout y validación real) ─────────────
+  // ── 1) Conexión con la API (primaria + respaldo) ───────────────────────
   let respuesta
+  let ultimoErrorApi = null
+  // Primaria: gohan/gemini (la original)
   try {
     // La API es GET: si el texto es muy largo la URL falla, se recorta
     const textoRecortado = String(text).slice(0, 500)
@@ -105,9 +107,27 @@ Ahora responde lo siguiente`
     }
     respuesta = `${extraPrefix}${respuesta.trim()}`
   } catch (e) {
-    console.error('[simi] API falló:', e.message, e.response?.status || '', JSON.stringify(e.response?.data || {}).slice(0, 200))
-    await conn.reply(m.chat, `*[ 🤖 ] Error al conectar con Simi.*\n> ${e.message}*`, m)
-    return
+    ultimoErrorApi = e
+    console.error('[simi] API primaria falló:', e.message, e.response?.status || '', JSON.stringify(e.response?.data || {}).slice(0, 200), '→ probando respaldo')
+  }
+
+  // Respaldo: pollinations (sin<System> porque con system da 500; va en el texto)
+  if (!respuesta) {
+    try {
+      const textoRecortado = String(text).slice(0, 400)
+      const prompt2 = `Responde como Simi, IA sarcástica y directa${esOwner ? ', hablando con tu creador Yosue al que respetas' : ''}: ${textoRecortado}`
+      const url2 = `https://text.pollinations.ai/${encodeURIComponent(prompt2)}?model=openai`
+      const r2 = await axios.get(url2, { headers: { "User-Agent": "Mozilla/5.0" }, timeout: 25000, responseType: 'text' })
+      const t2 = typeof r2.data === 'string' ? r2.data.trim() : String(r2.data || '').trim()
+      if (!t2) throw new Error('respaldo sin texto')
+      respuesta = `${extraPrefix}${t2}`
+      console.log('[simi] respaldo pollinations OK')
+    } catch (e2) {
+      console.error('[simi] respaldo falló:', e2.message)
+      const detalle = ultimoErrorApi ? ultimoErrorApi.message : e2.message
+      await conn.reply(m.chat, `*[ 🤖 ] Error al conectar con Simi.*\n> ${detalle}*`, m)
+      return
+    }
   }
 
   // ── 2) Envío con menciones validadas (si el envío con mentions falla,
