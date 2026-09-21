@@ -72,13 +72,14 @@ Ahora responde lo siguiente`
         .trim()
     } catch {}
 
-    // ── Sin @ forzado: solo se taggea si la IA ya trajo @ del owner ──
-    // (y se quita cualquier @ suelto que no tenga número)
+    // ── Menciona al que habla con su JID exacto (así no sale vacío) ──
+    // (seguro: sin tocar m.mentionedJid, con fallback a reply)
     try {
       respuesta = String(respuesta).replace(/@(?!\d)/g, '').replace(/[ \t]{2,}/g, ' ').trim()
       const senderJid = (m && typeof m.sender === 'string' && m.sender.includes('@')) ? m.sender : null
-      const numLimpio = senderJid ? String(senderJid).split('@')[0].replace(/\D/g, '') : ''
-      if (esOwner && senderJid && numLimpio && respuesta.includes('@' + numLimpio)) {
+      const tagExacto = senderJid ? String(senderJid).split('@')[0] : ''
+      if (senderJid && tagExacto) {
+        if (!respuesta.includes('@' + tagExacto)) respuesta = `@${tagExacto} ${respuesta}`
         await conn.sendMessage(m.chat, { text: respuesta, mentions: [senderJid] }, { quoted: m })
       } else {
         await conn.reply(m.chat, respuesta, m)
