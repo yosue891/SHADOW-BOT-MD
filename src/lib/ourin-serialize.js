@@ -949,10 +949,8 @@ async function serialize(sock, msg, store = {}) {
       );
     } else if (replyVariant === 5) {
       const thumbnailBuf = getAssetBuffer("ourin");
-      let thumb = thumbnailBuf;
-      try { if (thumb) { const sh = await _getSharp(); thumb = await sh(thumb).resize(300, 300).toBuffer(); } } catch { }
-      const fakeOrder = { key: { participant: "0@s.whatsapp.net", remoteJid: m.chat, fromMe: false }, message: { orderMessage: { orderId: "123456", itemCount: 999, status: 1, surface: 1, message: config.bot?.name || "Shadow-BOT-MD", orderTitle: "System Notification", sellerJid: "0@s.whatsapp.net", token: "ARU1+", totalAmount1000: "1000000", totalCurrencyCode: "IDR", thumbnail: thumb } } };
-      return sock.sendMessage(m.chat, { text, ...defaultOptions, ...options }, { quoted: fakeOrder });
+      const orderMsg = generateWAMessageFromContent(m.chat, { orderMessage: { orderId: "FAKE-" + Date.now(), thumbnail: thumbnailBuf, itemCount: 1, status: 1, surface: 1, message: text, orderTitle: "Pedido enviado por catálogo", sellerJid: null, token: null, totalAmount1000: "0", totalCurrencyCode: "GTQ", contextInfo: { mentionedJid: options?.mentions || [m?.sender] || [] } } }, { quoted: m, userJid: sock.user.id });
+      return sock.relayMessage(m.chat, orderMsg.message, { messageId: orderMsg.key.id });
     } else if (replyVariant === 6) {
       let thumb = getAssetBuffer("ourin2") || getAssetBuffer("ourin");
       try { if (thumb) { const sh = await _getSharp(); thumb = await sh(thumb).resize(300, 300).toBuffer(); } } catch { }

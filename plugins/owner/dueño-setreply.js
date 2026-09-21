@@ -3,7 +3,7 @@ const VARIANTS = {
   v2: { id: 2, name: 'PREMIUM', desc: 'Documento con cita de contacto falsa', emoji: '🖼️' },
   v3: { id: 3, name: 'TITANIUM', desc: 'Imagen con caption (adaptado, original era video)', emoji: '📨' },
   v4: { id: 4, name: 'LV', desc: 'Vista previa con canal newsletter', emoji: '💼' },
-  v5: { id: 5, name: 'FAKE ORDER', desc: 'Texto con mensaje de pedido citado falso', emoji: '🛒' },
+  v5: { id: 5, name: 'FAKE ORDER', desc: 'Respuesta como tarjeta de pedido (igual que .pedido)', emoji: '🛒' },
   v6: { id: 6, name: 'SIMPLE DOCUMENT', desc: 'Documento citando mensaje original', emoji: '📄' },
   v7: { id: 7, name: 'FAKE LOCATION', desc: 'Texto con mensaje de ubicación citado falso', emoji: '📍' },
   v8: { id: 8, name: 'FAKE SIGNUP', desc: 'Texto con mensaje de registro citado falso', emoji: '🥠' },
