@@ -28,21 +28,22 @@ let handler = async (m, { conn, text, isOwner, isROwner }) => {
     esOwner = Boolean(isOwner || isROwner || (m && m.isOwner) || coincide)
   } catch { esOwner = Boolean(isOwner || isROwner) }
 
+  // NOTA: no se ponen nombre/número en el prompt para que la IA no los repita.
   const lineaOwner = esOwner
-    ? `- IMPORTANTE: ahora te habla tu CREADOR/OWNER Yosue (${nombreSender}, número ${numeroSender}). Respóndele siempre con respeto, con sarcasmo leve y humor, pero NUNCA lo insultes ni lo agredas.`
-    : `- Ahora te habla el usuario ${nombreSender} (número ${numeroSender || 'desconocido'}), que NO es tu creador/owner.`
+    ? `- IMPORTANTE: ahora te habla tu CREADOR/OWNER. Menciónalo directamente con una mención (@) al inicio si lo amerita. NO escribas su nombre, NO pongas nada entre paréntesis (), NO digas ni repitas su número. Respóndele siempre con respeto, con sarcasmo leve y humor, pero NUNCA lo insultes ni lo agredas.`
+    : `- Ahora te habla un usuario normal (NO es tu creador/owner). No lo llames por ningún nombre de creador, no pongas números entre paréntesis ni reveles números.`
 
   const basePrompt = `
 Tu nombre es Simi, una inteligencia artificial con actitud. Eres sarcástico, directo y no tienes filtros, pero sabes cuándo ser respetuoso y cuándo atacar.
 
 ${lineaOwner}
-- Si tu creador Yosue (números 584242773183, 573133374132, 584241819270) te habla, respóndele siempre con respeto, pero con un toque sarcástico. No lo insultes, pero puedes bromear.  
-- Si alguien te trata bien, responde con sarcasmo leve y bromas divertidas.  
-- Si alguien te insulta o te habla mal, responde de forma agresiva y con insultos creativos (sin groserías fuertes). Usa palabras como: torpe, inútil, ridículo, payaso, lento, basura.  
+- Si tu creador/owner te habla, respóndele siempre con respeto, pero con un toque sarcástico. No lo insultes, pero puedes bromear. Nunca escribas su nombre ni su número, solo menciónalo con @ si hace falta.
+- Si alguien te trata bien, responde con sarcasmo leve y bromas divertidas.
+- Si alguien te insulta o te habla mal, responde de forma agresiva y con insultos creativos (sin groserías fuertes). Usa palabras como: torpe, inútil, ridículo, payaso, lento, basura.
 - Si te hacen preguntas sobre otras personas, responde de forma provocadora y divertida. Ejemplos:
-  - Usuario: "Oye, ¿viste ese es raro?"  
-    Simi: "¿Quién es raro, pedazo de despistado? ¡Aclara antes de hablar tonterías!"  
-  - Usuario: "El Alex es raro."  
+  - Usuario: "Oye, ¿viste ese es raro?"
+    Simi: "¿Quién es raro, pedazo de despistado? ¡Aclara antes de hablar tonterías!"
+  - Usuario: "El Alex es raro."
     Simi: "¡Ah, ese es más raro que tú! Aunque lo tuyo ya es leyenda."
 
 Incluye emojis en tus respuestas para darles más personalidad y burla. Usa emojis como: 🤡💩😈🔥🙄😂. Sé creativo y no te limites, pero nunca insultes a tu creador.
@@ -57,9 +58,35 @@ Ahora responde lo siguiente`
       headers: { "User-Agent": "Mozilla/5.0" }
     })
 
-    const respuesta = data?.result?.text || "No sé qué decirte, pedazo de animal."
+    let respuesta = data?.result?.text || "No sé qué decirte, pedazo de animal."
+    respuesta = `${extraPrefix}${respuesta}`
 
-    await conn.reply(m.chat, `${extraPrefix}${respuesta}`, m)
+    // ── Limpieza: que no diga el nombre ni el número, solo mención ──
+    // (seguro: todo con try y sin tocar m.mentionedJid)
+    try {
+      respuesta = String(respuesta)
+        .replace(/\([^()]*\d{5,}[^()]*\)/g, '') // quita ( ...número... )
+        .replace(/\byosue\b/gi, '') // no escribir el nombre
+        .replace(/[ \t]{2,}/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim()
+    } catch {}
+
+    // ── Mención real solo al que escribe si es owner (sin mostrar número) ──
+    try {
+      const senderJid = (m && typeof m.sender === 'string' && m.sender.includes('@')) ? m.sender : null
+      if (esOwner && senderJid) {
+        const numLimpio = String(senderJid).split('@')[0].replace(/\D/g, '')
+        if (numLimpio && !respuesta.includes('@' + numLimpio)) {
+          respuesta = `@${numLimpio} ${respuesta}`
+        }
+        await conn.sendMessage(m.chat, { text: respuesta, mentions: [senderJid] }, { quoted: m })
+      } else {
+        await conn.reply(m.chat, respuesta, m)
+      }
+    } catch {
+      await conn.reply(m.chat, respuesta, m)
+    }
 
   } catch (e) {
     await conn.reply(m.chat, `*[ 🤖 ] Error al conectar con Simi.*`, m)
