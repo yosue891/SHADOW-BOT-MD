@@ -1,13 +1,15 @@
 import { enviarReaccionAnime } from '../../lib/anime-media.js'
-let handler = async (m, { conn }) => {
-  let who = m.mentionedJid[0] || m.quoted?.sender || m.sender;
-  let name = conn.getName(who);
-  let name2 = conn.getName(m.sender);
+import { resolverObjetivo, nombreSeguro } from '../../lib/anime-mention.js'
+let handler = async (m, { conn, participants, groupMetadata, text, args, usedPrefix }) => {
+  const { who, via, hasMention } = await resolverObjetivo(m, { conn, participants, groupMetadata, text, args });
+  const hayMencion = hasMention || via === 'mention' || via === 'text';
+  const name = await nombreSeguro(conn, who);
+  const name2 = await nombreSeguro(conn, m.sender);
   await m.react('🗡️'); // Solo la espada
 
-  let str = m.mentionedJid.length > 0
+  let str = hayMencion
     ? `\`${name2}\` *mató a* \`${name}\` 💫.`
-    : m.quoted
+    : via === 'quoted'
     ? `\`${name2}\` *mató a* \`${name}\`.`
     : `\`${name2}\` *se mató a sí mismo 😵*`;
 

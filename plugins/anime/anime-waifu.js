@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { generateWAMessageContent, generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
+import { nombreSeguro } from '../../lib/anime-mention.js'
 
 const newsletterJid  = '120363403739366547@newsletter'
 const newsletterName = '👑 SHADOW-BOT-MD uwu👑 '
@@ -36,7 +37,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     const { imageMessage } = await generateWAMessageContent({ image: buffer }, { upload: conn.waUploadToServer })
     if (!imageMessage) throw new Error('No se pudo generar el componente de la imagen.')
 
-    const caption = `🌌 *Aquí tienes tu waifu, ${await conn.getName(m.sender)}* 👑\n\n💫 ¿Quieres otra? Solo toca el botón de abajo.`
+    const caption = `🌌 *Aquí tienes tu waifu, ${await nombreSeguro(conn, m.sender)}* 👑\n\n💫 ¿Quieres otra? Solo toca el botón de abajo.`
 
     const messageContent = generateWAMessageFromContent(
       m.chat,

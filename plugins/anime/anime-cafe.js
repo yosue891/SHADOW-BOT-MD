@@ -1,3 +1,4 @@
+import { resolverObjetivo, nombreSeguro } from '../../lib/anime-mention.js'
 const CAFE_VIDEOS = [
   'https://u.pone.rs/wrdixhdu.mp4',
   'https://u.pone.rs/lsvklqjq.mp4',
@@ -39,24 +40,17 @@ async function descargarVideo(url) {
   }
 }
 
-let handler = async (m, { conn, usedPrefix }) => {
-    let who;
+let handler = async (m, { conn, participants, groupMetadata, text, args, usedPrefix }) => {
+    const { who, via, hasMention } = await resolverObjetivo(m, { conn, participants, groupMetadata, text, args });
+    const hayMencion = hasMention || via === 'mention' || via === 'text';
 
-    if (m.mentionedJid.length > 0) {
-        who = m.mentionedJid[0];
-    } else if (m.quoted) {
-        who = m.quoted.sender;
-    } else {
-        who = m.sender;
-    }
-
-    let name = conn.getName(who);
-    let name2 = conn.getName(m.sender);
+    const name = await nombreSeguro(conn, who);
+    const name2 = await nombreSeguro(conn, m.sender);
     m.react('☕'); // Reacción con emoji de café
 
     let str;
-    if (m.mentionedJid.length > 0 || m.quoted) {
-        str = `☕ \`${name2}\` *está disfrutando una taza de café con* \`${name || who}\`. ¡Qué momento delicioso!`;
+    if (hayMencion || via === 'quoted') {
+        str = `☕ \`${name2}\` *está disfrutando una taza de café con* \`${name}\`. ¡Qué momento delicioso!`;
     } else {
         str = `☕ \`${name2}\` *se toma una taza de café solo*. A veces, el café en solitario sabe mejor. ☕`.trim();
     }

@@ -1,25 +1,18 @@
 import { enviarReaccionAnime } from '../../lib/anime-media.js'
+import { resolverObjetivo, nombreSeguro } from '../../lib/anime-mention.js'
 
-let handler = async (m, { conn, usedPrefix }) => {
-  let who
+let handler = async (m, { conn, participants, groupMetadata, text, args, usedPrefix }) => {
+  const { who, via, hasMention } = await resolverObjetivo(m, { conn, participants, groupMetadata, text, args });
+    const hayMencion = hasMention || via === 'mention' || via === 'text';
 
-  if (m.mentionedJid.length > 0) {
-    who = m.mentionedJid[0]
-  } else if (m.quoted) {
-    who = m.quoted.sender
-  } else {
-    who = m.sender
-  }
-
-  let name = conn.getName(who)
-  let name2 = conn.getName(m.sender)
-  m.react('🏳️‍🌈')
+  const name = await nombreSeguro(conn, who);
+    const name2 = await nombreSeguro(conn, m.sender);m.react('🏳️‍🌈')
 
   let str
-  if (m.mentionedJid.length > 0) {
-    str = `\`${name2}\` *beso excitantemente a* \`${name || who}\`.`
-  } else if (m.quoted) {
-    str = `\`${name2}\` *beso apasionado a* \`${name || who}\`.`
+  if (hayMencion) {
+    str = `\`${name2}\` *beso excitantemente a* \`${name}\`.`
+  } else if (via === 'quoted') {
+    str = `\`${name2}\` *beso apasionado a* \`${name}\`.`
   } else {
     str = `\`${name2}\` *se besa a sí mismo porque es un rolo de gay XD.*`.trim()
   }
