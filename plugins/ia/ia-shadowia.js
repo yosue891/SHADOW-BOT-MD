@@ -51,6 +51,39 @@ const sinMenciones = (s = '') => String(s).replace(/@\d{5,}/g, ' ').replace(/\s+
 const sinSignos = (s = '') => String(s).replace(/[¿?¡!]/g, ' ').replace(/\s+/g, ' ').trim()
 
 /**
+ * Un JID puede llegar como "584241234567:12@s.whatsapp.net" (con dispositivo)
+ * o como "...@lid". Esto deja solo los dígitos para poder comparar.
+ */
+export function jidNumero(jid) {
+  const s = String(jid || '')
+  const m = s.match(/(\d{5,})(?::\d+)?@/)?.[1]
+  return m || s.replace(/\D/g, '') || null
+}
+
+/**
+ * Busca un participante por cualquiera de sus identidades.
+ * Idéntico criterio al de src/handler.js: id, jid, lid o phoneNumber.
+ */
+export function buscarParticipante(participants, jid) {
+  const num = jidNumero(jid)
+  if (!num || !Array.isArray(participants)) return null
+  return (
+    participants.find((p) => {
+      const ids = [p?.id, p?.jid, p?.lid, p?.phoneNumber].filter(Boolean).map(jidNumero)
+      return ids.includes(num)
+    }) || null
+  )
+}
+
+/**
+ * ¿Es admin este participante? Acepta 'admin', 'superadmin' y las variantes
+ * booleanas, igual que isAdminParticipant() de src/handler.js.
+ */
+export function esAdminParticipante(p) {
+  return p?.admin === 'admin' || p?.admin === 'superadmin' || p?.isAdmin === true || p?.isSuperAdmin === true
+}
+
+/**
  * Extrae el valor de "cambia el nombre del grupo a X" / "pon la descripción por X".
  * @param {string} texto texto original (sin normalizar)
  * @param {RegExp} patron debe capturar el grupo 1 = verbo+campo
@@ -126,7 +159,7 @@ export function parsearOrden(rawText = '') {
     },
     {
       action: 'foto',
-      re: /(cambia|cambiar|pon|poner|actualiza|actualizar)\s*(la\s*)?(foto|imagen|perfil|portada|banner|pp)(\s+del\s+grupo)?/,
+      re: /((cambia|cambiar|pon|poner|actualiza|actualizar)\s*(la\s*)?(foto|imagen|perfil|portada|banner|pp)(\s+del\s+grupo)?|(foto|imagen|portada|banner)\s+(del|de\s+este)?\s*grupo)/,
       needsGroup: true, needsAdmin: true,
     },
     { action: 'abrir', re: /(^|\s)(abre|abrir|unlock|desbloquea|desbloquear)\s*(el\s*)?grupo/, needsGroup: true, needsAdmin: true },
@@ -189,7 +222,7 @@ export function esProtegido(jid, { botJid, ownerGrupo, ownerBot }) {
 
 /* ────────────────────────── handler ────────────────────────── */
 
-const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, command }) => {
+const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, command, isBotAdmin: isBotAdminCtx }) => {
   // Doble seguro además de handler.rowner
   if (!isROwner && !isOwner) {
     return conn.reply(m.chat, '⛔ Shadowia solo responde a los owners del bot.', m)
@@ -197,10 +230,16 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
 
   const entrada = (text || '').trim()
   const meta = await conn.groupMetadata(m.chat).catch(() => null)
-  const botJid = conn.user?.jid
+  const botJid = conn.user?.jid || conn.user?.id
   const ownerGrupo = meta?.owner || (m.isGroup ? `${m.chat.split('-')[0]}@s.whatsapp.net` : null)
   const ownerBot = Array.isArray(global.owner?.[0]) ? `${String(global.owner[0][0]).replace(/\D/g, '')}@s.whatsapp.net` : null
-  const botEsAdmin = !!meta?.participants?.find?.((p) => p.id === botJid)?.admin
+
+  // Preferimos el isBotAdmin que ya calculó src/handler.js (maneja :device y @lid).
+  // Solo si no viene (p. ej. en pruebas) lo calculamos nosotros.
+  const botEsAdmin =
+    typeof isBotAdminCtx === 'boolean'
+      ? isBotAdminCtx
+      : esAdminParticipante(buscarParticipante(meta?.participants, botJid))
 
   const orden = parsearOrden(entrada)
 
@@ -211,7 +250,7 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
   }
   if (orden.needsAdmin && m.isGroup && !botEsAdmin) {
     await m.react?.('❕')
-    return conn.reply(m.chat, 'ℹ️ Necesito ser administradora de este grupo para hacer eso.', m)
+    return conn.reply(m.chat, 'ℹ️ Necesito ser administradora de este grupo para hacer eso.\n\n> Si crees que ya lo soy, revisa en *Info. del grupo → Participantes* que aparezca como admin, y vuelve a intentarlo.', m)
   }
 
   const avisar = async (texto, opciones) => conn.reply(m.chat, texto, m, opciones)
@@ -288,13 +327,21 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
 
       /* ── foto del grupo ── */
       case 'foto': {
-        const q = m.quoted || m
-        const mime = q?.msg?.mimetype || q?.mimetype || ''
-        if (!/^image\/(png|jpe?g|webp)/.test(mime)) {
+        // la imagen puede venir citada O adjunta en el mismo mensaje del comando
+        const candidatos = [m.quoted, m].filter(Boolean)
+        const fuente = candidatos.find((q) => {
+          const mime = q?.msg?.mimetype || q?.mimetype || ''
+          return /^image\//.test(mime) || /webp/i.test(mime)
+        })
+        if (!fuente) {
           await m.react?.('❕')
-          return avisar('ℹ️ Responde a una imagen (png/jpg/webp) y dime `cambia la foto del grupo`.')
+          return avisar('ℹ️ Mándame la imagen junto con el comando, o responde a una imagen y dime `cambia la foto del grupo`.')
         }
-        const img = typeof q.download === 'function' ? await q.download() : null
+        if (typeof fuente.download !== 'function') {
+          await m.react?.('⚠️')
+          return avisar('⚠️ No puedo descargar esa imagen (puede que haya expirado). Vuelve a enviarla.')
+        }
+        const img = await fuente.download().catch(() => null)
         if (!img?.length) {
           await m.react?.('⚠️')
           return avisar('⚠️ No pude descargar la imagen.')
@@ -412,14 +459,14 @@ async function ejecutarComando({ m, conn, args, usedPrefix, nombre, extra, meta,
     conn,
     participants: meta?.participants || [],
     groupMetadata: meta,
-    user: meta?.participants?.find?.((p) => p.id === m.sender) || {},
-    bot: meta?.participants?.find?.((p) => p.id === botJid) || {},
+    user: buscarParticipante(meta?.participants, m.sender) || {},
+    bot: buscarParticipante(meta?.participants, botJid) || {},
     isROwner: true,
     isOwner: true,
     isMods: true,
     isRAdmin: true,
     isAdmin: true,
-    isBotAdmin: !!meta?.participants?.find?.((p) => p.id === botJid)?.admin,
+    isBotAdmin: esAdminParticipante(buscarParticipante(meta?.participants, botJid)),
     isPrems: true,
     chatUpdate: null,
     __dirname: process.cwd(),

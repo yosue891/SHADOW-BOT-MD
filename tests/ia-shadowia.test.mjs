@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import handler, { parsearOrden, resolverObjetivo, esProtegido, extraerValor } from '../plugins/ia/ia-shadowia.js'
+import handler, { parsearOrden, resolverObjetivo, esProtegido, extraerValor, jidNumero, buscarParticipante, esAdminParticipante } from '../plugins/ia/ia-shadowia.js'
 
 /* ──────────── mocks ──────────── */
 
@@ -56,7 +56,7 @@ const metaGrupo = {
   ],
 }
 
-async function correr({ text = '', over = {}, meta = metaGrupo, isROwner = true } = {}) {
+async function correr({ text = '', over = {}, meta = metaGrupo, isROwner = true, isBotAdmin } = {}) {
   const sent = makeSent()
   const m = makeM({ text, ...over })
   const conn = makeConn(sent, meta)
@@ -68,6 +68,7 @@ async function correr({ text = '', over = {}, meta = metaGrupo, isROwner = true 
     isOwner: isROwner,
     usedPrefix: '>',
     command: 'shadowia',
+    isBotAdmin, // undefined => el plugin lo calcula (ruta de respaldo)
   })
   return { m, sent, conn }
 }
@@ -228,7 +229,7 @@ test('handler: cambia la foto del grupo desde una imagen citada', async () => {
 test('handler: pide imagen si no la hay para la foto', async () => {
   const { sent } = await correr({ text: 'cambia la foto del grupo' })
   assert.equal(sent.pp, null)
-  assert.match(sent.replies[0].texto, /Responde a una imagen/)
+  assert.match(sent.replies[0].texto, /Mándame la imagen junto con el comando/)
 })
 
 test('handler: fuera de un grupo explica que necesita grupo', async () => {
@@ -301,6 +302,114 @@ test('handler: bloquea comandos peligrosos', async () => {
   const { sent } = await correr({ text: 'usa delplugin' })
   assert.equal(llamado, false, 'no debe ejecutar un comando bloqueado')
   assert.match(sent.replies[0].texto, /bloqueado/)
+})
+
+
+/* ════════════ BUGFIX: detección de admin ════════════ */
+
+test('jidNumero: quita el sufijo de dispositivo y acepta @lid', () => {
+  assert.equal(jidNumero('584241234567:12@s.whatsapp.net'), '584241234567')
+  assert.equal(jidNumero('584241234567@s.whatsapp.net'), '584241234567')
+  assert.equal(jidNumero('1234567890@lid'), '1234567890')
+  assert.equal(jidNumero(''), null)
+})
+
+test('buscarParticipante: encuentra por id, jid, lid o phoneNumber', () => {
+  const parts = [
+    { id: '584240000000:33@s.whatsapp.net', admin: 'superadmin' },
+    { lid: '999888777@lid', admin: 'admin' },
+    { id: '584243333333@s.whatsapp.net', phoneNumber: '584243333333' },
+  ]
+  assert.equal(buscarParticipante(parts, '584240000000@s.whatsapp.net').admin, 'superadmin')
+  assert.equal(buscarParticipante(parts, '584240000000:99@s.whatsapp.net').admin, 'superadmin')
+  assert.equal(buscarParticipante(parts, '999888777@lid').admin, 'admin')
+  assert.equal(buscarParticipante(parts, '584243333333@s.whatsapp.net').phoneNumber, '584243333333')
+  assert.equal(buscarParticipante(parts, '111111111@s.whatsapp.net'), null)
+})
+
+test('esAdminParticipante: acepta admin, superadmin y booleanos', () => {
+  assert.equal(esAdminParticipante({ admin: 'admin' }), true)
+  assert.equal(esAdminParticipante({ admin: 'superadmin' }), true)
+  assert.equal(esAdminParticipante({ isAdmin: true }), true)
+  assert.equal(esAdminParticipante({ isSuperAdmin: true }), true)
+  assert.equal(esAdminParticipante({ admin: null }), false)
+  assert.equal(esAdminParticipante(undefined), false)
+})
+
+test('BUGFIX: reconoce al bot como admin aunque su JID traiga :dispositivo', async () => {
+  // antes fallaba: comparaba p.id === conn.user.jid y el bot aparecía con ":12"
+  const meta = {
+    owner: CREADOR_GRUPO,
+    participants: [
+      { id: '584240000000:12@s.whatsapp.net', admin: 'superadmin' },
+      { id: MIEMBRO, admin: null },
+    ],
+  }
+  const { sent } = await correr({ text: 'promueve a @584242222222', over: { mentionedJid: [MIEMBRO] }, meta })
+  assert.deepEqual(sent.participants, [{ jid: GRUPO, lista: [MIEMBRO], accion: 'promote' }], 'debe promover sin quejarse de admin')
+  assert.match(sent.replies[0].texto, /promovido a administrador/)
+})
+
+test('BUGFIX: reconoce al bot admin cuando el participante usa @lid', async () => {
+  const meta = {
+    owner: CREADOR_GRUPO,
+    participants: [{ lid: '584240000000@lid', admin: 'admin' }, { id: MIEMBRO, admin: null }],
+  }
+  const { sent } = await correr({ text: 'degrada a @584242222222', over: { mentionedJid: [MIEMBRO] }, meta })
+  assert.deepEqual(sent.participants, [{ jid: GRUPO, lista: [MIEMBRO], accion: 'demote' }])
+})
+
+test('BUGFIX: acepta superadmin y las variantes booleanas', async () => {
+  for (const forma of [{ admin: 'superadmin' }, { isAdmin: true }, { isSuperAdmin: true }]) {
+    const meta = { owner: CREADOR_GRUPO, participants: [{ id: BOT, ...forma }, { id: MIEMBRO, admin: null }] }
+    const { sent } = await correr({ text: 'expulsa a @584242222222', over: { mentionedJid: [MIEMBRO] }, meta })
+    assert.equal(sent.participants.length, 1, `debía funcionar con ${JSON.stringify(forma)}`)
+  }
+})
+
+test('prefiere el isBotAdmin que ya calculó el framework', async () => {
+  // metadata vacía (no se puede saber) pero el framework dice que SÍ es admin
+  const { sent } = await correr({
+    text: 'promueve a @584242222222',
+    over: { mentionedJid: [MIEMBRO] },
+    meta: { owner: CREADOR_GRUPO, participants: [] },
+    isBotAdmin: true,
+  })
+  assert.equal(sent.participants.length, 1, 'debe confiar en el isBotAdmin del contexto')
+})
+
+/* ════════════ BUGFIX: imagen del grupo ════════════ */
+
+test('BUGFIX: cambia la foto cuando la imagen va adjunta en el mismo mensaje', async () => {
+  const png = Buffer.from('89504e470d0a1a0a', 'hex')
+  const { sent } = await correr({
+    text: 'cambia la foto del grupo',
+    over: { mimetype: 'image/jpeg', msg: { mimetype: 'image/jpeg' }, async download() { return png } },
+  })
+  assert.deepEqual(sent.pp, { jid: GRUPO, bytes: png.length })
+})
+
+test('BUGFIX: acepta webp y cualquier image/*', async () => {
+  for (const mime of ['image/webp', 'image/png', 'image/heic', 'image/gif']) {
+    const buf = Buffer.from('89504e470d0a1a0a', 'hex')
+    const { sent } = await correr({
+      text: 'cambia la foto del grupo',
+      over: { quoted: { mimetype: mime, async download() { return buf } } },
+    })
+    assert.ok(sent.pp, `debía aceptar ${mime}`)
+  }
+})
+
+test('BUGFIX: «foto del grupo» a secas también se reconoce', () => {
+  assert.equal(parsearOrden('foto del grupo').action, 'foto')
+  assert.equal(parsearOrden('cambia la foto del grupo').action, 'foto')
+  assert.equal(parsearOrden('pon la portada del grupo').action, 'foto')
+})
+
+test('avisa distinto si la imagen no se puede descargar', async () => {
+  const { sent } = await correr({ text: 'cambia la foto del grupo', over: { quoted: { mimetype: 'image/png' } } })
+  assert.equal(sent.pp, null)
+  assert.match(sent.replies[0].texto, /no puedo descargar esa imagen|No pude descargar/i)
 })
 
 /* ════════════ handler: ayuda ════════════ */
