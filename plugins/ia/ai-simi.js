@@ -39,20 +39,26 @@ let handler = async (m, { conn, text, isOwner, isROwner }) => {
   const citado = m.quoted?.sender || null
 
   // Nombres de los mencionados para que la IA sepa a quién mencionar
+  // (getName puede ser sync o async según la versión: se soportan ambos)
+  const resolverNombre = async (jid) => {
+    const num = String(jid).split('@')[0]
+    try {
+      const n = await conn.getName(jid)
+      return (typeof n === 'string' && n.trim()) ? n : num
+    } catch { return num }
+  }
   let detalleMencionados = ''
   if (mencionadosEntrada.length > 0 || citado) {
     const piezas = []
     for (const jid of mencionadosEntrada) {
-      const num = String(jid).split('@')[0]
-      let nombre = num
-      try { nombre = conn.getName(jid) || num } catch {}
-      piezas.push(`${nombre} (@${num.replace(/\D/g, '')})`)
+      const num = String(jid).split('@')[0].replace(/\D/g, '')
+      const nombre = await resolverNombre(jid)
+      piezas.push(`${nombre} (@${num})`)
     }
     if (citado) {
-      const num = String(citado).split('@')[0]
-      let nombre = num
-      try { nombre = conn.getName(citado) || num } catch {}
-      piezas.push(`citado: ${nombre} (@${num.replace(/\D/g, '')})`)
+      const num = String(citado).split('@')[0].replace(/\D/g, '')
+      const nombre = await resolverNombre(citado)
+      piezas.push(`citado: ${nombre} (@${num})`)
     }
     detalleMencionados = `\nUsuarios involucrados en el mensaje: ${piezas.join(', ')}. Si hablas de ellos, menciónalos con @numero.`
   }
@@ -80,29 +86,48 @@ Incluye emojis en tus respuestas para darles más personalidad y burla. Usa emoj
 
 Ahora responde lo siguiente`
 
+  // ── 1) Conexión con la API (con timeout y validación real) ─────────────
+  let respuesta
   try {
-    const prompt = encodeURIComponent(basePrompt + "\nUsuario: " + text + "\nSimi:")
+    // La API es GET: si el texto es muy largo la URL falla, se recorta
+    const textoRecortado = String(text).slice(0, 500)
+    const prompt = encodeURIComponent(basePrompt + "\nUsuario: " + textoRecortado + "\nSimi:")
     const url = `https://api-gohan-v1.onrender.com/ai/gemini?text=${prompt}`
 
     const { data } = await axios.get(url, {
-      headers: { "User-Agent": "Mozilla/5.0" }
+      headers: { "User-Agent": "Mozilla/5.0" },
+      timeout: 25000
     })
 
-    let respuesta = data?.result?.text || "No sé qué decirte, pedazo de animal."
-    respuesta = `${extraPrefix}${respuesta}`
-
-    // ── Validación de menciones (antes se mandaba sin mentions y WhatsApp
-    // mostraba el @ como texto o solo el lid, sin taggear) ────────────────
-    const conocidos = [...mencionadosEntrada]
-    if (citado) conocidos.push(citado)
-    conocidos.push(m.sender)
-    const numeros = extraerNumeros(respuesta)
-    const mentions = numeros.map((n) => jidPorNumero(n, conocidos))
-
-    await conn.sendMessage(m.chat, { text: respuesta, mentions }, { quoted: m })
-
+    respuesta = data?.result?.text
+    if (!respuesta || typeof respuesta !== 'string' || !respuesta.trim()) {
+      throw new Error('API sin texto (' + JSON.stringify(data).slice(0, 120) + ')')
+    }
+    respuesta = `${extraPrefix}${respuesta.trim()}`
   } catch (e) {
-    await conn.reply(m.chat, `*[ 🤖 ] Error al conectar con Simi.*`, m)
+    console.error('[simi] API falló:', e.message, e.response?.status || '', JSON.stringify(e.response?.data || {}).slice(0, 200))
+    await conn.reply(m.chat, `*[ 🤖 ] Error al conectar con Simi.*\n> ${e.message}*`, m)
+    return
+  }
+
+  // ── 2) Envío con menciones validadas (si el envío con mentions falla,
+  // se reintenta sin mentions para no dejar al usuario sin respuesta) ─────
+  const conocidos = [...mencionadosEntrada]
+  if (citado) conocidos.push(citado)
+  conocidos.push(m.sender)
+  const numeros = extraerNumeros(respuesta)
+  const mentions = numeros.map((n) => jidPorNumero(n, conocidos))
+
+  try {
+    await conn.sendMessage(m.chat, { text: respuesta, mentions }, { quoted: m })
+  } catch (e) {
+    console.error('[simi] sendMessage con mentions falló:', e.message, '→ reintento sin mentions')
+    try {
+      await conn.sendMessage(m.chat, { text: respuesta }, { quoted: m })
+    } catch (e2) {
+      console.error('[simi] sendMessage sin mentions falló:', e2.message, '→ reply final')
+      await conn.reply(m.chat, respuesta, m)
+    }
   }
 }
 
