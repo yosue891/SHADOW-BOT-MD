@@ -18,23 +18,76 @@ import axios from 'axios'
 const API_URL = 'https://api-gohan-v1.onrender.com/ai/gemini?text='
 const API_TIMEOUT = 90_000 // la API fría puede tardar ~35s
 
-const PROMPT_SHADOWIA = `Eres Shadowia, la asistente personal de Yosue, el dueño del bot.
+const PROMPT_SHADOWIA = `Eres Shadowia, la asistente personal de Yosue, el dueño de este bot.
 
-Modo neutro:
-- Eres clara, educada, directa y útil. Tono profesional y amable.
-- NO uses sarcasmo, NO uses ironía, NO insultes, NO hagas bromas pesadas.
-- No uses apodos despectivos ni palabras ofensivas hacia nadie.
-- Responde en español, de forma breve y natural para WhatsApp (evita listas enormes).
-- No uses asteriscos ni guiones bajos para dar formato.
-- No inventes datos; si no sabes algo, dilo con honestidad.
+Cómo eres:
+- Eres una asistente personal de verdad: cálida, cercana, atenta y profesional.
+- Tono neutro y amable. Sin sarcasmo, sin ironía, sin insultos, sin bromas pesadas.
+- Hablas de forma natural y conversacional, como una persona, no como un manual.
+- Puedes tratarlo de "jefe" con cariño, pero sin exagerar ni repetirlo.
+- Respondes en español.
+
+Cómo respondes:
+- Sé breve pero con diálogo real: 1 a 4 frases sueltas, no un muro de texto.
+- No uses asteriscos, guiones bajos, viñetas ni listas numeradas.
+- Usa algún emoji de vez en cuando, máximo 2 por respuesta, y no siempre.
+- Si te cuenta algo, reacciona a eso antes de responder; no cambies de tema.
+- Si lo que te pide no está claro, haz UNA pregunta concreta para entenderlo.
+- Cuando tenga sentido, ofrece el siguiente paso (por ejemplo: avisar al grupo,
+  revisar la lista de admins, dejar un recordatorio). Sin insistir.
+- Usa el contexto de la conversación: si se refiere a "él", "ella", "eso" o
+  "el de antes", entiende a quién o a qué se refiere.
+- No inventes datos. Si no sabes algo, dilo con honestidad.
 - No repitas tu nombre en cada respuesta ni menciones números de teléfono.
-- Si te piden hacer algo en el grupo, confirma en una línea qué hiciste o qué falta.
 
 Ahora responde lo siguiente`
 
 /* Comandos que el asistente NO ejecuta aunque el owner se lo pida,
    para no dejar el bot inutilizable desde el chat. */
 const BLOQUEADOS = new Set(['delplugin', 'saveplugin', 'eval', 'exec', 'restart', 'fix', 'dsowner'])
+
+/* ────────────── memoria (en RAM, por chat) ──────────────
+   Guarda qué hizo Shadowia en cada grupo para poder entender
+   «devuélvele admin al que se lo quitaste». Se pierde al reiniciar
+   el bot a propósito: es más seguro que promover a la persona
+   equivocada por un dato viejo. */
+const TTL_MEMORIA = 30 * 60 * 1000 // 30 minutos
+const MAX_HISTORIAL = 5
+const MAX_CONVERSA = 8
+const memoria = new Map() // chat -> { acciones: [], conversa: [] }
+
+export function getMemoria(chat) {
+  const ahora = Date.now()
+  let reg = memoria.get(chat)
+  if (!reg) {
+    reg = { acciones: [], conversa: [] }
+    memoria.set(chat, reg)
+  }
+  reg.acciones = reg.acciones.filter((a) => ahora - a.ts < TTL_MEMORIA)
+  reg.conversa = reg.conversa.filter((c) => ahora - c.ts < TTL_MEMORIA)
+  return reg
+}
+
+export function registrarAccion(chat, accion, jid) {
+  const reg = getMemoria(chat)
+  reg.acciones.push({ accion, jid, ts: Date.now() })
+  if (reg.acciones.length > MAX_HISTORIAL) reg.acciones.shift()
+  return reg.acciones[reg.acciones.length - 1]
+}
+
+export function registrarCharla(chat, usuario, ia) {
+  const reg = getMemoria(chat)
+  reg.conversa.push({ rol: 'user', texto: String(usuario).slice(0, 500), ts: Date.now() })
+  reg.conversa.push({ rol: 'shadowia', texto: String(ia).slice(0, 500), ts: Date.now() })
+  while (reg.conversa.length > MAX_CONVERSA * 2) reg.conversa.shift()
+}
+
+export function limpiarMemoria(chat) {
+  memoria.delete(chat)
+}
+
+/** minutos transcurridos, redondeado hacia arriba (mínimo 1) */
+const haceMinutos = (ts) => Math.max(1, Math.round((Date.now() - ts) / 60000))
 
 /* ────────────────────────── utilidades ────────────────────────── */
 
@@ -124,6 +177,12 @@ export function parsearOrden(rawText = '') {
       action: 'salir',
       re: /(^|\s)(sal(te|gan|ida)?|sal\s*de\s*aqu[ií]|vete|ret[ií]rate|leave|out|fuera\s*de\s*aqu[ií]|abandona(r)?\s*(el\s*)?grupo)(\s|$|!|\.)/,
       needsGroup: true,
+    },
+    {
+      action: 'devolverAdmin',
+      // ANTES que demote: si no, «devuélvele el admin» caería en «quita...admin»
+      re: /(^|\s)(devuelve(le|les)?|regresa(le|les)?|retorna(le|les)?|restaura(r)?|reestablece(r)?|restablece(r)?|dale\s+de\s+vuelta|devolver|regresar|deshaz|deshacer|revierte|revertir|undo)\s+(?:\w+\s+){0,3}admin/,
+      needsGroup: true, needsAdmin: true,
     },
     {
       action: 'demote',
@@ -259,11 +318,42 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
     switch (orden.action) {
       /* ── salir del grupo, con mensaje antes ── */
       case 'salir': {
-        await avisar('👋 Shadowia se retira. Fue un gusto estar aquí.\nSi me necesitan, el owner puede volver a agregarme.')
+        await avisar('👋 Entendido, jefe. Me despido y salgo del grupo.\nFue un gusto estar aquí. Cuando quieras, vuélveme a agregar.')
         await m.react?.('👋')
         await new Promise((r) => setTimeout(r, 2500)) // deja que el mensaje salga
         await conn.groupLeave(m.chat)
         return
+      }
+
+      /* ── devolver el admin a quien se lo quitó ── */
+      case 'devolverAdmin': {
+        const reg = getMemoria(m.chat)
+        const ultimoDemote = [...reg.acciones].reverse().find((a) => a.accion === 'demote')
+
+        if (!ultimoDemote) {
+          await m.react?.('🤔')
+          return avisar(
+            '🤔 No tengo registro de haberle quitado admin a alguien en este grupo.\n\n' +
+            '> Puede que el bot se haya reiniciado o que ya pasara media hora.\n' +
+            '> Si me dices a quién (mención o respondiendo su mensaje), lo hago de una.',
+          )
+        }
+
+        const objetivo = resolverObjetivo(m, args)
+        const jid = objetivo?.jid || ultimoDemote.jid
+        const bloqueo = esProtegido(jid, { botJid, ownerGrupo, ownerBot })
+        if (bloqueo) {
+          await m.react?.('⚠️')
+          return avisar(`⚠️ ${bloqueo}`)
+        }
+
+        await m.react?.('🛠️')
+        await conn.groupParticipantsUpdate(m.chat, [jid], 'promote')
+        registrarAccion(m.chat, 'promote', jid)
+        await m.react?.('✅')
+
+        const nota = objetivo ? '' : ` (a quien se lo quité hace ${haceMinutos(ultimoDemote.ts)} min)`
+        return avisar(`✅ Le devolví el admin a *@${String(jid).split('@')[0]}*${nota}.\n\n¿Necesitas algo más, jefe?`, { mentions: [jid] })
       }
 
       /* ── promote / demote / kick ── */
@@ -278,16 +368,16 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
         }
 
         const jid = objetivo.jid
-        const etiquetas = {
-          promote: { verbo: 'promovido a administrador', sufijo: '' },
-          demote: { verbo: 'degradado', sufijo: ' (ya no es admin)' },
-          kick: { verbo: 'expulsado', sufijo: ' del grupo' },
+        const frases = {
+          promote: `Listo, jefe ✨ *@${String(jid).split('@')[0]}* ya es administrador del grupo.\n\n¿Le aviso algo o sigo con otra cosa?`,
+          demote: `Listo, jefe. Le quité el admin a *@${String(jid).split('@')[0]}*.\n\nSi fue un error, dime «devuélvele admin» y se lo regreso.`,
+          kick: `Listo, jefe. Expulsé a *@${String(jid).split('@')[0]}* del grupo.\n\n¿Quieres que revise algo más?`,
         }
-        const et = etiquetas[orden.action]
         await m.react?.('🛠️')
         await conn.groupParticipantsUpdate(m.chat, [jid], orden.action === 'kick' ? 'remove' : orden.action)
+        registrarAccion(m.chat, orden.action, jid)
         await m.react?.('✅')
-        return avisar(`✅ Listo: *@${String(jid).split('@')[0]}* fue ${et.verbo}${et.sufijo}.`, { mentions: [jid] })
+        return avisar(frases[orden.action], { mentions: [jid] })
       }
 
       /* ── agregar ── */
@@ -295,34 +385,34 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
         const numero = String(args.join(' ') || '').match(/\d{9,15}/)?.[0]
         if (!numero) {
           await m.react?.('❕')
-          return avisar('ℹ️ Dime el número con código de país. Ejemplo: `agrega 584241234567`')
+          return avisar('ℹ️ Con gusto, jefe. Dime el número con código de país. Ejemplo: `agrega 584241234567`')
         }
         await m.react?.('🛠️')
         await conn.groupParticipantsUpdate(m.chat, [`${numero}@s.whatsapp.net`], 'add')
         await m.react?.('✅')
-        return avisar(`✅ Listo: agregué a *+${numero}* al grupo.`)
+        return avisar(`Listo, jefe ✅ Agregué a *+${numero}* al grupo.\n\n¿Le escribo algo de bienvenida?`)
       }
 
       /* ── nombre del grupo ── */
       case 'nombre': {
         if (!orden.value) {
           await m.react?.('❕')
-          return avisar('ℹ️ Dime el nuevo nombre. Ejemplo: `cambia el nombre del grupo a Mi Grupo`')
+          return avisar('ℹ️ Claro, jefe. Dime el nuevo nombre. Ejemplo: `cambia el nombre del grupo a Mi Grupo`')
         }
         await conn.groupUpdateSubject(m.chat, orden.value.slice(0, 100))
         await m.react?.('✅')
-        return avisar(`✅ Nombre del grupo actualizado a *${orden.value.slice(0, 100)}*.`)
+        return avisar(`Listo, jefe ✨ El grupo ahora se llama *${orden.value.slice(0, 100)}*.\n\n¿Cambio también la descripción?`)
       }
 
       /* ── descripción ── */
       case 'descripcion': {
         if (!orden.value) {
           await m.react?.('❕')
-          return avisar('ℹ️ Dime la nueva descripción. Ejemplo: `cambia la descripción a Grupo oficial`')
+          return avisar('ℹ️ Claro, jefe. Dime la nueva descripción. Ejemplo: `cambia la descripción a Grupo oficial`')
         }
         await conn.groupUpdateDescription(m.chat, orden.value)
         await m.react?.('✅')
-        return avisar('✅ Descripción del grupo actualizada.')
+        return avisar('Listo, jefe ✨ Ya actualicé la descripción del grupo.\n\n¿Reviso algo más?')
       }
 
       /* ── foto del grupo ── */
@@ -335,7 +425,7 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
         })
         if (!fuente) {
           await m.react?.('❕')
-          return avisar('ℹ️ Mándame la imagen junto con el comando, o responde a una imagen y dime `cambia la foto del grupo`.')
+          return avisar('ℹ️ Claro, jefe. Mándame la imagen junto con el comando, o responde a una imagen y dime `cambia la foto del grupo`.')
         }
         if (typeof fuente.download !== 'function') {
           await m.react?.('⚠️')
@@ -348,7 +438,7 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
         }
         await conn.updateProfilePicture(m.chat, img)
         await m.react?.('✅')
-        return avisar('✅ Foto del grupo actualizada.')
+        return avisar('Listo, jefe ✨ Ya cambié la foto del grupo.\n\n¿Te gustó cómo quedó?')
       }
 
       /* ── abrir / cerrar / anuncios ── */
@@ -357,13 +447,13 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
         const valor = orden.action === 'abrir' ? 'not_announcement' : 'announcement'
         await conn.groupSettingUpdate(m.chat, valor)
         await m.react?.('✅')
-        return avisar(orden.action === 'abrir' ? '✅ Grupo abierto: todos pueden escribir.' : '✅ Grupo cerrado: solo admins escriben.')
+        return avisar(orden.action === 'abrir' ? 'Listo, jefe 🔓 Abrí el grupo: ya todos pueden escribir.\n\n¿Lo dejo así o lo cierro más tarde?' : 'Listo, jefe 🔒 Cerré el grupo: solo los admins pueden escribir.\n\nCuando quieras lo abro de nuevo.')
       }
       case 'anunciosOn':
       case 'anunciosOff': {
         await conn.groupSettingUpdate(m.chat, orden.action === 'anunciosOn' ? 'announcement' : 'not_announcement')
         await m.react?.('✅')
-        return avisar(orden.action === 'anunciosOn' ? '✅ Anuncios activados.' : '✅ Anuncios desactivados.')
+        return avisar(orden.action === 'anunciosOn' ? 'Listo, jefe 📢 Activé los anuncios del grupo.' : 'Listo, jefe 🔕 Desactivé los anuncios del grupo.')
       }
 
       /* ── ayuda ── */
@@ -374,6 +464,7 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
           `\n*Administración del grupo*\n` +
           `• \`promueve a @usuario\` · \`degrada a @usuario\`\n` +
           `• \`expulsa a @usuario\` · \`agrega 584241234567\`\n` +
+          `• \`devuélvele admin\` → se lo regreso a quien se lo quité\n` +
           `• \`cambia el nombre del grupo a ...\`\n` +
           `• \`cambia la descripción a ...\`\n` +
           `• \`cambia la foto del grupo\` (respondiendo a una imagen)\n` +
@@ -407,11 +498,28 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
       case 'charlar':
       default: {
         await conn.sendPresenceUpdate?.('composing', m.chat)
-        const prompt = encodeURIComponent(`${PROMPT_SHADOWIA}\nUsuario: ${orden.value}\nShadowia:`)
-        const { data } = await axios.get(`${API_URL}${prompt}`, {
-          timeout: API_TIMEOUT,
-          headers: { 'User-Agent': 'Mozilla/5.0' },
-        })
+
+        // contexto corto de la conversación para que Shadowia pueda seguir el hilo
+        const reg = getMemoria(m.chat)
+        const contexto = reg.conversa.map((c) => `${c.rol === 'user' ? 'Yosue' : 'Shadowia'}: ${c.texto}`).join('\n')
+        const bloque = contexto
+          ? `\n\nConversación reciente (úsala solo si viene al caso):\n${contexto}\n`
+          : '\n'
+
+        const prompt = encodeURIComponent(`${PROMPT_SHADOWIA}${bloque}\nYosue: ${orden.value}\nShadowia:`)
+
+        let data
+        try {
+          const r = await axios.get(`${API_URL}${prompt}`, {
+            timeout: API_TIMEOUT,
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+          })
+          data = r.data
+        } catch {
+          await conn.sendPresenceUpdate?.('paused', m.chat).catch?.(() => {})
+          await m.react?.('⚠️')
+          return avisar('⚠️ No pude conectar con la IA (la API suele tardar cuando está fría). ¿Lo intento otra vez?')
+        }
         await conn.sendPresenceUpdate?.('paused', m.chat)
 
         let respuesta = data?.result?.text
@@ -420,6 +528,8 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
           return avisar('⚠️ La IA no devolvió respuesta. Intenta de nuevo en unos segundos.')
         }
         respuesta = String(respuesta).replace(/\n{3,}/g, '\n\n').replace(/[ \t]{2,}/g, ' ').trim()
+
+        registrarCharla(m.chat, orden.value, respuesta)
         await m.react?.('✅')
         return conn.reply(m.chat, respuesta, m)
       }

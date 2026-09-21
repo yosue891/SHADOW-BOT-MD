@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import handler, { parsearOrden, resolverObjetivo, esProtegido, extraerValor, jidNumero, buscarParticipante, esAdminParticipante } from '../plugins/ia/ia-shadowia.js'
+import handler, { parsearOrden, resolverObjetivo, esProtegido, extraerValor, jidNumero, buscarParticipante, esAdminParticipante, registrarAccion, getMemoria, limpiarMemoria } from '../plugins/ia/ia-shadowia.js'
 
 /* ──────────── mocks ──────────── */
 
@@ -175,14 +175,15 @@ test('metadata: solo owners (rowner) y comandos registrados', () => {
 test('handler: promote con mención ejecuta groupParticipantsUpdate', async () => {
   const { sent } = await correr({ text: 'promueve a @584242222222', over: { mentionedJid: [MIEMBRO] } })
   assert.deepEqual(sent.participants, [{ jid: GRUPO, lista: [MIEMBRO], accion: 'promote' }])
-  assert.match(sent.replies[0].texto, /fue promovido a administrador\./, 'el mensaje debe leerse bien')
+  assert.match(sent.replies[0].texto, /ya es administrador del grupo/, 'el mensaje debe leerse bien')
+  assert.match(sent.replies[0].texto, /jefe/, 'tono de asistente personal')
   assert.deepEqual(sent.replies[0].opciones, { mentions: [MIEMBRO] })
 })
 
 test('handler: kick usa la acción «remove»', async () => {
   const { sent } = await correr({ text: 'expulsa a @584242222222', over: { mentionedJid: [MIEMBRO] } })
   assert.equal(sent.participants[0].accion, 'remove')
-  assert.match(sent.replies[0].texto, /fue expulsado del grupo\./)
+  assert.match(sent.replies[0].texto, /Expulsé a .* del grupo/)
 })
 
 test('handler: se niega a expulsar al creador del grupo', async () => {
@@ -259,7 +260,7 @@ test('handler: al pedirle que salga, se despide ANTES de salir', async () => {
 
   assert.deepEqual(orden, ['mensaje', 'leave'], 'el mensaje de despedida debe ir antes de groupLeave')
   assert.equal(sent.left, GRUPO)
-  assert.match(sent.replies[0].texto, /se retira/)
+  assert.match(sent.replies[0].texto, /Me despido y salgo del grupo/)
 })
 
 /* ════════════ handler: ejecutar cualquier plugin ════════════ */
@@ -347,7 +348,7 @@ test('BUGFIX: reconoce al bot como admin aunque su JID traiga :dispositivo', asy
   }
   const { sent } = await correr({ text: 'promueve a @584242222222', over: { mentionedJid: [MIEMBRO] }, meta })
   assert.deepEqual(sent.participants, [{ jid: GRUPO, lista: [MIEMBRO], accion: 'promote' }], 'debe promover sin quejarse de admin')
-  assert.match(sent.replies[0].texto, /promovido a administrador/)
+  assert.match(sent.replies[0].texto, /ya es administrador del grupo/)
 })
 
 test('BUGFIX: reconoce al bot admin cuando el participante usa @lid', async () => {
@@ -376,6 +377,127 @@ test('prefiere el isBotAdmin que ya calculó el framework', async () => {
     isBotAdmin: true,
   })
   assert.equal(sent.participants.length, 1, 'debe confiar en el isBotAdmin del contexto')
+})
+
+
+/* ════════════ NUEVO: devolver el admin ════════════ */
+
+test('parsearOrden: reconoce «devuélvele admin» y no lo confunde con demote', () => {
+  for (const t of [
+    'devuélvele admin',
+    'devuelvele el admin',
+    'devuélvele el admin al que se lo quitaste',
+    'regresale el admin',
+    'dale de vuelta el admin',
+    'restaura el admin',
+    'deshaz lo del admin',
+  ]) {
+    assert.equal(parsearOrden(t).action, 'devolverAdmin', `«${t}» debía dar devolverAdmin`)
+  }
+  // y demote sigue intacto
+  assert.equal(parsearOrden('quítale el admin a @584242222222').action, 'demote')
+  assert.equal(parsearOrden('degrada a @584242222222').action, 'demote')
+})
+
+test('flujo real: quitar admin y luego devolvérselo a la misma persona', async () => {
+  limpiarMemoria(GRUPO)
+
+  // 1) le quita el admin a MIEMBRO
+  const a = await correr({ text: 'quitar admin a @584242222222', over: { mentionedJid: [MIEMBRO] } })
+  assert.deepEqual(a.sent.participants, [{ jid: GRUPO, lista: [MIEMBRO], accion: 'demote' }])
+  assert.match(a.sent.replies[0].texto, /dime «devuélvele admin»/, 'debe ofrecer deshacer la acción')
+
+  // 2) sin mencionar a nadie, se lo devuelve a quien se lo quitó
+  const b = await correr({ text: 'devuélvele admin al que se lo quitaste' })
+  assert.deepEqual(b.sent.participants, [{ jid: GRUPO, lista: [MIEMBRO], accion: 'promote' }], 'debe promover a la misma persona')
+  assert.match(b.sent.replies[0].texto, /Le devolví el admin/)
+  assert.match(b.sent.replies[0].texto, /a quien se lo quité hace \d+ min/)
+  assert.deepEqual(b.sent.replies[0].opciones, { mentions: [MIEMBRO] })
+})
+
+test('devolver admin: si no hay registro, lo dice y no hace nada', async () => {
+  limpiarMemoria(GRUPO)
+  const { sent } = await correr({ text: 'devuélvele admin' })
+  assert.equal(sent.participants.length, 0, 'no debe promover a nadie a ciegas')
+  assert.match(sent.replies[0].texto, /No tengo registro/)
+})
+
+test('devolver admin: si menciona a otro, le devuelve a ese', async () => {
+  limpiarMemoria(GRUPO)
+  await correr({ text: 'quitar admin a @584242222222', over: { mentionedJid: [MIEMBRO] } })
+  const OTRO = '584243333333@s.whatsapp.net'
+  const { sent } = await correr({ text: 'devuélvele admin a @584243333333', over: { mentionedJid: [OTRO] } })
+  assert.deepEqual(sent.participants.at(-1).lista, [OTRO], 'debe respetar la mención explícita')
+})
+
+test('devolver admin: usa el último demote, no uno antiguo', async () => {
+  limpiarMemoria(GRUPO)
+  const OTRO = '584243333333@s.whatsapp.net'
+  registrarAccion(GRUPO, 'demote', MIEMBRO)
+  registrarAccion(GRUPO, 'demote', OTRO)
+  const { sent } = await correr({ text: 'devuélvele admin' })
+  assert.deepEqual(sent.participants.at(-1).lista, [OTRO])
+})
+
+/* ════════════ NUEVO: memoria ════════════ */
+
+test('memoria: guarda las últimas acciones y las limita', () => {
+  limpiarMemoria(GRUPO)
+  for (let i = 0; i < 9; i++) registrarAccion(GRUPO, 'demote', `${5842400000 + i}@s.whatsapp.net`)
+  const reg = getMemoria(GRUPO)
+  assert.equal(reg.acciones.length, 5, 'debe conservar como máximo 5 acciones')
+  assert.equal(reg.acciones.at(-1).jid, `${5842400000 + 8}@s.whatsapp.net`, 'la más reciente va al final')
+})
+
+test('memoria: descarta lo que ya expiró', () => {
+  limpiarMemoria(GRUPO)
+  const reg = getMemoria(GRUPO)
+  reg.acciones.push({ accion: 'demote', jid: MIEMBRO, ts: Date.now() - 31 * 60 * 1000 })
+  reg.acciones.push({ accion: 'demote', jid: MIEMBRO, ts: Date.now() })
+  assert.equal(getMemoria(GRUPO).acciones.length, 1, 'la acción de hace 31 min debe caer')
+})
+
+test('memoria: limpiarMemoria vacía el registro del chat', () => {
+  registrarAccion(GRUPO, 'demote', MIEMBRO)
+  limpiarMemoria(GRUPO)
+  assert.equal(getMemoria(GRUPO).acciones.length, 0)
+})
+
+/* ════════════ NUEVO: tono de asistente personal ════════════ */
+
+test('tono: las confirmaciones hablan como asistente personal', async () => {
+  limpiarMemoria(GRUPO)
+  const casos = [
+    ['promueve a @584242222222', /jefe/],
+    ['cierra el grupo', /jefe/],
+    ['abre el grupo', /jefe/],
+    ['cambia la descripción a Grupo oficial', /jefe/],
+    ['cambia el nombre del grupo a Shadow', /jefe/],
+  ]
+  for (const [texto, esperado] of casos) {
+    const { sent } = await correr({ text: texto, over: { mentionedJid: [MIEMBRO] } })
+    assert.match(sent.replies[0].texto, esperado, `«${texto}» debe sonar a asistente personal`)
+  }
+})
+
+test('tono: al degradar ofrece deshacer la acción', async () => {
+  limpiarMemoria(GRUPO)
+  const { sent } = await correr({ text: 'degrada a @584242222222', over: { mentionedJid: [MIEMBRO] } })
+  assert.match(sent.replies[0].texto, /devuélvele admin/)
+})
+
+test('ayuda: menciona «devuélvele admin»', async () => {
+  const { sent } = await correr({ text: 'ayuda' })
+  assert.match(sent.replies[0].texto, /devuélvele admin/)
+})
+
+test('charla: guarda el intercambio para tener contexto', async () => {
+  limpiarMemoria(GRUPO)
+  await correr({ text: 'hola shadowia' })
+  const reg = getMemoria(GRUPO)
+  assert.ok(reg.conversa.length >= 2, 'debe guardar el mensaje del usuario y la respuesta')
+  assert.equal(reg.conversa[0].rol, 'user')
+  assert.equal(reg.conversa[1].rol, 'shadowia')
 })
 
 /* ════════════ BUGFIX: imagen del grupo ════════════ */
