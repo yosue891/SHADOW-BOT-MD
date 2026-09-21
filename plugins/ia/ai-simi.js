@@ -72,14 +72,13 @@ Ahora responde lo siguiente`
         .trim()
     } catch {}
 
-    // ── Mención real solo al que escribe si es owner (sin mostrar número) ──
+    // ── Sin @ forzado: solo se taggea si la IA ya trajo @ del owner ──
+    // (y se quita cualquier @ suelto que no tenga número)
     try {
+      respuesta = String(respuesta).replace(/@(?!\d)/g, '').replace(/[ \t]{2,}/g, ' ').trim()
       const senderJid = (m && typeof m.sender === 'string' && m.sender.includes('@')) ? m.sender : null
-      if (esOwner && senderJid) {
-        const numLimpio = String(senderJid).split('@')[0].replace(/\D/g, '')
-        if (numLimpio && !respuesta.includes('@' + numLimpio)) {
-          respuesta = `@${numLimpio} ${respuesta}`
-        }
+      const numLimpio = senderJid ? String(senderJid).split('@')[0].replace(/\D/g, '') : ''
+      if (esOwner && senderJid && numLimpio && respuesta.includes('@' + numLimpio)) {
         await conn.sendMessage(m.chat, { text: respuesta, mentions: [senderJid] }, { quoted: m })
       } else {
         await conn.reply(m.chat, respuesta, m)
