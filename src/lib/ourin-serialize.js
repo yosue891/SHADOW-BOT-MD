@@ -947,6 +947,39 @@ async function serialize(sock, msg, store = {}) {
           },
         },
       );
+    } else if (replyVariant === 5) {
+      const thumbnailBuf = getAssetBuffer("ourin");
+      let thumb = thumbnailBuf;
+      try { if (thumb) { const sh = await _getSharp(); thumb = await sh(thumb).resize(300, 300).toBuffer(); } } catch { }
+      const fakeOrder = { key: { participant: "0@s.whatsapp.net", remoteJid: m.chat, fromMe: false }, message: { orderMessage: { orderId: "123456", itemCount: 999, status: 1, surface: 1, message: config.bot?.name || "Shadow-BOT-MD", orderTitle: "System Notification", sellerJid: "0@s.whatsapp.net", token: "ARU1+", totalAmount1000: "1000000", totalCurrencyCode: "IDR", thumbnail: thumb } } };
+      return sock.sendMessage(m.chat, { text, ...defaultOptions, ...options }, { quoted: fakeOrder });
+    } else if (replyVariant === 6) {
+      let thumb = getAssetBuffer("ourin2") || getAssetBuffer("ourin");
+      try { if (thumb) { const sh = await _getSharp(); thumb = await sh(thumb).resize(300, 300).toBuffer(); } } catch { }
+      return sock.sendMessage(m.chat, { document: await getCachedThumb(join(process.cwd(), "package.json")) || fsc.readFileSync(join(process.cwd(), "package.json")), mimetype: "image/png", fileName: config.bot.name, fileLength: 99999999999999, jpegThumbnail: thumb, caption: text, ...defaultOptions, ...options }, { quoted: m });
+    } else if (replyVariant === 7) {
+      const thumbnailBuf = getAssetBuffer("ourin");
+      let thumb = thumbnailBuf;
+      try { if (thumb) { const sh = await _getSharp(); thumb = await sh(thumb).resize(300, 300).toBuffer(); } } catch { }
+      const msg = generateWAMessageFromContent(m.chat, { viewOnceMessage: { message: { messageContextInfo: {}, interactiveMessage: { header: { hasMediaAttachment: true, locationMessage: { degreesLatitude: 0, degreesLongitude: 0, name: config.bot?.name || "Shadow-BOT-MD", address: "Bot Wa Multi Device", jpegThumbnail: thumb } }, body: { text }, contextInfo: { mentionedJid: options?.mentions || [m?.sender] || [], isForwarded: true, forwardingScore: 9, ...options.contextInfo }, nativeFlowMessage: { buttons: [] } } } } }, { quoted: m, userJid: sock.user.id });
+      return sock.relayMessage(m.chat, msg.message, { messageId: msg.key.id });
+    } else if (replyVariant === 8) {
+      const thumbnailBuf = getAssetBuffer("ourin");
+      let thumb = thumbnailBuf;
+      try { if (thumb) { const sh = await _getSharp(); thumb = await sh(thumb).resize(300, 300).toBuffer(); } } catch { }
+      return await sock.relayMessage(m.chat, { interactiveMessage: { header: { title: config?.bot?.name }, body: { text }, nativeFlowMessage: { buttons: [{ name: "inapp_signup", buttonParamsJson: "{}" }] }, contextInfo: { mentionedJid: options?.mentions || [m?.sender] || [], groupMentions: [], participant: m?.sender, quotedMessage: { orderMessage: { orderId: "8999999999999", thumbnail: thumb, itemCount: 999, status: 1, surface: 1, message: m?.body, orderTitle: "blablabla", sellerJid: "0@s.whatsapp.net", totalAmount1000: 0, totalCurrencyCode: "IDR" } }, remoteJid: m.chat, forwardingScore: 999, isForwarded: true } } }, {});
+    } else if (replyVariant === 9) {
+      const thumbnailBuf = getAssetBuffer("ourin");
+      return await sock.relayMessage(m.chat, { orderMessage: { orderId: "WXX", thumbnail: thumbnailBuf, itemCount: 1, status: "INQUIRY", surface: "CATALOG", message: text, orderTitle: "CONTOL", token: "whyuxD", totalAmount1000: "0", totalCurrencyCode: "IDR", messageVersion: 1, contextInfo: { mentionedJid: options?.mentions || [m?.sender] || [], participant: m?.sender, quotedMessage: m?.message || { conversation: m?.text || "" } } } }, {});
+    } else if (replyVariant === 10) {
+      return await sock.relayMessage(m.chat, { requestPaymentMessage: { currencyCodeIso4217: "IDR", amount1000: "75000000", requestFrom: m?.sender || "0@s.whatsapp.net", noteMessage: { extendedTextMessage: { text, contextInfo: { mentionedJid: options?.mentions || [m?.sender] || [], participant: m?.sender, quotedMessage: m?.message || { conversation: m?.text || "" } } } } } }, {});
+    } else if (replyVariant === 11) {
+      const delay = (ms) => new Promise(r => setTimeout(r, ms));
+      const chars = [...(config.bot?.name || "Shadow")];
+      const sentMsg = await sock.sendMessage(m.chat, { text: "..." }, { quoted: quotedMsg });
+      const key = sentMsg.key;
+      ;(async () => { try { let iteration = 0; while (iteration < 20) { let cur = ""; for (const char of chars) { cur += char; const th = getAssetBuffer("ourin"); await sock.sendMessage(m.chat, { text: `${config.info?.website}\n\n${text}`, edit: key, linkPreview: { "matched-text": config.info?.website, title: cur, description: "Bot WhatsApp Multidispositivo", jpegThumbnail: th } }); await delay(2000); iteration++; if (iteration >= 20) break; } await delay(1000); } } catch (e) { console.error("V11 Animation error:", e); } })();
+      return sentMsg;
     }
 
     return sock.sendMessage(
