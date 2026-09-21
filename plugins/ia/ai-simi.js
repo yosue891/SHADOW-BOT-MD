@@ -16,20 +16,16 @@ let handler = async (m, { conn, text, isOwner, isROwner }) => {
     }
   }
 
-  // ── Quién escribe: detección ESTRICTA (el endsWith inverso de antes marcaba
-  // como owner a cualquiera con pocos dígitos coincidentes; m.isOwner usa esa
-  // comparación permisiva, así que no se confía en él solo) ──
-  let esOwner = false
+  // ── Quién escribe: SOLO Yosue (584242773183) recibe trato amable.
+  // Con nadie más — ni siquiera otros owners — se usa el prompt cálido. ──
+  let esYosue = false
   try {
     const numeroSender = String((m && m.sender) || '').split('@')[0].replace(/\D/g, '')
-    const listaOwners = ['584242773183', '573133374132', '584241819270']
-    // Solo vale coincidencia exacta o que el sender termine en el número del
-    // owner (variantes con código país). Mínimo 9 dígitos y nunca al revés.
-    const coincide = numeroSender.length >= 9 && listaOwners.some((o) => numeroSender === o || numeroSender.endsWith(o))
-    // isOwner/isROwner del framework son comparación exacta (confiables);
-    // coincide cubre al owner que falta en global.owner. m.isOwner solo no vale.
-    esOwner = Boolean(isOwner || isROwner) || coincide
-  } catch { esOwner = Boolean(isOwner || isROwner) }
+    const numeroYosue = '584242773183'
+    // Solo vale coincidencia exacta o que el sender termine en el número
+    // (variantes con código país). Mínimo 9 dígitos y nunca al revés.
+    esYosue = numeroSender.length >= 9 && (numeroSender === numeroYosue || numeroSender.endsWith(numeroYosue))
+  } catch { esYosue = false }
 
   // NOTA: no se ponen nombre/número en el prompt del owner para que la IA no los repita.
   // Para NO-owners se usa el prompt ORIGINAL tal cual (su comportamiento de siempre).
@@ -60,7 +56,7 @@ Incluye emojis en tus respuestas para darles más personalidad y burla. Usa emoj
 
 Ahora responde lo siguiente`
 
-  const basePrompt = esOwner ? promptOwner : promptOriginal
+  const basePrompt = esYosue ? promptOwner : promptOriginal
 
   try {
     const prompt = encodeURIComponent(basePrompt + "\nUsuario: " + text + "\nSimi:")

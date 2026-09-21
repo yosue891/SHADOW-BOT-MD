@@ -23,15 +23,6 @@ const handler = async (m, { conn }) => {
         description: "Co-creador y encargado de la optimización y soporte del proyecto.\n\n🌐 GitHub: github.com/ado-hub\n📢 Canal: https://whatsapp.com/channel/0029VbD5h6s0AgWBpfCQlw2P\n📦 Repo: https://github.com/yosue891/SHADOW-BOT-MD.git",
         btnLabel: "Canal de Ado",
         btnUrl: "https://whatsapp.com/channel/0029VbD5h6s0AgWBpfCQlw2P"
-      },
-      {
-        name: "Gabriel",
-        role: "Desarrollador",
-        number: "584248272650",
-        image: "https://i.ibb.co/3NfYh9k/default-avatar.png",
-        description: "Soporte técnico y desarrollador de funciones avanzadas.\n\n💬 Grupo: https://chat.whatsapp.com/GNZoTT5MKYe6yJtfCdCqoO\n📦 Repo: https://github.com/yosue891/SHADOW-BOT-MD.git",
-        btnLabel: "Grupo de Ventas/Sorteos",
-        btnUrl: "https://chat.whatsapp.com/GNZoTT5MKYe6yJtfCdCqoO"
       }
     ]
 
