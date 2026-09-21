@@ -13,7 +13,6 @@ const __dirname = path.dirname(__filename)
 const PAIRING_CODE_TTL_MS = 45000
 const QR_TTL_MS = 45000
 
-// URL de la imagen de instrucciones
 const BANNER_URL = 'https://files.catbox.moe/owpjte.jpg'
 
 const rtx = `❐ *_Vincula via codigo qr_*
@@ -32,7 +31,6 @@ const rtx2 = `❐ *_Vincula via código de 8 digitos_*
 2 » Ve a *Dispositivos vinculados*
 3 » Vincular con el *número de teléfono*
 4 » Escribe el *código*`
-
 
 function resolveExistingModule(...relativePaths) {
   for (const relativePath of relativePaths) {
@@ -107,11 +105,6 @@ function extractPhone(jid = '') {
     .split('@')[0]
     .split(':')[0]
     .replace(/\D/g, '')
-}
-
-function isLidUser(jid) {
-  if (!jid) return false
-  return jid.endsWith('@lid')
 }
 
 function isLidConverted(jid) {
@@ -213,7 +206,6 @@ function getPairingPhoneNumber(m, args, fallbackJid) {
   return number
 }
 
-// Función para construir e interactuar enviando la imagen real + botón
 async function sendPairingInteractiveImage(conn, chatId, { bodyText, code, imageUrl }, quoted) {
   let imageMessageHeader = {}
 
@@ -287,7 +279,7 @@ async function sendPairingInteractiveImage(conn, chatId, { bodyText, code, image
 }
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
-  if (!global.db.data.settings[conn.user.jid].jadibotmd) return m.reply(`ꕥ El Comando *${command}* está desactivado temporalmente.`)
+  if (!global.db.data.settings[conn.user.jid]?.jadibotmd) return m.reply(`ꕥ El Comando *${command}* está desactivado temporalmente.`)
 
   const userData = global.db.data.users[m.sender] || (global.db.data.users[m.sender] = {})
   const now = Date.now()
@@ -320,7 +312,6 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     }
   }
   const id = pairingNumber || extractPhone(who)
-  const pairingPhoneNumber = getPairingPhoneNumber(m, args, who)
   const jadiDir = global.jadi || 'Sessions/SubBot'
   const pathMichiJadiBot = path.join(jadiDir, id)
 
@@ -397,28 +388,15 @@ export async function MichiJadiBot(options) {
     browser: ['Ubuntu', 'Chrome', '20.0.04'],
     ...(version ? { version } : {}),
     generateHighQualityLinkPreview: true,
-    markOnlineOnConnect: false,
+    markOnlineOnConnect: true,
     syncFullHistory: false,
-    keepAliveIntervalMs: 45000,
-    maxIdleTimeMs: 120000
+    keepAliveIntervalMs: 30000
   }
 
   let sock = makeWASocket(connectionOptions)
   sock.isInit = false
   sock.isPairingRequested = false
   let isInit = true
-
-  setTimeout(async () => {
-    const wsClosed = !sock.ws || sock.ws.readyState === 3
-    if (!sock.user && wsClosed) {
-      try { fs.rmSync(pathMichiJadiBot, { recursive: true, force: true }) } catch {}
-      try { sock.ws?.close() } catch {}
-      try { sock.ev.removeAllListeners() } catch {}
-      const i = global.conns.indexOf(sock)
-      if (i >= 0) global.conns.splice(i, 1)
-      console.log(`[AUTO-LIMPIEZA] Sesión ${path.basename(pathMichiJadiBot)} eliminada por credenciales inválidas.`)
-    }
-  }, 120000)
 
   async function sendPairingCode() {
     if (!mcode || sock.user || txtCode || sock.isPairingRequested) return false
@@ -434,13 +412,8 @@ export async function MichiJadiBot(options) {
 
       const secret = await sock.requestPairingCode(phoneNumber)
       const formattedSecret = secret.match(/.{1,4}/g)?.join('-') || secret
-      
-      const bodyText = `${rtx2}
 
-✧ Número solicitado: +${phoneNumber}
-✧ Código: *${formattedSecret}*
-
-> Toca el botón de abajo para copiar tu código de vinculación.`
+      const bodyText = `${rtx2}\n\n✧ Número solicitado: +${phoneNumber}\n✧ Código: *${formattedSecret}*\n\n> Toca el botón de abajo para copiar tu código de vinculación.`
 
       txtCode = await sendPairingInteractiveImage(conn, m.chat, {
         bodyText,
@@ -448,8 +421,8 @@ export async function MichiJadiBot(options) {
         imageUrl: BANNER_URL
       }, m)
 
-      console.log(`[PAIRING-CODE] ${phoneNumber}: ${secret}`)
-      
+      console.log(`[PAIRING-CODE] ${phoneNumber}:${secret}`)
+
       if (txtCode?.key) setTimeout(() => conn.sendMessage(m.chat, { delete: txtCode.key }).catch(() => {}), PAIRING_CODE_TTL_MS)
       return true
     } catch (e) {
@@ -487,8 +460,8 @@ export async function MichiJadiBot(options) {
       const backoff = Math.min(3000 * Math.pow(2, subReconnectCount), 60000)
       sock._reconnectCount = subReconnectCount + 1
 
-      if ([428, 408, 515].includes(reason)) {
-        console.log(chalk.bold.magentaBright(`\n┆ La conexión (+${path.basename(pathMichiJadiBot)}) se cerró. Razón: ${reason}. Reconectando en ${Math.round(backoff/1000)}s...`))
+      if ([428, 408, 515, 500, 502].includes(reason) || !reason) {
+        console.log(chalk.bold.magentaBright(`\n┆ La conexión (+${path.basename(pathMichiJadiBot)}) se cerró (Razón: ${reason}). Reconectando en ${Math.round(backoff/1000)}s...`))
         await delay(backoff)
         await creloadHandler(true).catch(console.error)
         return
@@ -496,21 +469,11 @@ export async function MichiJadiBot(options) {
 
       if (reason === 440) {
         console.log(chalk.bold.magentaBright(`\n┆ La conexión (+${path.basename(pathMichiJadiBot)}) fue reemplazada por otra sesión activa.`))
-        try {
-          if (options.fromCommand && m?.chat) await conn.sendMessage(`${path.basename(pathMichiJadiBot)}@s.whatsapp.net`, { text: '⚠︎ Hemos detectado una nueva sesión, borre la antigua sesión para continuar.\n\n> ☁︎ Si hay algún problema vuelva a conectarse.' }, { quoted: m || null })
-        } catch {
-          console.error(chalk.bold.yellow(`⚠︎ Error 440 no se pudo enviar mensaje a: +${path.basename(pathMichiJadiBot)}`))
-        }
         return
       }
 
       if (reason === 405 || reason === 401 || reason === 403) {
         console.log(chalk.bold.magentaBright(`\n┆ La sesión (+${path.basename(pathMichiJadiBot)}) fue cerrada o tiene credenciales no válidas.`))
-        try {
-          if (options.fromCommand && m?.chat) await conn.sendMessage(`${path.basename(pathMichiJadiBot)}@s.whatsapp.net`, { text: '⚠︎ Sesión pendiente.\n\n> ☁︎ Vuelva a intentar nuevamente volver a ser *SUB-BOT*.' }, { quoted: m || null })
-        } catch {
-          console.error(chalk.bold.yellow(`⚠︎ Error ${reason} no se pudo enviar mensaje a: +${path.basename(pathMichiJadiBot)}`))
-        }
         try { sock.ev.removeAllListeners() } catch {}
         try { sock.ws?.close() } catch {}
         const idx = global.conns.indexOf(sock)
@@ -518,24 +481,10 @@ export async function MichiJadiBot(options) {
         fs.rmSync(pathMichiJadiBot, { recursive: true, force: true })
         return
       }
-
-      if (reason === 500 || reason === 502) {
-        console.log(chalk.bold.magentaBright(`\n┆ Conexión perdida en la sesión (+${path.basename(pathMichiJadiBot)}). Reconectando en ${Math.round(backoff/1000)}s...`))
-        await delay(backoff)
-        return creloadHandler(true).catch(console.error)
-      }
-
-      if (!reason || ![428, 408, 440, 405, 401, 403, 500, 502, 515].includes(reason)) {
-        console.log(chalk.bold.yellowBright(`\n┆ Conexión cerrada en sesión (+${path.basename(pathMichiJadiBot)}), razón: ${reason}. Reconectando en ${Math.round(backoff/1000)}s...`))
-        await delay(backoff)
-        return creloadHandler(true).catch(console.error)
-      }
     }
-    if (connection === 'open') sock._reconnectCount = 0
 
-    if (global.db.data == null) loadDatabase()
     if (connection === 'open') {
-      if (!global.db.data?.users) loadDatabase()
+      sock._reconnectCount = 0
       await joinChannels(sock)
       await sock.newsletterFollow('120363403739366547@newsletter').catch(() => {})
       const userJid = sock.authState.creds.me.jid || `${path.basename(pathMichiJadiBot)}@s.whatsapp.net`
@@ -545,29 +494,9 @@ export async function MichiJadiBot(options) {
       if (!global.conns.includes(sock)) global.conns.push(sock)
       const targetChat = m?.chat || userJid
       const userSender = m?.sender || userJid
-      await conn.sendMessage(targetChat, { text: isSubBotConnected(userSender) ? `> @${userSender.split('@')[0]}, ❐ Has registrado un nuevo _shadow_ *Sub-Bot* 👻` : `> ❀ Has registrado un nuevo *Sub-Bot!* [@${userSender.split('@')[0]}]`, mentions: [userSender] }, { quoted: m || null })
+      await conn.sendMessage(targetChat, { text: isSubBotConnected(userSender) ? `> @${userSender.split('@')[0]}, ❐ Has registrado un nuevo _shadow_ *Sub-Bot* 👻` : `> ❀ Has registrado un nuevo *Sub-Bot!* [@${userSender.split('@')[0]}]`, mentions: [userSender] }, { quoted: m || null }).catch(() => {})
     }
   }
-
-  let healthCheckFailures = 0
-  setInterval(async () => {
-    const wsClosed = !sock.ws || sock.ws.readyState === 3
-    if (sock.user && wsClosed) {
-      healthCheckFailures++
-      if (healthCheckFailures >= 5) {
-        console.log(chalk.bold.yellowBright(`\n⚠︎ Health check Sub-Bot (+${path.basename(pathMichiJadiBot)}): WebSocket cerrado (${healthCheckFailures} fallos). Reconectando...`))
-        healthCheckFailures = 0
-        await creloadHandler(true).catch(console.error)
-      }
-    } else {
-      healthCheckFailures = 0
-      if (!sock.user && wsClosed) {
-        try { sock.ev.removeAllListeners() } catch {}
-        const i = global.conns.indexOf(sock)
-        if (i >= 0) global.conns.splice(i, 1)
-      }
-    }
-  }, 120000)
 
   let handlerModule = await loadHandlerModule()
   const creloadHandler = async function (restatConn) {
@@ -579,10 +508,9 @@ export async function MichiJadiBot(options) {
     }
 
     if (restatConn) {
-      const oldChats = sock.chats
-      try { sock.ws.close() } catch {}
+      try { sock.ws?.close() } catch {}
       try { sock.ev.removeAllListeners() } catch {}
-      sock = makeWASocket(connectionOptions, { chats: oldChats })
+      sock = makeWASocket(connectionOptions)
       sock.isInit = false
       sock.isPairingRequested = false
       isInit = true
@@ -613,11 +541,11 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
 function msToTime(duration) {
   const seconds = Math.floor((duration / 1000) % 60)
   const minutes = Math.floor((duration / (1000 * 60)) % 60)
-  return `${minutes < 10 ? '0' + minutes : minutes} m y ${seconds < 10 ? '0' + seconds : seconds} s `
+  return `${minutes < 10 ? '0' + minutes : minutes} m y${seconds < 10 ? '0' + seconds : seconds} s `
 }
 
 async function joinChannels(sock) {
   for (const value of Object.values(global.ch || {})) {
     if (typeof value === 'string' && value.endsWith('@newsletter')) await sock.newsletterFollow(value).catch(() => {})
   }
-              }
+}
