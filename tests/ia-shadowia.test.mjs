@@ -166,7 +166,7 @@ test('handler: rechaza a quien no es owner', async () => {
 
 test('metadata: solo owners (rowner) y comandos registrados', () => {
   assert.equal(handler.rowner, true)
-  assert.deepEqual(handler.command, ['shadowia', 'asistente', 'ayuda'])
+  assert.deepEqual(handler.command, ['shadowia', 'asistente', 'ayuda', 'shadowiacheck'])
   assert.deepEqual(handler.tags, ['ia'])
 })
 
@@ -585,6 +585,43 @@ test('preguntas y dudas van a conversación, no disparan acciones', () => {
   // y las órdenes reales siguen funcionando
   assert.equal(parsearOrden('cambia la foto del grupo').action, 'foto')
   assert.equal(parsearOrden('expulsa a @584242222222').action, 'kick')
+})
+
+
+/* ════════════ NUEVO: autodiagnóstico ════════════ */
+
+test('autodiagnóstico: «diagnostico» informa el estado sin romper', async () => {
+  global.plugins = global.plugins || { 'ia/ia-shadowia.js': handler }
+  limpiarMemoria(GRUPO)
+  const { sent, m } = await correr({ text: 'diagnostico' })
+  const t = sent.replies[0].texto
+  assert.match(t, /Diagnóstico de Shadowia/)
+  assert.match(t, /Plugin cargado/)
+  assert.match(t, /owner/)
+  assert.match(t, /diagnostico-shadowia\.mjs/, 'debe mandar a correr el diagnóstico completo')
+  assert.ok(m.reactions.includes('🩺'))
+})
+
+test('autodiagnóstico: avisa cuando el bot no es admin del grupo', async () => {
+  global.plugins = global.plugins || { 'ia/ia-shadowia.js': handler }
+  const meta = { owner: CREADOR_GRUPO, participants: [{ id: BOT, admin: null }, { id: MIEMBRO, admin: null }] }
+  const { sent } = await correr({ text: 'shadowiacheck', meta })
+  assert.match(sent.replies[0].texto, /NO soy admin de este grupo/)
+})
+
+test('autodiagnóstico: reconoce al owner y lista los configurados', async () => {
+  global.plugins = global.plugins || { 'ia/ia-shadowia.js': handler }
+  global.owner = [['584242773183'], ['573133374132']]
+  const { sent } = await correr({ text: 'por que no respondes' })
+  assert.match(sent.replies[0].texto, /Te reconozco como owner/)
+  assert.match(sent.replies[0].texto, /584242773183/)
+})
+
+test('parsearOrden: «diagnostico» no se confunde con otras intenciones', () => {
+  for (const f of ['diagnostico', 'shadowiacheck', 'por que no respondes', 'revisate']) {
+    assert.equal(parsearOrden(f).action, 'diagnostico', `«${f}» debía dar diagnostico`)
+  }
+  assert.equal(parsearOrden('ayuda').action, 'ayuda')
 })
 
 /* ════════════ NUEVO: tono alegre y sarcástico ════════════ */

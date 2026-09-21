@@ -254,6 +254,7 @@ export function parsearOrden(rawText = '') {
       parse: (match) => ({ value: match[1], extra: (match[2] || '').trim() }),
     },
 
+    { action: 'diagnostico', re: /(?:^|\s)(?:diagnostico|diagnostica|shadowiacheck|check|revisate|por\s+que\s+no\s+respondes)\b/, entrada: 'sinSignos' },
     { action: 'ayuda', re: /(?:^|\s)(?:ayuda|help|que\s+puedes\s+hacer|que\s+sabes\s+hacer|que\s+haces)\s*$/, entrada: 'sinSignos' },
   ]
 
@@ -530,6 +531,28 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
           : '✅ Anuncios apagados, jefe 🔕\n\nPaz y silencio… qué raro se siente 😌')
       }
 
+      /* ── autodiagnóstico: ¿por qué no respondo? ── */
+      case 'diagnostico': {
+        const totalPlugins = Object.keys(global.plugins || {}).length
+        const yoCargado = Object.keys(global.plugins || {}).some((k) => /shadowia/i.test(k))
+        const cfg = global.owner?.map?.((o) => (Array.isArray(o) ? o[0] : o)).filter(Boolean) || []
+        const lineas = [
+          `🩺 *Diagnóstico de Shadowia* ${yoCargado ? '✅' : '❌'}`,
+          ``,
+          `${yoCargado ? '✅' : '❌'} Plugin cargado (${totalPlugins} plugins en el bot)`,
+          `${isROwner || isOwner ? '✅' : '❌'} Te reconozco como owner`,
+          `${m.isGroup ? (botEsAdmin ? '✅ Soy admin de este grupo' : '❌ NO soy admin de este grupo → no puedo promover, expulsar ni cambiar datos') : 'ℹ️ Estamos en chat privado (las acciones de grupo no aplican)'}`,
+          `✅ Prefijo activo: los comandos entran con # ! . o /`,
+          cfg.length ? `✅ Owners configurados: ${cfg.join(', ')}` : '❌ No hay owners en config.js',
+          ``,
+          `Si algo sale en ❌, ahí está el problema.`,
+          `Si todo sale ✅ y aun así no respondo, corre en la terminal:`,
+          `\`node tools/diagnostico-shadowia.mjs\``,
+        ]
+        await m.react?.('🩺')
+        return avisar(lineas.join('\n'))
+      }
+
       /* ── ayuda ── */
       case 'ayuda': {
         await m.react?.('ℹ️')
@@ -664,7 +687,7 @@ async function ejecutarComando({ m, conn, args, usedPrefix, nombre, extra, meta,
 
 handler.help = ['shadowia']
 handler.tags = ['ia']
-handler.command = ['shadowia', 'asistente', 'ayuda']
+handler.command = ['shadowia', 'asistente', 'ayuda', 'shadowiacheck']
 handler.rowner = true // solo owners
 handler.register = false
 handler.limit = false
