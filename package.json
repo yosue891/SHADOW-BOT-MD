@@ -32,6 +32,7 @@
     "@vitalets/google-translate-api": "^8.0.0",
     "@whiskeysockets/baileys": "file:vendor/baileys",
     "acrcloud": "^1.4.0",
+    "adm-zip": "^0.5.18",
     "aptoide-scraper": "^1.0.1",
     "awesome-phonenumber": "^3.4.0",
     "axios": "^1.18.1",
