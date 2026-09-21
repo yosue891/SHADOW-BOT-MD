@@ -15,7 +15,7 @@ import { diagnosticar, reaccionesDisponibles } from '../../lib/anime-media.js'
  */
 const handler = async (m, { conn, args, usedPrefix, command }) => {
   const opcion = (args[0] || '').toLowerCase()
-  let acciones = ['kill', 'cuddle', 'bite', 'peek', 'lappillow', 'stare', 'pat', 'yawn']
+  let acciones = ['kill', 'sip', 'cuddle', 'bite', 'peek', 'lappillow', 'stare', 'pat', 'yawn']
 
   if (opcion === 'todo' || opcion === 'all') acciones = reaccionesDisponibles
   else if (opcion && reaccionesDisponibles.includes(opcion)) acciones = [opcion]

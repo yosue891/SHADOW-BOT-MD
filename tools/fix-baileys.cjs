@@ -25,6 +25,23 @@ try {
   if (!fs.existsSync(ffmpegPath)) {
     console.warn('[fix-baileys] ADVERTENCIA: @ffmpeg-installer/ffmpeg no encontrado. Ejecuta: npm install @ffmpeg-installer/ffmpeg')
   }
+  // npm puede bloquear el install script de @ffmpeg-installer (chmod +x del
+  // binario). Sin permiso de ejecución, la conversión GIF→MP4 de los comandos
+  // anime falla y solo se ve el texto. Se lo damos aquí.
+  try {
+    const instDir = path.join(process.cwd(), 'node_modules', '@ffmpeg-installer')
+    for (const sub of fs.readdirSync(instDir)) {
+      const bin = path.join(instDir, sub, process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
+      if (!fs.existsSync(bin)) continue
+      const st = fs.statSync(bin)
+      if (!(st.mode & 0o111)) {
+        fs.chmodSync(bin, st.mode | 0o755)
+        console.log('[fix-baileys] permiso de ejecución aplicado a:', bin)
+      }
+    }
+  } catch (e) {
+    console.warn('[fix-baileys] no se pudo ajustar el permiso de ffmpeg:', e.message)
+  }
 } catch (e) {
   console.error('[fix-baileys] Error shim ourin', e.message)
 }
