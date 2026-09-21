@@ -13,7 +13,9 @@ const VARIANTS = {
 }
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
-  const botJid = conn.user?.jid || conn.user?.id || ''
+  const rawJid = conn.user?.jid || conn.user?.id || conn.user?.lid || ''
+  const botJid = String(rawJid).replace(/:\d+@/, '@')
+  const botNum = botJid.split('@')[0] || '?'
   const getSettings = () => {
     if (!global.db?.data?.settings) return {}
     if (botJid) {
@@ -41,7 +43,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
   }
   const s = getSettings()
   const current = Number(s.replyVariant || 1)
-  let txt = `💬📨 *REPLY VARIANT — SHADOW-BOT-MD*\n\nConfigura cómo responde el bot 💬✨\nVariante activa: *V${current} — ${VARIANTS['v' + current]?.name || 'Desconocida'}* 🎯\n\n`
+  let txt = `💬📨 *REPLY VARIANT — SHADOW-BOT-MD*\n\nBot: *${botNum}* 🤖\nVariante activa: *V${current} — ${VARIANTS['v' + current]?.name || 'Desconocida'}* 🎯\n\n`
   for (const [key, val] of Object.entries(VARIANTS)) {
     const mark = val.id === current ? ' ✓' : ''
     txt += `${val.emoji} *${key.toUpperCase()}${mark}* — ${val.name}\n_${val.desc}_\n\n`
