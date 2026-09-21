@@ -13,10 +13,19 @@ const VARIANTS = {
 }
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
+  const botJid = conn.user?.jid || conn.user?.id || ''
   const getSettings = () => {
     if (!global.db?.data?.settings) return {}
-    if (!global.db.data.settings[conn.user.jid]) global.db.data.settings[conn.user.jid] = {}
-    return global.db.data.settings[conn.user.jid]
+    if (botJid) {
+      if (!global.db.data.settings[botJid]) global.db.data.settings[botJid] = {}
+      return global.db.data.settings[botJid]
+    }
+    return global.db.data.settings
+  }
+  const persist = () => {
+    try {
+      if (typeof global.db?.write === 'function') global.db.write().catch(() => {})
+    } catch { }
   }
   const variant = (args?.[0] || '').toLowerCase()
   if (variant) {
@@ -24,9 +33,11 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     if (!selected) return m.reply(`❌ *VARIANTE NO VÁLIDA*\n\nUso: *v1* a *v11*\nEjemplo: *${usedPrefix}${command} v5*`)
     const s = getSettings()
     s.replyVariant = selected.id
+    persist()
+    const check = Number(getSettings().replyVariant || 0)
     let warn = ''
     if (selected.id === 11) warn = `\n\n⚠ *V11 ADVERTENCIA:*\n_El uso de esta animación puede provocar ban del número, lentitud y spam en consola._`
-    return m.reply(`✅ *VARIANTE DE RESPUESTA CAMBIADA*\n\n${selected.emoji} *V${selected.id} — ${selected.name}*\n_${selected.desc}_` + warn)
+    return m.reply(`✅ *VARIANTE DE RESPUESTA CAMBIADA*\n\n${selected.emoji} *V${selected.id} — ${selected.name}*\n_${selected.desc}_\n> Guardado: *V${check}* (si este mismo mensaje ya llega con cita falsa, el sistema funciona)` + warn + `\n\n> Valida con un comando que use *m.reply* (ej: escribe *${usedPrefix}setreply* sin args).\n> Los menús (.menu, .allmenu, .ping) usan imagen + sendMessage directo y *NO* cambian con setreply, es lo normal.`)
   }
   const s = getSettings()
   const current = Number(s.replyVariant || 1)
