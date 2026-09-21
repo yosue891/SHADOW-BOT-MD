@@ -161,7 +161,7 @@ test('esProtegido: bloquea bot, creador del grupo y owner del bot', () => {
 test('handler: rechaza a quien no es owner', async () => {
   const { sent } = await correr({ text: 'expulsa a @584242222222', isROwner: false, over: { sender: MIEMBRO } })
   assert.equal(sent.participants.length, 0, 'no debe ejecutar ninguna acción')
-  assert.match(sent.replies[0].texto, /solo responde a los owners/)
+  assert.match(sent.replies[0].texto, /solo le hace caso a los owners/)
 })
 
 test('metadata: solo owners (rowner) y comandos registrados', () => {
@@ -175,15 +175,18 @@ test('metadata: solo owners (rowner) y comandos registrados', () => {
 test('handler: promote con mención ejecuta groupParticipantsUpdate', async () => {
   const { sent } = await correr({ text: 'promueve a @584242222222', over: { mentionedJid: [MIEMBRO] } })
   assert.deepEqual(sent.participants, [{ jid: GRUPO, lista: [MIEMBRO], accion: 'promote' }])
-  assert.match(sent.replies[0].texto, /ya es administrador del grupo/, 'el mensaje debe leerse bien')
-  assert.match(sent.replies[0].texto, /jefe/, 'tono de asistente personal')
-  assert.deepEqual(sent.replies[0].opciones, { mentions: [MIEMBRO] })
+  assert.equal(sent.replies.length, 2, 'debe avisar antes y confirmar después')
+  assert.match(sent.replies[0].texto, /estoy dando admin/, 'aviso previo')
+  assert.match(sent.replies[1].texto, /ya es administrador del grupo/)
+  assert.match(sent.replies[1].texto, /jefe/, 'tono de asistente personal')
+  assert.deepEqual(sent.replies[1].opciones, { mentions: [MIEMBRO] })
 })
 
 test('handler: kick usa la acción «remove»', async () => {
   const { sent } = await correr({ text: 'expulsa a @584242222222', over: { mentionedJid: [MIEMBRO] } })
   assert.equal(sent.participants[0].accion, 'remove')
-  assert.match(sent.replies[0].texto, /Expulsé a .* del grupo/)
+  assert.match(sent.replies.at(-1).texto, /ya no está en el grupo/)
+  assert.match(sent.replies[0].texto, /Sacando a/, 'aviso previo antes de expulsar')
 })
 
 test('handler: se niega a expulsar al creador del grupo', async () => {
@@ -230,20 +233,20 @@ test('handler: cambia la foto del grupo desde una imagen citada', async () => {
 test('handler: pide imagen si no la hay para la foto', async () => {
   const { sent } = await correr({ text: 'cambia la foto del grupo' })
   assert.equal(sent.pp, null)
-  assert.match(sent.replies[0].texto, /Mándame la imagen junto con el comando/)
+  assert.match(sent.replies[0].texto, /me falta la foto/)
 })
 
 test('handler: fuera de un grupo explica que necesita grupo', async () => {
   const { sent } = await correr({ text: 'expulsa a @584242222222', over: { isGroup: false, chat: OWNER, mentionedJid: [MIEMBRO] }, meta: null })
   assert.equal(sent.participants.length, 0)
-  assert.match(sent.replies[0].texto, /solo funciona dentro de un grupo/)
+  assert.match(sent.replies[0].texto, /eso se hace dentro de un grupo/)
 })
 
 test('handler: avisa si el bot no es admin del grupo', async () => {
   const meta = { owner: CREADOR_GRUPO, participants: [{ id: BOT, admin: null }, { id: MIEMBRO, admin: null }] }
   const { sent } = await correr({ text: 'expulsa a @584242222222', over: { mentionedJid: [MIEMBRO] }, meta })
   assert.equal(sent.participants.length, 0)
-  assert.match(sent.replies[0].texto, /ser administradora/)
+  assert.match(sent.replies[0].texto, /no soy administradora/)
 })
 
 /* ════════════ handler: salir del grupo ════════════ */
@@ -260,7 +263,7 @@ test('handler: al pedirle que salga, se despide ANTES de salir', async () => {
 
   assert.deepEqual(orden, ['mensaje', 'leave'], 'el mensaje de despedida debe ir antes de groupLeave')
   assert.equal(sent.left, GRUPO)
-  assert.match(sent.replies[0].texto, /Me despido y salgo del grupo/)
+  assert.match(sent.replies[0].texto, /Me despido y me voy de este grupo/)
 })
 
 /* ════════════ handler: ejecutar cualquier plugin ════════════ */
@@ -294,7 +297,7 @@ test('handler: pasa el resto del texto como argumento del comando', async () => 
 test('handler: avisa si el comando no existe', async () => {
   global.plugins = { 'menus/menu.js': Object.assign(async function () {}, { command: ['menu'] }) }
   const { sent } = await correr({ text: 'usa comandoinexistente' })
-  assert.match(sent.replies[0].texto, /No encontré el comando/)
+  assert.match(sent.replies[0].texto, /no existe/)
 })
 
 test('handler: bloquea comandos peligrosos', async () => {
@@ -348,7 +351,7 @@ test('BUGFIX: reconoce al bot como admin aunque su JID traiga :dispositivo', asy
   }
   const { sent } = await correr({ text: 'promueve a @584242222222', over: { mentionedJid: [MIEMBRO] }, meta })
   assert.deepEqual(sent.participants, [{ jid: GRUPO, lista: [MIEMBRO], accion: 'promote' }], 'debe promover sin quejarse de admin')
-  assert.match(sent.replies[0].texto, /ya es administrador del grupo/)
+  assert.match(sent.replies.at(-1).texto, /ya es administrador del grupo/)
 })
 
 test('BUGFIX: reconoce al bot admin cuando el participante usa @lid', async () => {
@@ -405,21 +408,23 @@ test('flujo real: quitar admin y luego devolvérselo a la misma persona', async 
   // 1) le quita el admin a MIEMBRO
   const a = await correr({ text: 'quitar admin a @584242222222', over: { mentionedJid: [MIEMBRO] } })
   assert.deepEqual(a.sent.participants, [{ jid: GRUPO, lista: [MIEMBRO], accion: 'demote' }])
-  assert.match(a.sent.replies[0].texto, /dime «devuélvele admin»/, 'debe ofrecer deshacer la acción')
+  assert.match(a.sent.replies.at(-1).texto, /devuélvele admin/, 'debe ofrecer deshacer la acción')
+  assert.match(a.sent.replies[0].texto, /quitando el admin/, 'aviso previo')
 
   // 2) sin mencionar a nadie, se lo devuelve a quien se lo quitó
   const b = await correr({ text: 'devuélvele admin al que se lo quitaste' })
   assert.deepEqual(b.sent.participants, [{ jid: GRUPO, lista: [MIEMBRO], accion: 'promote' }], 'debe promover a la misma persona')
-  assert.match(b.sent.replies[0].texto, /Le devolví el admin/)
-  assert.match(b.sent.replies[0].texto, /a quien se lo quité hace \d+ min/)
-  assert.deepEqual(b.sent.replies[0].opciones, { mentions: [MIEMBRO] })
+  assert.match(b.sent.replies[0].texto, /devolviendo el admin/, 'aviso previo')
+  assert.match(b.sent.replies.at(-1).texto, /vuelve a ser administrador/)
+  assert.match(b.sent.replies.at(-1).texto, /hace \d+ min/)
+  assert.deepEqual(b.sent.replies.at(-1).opciones, { mentions: [MIEMBRO] })
 })
 
 test('devolver admin: si no hay registro, lo dice y no hace nada', async () => {
   limpiarMemoria(GRUPO)
   const { sent } = await correr({ text: 'devuélvele admin' })
   assert.equal(sent.participants.length, 0, 'no debe promover a nadie a ciegas')
-  assert.match(sent.replies[0].texto, /No tengo registro/)
+  assert.match(sent.replies[0].texto, /no tengo anotado a quién le quité el admin/)
 })
 
 test('devolver admin: si menciona a otro, le devuelve a ese', async () => {
@@ -463,6 +468,143 @@ test('memoria: limpiarMemoria vacía el registro del chat', () => {
   assert.equal(getMemoria(GRUPO).acciones.length, 0)
 })
 
+
+/* ════════════ BUGFIX: «vuelve a darle admin» ════════════ */
+
+test('BUGFIX: «vuelve a darle admin a quien se lo quitaste» es devolverAdmin, no promote', () => {
+  // antes caía en promote (por el patrón «admin a») y respondía solo con ⚠️
+  const frases = [
+    'vuelve a darle admin a quien se lo quitaste',
+    'vuelve a darle admin',
+    'vuelvele el admin',
+    'dale el admin otra vez',
+    'dale admin de nuevo',
+    'dale nuevamente el admin',
+    'vuelve a ponerle admin',
+    'regresale su admin',
+    'restaurale el admin',
+  ]
+  for (const f of frases) assert.equal(parsearOrden(f).action, 'devolverAdmin', `«${f}» debía dar devolverAdmin`)
+})
+
+test('BUGFIX: «dale admin» a secas sigue siendo promote', () => {
+  assert.equal(parsearOrden('dale admin a @584242222222').action, 'promote')
+  assert.equal(parsearOrden('promueve a @584242222222').action, 'promote')
+})
+
+test('BUGFIX: el flujo completo con la frase exacta del usuario', async () => {
+  limpiarMemoria(GRUPO)
+  const a = await correr({ text: 'quitar admin a @584242222222', over: { mentionedJid: [MIEMBRO] } })
+  assert.deepEqual(a.sent.participants, [{ jid: GRUPO, lista: [MIEMBRO], accion: 'demote' }])
+
+  const b = await correr({ text: 'vuelve a darle admin a quien se lo quitaste' })
+  assert.deepEqual(b.sent.participants, [{ jid: GRUPO, lista: [MIEMBRO], accion: 'promote' }], 'debe devolverle el admin')
+  assert.ok(b.sent.replies.length >= 2, 'debe hablar: aviso previo + confirmación')
+  assert.ok(!b.m.reactions.includes('⚠️'), 'no debe quedarse solo en un emoji de advertencia')
+})
+
+test('BUGFIX: nunca responde solo con un emoji; siempre explica por escrito', async () => {
+  limpiarMemoria(GRUPO)
+  const casos = [
+    'promueve a alguien',        // sin objetivo
+    'quítale el admin',          // sin objetivo
+    'expulsa a alguien',         // sin objetivo
+    'devuélvele admin',          // sin registro
+    'cambia la foto del grupo',  // sin imagen
+    'expulsa a @584241111111',   // protegido (creador del grupo)
+  ]
+  for (const texto of casos) {
+    const over = /@/.test(texto) ? { mentionedJid: [CREADOR_GRUPO] } : {}
+    const { sent } = await correr({ text: texto, over })
+    assert.ok(sent.replies.length >= 1, `«${texto}» debe responder algo por escrito`)
+    assert.ok(sent.replies[0].texto.length > 20, `«${texto}» debe explicarse, no solo reaccionar`)
+  }
+})
+
+/* ════════════ NUEVO: siempre avisa antes de actuar ════════════ */
+
+test('aviso previo: lo dice ANTES de ejecutar la acción', async () => {
+  limpiarMemoria(GRUPO)
+  const orden = []
+  const sent = makeSent()
+  const m = makeM({ text: 'promueve a @584242222222', mentionedJid: [MIEMBRO] })
+  const conn = makeConn(sent, metaGrupo)
+  conn.reply = async (_c, t) => { orden.push('avisa'); sent.replies.push({ texto: t }) }
+  conn.groupParticipantsUpdate = async (j, l, a) => { orden.push('ejecuta'); sent.participants.push({ jid: j, lista: l, accion: a }) }
+
+  await handler(m, { conn, args: [], text: m.text, isROwner: true, isOwner: true, usedPrefix: '>', command: 'shadowia' })
+
+  assert.deepEqual(orden, ['avisa', 'ejecuta', 'avisa'], 'primero avisa, luego ejecuta, luego confirma')
+  assert.match(sent.replies[0].texto, /estoy dando admin/i, 'el aviso previo debe decir qué va a hacer')
+})
+
+test('aviso previo: todas las acciones avisan antes', async () => {
+  limpiarMemoria(GRUPO)
+  const casos = [
+    ['quítale el admin a @584242222222', /quitando el admin/i, { mentionedJid: [MIEMBRO] }],
+    ['expulsa a @584242222222', /Sacando a/i, { mentionedJid: [MIEMBRO] }],
+    ['cambia el nombre del grupo a Shadow', /renombrando el grupo/i, {}],
+    ['cambia la descripción a Grupo oficial', /reescribiendo la descripción/i, {}],
+    ['cierra el grupo', /Cerrando el grupo/i, {}],
+    ['abre el grupo', /Abriendo el grupo/i, {}],
+    ['activa los anuncios', /Activando los anuncios/i, {}],
+    ['agrega 584241234567', /metiendo a/i, {}],
+  ]
+  for (const [texto, esperado, over] of casos) {
+    const { sent } = await correr({ text: texto, over })
+    assert.ok(sent.replies.length >= 2, `«${texto}» debe avisar y luego confirmar`)
+    assert.match(sent.replies[0].texto, esperado, `«${texto}» debe anunciar lo que va a hacer`)
+  }
+})
+
+test('aviso previo: también al cambiar la foto del grupo', async () => {
+  const png = Buffer.from('89504e470d0a1a0a', 'hex')
+  const { sent } = await correr({
+    text: 'cambia la foto del grupo',
+    over: { quoted: { mimetype: 'image/png', async download() { return png } } },
+  })
+  assert.match(sent.replies[0].texto, /cambiando la foto del grupo/i)
+  assert.ok(sent.pp, 'y además debe cambiarla')
+})
+
+
+/* ════════════ NUEVO: preguntas no son órdenes ════════════ */
+
+test('preguntas y dudas van a conversación, no disparan acciones', () => {
+  const preguntas = [
+    'se me olvidó cómo se cambiaba la foto del grupo',
+    'no cambies la foto del grupo',
+    '¿cómo cambio la foto del grupo?',
+    '¿cómo se hace para expulsar a alguien?',
+    'no me acuerdo cómo se le quitaba el admin',
+    '¿sabes cómo puedo cerrar el grupo?',
+  ]
+  for (const f of preguntas) {
+    assert.equal(parsearOrden(f).action, 'charlar', `«${f}» es una pregunta, no una orden`)
+  }
+  // y las órdenes reales siguen funcionando
+  assert.equal(parsearOrden('cambia la foto del grupo').action, 'foto')
+  assert.equal(parsearOrden('expulsa a @584242222222').action, 'kick')
+})
+
+/* ════════════ NUEVO: tono alegre y sarcástico ════════════ */
+
+test('tono: el prompt pide alegría, emojis y sarcasmo (no modo neutro)', async () => {
+  const fuente = await import('node:fs/promises').then((fs) =>
+    fs.readFile(new URL('../plugins/ia/ia-shadowia.js', import.meta.url), 'utf8'))
+  assert.match(fuente, /Alegre, chispeante/)
+  assert.match(fuente, /Sarcástica e irónica con gracia/)
+  assert.match(fuente, /2 a 4 por respuesta/)
+  assert.ok(!/Modo neutro:/.test(fuente), 'ya no debe quedar el modo neutro')
+})
+
+test('tono: las respuestas traen emojis', async () => {
+  limpiarMemoria(GRUPO)
+  const { sent } = await correr({ text: 'promueve a @584242222222', over: { mentionedJid: [MIEMBRO] } })
+  const emojis = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/u
+  assert.ok(emojis.test(sent.replies.at(-1).texto), 'la confirmación debe traer emojis')
+})
+
 /* ════════════ NUEVO: tono de asistente personal ════════════ */
 
 test('tono: las confirmaciones hablan como asistente personal', async () => {
@@ -483,7 +625,7 @@ test('tono: las confirmaciones hablan como asistente personal', async () => {
 test('tono: al degradar ofrece deshacer la acción', async () => {
   limpiarMemoria(GRUPO)
   const { sent } = await correr({ text: 'degrada a @584242222222', over: { mentionedJid: [MIEMBRO] } })
-  assert.match(sent.replies[0].texto, /devuélvele admin/)
+  assert.match(sent.replies.at(-1).texto, /devuélvele admin/)
 })
 
 test('ayuda: menciona «devuélvele admin»', async () => {
