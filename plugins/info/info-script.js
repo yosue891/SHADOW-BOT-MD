@@ -81,15 +81,7 @@ let handler = async (m, { conn }) => {
               messageParamsJson: ''
             },
             contextInfo: {
-              mentionedJid: [m.sender],
-              externalAdReply: {
-                title: 'Shadow-BOT-MD',
-                body: 'El poder oculto en las sombras',
-                thumbnailUrl: 'https://files.catbox.moe/owpjte.jpg',
-                sourceUrl: json.html_url,
-                mediaType: 1,
-                renderLargerThumbnail: true
-              }
+              mentionedJid: [m.sender]
             }
           })
         }

@@ -18,16 +18,7 @@ async function sendCustomPedido(m, conn, texto, cantidad) {
       token: null,
       sellerJid: null,
       totalAmount1000: '0',
-      totalCurrencyCode: 'GTQ',
-      contextInfo: {
-        externalAdReply: {
-          title: 'WhatsApp Business • Estado',
-          body: 'Contacto: Meta AI',
-          thumbnailUrl: img,
-          mediaType: 1,
-          renderLargerThumbnail: true
-        }
-      }
+      totalCurrencyCode: 'GTQ'
     }
 
     const msg = generateWAMessageFromContent(m.chat, { orderMessage }, { quoted: m })

@@ -1,6 +1,5 @@
 let handler = async (m, { conn, command }) => {
   conn.suit = conn.suit ? conn.suit : {}
-  let pp = 'https://files.catbox.moe/6fewjd.jpg' // Imagen Shadow Garden
 
   // Crear nueva sala de PVP
   if (command === 'pvp' || command === 'ppt') {
@@ -27,23 +26,13 @@ let handler = async (m, { conn, command }) => {
 @${m.sender.split('@')[0]} ha retado a @${partnerId.split('@')[0]} a un duelo de Piedra, Papel o Tijera.
 
 Responde con "aceptar" o "rechazar".`,
-      mentions: [m.sender, partnerId],
-      contextInfo: {
-        externalAdReply: {
-          title: 'Duelo Shadow Garden',
-          body: 'El poder oculto se manifiesta...',
-          thumbnailUrl: pp,
-          mediaType: 1,
-          renderLargerThumbnail: true
-        }
-      }
+      mentions: [m.sender, partnerId]
     }, { quoted: m })
   }
 }
 
 handler.before = async function (m) {
   this.suit = this.suit ? this.suit : {}
-  const pp = 'https://files.catbox.moe/6fewjd.jpg'
 
   // Normalizador de elección (corrige variantes y errores comunes)
   const normalizeChoice = (txt) => {
@@ -145,16 +134,7 @@ ${tie ? '🥴 Empate!!' : ''}
 ${tie ? '' : `Ganador: @${win.split`@`[0]}`}`
     this.sendMessage(room.asal, {
       text: resultado,
-      mentions: [room.p, room.p2],
-      contextInfo: {
-        externalAdReply: {
-          title: 'Resultados del PVP',
-          body: 'La sombra sonríe ante el destino...',
-          thumbnailUrl: pp,
-          mediaType: 1,
-          renderLargerThumbnail: true
-        }
-      }
+      mentions: [room.p, room.p2]
     }, { quoted: m })
     delete this.suit[room.id]
   }

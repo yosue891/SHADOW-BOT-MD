@@ -2,7 +2,6 @@ import { WAMessageStubType } from '@whiskeysockets/baileys'
 import chalk from 'chalk'
 import fs from 'fs'
 import path from 'path'
-import fetch from 'node-fetch'
 
 const groupMetadataCache = new Map()
 const lidCache = new Map()
@@ -16,33 +15,12 @@ const users = m.messageStubParameters?.[0] || ''
 const usuario = await resolveLidToRealJid(m?.sender, conn, m?.chat)
 const groupAdmins = participants.filter(p => p.admin)
 
-let iconBuffer = null
-if (chat.detect) {
-  try {
-    iconBuffer = await (await fetch(global.icono)).buffer()
-  } catch {
-    iconBuffer = null
-  }
-}
-
 const rcanalBase = {
   isForwarded: true,
   forwardedNewsletterMessageInfo: {
     newsletterJid: global.channelRD?.id || '',
     serverMessageId: '',
     newsletterName: global.channelRD?.name || ''
-  },
-  externalAdReply: {
-    title: "𐔌 . ⋮ ᗩ ᐯ I Տ O .ᐟ ֹ ₊ ꒱",
-    body: global.textbot || '',
-    mediaUrl: null,
-    description: null,
-    previewType: "PHOTO",
-    thumbnail: iconBuffer,
-    jpegThumbnail: iconBuffer,
-    sourceUrl: global.redes,
-    mediaType: 1,
-    renderLargerThumbnail: false
   },
   matchedText: ""
 }

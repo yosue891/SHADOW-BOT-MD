@@ -12,17 +12,7 @@ let handlerUnreg = async (m, { conn }) => {
 
   // Mensaje dramático
   await conn.sendMessage(m.chat, {
-    text: `『💀』 El sello ha sido roto...\n\n🌑 La sombra se disuelve en la oscuridad.`,
-    contextInfo: {
-      externalAdReply: {
-        title: '☽ Pacto Roto de Shadow ☽',
-        body: 'El pacto ha sido disuelto',
-        thumbnailUrl: pp,
-        sourceUrl: 'https://whatsapp.com/channel/0029Vb7GXFc9cDDW4i1gJY1m',
-        mediaType: 1,
-        renderLargerThumbnail: true
-      }
-    }
+    text: `『💀』 El sello ha sido roto...\n\n🌑 La sombra se disuelve en la oscuridad.`
   }, { quoted: m })
 
   // Documento visual estilo pacto roto

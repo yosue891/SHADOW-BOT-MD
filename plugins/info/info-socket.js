@@ -66,14 +66,6 @@ let handler = async (m, { conn}) => {
           newsletterJid: canalId,
           serverMessageId: null,
           newsletterName: canalName
-        },
-        externalAdReply: {
-          title: 'shadow-bot',
-          body: `${botname2}. 𝘞𝘪𝘵𝘩 𝘓𝘰𝘷𝘦 𝘉𝘺 yosue`,
-          thumbnailUrl: banner,
-          mediaType: 1,
-          renderLargerThumbnail: true,
-          sourceUrl: link
         }
       }
     }, { quoted: m });

@@ -70,18 +70,7 @@ function getWinnerContextInfo() {
 }
 
 function getRpgContextInfo(title, body) {
-  const base = _saluranCtx();
-  if (title || body) {
-    base.externalAdReply = {
-      title: title || config.bot?.name || "Ourin RPG",
-      body: body || "",
-      sourceUrl: config.saluran?.link || "",
-      mediaType: 1,
-      renderLargerThumbnail: false,
-      thumbnail: rpgThumbBuffer,
-    };
-  }
-  return base;
+  return _saluranCtx();
 }
 
 async function sendGamePreview(sock, jid, text, title, body, options) {

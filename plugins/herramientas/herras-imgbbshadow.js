@@ -20,16 +20,7 @@ async function sendCustomPedido(m, conn, texto) {
       token: null,
       sellerJid: null,
       totalAmount1000: '0',
-      totalCurrencyCode: 'VES',
-      contextInfo: {
-        externalAdReply: {
-          title: "Menú Shadow 🎄",
-          body: "Comando para imágenes",
-          thumbnailUrl: img,
-          mediaType: 1,
-          renderLargerThumbnail: true
-        }
-      }
+      totalCurrencyCode: 'VES'
     }
 
     const msg = generateWAMessageFromContent(m.chat, { orderMessage }, { quoted: m })

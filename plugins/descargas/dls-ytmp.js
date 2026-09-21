@@ -147,18 +147,7 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
     await conn.sendMessage(m.chat, {
       audio: { url: downloadUrl },
       mimetype: "audio/mpeg",
-      fileName: cleanTitle,
-      contextInfo: {
-        externalAdReply: {
-          title: fileTitle,
-          body: "Shadow Ultra 💚",
-          thumbnailUrl: thumbnail,
-          mediaType: 2,
-          mediaUrl: url,
-          sourceUrl: url,
-          showAdAttribution: true
-        }
-      }
+      fileName: cleanTitle
     }, { quoted: m })
 
     await conn.sendMessage(m.chat, {

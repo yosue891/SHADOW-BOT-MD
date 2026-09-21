@@ -35,15 +35,7 @@ ${pesan}
         let sentMessage = await conn.sendMessage(data.jid, {
             text: teks,
             contextInfo: {
-                mentionedJid: [data.jid],
-                externalAdReply: {
-                    title: '🎄 C O N F E S I O N E S  S H A D O W 🎄',
-                    body: 'Responde con .respuesta (id) (Mensaje)',
-                    mediaType: 1,
-                    renderLargerThumbnail: true,
-                    thumbnailUrl: 'https://files.catbox.moe/ityzkw.jpg', // att:shadow uwu 
-                    sourceUrl: channel,
-                }
+                mentionedJid: [data.jid]
             }
         });
 

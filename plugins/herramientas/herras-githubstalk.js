@@ -57,15 +57,6 @@ let handler = async (m, { conn, args }) => {
             newsletterJid: '120363403739366547@newsletter',
             serverMessageId: null,
             newsletterName: 'SHADOW-BOT'
-          },
-
-          externalAdReply: {
-            title: 'Shadow-BOT',
-            body: '𝘞𝘪𝘵𝘩 𝘓𝘰𝘷𝘦 𝘉𝘺 Yosue',
-            thumbnailUrl: d.profile_pic,
-            mediaType: 1,
-            renderLargerThumbnail: false,
-            sourceUrl: 'https://github.com/yosue891/SHADOW-BOT-MD.git'
           }
         }
       },

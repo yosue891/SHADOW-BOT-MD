@@ -19,14 +19,6 @@ let handler = async (m, { conn, usedPrefix, command }) => {
         newsletterJid,
         newsletterName,
         serverMessageId: -1
-      },
-      externalAdReply: {
-        title: packname,
-        body: dev,
-        thumbnailUrl: icons,
-        sourceUrl: redes,
-        mediaType: 1,
-        renderLargerThumbnail: true
       }
     }
 

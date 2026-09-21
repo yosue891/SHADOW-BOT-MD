@@ -65,16 +65,7 @@ let handler = async function (m, { conn, text, usedPrefix, command }) {
       { buttonId: `${usedPrefix}menu`, buttonText: { displayText: '🌌 Volver al Menú' }, type: 1 },
       { buttonId: `${usedPrefix}profile ${m.sender}`, buttonText: { displayText: 'Perfil del grupo xd' }, type: 1 }
     ],
-    headerType: 4,
-    contextInfo: {
-      externalAdReply: {
-        title: '☽ Pacto Shadow Completado ☽',
-        body: 'El poder oculto ha sido sellado...',
-        thumbnailUrl: pp,
-        mediaType: 1,
-        renderLargerThumbnail: true
-      }
-    }
+    headerType: 4
   }, { quoted: m })
 
   await conn.sendMessage(m.chat, {

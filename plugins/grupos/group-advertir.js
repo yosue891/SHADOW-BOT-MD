@@ -22,13 +22,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
       totalAmount1000: '0',
       totalCurrencyCode: 'GTQ',
       contextInfo: {
-        mentionedJid: [m.sender],
-        externalAdReply: {
-          title: 'Shadow Bot',
-          thumbnailUrl: img,
-          mediaType: 1,
-          renderLargerThumbnail: true
-        }
+        mentionedJid: [m.sender]
       }
     };
 
@@ -70,13 +64,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
       totalAmount1000: '0',
       totalCurrencyCode: 'GTQ',
       contextInfo: {
-        mentionedJid: [who],
-        externalAdReply: {
-          title: 'Shadow Bot',
-          thumbnailUrl: imgPath,
-          mediaType: 1,
-          renderLargerThumbnail: true
-        }
+        mentionedJid: [who]
       }
     };
 
@@ -110,13 +98,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
     totalAmount1000: '0',
     totalCurrencyCode: 'GTQ',
     contextInfo: {
-      mentionedJid: [who],
-      externalAdReply: {
-        title: 'Shadow Bot',
-        thumbnailUrl: imgPath,
-        mediaType: 1,
-        renderLargerThumbnail: true
-      }
+      mentionedJid: [who]
     }
   };
 

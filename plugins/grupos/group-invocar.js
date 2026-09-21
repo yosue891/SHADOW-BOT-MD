@@ -1,5 +1,4 @@
 import moment from "moment-timezone"
-import fetch from "node-fetch"
 
 let handler = async (m, { conn, text }) => {
   try {
@@ -42,22 +41,6 @@ let handler = async (m, { conn, text }) => {
     caption += `\n\n🌌 Versión: *${vs}*`
     caption += `\n『☽』 En el jardín sombrío, todos responden al llamado de las sombras.`
 
-    const canalOficial = 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O'
-
-    // Thumbnail con timeout corto y sin bloquear el envío.
-    // Antes un fetch sin timeout colgaba el comando minutos si GitHub iba lento.
-    let thumbnail = null
-    try {
-      const ctrl = new AbortController()
-      const timer = setTimeout(() => ctrl.abort(), 4000)
-      const res = await fetch('https://raw.githubusercontent.com/Andresv27728/dtbs/main/shadow.jpg', { signal: ctrl.signal })
-      clearTimeout(timer)
-      if (res.ok) thumbnail = Buffer.from(await res.arrayBuffer())
-    } catch (e) {
-      console.error('Thumbnail tagall omitido:', e?.message || e)
-      thumbnail = null
-    }
-
     await conn.sendMessage(chatId, {
       image: { url: 'https://raw.githubusercontent.com/Andresv27728/dtbs/main/shadow.jpg' },
       caption,
@@ -70,17 +53,7 @@ let handler = async (m, { conn, text }) => {
         },
         forwardingScore: 9999999,
         isForwarded: true,
-        mentionedJid: mentionIds,
-        ...(thumbnail ? {
-          externalAdReply: {
-            title: `⚔️ Shadow Garden ⚔️`,
-            body: `El llamado de las sombras ha sido emitido.`,
-            previewType: "PHOTO",
-            thumbnail,
-            sourceUrl: canalOficial,
-            showAdAttribution: true
-          }
-        } : {})
+        mentionedJid: mentionIds
       }
     }, { quoted: m })
 

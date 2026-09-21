@@ -18,15 +18,7 @@ let handler = async (m, { conn, text }) => {
             contextInfo: {
                 forwardingScore: 200,
                 isForwarded: false,
-                mentionedJid: [who],
-                externalAdReply: {
-                    showAdAttribution: false,
-                    title: `👑 Shadow Garden ☘︎`,
-                    body: `✨ Las sombras también saben conceder libertad bajo la nieve.`,
-                    mediaType: 2,
-                    sourceUrl: global.redes || '',
-                    thumbnail: global.icons || null
-                }
+                mentionedJid: [who]
             }
         },
         { quoted: m }
