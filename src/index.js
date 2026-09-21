@@ -42,6 +42,55 @@ const pairingRetryDelay = 5000
 
 let { say } = cfonts
 
+function showStartupDesign() {
+  console.clear()
+  say('ShadowBot', {
+    font: 'block',
+    align: 'center',
+    colors: ['cyan', 'magenta'],
+    background: 'transparent',
+    letterSpacing: 1,
+    lineHeight: 1,
+    space: true,
+  })
+  say(`SHADOW-BOT-MD  •  v${global.vs?.replace('^', '') || '1.3.2'}`, {
+    font: 'console',
+    align: 'center',
+    colors: ['magenta', 'cyan'],
+  })
+  console.log('\n' + boxen(
+    chalk.cyanBright.bold('  ✦ Sistema listo para iniciar ✦\n\n') +
+    chalk.white('  Bot          ') + chalk.magenta('ShadowBot\n') +
+    chalk.white('  Plataforma   ') + chalk.magenta('WhatsApp Multi-Device\n') +
+    chalk.white('  Node.js      ') + chalk.magenta(process.version),
+    {
+      padding: { top: 0, bottom: 1, left: 2, right: 3 },
+      margin: { left: 2, right: 2 },
+      borderStyle: 'double',
+      borderColor: 'cyan',
+      title: chalk.cyan.bold(' ✦ SHADOW-BOT-MD ✦ '),
+      titleAlignment: 'center',
+    }
+  ) + '\n')
+}
+
+function showLoginMenu() {
+  console.log(boxen(
+    chalk.yellowBright.bold('  Selecciona el método de inicio:\n\n') +
+    chalk.green.bold('  1') + chalk.white('  ➜ Código QR             ') + chalk.gray('(escanea con la cámara)\n') +
+    chalk.cyan.bold('  2') + chalk.white('  ➜ Código de 8 dígitos   ') + chalk.gray('(vincula con tu número)'),
+    {
+      padding: 1,
+      margin: { left: 2, right: 2 },
+      borderStyle: 'round',
+      borderColor: 'magenta',
+      title: chalk.magenta.bold(' 🚀 INICIO DE SESIÓN '),
+      titleAlignment: 'center',
+    }
+  ) + '\n')
+}
+
+showStartupDesign()
 protoType()
 serialize()
 
@@ -141,6 +190,7 @@ if (!process.stdin.isTTY) {
 opcion = phoneNumber ? '2' : '1'
 console.log(chalk.yellowBright(`\n⚠ Sin terminal interactiva: se usará el método ${opcion === '2' ? 'código de 8 dígitos' : 'QR'} automáticamente.\n`))
 } else {
+ showLoginMenu()
 do {
 opcion = await question(chalk.magentaBright('  ➤ Opción [1/2]: '))
 if (!/^[1-2]$/.test(opcion)) {
@@ -208,7 +258,20 @@ try {
 let codeBot = await global.conn.requestPairingCode(global._pairingNumber)
 codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
 global._pairingCodeIssued = true
-console.log(codeBot)
+ console.log('\n' + boxen(
+   chalk.magentaBright.bold('  ✦ CÓDIGO DE VINCULACIÓN ✦\n\n') +
+   chalk.white('  Ingresa este código en WhatsApp:\n\n') +
+   chalk.bgMagenta.white.bold(`       ${codeBot}       `) +
+     chalk.gray('\n\n  Si WhatsApp cierra el canal, se generará otro código.'),
+   {
+     padding: { top: 0, bottom: 1, left: 2, right: 3 },
+     margin: { left: 2, right: 2 },
+     borderStyle: 'double',
+     borderColor: 'magenta',
+     title: chalk.magenta.bold(' 🔐 SHADOW-BOT-MD '),
+     titleAlignment: 'center',
+   }
+ ) + '\n')
 return
 } catch (e) {
 if (attempt === 29) {
@@ -274,6 +337,12 @@ const tmpDirs = [os.tmpdir(), 'tmp', `${jadi}`]
 tmpDirs.forEach((filename) => spawn('find', [filename, '-amin', '3', '-type', 'f', '-delete']))
 }
 }, 30 * 1000)
+}
+
+if (!state.creds.registered && (opcion === '2' || methodCode) && global._pairingNumber) {
+  setTimeout(() => {
+    requestPairingCodeWhenSocketIsReady().catch(console.error)
+  }, 2000)
 }
 
 const lidCache = global.__shadowLidCache || (global.__shadowLidCache = new Map())
@@ -376,7 +445,7 @@ global.stopped = connection
 if (isNewLogin) conn.isInit = true
 if (global.db.data == null) loadDatabase()
 if (qr && !state.creds.registered && (opcion === '2' || methodCode) && global._pairingNumber && !global._pairingCodeIssued && !global._pairingRequestStarted) {
-  void requestPairingCodeOnce().catch(error => {
+  void requestPairingCodeWhenSocketIsReady().catch(error => {
     console.log(chalk.redBright(`\n⚠︎ No se pudo solicitar el código: ${error.message}`))
   })
 }
@@ -403,6 +472,23 @@ global._reconnectAttempts = 0
 const userJid = jidNormalizedUser(conn.user.id)
 const userName = conn.user.name || conn.user.verifiedName || "Desconocido"
 await joinChannels(conn)
+  const number = conn.user.id?.split(':')[0]?.split('@')[0] || '—'
+  console.log('\n' + boxen(
+    chalk.greenBright.bold('  ✦ BOT CONECTADO EXITOSAMENTE ✦\n\n') +
+    chalk.white('  🤖 Bot        ') + chalk.cyan('ShadowBot\n') +
+    chalk.white('  👤 Cuenta     ') + chalk.cyan(userName) + '\n' +
+    chalk.white('  📱 Número     ') + chalk.cyan(number) + '\n' +
+    chalk.white('  🟢 Node.js    ') + chalk.cyan(process.version) + '\n' +
+    chalk.white('  🖥️  Sistema    ') + chalk.cyan(os.platform()),
+    {
+      padding: { top: 0, bottom: 1, left: 2, right: 3 },
+      margin: { left: 2, right: 2 },
+      borderStyle: 'double',
+      borderColor: 'green',
+      title: chalk.green.bold(' ✦ WhatsApp Online ✦ '),
+      titleAlignment: 'center',
+    }
+  ) + '\n')
 }}
 let reason = new Boom(lastDisconnect?.error)?.output?.statusCode
 if (connection === 'close') {
@@ -720,7 +806,7 @@ try {
 const files = scanPluginFiles()
 const before = Object.keys(global.plugins)
 for (const relPath of files) if (!before.includes(relPath)) { conn.logger.info(`new plugin - '${relPath}'`); await loadPluginFile(relPath) }
-for (const relPath of files) if (!files.includes(relPath)) { conn.logger.warn(`deleted plugin - '${relPath}'`); delete global.plugins[relPath] }
+for (const relPath of before) if (!files.includes(relPath)) { conn.logger.warn(`deleted plugin - '${relPath}'`); delete global.plugins[relPath] }
 sortPlugins()
 } catch (e) {
 conn?.logger?.error?.(`error al reescanear plugins: ${e?.message || e}`)
