@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import handler, {
   BANCO, partidas, barajar, normalizar, prepararPregunta, puntosPor,
-  textoPregunta, LIMITE_SEGUNDOS, PUNTOS_BASE, PUNTOS_BONUS, MAX_PREGUNTAS, textoDeRespuesta, MAX_INTENTOS,
+  textoPregunta, LIMITE_SEGUNDOS, PUNTOS_BASE, PUNTOS_BONUS, MAX_PREGUNTAS, textoDeRespuesta,
 } from '../plugins/fun/fun-adivinafutbol.js'
 import respuestas from '../plugins/fun/fun-adivinafutbol-respuestas.js'
 
@@ -275,18 +275,16 @@ test('otro subbot no puede puntuar ni editar la partida del socket creador', asy
   assert.equal(ajeno.sent.edits.length, 0)
 })
 
-test('dos errores agotan oportunidades; un tercer intento correcto no puntúa', async t => {
+test('dos errores no bloquean un tercer intento correcto', async t => {
   const g = await iniciar(t)
-  const correcta = g.p.actual.correcta
-  const malas = ['A', 'B', 'C', 'D'].filter(l => l !== correcta)
-  await contestar(g, malas[0])
-  await contestar(g, malas[1])
-  await contestar(g, correcta)
-  assert.deepEqual(g.sent.reactions, ['❌', '🚫', '🚫'])
-  assert.equal(g.p.actual.intentos.get(P1), 2)
+  const p = g.p.actual
+  const malas = ['A', 'B', 'C', 'D'].filter(l => l !== p.correcta)
+  await contestar(g, malas[0]); await contestar(g, malas[1]); await contestar(g, p.correcta)
+  assert.deepEqual(g.sent.reactions, ['❌', '❌', '✅'])
+  assert.equal(p.intentos.get(P1), 3)
   assert.equal(g.p.jugadores[P1].fallos, 2)
-  assert.equal(g.p.jugadores[P1].puntos, 0)
-  assert.equal(g.sent.edits.length, 0)
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
+  assert.ok(g.p.jugadores[P1].puntos >= PUNTOS_BASE)
 })
 
 test('dos aciertos simultáneos: solo puntúa el primero y se edita el panel', async t => {
@@ -674,7 +672,7 @@ test('texto exacto de opción, sin cita y con normalización de tildes, puntúa'
   assert.equal(g.p.jugadores[P1].aciertos, 1)
 })
 
-test('primera respuesta libre falla, segunda acierta y no hay tercer intento', async t => {
+test('acertar cierra la ronda; no se vuelve a puntuar con otro mensaje', async t => {
   const g = await iniciar(t)
   const p = g.p.actual
   const mala = ['A', 'B', 'C', 'D'].find(l => l !== p.correcta)
@@ -687,18 +685,18 @@ test('primera respuesta libre falla, segunda acierta y no hay tercer intento', a
   assert.deepEqual(g.sent.reactions, ['❌', '✅'])
 })
 
-test('dos fallos de texto libre agotan intentos; se restablecen en la siguiente ronda', async t => {
+test('fallos no bloquean respuestas libres y el contador se reinicia en la siguiente ronda', async t => {
   const g = await iniciar(t)
   const p = g.p.actual
   const malas = ['A', 'B', 'C', 'D'].filter(l => l !== p.correcta)
   await libre(g, malas[0]); await libre(g, malas[1]); await libre(g, p.correcta)
-  assert.equal(p.intentos.get(P1), MAX_INTENTOS)
-  assert.equal(g.p.jugadores[P1].aciertos, 0)
-  assert.deepEqual(g.sent.reactions, ['❌', '🚫', '🚫'])
-  await avanzar(t, 40000); await avanzar(t, 2500)
+  assert.equal(p.intentos.get(P1), 3)
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
+  assert.deepEqual(g.sent.reactions, ['❌', '❌', '✅'])
+  await avanzar(t, 2500)
   assert.equal(g.p.actual.intentos.size, 0)
   await libre(g, g.p.actual.correcta)
-  assert.equal(g.p.jugadores[P1].aciertos, 1)
+  assert.equal(g.p.jugadores[P1].aciertos, 2)
 })
 
 test('oportunidades independientes por jugador, también sin citas', async t => {
@@ -712,13 +710,13 @@ test('oportunidades independientes por jugador, también sin citas', async t => 
   assert.equal(g.p.jugadores[P2].aciertos, 1)
 })
 
-test('dos errores y acierto simultáneos no permiten un tercer intento de texto libre', async t => {
+test('dos errores y acierto simultáneos permiten acertar en el tercer intento', async t => {
   const g = await iniciar(t)
   const p = g.p.actual
   const malas = ['A', 'B', 'C', 'D'].filter(l => l !== p.correcta)
   await Promise.all([libre(g, malas[0]), libre(g, malas[1]), libre(g, p.correcta)])
-  assert.equal(p.intentos.get(P1), 2)
-  assert.equal(g.p.jugadores[P1].aciertos, 0)
+  assert.equal(p.intentos.get(P1), 3)
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
 })
 
 test('reentrega de una respuesta libre no consume otra oportunidad', async t => {
@@ -784,7 +782,7 @@ test('sin partida no hay reacciones a letras sueltas ni texto de opciones', asyn
   assert.equal(g.sent.reactions.length, 0)
 })
 
-test('recarga real mantiene el lector de respuestas libres y su límite de intentos', async t => {
+test('recarga real mantiene el lector de respuestas libres sin límite de intentos', async t => {
   reloj(t)
   const recargado = await import('../plugins/fun/fun-adivinafutbol.js?update=texto-libre')
   const g = crearCtx()
@@ -792,8 +790,62 @@ test('recarga real mantiene el lector de respuestas libres y su límite de inten
   g.p = partidas.get(GRUPO)
   const p = g.p.actual
   const mala = ['A', 'B', 'C', 'D'].find(l => l !== p.correcta)
-  await libre(g, mala)
+  for (let i = 0; i < 5; i++) await libre(g, mala)
   await libre(g, p.correcta)
-  assert.equal(p.intentos.get(P1), 2)
+  assert.equal(p.intentos.get(P1), 6)
   assert.equal(g.p.jugadores[P1].aciertos, 1)
+})
+
+test('un jugador puede fallar 100 veces y acertar sin bloqueo', async t => {
+  const g = await iniciar(t)
+  const p = g.p.actual
+  const mala = ['A', 'B', 'C', 'D'].find(l => l !== p.correcta)
+  for (let i = 0; i < 100; i++) await libre(g, mala)
+  assert.equal(p.intentos.get(P1), 100)
+  assert.equal(g.p.jugadores[P1].fallos, 100)
+  assert.ok(g.sent.reactions.every(r => r === '❌'))
+  assert.equal(g.sent.nuevos.length, 2)
+  assert.equal(g.sent.edits.length, 0)
+  await libre(g, p.correcta)
+  assert.equal(p.intentos.get(P1), 101)
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
+  assert.equal(g.sent.reactions.at(-1), '✅')
+})
+
+test('todos los jugadores pueden reintentar sin límite, pero gana solo el primero', async t => {
+  const g = await iniciar(t)
+  const p = g.p.actual
+  const mala = ['A', 'B', 'C', 'D'].find(l => l !== p.correcta)
+  for (let i = 0; i < 10; i++) {
+    await libre(g, mala)
+    await libre(g, mala, { sender: P2 })
+  }
+  await Promise.all([libre(g, p.correcta, { sender: P2 }), libre(g, p.correcta)])
+  assert.equal(g.p.jugadores[P1].fallos, 10)
+  assert.equal(g.p.jugadores[P2].fallos, 10)
+  assert.equal(g.p.jugadores[P1].aciertos, 0)
+  assert.equal(g.p.jugadores[P2].aciertos, 1)
+})
+
+test('intentos ilimitados no eliminan el tiempo límite de 40 segundos', async t => {
+  const g = await iniciar(t)
+  const p = g.p.actual
+  const mala = ['A', 'B', 'C', 'D'].find(l => l !== p.correcta)
+  for (let i = 0; i < 10; i++) await libre(g, mala)
+  await avanzar(t, 40000)
+  await libre(g, p.correcta)
+  assert.equal(g.p.jugadores[P1].aciertos, 0)
+  assert.equal(p.intentos.get(P1), 10)
+  assert.match(ultimo(g), /Se acabó el tiempo/)
+})
+
+test('instrucciones, panel, aviso y ayuda anuncian intentos ilimitados', async t => {
+  const g = await iniciar(t)
+  assert.match(g.sent.nuevos[0].text, /intentos ilimitados/i)
+  assert.match(ultimo(g), /intentos ilimitados/i)
+  await avanzar(t, 30000)
+  assert.match(g.sent.nuevos.at(-1).text, /intentos ilimitados/i)
+  await comando(g, 'futbolayuda')
+  assert.match(g.sent.nuevos.at(-1).text, /intentos ilimitados/i)
+  assert.ok(g.sent.nuevos.every(m => !/2 intentos|te queda 1|sin intentos|🚫/i.test(m.text)))
 })

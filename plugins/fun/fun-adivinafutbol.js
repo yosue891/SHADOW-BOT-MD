@@ -25,7 +25,6 @@ const PUNTOS_BONUS = 40             // bonus proporcional a la rapidez
 const ESPERA_SIGUIENTE = 2500       // pausa antes de la siguiente pregunta
 const MAX_PREGUNTAS = 20
 const LETRAS = ['A', 'B', 'C', 'D']
-const MAX_INTENTOS = 2
 
 /* ─────────────────────────── BANCO DE PREGUNTAS ─────────────────────────── */
 /* Cada entrada: categoría, pregunta, 4 opciones y el índice de la correcta. */
@@ -215,7 +214,7 @@ function textoPregunta(p, indice, total) {
     ``, `⏱️ *${LIMITE_SEGUNDOS} segundos*`,
     `✍️ Escribe *a, b, c o d* (o el texto de la opción) directamente en el grupo. *Sin prefijo ni citar mensajes.*`,
     `🎯 ${PUNTOS_BASE} pts + hasta ${PUNTOS_BONUS} de bonus por rapidez`,
-    `🥇 Gana el primero que acierte. *2 intentos por jugador en cada pregunta.*`,
+    `🥇 Gana el primero que acierte. *Intentos ilimitados por jugador mientras la pregunta esté activa.*`,
   ].join('\n')
 }
 
@@ -385,7 +384,7 @@ async function avisarTiempo(m, ctx, partida, actual) {
   const botJid = ctx.conn.user?.jid || ctx.conn.user?.id
   if (botJid) contextInfo.participant = botJid
   actual.avisoKey = await enviarTexto(ctx.conn, m.chat,
-    `⏳⚽ ¡Quedan *${AVISO_EN_SEGUNDOS} segundos* para la pregunta ${partida.indice}/${partida.total}!\nEscribe *a, b, c o d* directamente en el grupo, *sin prefijo ni citar*. Máximo *2 intentos*.`, contextInfo)
+    `⏳⚽ ¡Quedan *${AVISO_EN_SEGUNDOS} segundos* para la pregunta ${partida.indice}/${partida.total}!\nEscribe *a, b, c o d* directamente en el grupo, *sin prefijo ni citar*. *Intentos ilimitados* hasta que termine la pregunta.`, contextInfo)
 }
 
 /* ─────────────────────────── RESPUESTA SIN PREFIJO ─────────────────────────── */
@@ -416,23 +415,20 @@ async function responder(m, ctx, partida, entrada) {
     if (i < 0) return
     elegida = LETRAS[i]
   }
-  // Un mismo evento reenviado por Baileys nunca consume dos oportunidades.
+  // Ignorar reentregas del mismo evento para no duplicar fallos ni reacciones.
+  // El contador es estadístico: nunca bloquea nuevos intentos.
   const messageId = m.key?.id || m.id
   const evento = messageId ? `${jugador}:${messageId}` : null
   if (evento && actual.mensajes.has(evento)) return
   if (evento) actual.mensajes.add(evento)
   const usados = actual.intentos.get(jugador) || 0
-  if (usados >= MAX_INTENTOS) {
-    await reaccionar(m, ctx.conn, '🚫')
-    return
-  }
   actual.intentos.set(jugador, usados + 1)
   const j = (partida.jugadores[jugador] ||= {
     nombre: nombreDe(ctx.conn, m), puntos: 0, aciertos: 0, fallos: 0,
   })
   if (elegida !== actual.correcta) {
     j.fallos++
-    await reaccionar(m, ctx.conn, usados + 1 === MAX_INTENTOS ? '🚫' : '❌')
+    await reaccionar(m, ctx.conn, '❌')
     return
   }
   // Cerrar la ronda antes del primer await: solo un ganador por pregunta.
@@ -492,13 +488,13 @@ let handler = async (m, ctx) => {
         `🎯 ${total} preguntas sobre los grandes del fútbol`,
         `⏱️ ${LIMITE_SEGUNDOS} segundos por pregunta`,
         '✍️ Escribe *a*, *b*, *c* o *d* directamente en el grupo.',
-        '🎯 Tienes *2 intentos por pregunta*. Gana el primero que acierte.',
+        '🎯 Tienes *intentos ilimitados* mientras la pregunta esté activa. Gana el primero que acierte.',
         'No necesitas prefijo, botones ni citar ningún mensaje.',
         'También puedes responder con el texto exacto de la opción.',
         '🔄 El mismo panel se irá editando durante la partida.',
         '📌 Intentaré fijarlo en el grupo y lo desfijaré al terminar.',
         '⏳ Enviaré un aviso aparte cuando queden 10 segundos.',
-        '✅ Acierto · ❌ Te queda 1 intento · 🚫 Sin intentos hasta la próxima pregunta.',
+        '✅ Acierto · ❌ Fallo: puedes volver a intentar.',
         `🎁 ${PUNTOS_BASE} puntos + hasta ${PUNTOS_BONUS} de bonus por rapidez`, '',
         '📊 *.marcador* actualiza el panel · ⏹️ *.terminar* para cortar', '',
         '¡Vamos con la primera! 🔥',
@@ -514,9 +510,9 @@ let handler = async (m, ctx) => {
     '*.futbol* — partida de 10 preguntas',
     `*.futbol 15* — partida de 15 (máx. ${MAX_PREGUNTAS})`,
     'Escribe a/b/c/d o el texto exacto de la opción directamente en el grupo.',
-    'Sin prefijo ni citar mensajes. Tienes 2 intentos por pregunta.',
+    'Sin prefijo ni citar mensajes. Tienes intentos ilimitados mientras la pregunta esté activa.',
     'Las preguntas y el resultado se editan en el panel fijado.',
-    'A los 10 segundos restantes llega un aviso aparte. ✅ Acierto · ❌ Queda 1 intento · 🚫 Sin intentos.',
+    'A los 10 segundos restantes llega un aviso aparte. ✅ Acierto · ❌ Puedes volver a intentar.',
     '*.marcador* — actualiza la tabla en el panel',
     '*.terminar* — cortar y ver al ganador', '',
     `${BANCO.length} preguntas sobre grandes del fútbol. 🌍`,
@@ -530,5 +526,5 @@ handler.tags = ['game']
 handler.command = ['futbol', 'futbolito', 'adivinafutbol', 'adivinajugador', 'quienjugador', 'trivalfutbol', 'marcador', 'terminar', 'finpartido', 'futbolayuda']
 handler.group = true
 
-export { BANCO, partidas, barajar, normalizar, prepararPregunta, puntosPor, textoPregunta, siguientePregunta, cerrarPartida, responder, citaDe, textoDeRespuesta, MAX_INTENTOS, LIMITE_SEGUNDOS, PUNTOS_BASE, PUNTOS_BONUS, MAX_PREGUNTAS }
+export { BANCO, partidas, barajar, normalizar, prepararPregunta, puntosPor, textoPregunta, siguientePregunta, cerrarPartida, responder, citaDe, textoDeRespuesta, LIMITE_SEGUNDOS, PUNTOS_BASE, PUNTOS_BONUS, MAX_PREGUNTAS }
 export default handler
