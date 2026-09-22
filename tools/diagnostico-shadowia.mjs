@@ -18,6 +18,7 @@
      9. Ajustes de la base que hacen que el bot ignore mensajes
     10. Owners configurados
     11. Si el código local está desactualizado respecto a GitHub
+    12. El comando .bots (info y carrusel de Sub-Bots)
    ============================================================ */
 
 import { existsSync, readFileSync } from 'fs'
@@ -269,6 +270,76 @@ async function main() {
     if (detras > 0) fail('tu copia va ' + detras + ' commit(s) por detras (tu: ' + local + ', GitHub: ' + remoto + ')',
       'Ejecuta: git pull origin main   <- si Shadowia no responde, casi seguro es esto')
     else ok('estas al dia con GitHub (' + local + ')')
+  }
+
+  /* 12. El comando .bots (carrusel de Sub-Bots) */
+  seccion('12. Comando .bots (info de Sub-Bots)')
+  const PLUGIN_BOTS = 'plugins/subbots/subs-listbots.js'
+  const rutaBots = join(RAIZ, PLUGIN_BOTS)
+  if (!existsSync(rutaBots)) {
+    fail(PLUGIN_BOTS + ' NO existe', 'Tu copia esta desactualizada: git pull origin main')
+  } else {
+    const codigoBots = readFileSync(rutaBots, 'utf8')
+    // las tres guardas del arreglo; si falta alguna, tu copia es vieja
+    if (codigoBots.includes('Array.isArray(global.conns)')) ok('inicializa global.conns (si no, revienta)')
+    else fail('le falta la guarda de global.conns', 'Tu copia de ' + PLUGIN_BOTS + ' es vieja: git pull origin main')
+
+    if (codigoBots.includes('if (!conectados.length)')) ok('avisa cuando no hay Sub-Bots conectados')
+    else fail('no avisa cuando no hay Sub-Bots', 'Tu copia es vieja: con 0 Sub-Bots mandaba un carrusel vacio que WhatsApp descarta en silencio')
+
+    if (/const listaTexto|const textoRespaldo/.test(codigoBots) && codigoBots.includes('await m.reply(listaTexto)')) ok('manda la cantidad en texto SIEMPRE, ademas del carrusel')
+    else if (/const textoRespaldo/.test(codigoBots)) warn('solo manda la lista si el carrusel FALLA',
+      'Si tu WhatsApp no dibuja carruseles, relayMessage no avisa y te quedas sin nada. Actualiza: git pull origin main')
+    else fail('no manda la cantidad en texto', 'Tu copia es vieja: git pull origin main')
+
+    // prueba en seco del comando
+    try {
+      const modBots = await import('file://' + rutaBots + '?t=' + Date.now())
+      const hBots = modBots.default
+      const cmdsBots = (Array.isArray(hBots.command) ? hBots.command : [hBots.command]).map(String)
+      if (cmdsBots.includes('bots')) ok('responde a .bots (comandos: ' + cmdsBots.join(', ') + ')')
+      else fail('el comando "bots" no esta en handler.command', 'Revisa el final de ' + PLUGIN_BOTS)
+
+      if (!Array.isArray(global.conns)) global.conns = []
+      const connsGuardados = global.conns
+      const connGuardado = global.conn
+      global.conns = []
+      global.conn = { user: { jid: '584240000000:12@s.whatsapp.net', name: 'Diagnostico' } }
+
+      const enviados = []
+      const connFalso = {
+        user: { jid: '584240000000:12@s.whatsapp.net', name: 'Diagnostico' },
+        async reply(c, t) { enviados.push(String(t)) },
+        async relayMessage() { enviados.push('[carrusel]') },
+        async waUploadToServer() { throw new Error('diagnostico sin red') },
+        getName: () => 'Diagnostico',
+      }
+      const mFalso = {
+        chat: '120363000000000000@g.us', sender: '584240000000@s.whatsapp.net',
+        text: '.bots', isGroup: true, pushName: 'Diagnostico', quoted: null, msg: {},
+        key: { id: 'DIAG', fromMe: false, remoteJid: '120363000000000000@g.us' },
+        message: { extendedTextMessage: { text: '.bots' } },
+        async react() {}, async reply(t) { enviados.push(String(t)) },
+      }
+      await hBots(mFalso, { conn: connFalso, command: 'bots', args: [], text: '', usedPrefix: '.' })
+
+      if (!enviados.length) fail('con 0 Sub-Bots NO mando ningun mensaje',
+        'Este es el bug: WhatsApp descarta en silencio un carrusel sin tarjetas. Actualiza: git pull origin main')
+      else if (enviados.some((t) => t.includes('[carrusel]'))) fail('con 0 Sub-Bots mando un CARRUSEL VACIO',
+        'WhatsApp lo descarta y no ves nada. Actualiza: git pull origin main')
+      else ok('con 0 Sub-Bots responde: "' + enviados[0].split('\n')[0].slice(0, 60) + '"')
+
+      global.conns = connsGuardados
+      global.conn = connGuardado
+    } catch (e) {
+      fail('el comando .bots se rompio al probarlo', (e?.message || String(e)) + '\n        Actualiza: git pull origin main')
+    }
+  }
+  if (registrado) {
+    const totalConns = Array.isArray(global.conns) ? global.conns.length : 0
+    if (totalConns === 0) warn('ahora mismo hay 0 Sub-Bots conectados',
+      'El CARRUSEL solo aparece con al menos uno. Conecta uno con .code o .qr y despues usa .bots\n        (la cantidad en texto si te llega siempre)')
+    else ok('hay ' + totalConns + ' Sub-Bot(s) en global.conns')
   }
 
   /* Resumen */
