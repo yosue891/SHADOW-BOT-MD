@@ -137,7 +137,7 @@ let handler = async (m, { conn, usedPrefix }) => {
         title: "📁 CATEGORIAS PRINCIPALES",
         highlight_label: "🤖",
         rows: [
-          { title: "Menú Grupos", description: "Comandos de administración de grupos", id: `${usedPrefix}menugrupos` },
+          { title: "Menú Grupos", description: "Comandos de administración de grupos", id: `${usedPrefix}menugrupo` },
           { title: "Menú Descargas", description: "Descargar videos, música y fotos", id: `${usedPrefix}menudescargas` },
           { title: "Menú Fun", description: "Comandos de entretenimiento y diversión", id: `${usedPrefix}menufun` },
           { title: "Menú Gacha", description: "Comandos de juegos gacha y casino", id: `${usedPrefix}menugacha` },
