@@ -1,8 +1,3 @@
-
-// Ohh sí, para quienes quieran apoyar más el script ourin
-// pueden donar a través de qris: https://imgdrop.web.id/KodpV.webp
-// Gracias por seguir usando este script hasta ahora :b
-
 import { getDatabase } from "./src/lib/ourin-database.js";
 import * as ownerPremiumDb from "./src/lib/ourin-premium-db.js";
 
@@ -20,7 +15,7 @@ const config = {
   },
 
   session: {
-    pairingNumber: "595985374746", // Número de WA que se emparejará, esto es importante
+    pairingNumber: "", // Número de WA que se emparejará, esto es importante
     usePairingCode: true, // true = Código de emparejamiento, false = QR Code
     autoJoinChannels: false, // false = NO unir automáticamente el bot a canales/grupos de soporte al vincular
   },
