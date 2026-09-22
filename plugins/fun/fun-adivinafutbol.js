@@ -7,6 +7,8 @@ const PUNTOS_BASE = 100
 const PUNTOS_BONUS = 40
 const ESPERA_SIGUIENTE = 2500
 const MAX_PREGUNTAS = 20
+const MAX_PREGUNTAS_DUELO = 7
+const INVITACION_SEGUNDOS = 60
 const LETRAS = ['A', 'B', 'C', 'D']
 
 
@@ -140,6 +142,131 @@ async function fijarPanel(m, ctx, partida) {
   }
 }
 
+function normalizarIdentidad(value) {
+  if (typeof value !== 'string') return ''
+  const jid = value.replace(/:\d+@/, '@').replace(/@c\.us$/, '@s.whatsapp.net')
+  if (/^\d+@(s\.whatsapp\.net|lid)$/.test(jid)) return jid
+  return /^\+?\d+$/.test(jid) ? `${jid.replace('+', '')}@s.whatsapp.net` : ''
+}
+
+function identidades(persona) {
+  return [...new Set([persona?.id, persona?.jid, persona?.lid, persona?.phoneNumber, persona?.pn, persona?.phone]
+    .map(normalizarIdentidad).filter(Boolean))]
+}
+
+function identidadesMensaje(m) {
+  return [m.sender, m.participant, m.key?.participant, m.key?.participantAlt]
+    .map(normalizarIdentidad).filter(Boolean)
+}
+
+function equipoDe(partida, m) {
+  const ids = identidadesMensaje(m)
+  return partida.equipos?.find(e => e.ids.some(id => ids.includes(id)))
+}
+
+function textoEquipos(partida) {
+  return partida.equipos.map(e => `${e.color} *Equipo ${e.nombre}:* @${e.jid.split('@')[0]}`).join('\n')
+}
+
+function textoInvitacion(partida) {
+  return [
+    '⚽ *¡DESAFÍO DE FÚTBOL!*', '', textoEquipos(partida), '',
+    `🎯 ${partida.total} preguntas · 40 segundos por pregunta`,
+    'Cada jugador tiene 1 intento por pregunta. El primer acierto suma 1 punto.',
+    'Si fallas, el rival todavía puede contestar. Gana quien consiga más aciertos.', '',
+    `🔴 @${partida.equipos[1].jid.split('@')[0]}, escribe *acepto* o *rechazo* sin prefijo.`,
+    `⏳ La invitación vence en ${INVITACION_SEGUNDOS} segundos.`,
+    '🔵 Quien invita puede escribir *cancelar*.',
+  ].join('\n')
+}
+
+async function editarInvitacion(m, ctx, partida, text) {
+  const mentions = partida.equipos.map(e => e.jid)
+  try {
+    await ctx.conn.sendMessage(m.chat, { text, mentions, edit: partida.invitacionKey })
+  } catch (error) {
+    console.warn('[futbol] No se pudo editar la invitación:', error?.message || error)
+    await ctx.conn.reply(m.chat, text, null, { mentions })
+  }
+}
+
+async function cancelarInvitacion(m, ctx, partida, motivo) {
+  if (partidas.get(m.chat) !== partida || partida.fase !== 'pendiente') return
+  partida.fase = 'cerrada'
+  partida.cerrada = true
+  terminarTimers(partida)
+  partidas.delete(m.chat)
+  try { await editarInvitacion(m, ctx, partida, `⚽ *Invitación ${motivo}*\n\n${textoEquipos(partida)}\n\nPuedes crear otro duelo con *.futbol @persona*.`) }
+  catch (error) { console.warn('[futbol] Invitación:', error?.message || error) }
+}
+
+async function procesarInvitacion(m, ctx, partida, entrada) {
+  if (!m.isGroup || partida.fase !== 'pendiente' || !partida.invitacionKey || !mismaConexion(ctx.conn, partida.conn)) return
+  if (partidas.get(m.chat) !== partida) return
+  const quoted = citaDe(m)
+  if (quoted.id && quoted.id !== partida.invitacionKey.id) return
+  if (quoted.chat && quoted.chat !== m.chat) return
+  const accion = String(entrada || '').trim().toLowerCase()
+  const equipo = equipoDe(partida, m)
+  if (accion === 'cancelar' && (equipo?.nombre === 'Azul' || ctx.isAdmin || ctx.isOwner)) {
+    return cancelarInvitacion(m, ctx, partida, 'cancelada')
+  }
+  if (equipo?.nombre !== 'Rojo' || !['acepto', 'rechazo'].includes(accion)) return
+  if (Date.now() >= partida.expiraInvitacion) return cancelarInvitacion(m, ctx, partida, 'vencida')
+  if (accion === 'rechazo') return cancelarInvitacion(m, ctx, partida, 'rechazada')
+  partida.fase = 'jugando'
+  terminarTimers(partida)
+  try {
+    await reaccionar(m, ctx.conn, '🤝')
+    await editarInvitacion(m, ctx, partida, [
+      '⚽ *¡DUELO ACEPTADO!*', '', textoEquipos(partida), '',
+      `🎯 ${partida.total} preguntas · 1 punto por acierto · 1 intento por pregunta`,
+      'Solo juegan los dos equipos. Escriban a/b/c/d o el texto de la opción, sin prefijo ni citar.',
+      '❌ Un fallo agota tu intento en esa pregunta. 🚫 Espera a la siguiente.',
+      'En caso de igualdad de aciertos, el resultado será empate.',
+    ].join('\n'))
+    if (partidas.get(m.chat) === partida && !partida.cerrada) await siguientePregunta(m, ctx, partida)
+  } catch (error) { await falloPanel(m, ctx, partida, error) }
+}
+
+async function invitarDuelo(m, ctx) {
+  const mentions = [...new Set((m.mentionedJid || []).map(normalizarIdentidad).filter(Boolean))]
+  if (mentions.length !== 1) return ctx.conn.reply(m.chat, '⚽ Menciona a una sola persona: *.futbol @persona* (o *.futbol @persona 5*).')
+  const participantes = (ctx.participants?.length ? ctx.participants : ctx.groupMetadata?.participants) || []
+  const rival = participantes.find(p => identidades(p).includes(mentions[0]))
+  if (!rival) return ctx.conn.reply(m.chat, '⚽ No pude verificar que la persona mencionada pertenezca al grupo. Menciona a un miembro del grupo.')
+  const propios = identidadesMensaje(m)
+  const autor = participantes.find(p => identidades(p).some(id => propios.includes(id)))
+  const azulIds = [...new Set([...propios, ...identidades(autor)])]
+  const rojoIds = [...new Set([mentions[0], ...identidades(rival)])]
+  if (azulIds.some(id => rojoIds.includes(id))) return ctx.conn.reply(m.chat, '⚽ No puedes desafiarte a ti mismo. Menciona a otra persona.')
+  if (identidades(ctx.conn.user).some(id => rojoIds.includes(id))) return ctx.conn.reply(m.chat, '🤖 No puedo aceptar desafíos. Menciona a otro jugador del grupo.')
+  const cantidad = (ctx.args || []).find(arg => /^\d+$/.test(arg))
+  const total = Math.min(Math.max(Number(cantidad) || MAX_PREGUNTAS_DUELO, 1), MAX_PREGUNTAS_DUELO, BANCO.length)
+  const equipos = [
+    { jid: normalizarIdentidad(m.sender), ids: azulIds, nombre: 'Azul', color: '🔵' },
+    { jid: mentions[0], ids: rojoIds, nombre: 'Rojo', color: '🔴' },
+  ]
+  const nueva = {
+    duelo: true, fase: 'pendiente', equipos, total, indice: 1,
+    preguntas: barajar(BANCO).slice(0, total), actual: null,
+    jugadores: Object.fromEntries(equipos.map(e => [e.jid, { nombre: e.nombre, puntos: 0, aciertos: 0, fallos: 0 }])),
+    creador: m.sender, conn: ctx.conn, responder, procesarInvitacion,
+    timer: null, aviso: null, siguiente: null, timerInvitacion: null,
+    panelKey: null, colaPanel: Promise.resolve(), cerrada: false, aceptando: false,
+  }
+  partidas.set(m.chat, nueva)
+  try {
+    nueva.invitacionKey = await enviarTexto(ctx.conn, m.chat, textoInvitacion(nueva), { mentionedJid: equipos.map(e => e.jid) })
+    nueva.expiraInvitacion = Date.now() + INVITACION_SEGUNDOS * 1000
+    if (partidas.get(m.chat) !== nueva || nueva.cerrada) return
+    nueva.timerInvitacion = setTimeout(() => {
+      cancelarInvitacion(m, ctx, nueva, 'vencida').catch(error => console.warn('[futbol] Invitación:', error?.message || error))
+    }, INVITACION_SEGUNDOS * 1000)
+    await reaccionar(m, ctx.conn, '⚔️')
+  } catch (error) { await falloPanel(m, ctx, nueva, error) }
+}
+
 const aleatorio = (n) => Math.floor(Math.random() * n)
 
 function barajar(lista) {
@@ -177,15 +304,15 @@ function prepararPregunta(ficha) {
   }
 }
 
-function textoPregunta(p, indice, total) {
+function textoPregunta(p, indice, total, partida) {
   return [
     `⚽ *ADIVINA EL JUGADOR* — pregunta ${indice}/${total}`,
     ``, `🏷️ ${p.ficha.cat}`, `❓ *${p.ficha.q}*`, ``,
     ...p.opciones.map((op, i) => `${LETRAS[i]}. ${op}`),
     ``, `⏱️ *${LIMITE_SEGUNDOS} segundos*`,
     `✍️ Escribe *a, b, c o d* (o el texto de la opción) directamente en el grupo. *Sin prefijo ni citar mensajes.*`,
-    `🎯 ${PUNTOS_BASE} pts + hasta ${PUNTOS_BONUS} de bonus por rapidez`,
-    `🥇 Gana el primero que acierte. *Intentos ilimitados por jugador mientras la pregunta esté activa.*`,
+    partida?.duelo ? '🎯 1 punto para el primer equipo que acierte.' : `🎯 ${PUNTOS_BASE} pts + hasta ${PUNTOS_BONUS} de bonus por rapidez`,
+    partida?.duelo ? '🔵 vs 🔴 · *1 intento por jugador en esta pregunta.* Si fallas, el rival puede responder.' : '🥇 Gana el primero que acierte. *Intentos ilimitados por jugador mientras la pregunta esté activa.*',
   ].join('\n')
 }
 
@@ -205,6 +332,10 @@ function rankingDe(partida) {
 }
 
 function textoMarcador(partida) {
+  if (partida.duelo) return ['📊 *MARCADOR DEL DUELO*', ...partida.equipos.map(e => {
+    const j = partida.jugadores[e.jid]
+    return `${e.color} *${e.nombre}* @${e.jid.split('@')[0]} — *${j.aciertos} aciertos* · ${j.fallos} fallos`
+  })].join('\n')
   const ranking = rankingDe(partida).slice(0, 10)
   return ranking.length ? [
     '📊 *MARCADOR*',
@@ -213,7 +344,7 @@ function textoMarcador(partida) {
 }
 
 function terminarTimers(partida) {
-  for (const key of ['timer', 'aviso', 'siguiente']) {
+  for (const key of ['timer', 'aviso', 'siguiente', 'timerInvitacion']) {
     if (partida[key]) clearTimeout(partida[key])
     partida[key] = null
   }
@@ -269,12 +400,27 @@ async function tablaDe(partida, conn, m) {
 
 async function cerrarPartida(m, ctx, partida, motivo) {
   if (partidas.get(m.chat) !== partida || partida.cerrada) return
+  if (partida.fase === 'pendiente') return cancelarInvitacion(m, ctx, partida, 'cancelada')
   partida.cerrada = true
   partida.actual = null
   partida.aceptando = false
   terminarTimers(partida)
   partidas.delete(m.chat)
   await desfijarPanel(m, ctx, partida)
+  if (partida.duelo) {
+    const [azul, rojo] = partida.equipos
+    const a = partida.jugadores[azul.jid].aciertos
+    const r = partida.jugadores[rojo.jid].aciertos
+    const terminado = motivo === 'se acabaron las preguntas'
+    const ganador = a > r ? azul : rojo
+    const resultado = !terminado ? '⏹️ Duelo cancelado: marcador parcial, sin ganador.'
+      : a === r ? `🤝 *¡EMPATE!* ${a}–${r}`
+      : `🏆 *¡GANA EL EQUIPO ${ganador.nombre.toUpperCase()}!* ${ganador.color} @${ganador.jid.split('@')[0]}`
+    return actualizarPanel(m, ctx, partida, [
+      terminado ? '⚽ *¡FIN DEL DUELO!*' : '⚽ *DUELO CANCELADO*', '', resultado, '',
+      textoMarcador(partida), '', '⚽ ¿Revancha? *.futbol @persona*',
+    ].join('\n'), partida.equipos.map(e => e.jid), { final: true })
+  }
   const ranking = rankingDe(partida)
   if (!ranking.length) {
     return actualizarPanel(m, ctx, partida,
@@ -302,13 +448,13 @@ function programarSiguiente(m, ctx, partida) {
   }, ESPERA_SIGUIENTE)
 }
 
-async function agotarPregunta(m, ctx, partida, actual) {
+async function agotarPregunta(m, ctx, partida, actual, aviso = '⏰ *¡Se acabó el tiempo!*') {
   if (partidas.get(m.chat) !== partida || partida.actual !== actual || !partida.aceptando) return
   partida.actual = null
   partida.aceptando = false
   terminarTimers(partida)
   const publicado = await actualizarPanel(m, ctx, partida, [
-    '⏰ *¡Se acabó el tiempo!*', '',
+    aviso, '',
     `La respuesta era *${actual.correcta}. ${actual.opciones[LETRAS.indexOf(actual.correcta)]}*`, '',
     partida.indice < partida.total ? 'Siguiente pregunta... ⚽' : 'Calculando el resultado final…',
   ].join('\n'))
@@ -322,7 +468,7 @@ async function siguientePregunta(m, ctx, partida) {
   const actual = prepararPregunta(partida.preguntas[partida.indice - 1])
   partida.actual = actual
   partida.aceptando = false
-  const publicado = await actualizarPanel(m, ctx, partida, textoPregunta(actual, partida.indice, partida.total), [], {
+  const publicado = await actualizarPanel(m, ctx, partida, textoPregunta(actual, partida.indice, partida.total, partida), [], {
     vigente: () => partida.actual === actual,
   })
   if (!publicado || partidas.get(m.chat) !== partida || partida.actual !== actual || partida.cerrada) return
@@ -348,7 +494,7 @@ async function avisarTiempo(m, ctx, partida, actual) {
   const botJid = ctx.conn.user?.jid || ctx.conn.user?.id
   if (botJid) contextInfo.participant = botJid
   actual.avisoKey = await enviarTexto(ctx.conn, m.chat,
-    `⏳⚽ ¡Quedan *${AVISO_EN_SEGUNDOS} segundos* para la pregunta ${partida.indice}/${partida.total}!\nEscribe *a, b, c o d* directamente en el grupo, *sin prefijo ni citar*. *Intentos ilimitados* hasta que termine la pregunta.`, contextInfo)
+    `⏳⚽ ¡Quedan *${AVISO_EN_SEGUNDOS} segundos* para la pregunta ${partida.indice}/${partida.total}!\nEscribe *a, b, c o d* directamente en el grupo, *sin prefijo ni citar*. ${partida.duelo ? '*Un intento por equipo* en esta pregunta.' : '*Intentos ilimitados* hasta que termine la pregunta.'}`, contextInfo)
 }
 
 
@@ -363,7 +509,9 @@ async function responder(m, ctx, partida, entrada) {
   if (Date.now() - actual.preguntadaEn >= LIMITE_SEGUNDOS * 1000) {
     return agotarPregunta(m, ctx, partida, actual)
   }
-  const jugador = m.sender
+  const equipo = partida.duelo ? equipoDe(partida, m) : null
+  if (partida.duelo && !equipo) return
+  const jugador = equipo?.jid || m.sender
   const texto = String(entrada || '').trim()
   if (/^[#!./]/.test(texto)) return
   const letra = /^[a-d]$/i.exec(texto)
@@ -381,27 +529,37 @@ async function responder(m, ctx, partida, entrada) {
   if (evento && actual.mensajes.has(evento)) return
   if (evento) actual.mensajes.add(evento)
   const usados = actual.intentos.get(jugador) || 0
+  if (partida.duelo && usados >= 1) {
+    await reaccionar(m, ctx.conn, '🚫')
+    return
+  }
   actual.intentos.set(jugador, usados + 1)
   const j = (partida.jugadores[jugador] ||= {
     nombre: nombreDe(ctx.conn, m), puntos: 0, aciertos: 0, fallos: 0,
   })
   if (elegida !== actual.correcta) {
     j.fallos++
-    await reaccionar(m, ctx.conn, '❌')
+    const ambosFallaron = partida.duelo && partida.equipos.every(e => (actual.intentos.get(e.jid) || 0) >= 1)
+    if (ambosFallaron) {
+      await Promise.all([
+        reaccionar(m, ctx.conn, '❌'),
+        agotarPregunta(m, ctx, partida, actual, '❌ *Los dos equipos fallaron. Nadie suma en esta pregunta.*'),
+      ])
+    } else await reaccionar(m, ctx.conn, '❌')
     return
   }
   partida.actual = null
   partida.aceptando = false
   terminarTimers(partida)
   const segundos = (Date.now() - actual.preguntadaEn) / 1000
-  const ganados = puntosPor(segundos)
+  const ganados = partida.duelo ? 1 : puntosPor(segundos)
   j.puntos += ganados
   j.aciertos++
   await reaccionar(m, ctx.conn, '✅')
   const publicado = await actualizarPanel(m, ctx, partida, [
-    `⚽🎉 *¡GOL de @${jugador.split('@')[0]}!*`, '',
+    `${equipo ? `${equipo.color} ` : ''}⚽🎉 *¡GOL de @${jugador.split('@')[0]}!*`, '',
     `✅ ${actual.correcta}. ${actual.opciones[LETRAS.indexOf(actual.correcta)]}`,
-    `⚡ ${segundos.toFixed(1)}s → *+${ganados} puntos* (total: ${j.puntos})`, '',
+    partida.duelo ? `✅ *+1 acierto para el equipo ${equipo.nombre}* (total: ${j.aciertos})` : `⚡ ${segundos.toFixed(1)}s → *+${ganados} puntos* (total: ${j.puntos})`, '',
     partida.indice < partida.total ? 'Siguiente...' : 'Calculando el resultado final…',
   ].join('\n'), [jugador])
   if (publicado) programarSiguiente(m, ctx, partida)
@@ -419,12 +577,15 @@ let handler = async (m, ctx) => {
   }
   if (command === 'terminar' || command === 'finpartido') {
     if (!partida) return conn.reply(m.chat, '⚽ No hay ningún partido en juego.')
+    if (partida.duelo && !equipoDe(partida, m) && !(ctx.isAdmin || ctx.isOwner)) return
     return cerrarPartida(m, ctx, partida, 'lo cortaron')
   }
   if (['futbol', 'futbolito', 'adivinafutbol', 'adivinajugador', 'quienjugador', 'trivalfutbol'].includes(command)) {
     if (partida) {
+      if (partida.fase === 'pendiente' && partida.invitacionKey) return editarInvitacion(m, ctx, partida, textoInvitacion(partida))
       return tablaDe(partida, conn, m)
     }
+    if (m.mentionedJid?.length) return invitarDuelo(m, ctx)
     let total = parseInt(args?.[0], 10)
     if (!Number.isFinite(total) || total < 1) total = 10
     total = Math.min(total, MAX_PREGUNTAS, BANCO.length)
@@ -461,10 +622,13 @@ let handler = async (m, ctx) => {
   return conn.reply(m.chat, [
     '⚽ *ADIVINA EL JUGADOR*', '',
     `Trivial de fútbol con 4 opciones y ${LIMITE_SEGUNDOS} segundos por pregunta.`, '',
-    '*.futbol* — partida de 10 preguntas',
+    '*.futbol @persona* — duelo azul vs rojo de 7 preguntas',
+    '*.futbol @persona 5* — duelo de 5 preguntas (máximo 7)',
+    'El rival debe escribir acepto o rechazo en 60 segundos. Un intento por pregunta y 1 punto por acierto; empate si igualan.',
+    '*.futbol* — juego grupal de 10 preguntas',
     `*.futbol 15* — partida de 15 (máx. ${MAX_PREGUNTAS})`,
     'Escribe a/b/c/d o el texto exacto de la opción directamente en el grupo.',
-    'Sin prefijo ni citar mensajes. Tienes intentos ilimitados mientras la pregunta esté activa.',
+    'Sin prefijo ni citar mensajes. En el juego grupal hay intentos ilimitados; en el duelo, uno por pregunta.',
     'Las preguntas y el resultado se editan en el panel fijado.',
     'A los 10 segundos restantes llega un aviso aparte. ✅ Acierto · ❌ Puedes volver a intentar.',
     '*.marcador* — actualiza la tabla en el panel',
@@ -473,10 +637,10 @@ let handler = async (m, ctx) => {
   ].join('\n'))
 }
 
-handler.help = ['futbol [preguntas]', 'marcador', 'terminar']
+handler.help = ['futbol @persona [preguntas]', 'futbol [preguntas]', 'marcador', 'terminar']
 handler.tags = ['game']
 handler.command = ['futbol', 'futbolito', 'adivinafutbol', 'adivinajugador', 'quienjugador', 'trivalfutbol', 'marcador', 'terminar', 'finpartido', 'futbolayuda']
 handler.group = true
 
-export { BANCO, partidas, barajar, normalizar, prepararPregunta, puntosPor, textoPregunta, siguientePregunta, cerrarPartida, responder, citaDe, textoDeRespuesta, LIMITE_SEGUNDOS, PUNTOS_BASE, PUNTOS_BONUS, MAX_PREGUNTAS }
+export { BANCO, partidas, barajar, normalizar, prepararPregunta, puntosPor, textoPregunta, siguientePregunta, cerrarPartida, responder, citaDe, textoDeRespuesta, procesarInvitacion, MAX_PREGUNTAS_DUELO, INVITACION_SEGUNDOS, LIMITE_SEGUNDOS, PUNTOS_BASE, PUNTOS_BONUS, MAX_PREGUNTAS }
 export default handler
