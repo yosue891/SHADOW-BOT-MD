@@ -4,12 +4,12 @@ import { fileURLToPath } from "url"
 import fs from "fs"
 
 
-global.botNumber = "573145976430" 
+global.botNumber = "" 
 
 
 global.owner = [
 ["584242773183", "yosue </>", true],
-["584241819270", "yosue"],
+["584241819270", "leo"],
 ["51921826291"],
 ["523328418129"],
 ["573133374132"],
