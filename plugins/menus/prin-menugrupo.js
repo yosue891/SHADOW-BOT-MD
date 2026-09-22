@@ -98,7 +98,7 @@ let handler = async (m, { conn, usedPrefix }) => {
 *╰─────────────╯*`.trim()
 
     let finalMenu = infoUser + '\n\n' + comandosGrupo
-    let videoUrl = 'https://raw.githubusercontent.com/yosue891/Shadow-MD/refs/heads/main/Gemini_Generated_Image_ch1fhbch1fhbch1f.png'
+    let videoUrl = 'https://github.com/Dv-Leo/imagenes/blob/main/Shadow%2FIMG-20260921-WA0013.jpg?raw=true'
 
     let vcard = `BEGIN:VCARD\nVERSION:3.0\nN:;Itachi;;;\nFN:Itachi\nitem1.TEL;waid=13135550002:+1 (313) 555-0002\nitem1.X-ABLabel:Celular\nEND:VCARD`
     let qkontak = { 
