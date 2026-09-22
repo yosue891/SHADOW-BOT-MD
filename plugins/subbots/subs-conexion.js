@@ -1,4 +1,4 @@
-const { useMultiFileAuthState, makeCacheableSignalKeyStore, fetchLatestBaileysVersion, generateWAMessageFromContent, prepareWAMessageMedia } = await import('@whiskeysockets/baileys')
+import { useMultiFileAuthState, makeCacheableSignalKeyStore, fetchLatestBaileysVersion, generateWAMessageFromContent, prepareWAMessageMedia } from '@whiskeysockets/baileys'
 import qrcode from 'qrcode'
 import NodeCache from 'node-cache'
 import fs from 'fs'
@@ -6,12 +6,22 @@ import path from 'path'
 import { fileURLToPath, pathToFileURL } from 'url'
 import pino from 'pino'
 import chalk from 'chalk'
+import { open } from 'lmdb'
 import { makeWASocket } from '../../lib/simple.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const PAIRING_CODE_TTL_MS = 45000
 const QR_TTL_MS = 45000
+
+const lmdbPath = path.resolve(process.cwd(), 'database/lmdb_store')
+if (!fs.existsSync(path.dirname(lmdbPath))) {
+  fs.mkdirSync(path.dirname(lmdbPath), { recursive: true })
+}
+const dbLmdb = open({
+  path: lmdbPath,
+  compression: true
+})
 
 const BANNER_URL = 'https://files.catbox.moe/owpjte.jpg'
 
@@ -48,11 +58,7 @@ function getNoopHandlerModule() {
 
 async function loadHandlerModule(cacheBust = false) {
   const handlerUrl = resolveExistingModule(
-    '../handler.js',
-    './handler.js',
-    '../../handler.js',
-    '../src/handler.js',
-    '../handler/index.js'
+    '../../src/handler.js'
   )
 
   if (!handlerUrl) {
@@ -279,12 +285,15 @@ async function sendPairingInteractiveImage(conn, chatId, { bodyText, code, image
 }
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
-  if (!global.db.data.settings[conn.user.jid]?.jadibotmd) return m.reply(`ꕥ El Comando *${command}* está desactivado temporalmente.`)
+  const isEnabled = await dbLmdb.get('setting_jadibotmd')
+  if (isEnabled === false) return m.reply(`ꕥ El Comando *${command}* está desactivado temporalmente.`)
 
-  const userData = global.db.data.users[m.sender] || (global.db.data.users[m.sender] = {})
   const now = Date.now()
   const isCodeCommand = command === 'code'
   const cooldownMs = isCodeCommand ? 60000 : 120000
+
+  const userKey = `user_${m.sender}`
+  const userData = (await dbLmdb.get(userKey)) || {}
   const lastUse = isCodeCommand ? (userData.lastCodeRequest || 0) : (userData.Subs || 0)
   const remaining = cooldownMs - (now - lastUse)
 
@@ -328,6 +337,8 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
   if (isCodeCommand) userData.lastCodeRequest = now
   else userData.Subs = now
+
+  await dbLmdb.put(userKey, userData)
 
   await MichiJadiBot(MichiJBOptions)
 }
@@ -413,7 +424,12 @@ export async function MichiJadiBot(options) {
       const secret = await sock.requestPairingCode(phoneNumber)
       const formattedSecret = secret.match(/.{1,4}/g)?.join('-') || secret
 
-      const bodyText = `${rtx2}\n\n✧ Número solicitado: +${phoneNumber}\n✧ Código: *${formattedSecret}*\n\n> Toca el botón de abajo para copiar tu código de vinculación.`
+      const bodyText = `${rtx2}
+
+✧ Número solicitado: +${phoneNumber}
+✧ Código: *${formattedSecret}*
+
+> Toca el botón de abajo para copiar tu código de vinculación.`
 
       txtCode = await sendPairingInteractiveImage(conn, m.chat, {
         bodyText,
@@ -449,19 +465,19 @@ export async function MichiJadiBot(options) {
     const reason = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode
     if (connection === 'close') {
       const subReconnectCount = sock._reconnectCount || 0
-      if (subReconnectCount >= 15) {
-        console.log(chalk.bold.redBright(`\n┆ Sesión (+${path.basename(pathMichiJadiBot)}) alcanzó máximo de reconexiones. Eliminando...`))
+      if (subReconnectCount >= 20) {
+        console.log(chalk.bold.redBright(`\n┆ Sesión (+${path.basename(pathMichiJadiBot)}) alcanzó máximo de reconexiones. Reintentando limpiar...`))
         try { sock.ev.removeAllListeners() } catch {}
         try { sock.ws?.close() } catch {}
         const idx = global.conns.indexOf(sock)
         if (idx >= 0) global.conns.splice(idx, 1)
         return
       }
-      const backoff = Math.min(3000 * Math.pow(2, subReconnectCount), 60000)
+      const backoff = Math.min(3000 * Math.pow(2, subReconnectCount), 30000)
       sock._reconnectCount = subReconnectCount + 1
 
-      if ([428, 408, 515, 500, 502].includes(reason) || !reason) {
-        console.log(chalk.bold.magentaBright(`\n┆ La conexión (+${path.basename(pathMichiJadiBot)}) se cerró (Razón: ${reason}). Reconectando en ${Math.round(backoff/1000)}s...`))
+      if ([428, 408, 515, 500, 502].includes(reason)) {
+        console.log(chalk.bold.magentaBright(`\n┆ Conexión interrumpida (+${path.basename(pathMichiJadiBot)}), código: ${reason}. Reconectando en ${Math.round(backoff/1000)}s...`))
         await delay(backoff)
         await creloadHandler(true).catch(console.error)
         return
@@ -473,7 +489,7 @@ export async function MichiJadiBot(options) {
       }
 
       if (reason === 405 || reason === 401 || reason === 403) {
-        console.log(chalk.bold.magentaBright(`\n┆ La sesión (+${path.basename(pathMichiJadiBot)}) fue cerrada o tiene credenciales no válidas.`))
+        console.log(chalk.bold.magentaBright(`\n┆ La sesión (+${path.basename(pathMichiJadiBot)}) fue cerrada o tiene credenciales inválidas.`))
         try { sock.ev.removeAllListeners() } catch {}
         try { sock.ws?.close() } catch {}
         const idx = global.conns.indexOf(sock)
@@ -481,6 +497,9 @@ export async function MichiJadiBot(options) {
         fs.rmSync(pathMichiJadiBot, { recursive: true, force: true })
         return
       }
+
+      await delay(backoff)
+      return creloadHandler(true).catch(console.error)
     }
 
     if (connection === 'open') {
@@ -494,7 +513,7 @@ export async function MichiJadiBot(options) {
       if (!global.conns.includes(sock)) global.conns.push(sock)
       const targetChat = m?.chat || userJid
       const userSender = m?.sender || userJid
-      await conn.sendMessage(targetChat, { text: isSubBotConnected(userSender) ? `> @${userSender.split('@')[0]}, ❐ Has registrado un nuevo _shadow_ *Sub-Bot* 👻` : `> ❀ Has registrado un nuevo *Sub-Bot!* [@${userSender.split('@')[0]}]`, mentions: [userSender] }, { quoted: m || null }).catch(() => {})
+      await conn.sendMessage(targetChat, { text: isSubBotConnected(userSender) ? `> @${userSender.split('@')[0]}, ❐ Has registrado un nuevo _shadow_ *Sub-Bot* 👻` : `> ❀ Has registrado un nuevo *Sub-Bot!* [@${userSender.split('@')[0]}]`, mentions: [userSender] }, { quoted: m || null })
     }
   }
 
@@ -504,13 +523,14 @@ export async function MichiJadiBot(options) {
       const Handler = await loadHandlerModule(true)
       if (typeof Handler?.handler === 'function') handlerModule = Handler
     } catch (e) {
-      console.error('⚠︎ Nuevo error: ', e)
+      console.error('⚠︎ Error al recargar handler:', e)
     }
 
     if (restatConn) {
+      const oldChats = sock.chats
       try { sock.ws?.close() } catch {}
       try { sock.ev.removeAllListeners() } catch {}
-      sock = makeWASocket(connectionOptions)
+      sock = makeWASocket(connectionOptions, { chats: oldChats })
       sock.isInit = false
       sock.isPairingRequested = false
       isInit = true
