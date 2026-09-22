@@ -61,23 +61,30 @@ let handler = async (m, { conn, usedPrefix }) => {
 *╰─────────────╯*`.trim()
 
     let finalMenu = infoUser + '\n\n' + comandosOwner
-    let videoUrl = 'https://github.com/Dv-Leo/imagenes/blob/main/Shadow%2FIMG-20260921-WA0012.jpg?raw=true'
+    let imageUrl = 'https://github.com/Dv-Leo/imagenes/blob/main/Shadow%2FIMG-20260921-WA0012.jpg?raw=true'
 
     let vcard = `BEGIN:VCARD\nVERSION:3.0\nN:;Itachi;;;\nFN:Itachi\nitem1.TEL;waid=13135550002:+1 (313) 555-0002\nitem1.X-ABLabel:Celular\nEND:VCARD`
-    let qkontak = { 
-      key: { fromMe: false, participant: "0@s.whatsapp.net", remoteJid: "status@broadcast" }, 
-      message: { contactMessage: { displayName: "SHADOW-BOT-MD", vcard: vcard } } 
+    let qkontak = {
+      key: { fromMe: false, participant: "0@s.whatsapp.net", remoteJid: "status@broadcast" },
+      message: { contactMessage: { displayName: "SHADOW-BOT-MD", vcard: vcard } }
     }
 
     await m.react('🔥')
 
-    let media
+    // 🔧 FIX: descargar como buffer y usar image (no video)
+    let media = null
     try {
-      const ctrl = new AbortController()
-      const t = setTimeout(() => ctrl.abort(), 8000)
-      media = await prepareWAMessageMedia({ video: { url: videoUrl }, gifPlayback: true }, { upload: conn.waUploadToServer })
-      clearTimeout(t)
-    } catch {
+      const res = await fetch(imageUrl)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const buffer = Buffer.from(await res.arrayBuffer())
+
+      const prepared = await prepareWAMessageMedia(
+        { image: buffer },
+        { upload: conn.waUploadToServer }
+      )
+      media = prepared.imageMessage
+    } catch (err) {
+      console.error('Error preparando media:', err)
       media = null
     }
 
@@ -89,7 +96,7 @@ let handler = async (m, { conn, usedPrefix }) => {
             footer: { text: botname },
             header: media ? {
               hasMediaAttachment: true,
-              videoMessage: media.videoMessage
+              imageMessage: media
             } : undefined,
             nativeFlowMessage: {
               buttons: [
@@ -166,4 +173,4 @@ function clockString(ms) {
   const m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60
   const s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60
   return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':')
-                                    }
+}
