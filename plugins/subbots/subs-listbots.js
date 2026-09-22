@@ -25,7 +25,6 @@ function convertirMsADiasHorasMinutosSegundos(ms) {
 }
 
 function normalizarJid(user) {
-  // Baileys puede entregar id con sufijo de dispositivo y sin user.jid.
   for (const value of [user?.jid, user?.id]) {
     if (typeof value !== 'string') continue
     const match = /^(\d+)(?::\d+)?@(s\.whatsapp\.net|c\.us|lid)$/.exec(value)
@@ -37,7 +36,6 @@ function normalizarJid(user) {
 function estaAbierto(sock) {
   const socket = sock?.ws
   const state = socket?.socket?.readyState ?? socket?.readyState
-  // OPEN, no simplemente distinto de CLOSED: excluye CONNECTING y CLOSING.
   return state != null ? state === ws.OPEN : socket?.isOpen === true
 }
 
@@ -58,7 +56,6 @@ async function conTiempoLimite(promise, ms) {
 const handler = async (m, { conn, usedPrefix = '.' }) => {
   const principalJid = normalizarJid(global.conn?.user)
   const vistos = new Set()
-  // Solo leer el registro: este comando no modifica ni desconecta sesiones.
   const conectados = (Array.isArray(global.conns) ? global.conns : []).flatMap(sock => {
     const jid = normalizarJid(sock?.user)
     if (!jid || !estaAbierto(sock) || jid === principalJid || vistos.has(jid)) return []
@@ -79,8 +76,6 @@ const handler = async (m, { conn, usedPrefix = '.' }) => {
     return m.reply(`${resumen}\n\nNo hay Sub-Bots activos ahora mismo.\nUsa \`${usedPrefix}code\` o \`${usedPrefix}qr\` para vincular uno.`)
   }
 
-  // Un relay resuelto no garantiza que WhatsApp dibuje el carrusel.
-  // El conteo debe llegar ANTES de descargar/subir medios o enviar tarjetas.
   await m.reply(resumen)
 
   const describir = (bot, i) => [
@@ -100,8 +95,6 @@ const handler = async (m, { conn, usedPrefix = '.' }) => {
 
   let enviados = 0
   try {
-    // Una descarga y una subida para todas las tarjetas, ambas acotadas.
-    // Si no hay imagen válida, la lista de texto es más fiable que un carrusel sin medios.
     let imageMessage
     try {
       const { data } = await axios.get(IMAGEN_CARRUSEL, {
@@ -119,7 +112,6 @@ const handler = async (m, { conn, usedPrefix = '.' }) => {
     }
     if (!imageMessage) return await enviarLista()
 
-    // Evitar un carrusel enorme: conservar el total real y dividir las tarjetas.
     for (let offset = 0; offset < conectados.length; offset += TARJETAS_POR_MENSAJE) {
       const lote = conectados.slice(offset, offset + TARJETAS_POR_MENSAJE)
       const cards = lote.map((bot, i) => ({
@@ -163,14 +155,10 @@ const handler = async (m, { conn, usedPrefix = '.' }) => {
       }
       await conTiempoLimite(conn.relayMessage(m.chat, messageContent.message, {
         messageId: messageContent.key.id,
-        // El detector del Baileys incluido solo reconoce nativeFlowMessage en
-        // la raíz, no dentro de carouselMessage.cards. Añadir sus nodos aquí.
         additionalNodes: getAdditionalNode('interactive'),
       }), MEDIA_TIMEOUT_MS)
       enviados += lote.length
     }
-    // Conservar la lista en texto de main incluso si relayMessage se resuelve:
-    // WhatsApp puede aceptar el envío y no dibujar el carrusel en el cliente.
     await enviarLista()
   } catch (error) {
     console.warn('[bots] No se pudo enviar el carrusel:', error?.message || error)

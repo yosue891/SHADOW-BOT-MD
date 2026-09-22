@@ -4,7 +4,7 @@ let handler = async (m, { text, usedPrefix, command }) => {
   if (!text) return conn.reply(m.chat, `🌌 *Discípulo de las Sombras* 🎄\nDebes entregar el nombre del *scraper* o paquete.\nEjemplo: ${usedPrefix + command} yt-search`, m)
 
   try {
-    await m.react('🎭') // reacción teatral inicial
+    await m.react('🎭')
     conn.reply(m.chat, `🌌 *Invocando las Sombras* 🎅\nBuscando el scraper en los registros ocultos...`, m)
 
     let res = await fetch(`http://registry.npmjs.com/-/v1/search?text=${text}`)

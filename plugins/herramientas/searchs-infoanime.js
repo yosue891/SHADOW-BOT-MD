@@ -30,7 +30,6 @@ var handler = async (m, { conn, usedPrefix, command, text }) => {
 
     let author = data.authors?.[0]?.name || 'No especificado'
 
-    // Traducción automática al español si viene en inglés
     const traducir = async (txt) => {
       if (!txt) return 'No especificado'
       try {

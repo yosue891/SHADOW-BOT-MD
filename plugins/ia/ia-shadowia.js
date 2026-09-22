@@ -1,22 +1,8 @@
-/* ============================================================
-   ia-shadowia.js  —  Shadowia, asistente personal de Yosue
-   ------------------------------------------------------------
-   • Usa la MISMA API que el plugin de Simi:
-     https://api-gohan-v1.onrender.com/ai/gemini?text=...
-   • Personalidad NEUTRA (sin sarcasmo, sin insultos).
-   • SOLO owners  ->  handler.rowner = true
-   • Ejecuta administración por lenguaje natural:
-     promote / demote / kick / add / nombre / descripción /
-     foto del grupo / abrir / cerrar / anunciar / salir.
-   • Puede ejecutar CUALQUIER comando del bot en nombre del owner.
-   • Las acciones destructivas NO las decide la IA: se resuelven
-     con reglas deterministas. La IA solo conversa.
-   ============================================================ */
 
 import axios from 'axios'
 
 const API_URL = 'https://api-gohan-v1.onrender.com/ai/gemini?text='
-const API_TIMEOUT = 90_000 // la API fría puede tardar ~35s
+const API_TIMEOUT = 90_000
 
 const PROMPT_SHADOWIA = `Eres Shadowia, la asistente personal de Yosue, el dueño de este bot.
 
@@ -44,19 +30,12 @@ Cómo respondes:
 
 Ahora responde lo siguiente`
 
-/* Comandos que el asistente NO ejecuta aunque el owner se lo pida,
-   para no dejar el bot inutilizable desde el chat. */
 const BLOQUEADOS = new Set(['delplugin', 'saveplugin', 'eval', 'exec', 'restart', 'fix', 'dsowner'])
 
-/* ────────────── memoria (en RAM, por chat) ──────────────
-   Guarda qué hizo Shadowia en cada grupo para poder entender
-   «devuélvele admin al que se lo quitaste». Se pierde al reiniciar
-   el bot a propósito: es más seguro que promover a la persona
-   equivocada por un dato viejo. */
-const TTL_MEMORIA = 30 * 60 * 1000 // 30 minutos
+const TTL_MEMORIA = 30 * 60 * 1000
 const MAX_HISTORIAL = 5
 const MAX_CONVERSA = 8
-const memoria = new Map() // chat -> { acciones: [], conversa: [] }
+const memoria = new Map()
 
 export function getMemoria(chat) {
   const ahora = Date.now()
@@ -88,10 +67,8 @@ export function limpiarMemoria(chat) {
   memoria.delete(chat)
 }
 
-/** minutos transcurridos, redondeado hacia arriba (mínimo 1) */
 const haceMinutos = (ts) => Math.max(1, Math.round((Date.now() - ts) / 60000))
 
-/* ────────────────────────── utilidades ────────────────────────── */
 
 const limpiar = (s = '') =>
   String(s)
@@ -99,26 +76,16 @@ const limpiar = (s = '') =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
 
-/** quita la mención "@58424..." para dejar solo el texto libre */
 const sinMenciones = (s = '') => String(s).replace(/@\d{5,}/g, ' ').replace(/\s+/g, ' ').trim()
 
-/** solo para intenciones de texto libre: elimina signos de interrogación/exclamación */
 const sinSignos = (s = '') => String(s).replace(/[¿?¡!]/g, ' ').replace(/\s+/g, ' ').trim()
 
-/**
- * Un JID puede llegar como "584241234567:12@s.whatsapp.net" (con dispositivo)
- * o como "...@lid". Esto deja solo los dígitos para poder comparar.
- */
 export function jidNumero(jid) {
   const s = String(jid || '')
   const m = s.match(/(\d{5,})(?::\d+)?@/)?.[1]
   return m || s.replace(/\D/g, '') || null
 }
 
-/**
- * Busca un participante por cualquiera de sus identidades.
- * Idéntico criterio al de src/handler.js: id, jid, lid o phoneNumber.
- */
 export function buscarParticipante(participants, jid) {
   const num = jidNumero(jid)
   if (!num || !Array.isArray(participants)) return null
@@ -130,10 +97,6 @@ export function buscarParticipante(participants, jid) {
   )
 }
 
-/**
- * ¿Es admin este participante? Acepta 'admin', 'superadmin' y las variantes
- * booleanas, igual que isAdminParticipant() de src/handler.js.
- */
 export function esAdminParticipante(p) {
   return p?.admin === 'admin' || p?.admin === 'superadmin' || p?.isAdmin === true || p?.isSuperAdmin === true
 }
@@ -147,8 +110,6 @@ export function extraerValor(texto, patron) {
   const limpio = sinMenciones(texto).trim()
   const m = patron.exec(limpio)
   let resto = m ? limpio.slice(m[0].length) : limpio
-  // va quitando «del grupo» y la preposición hasta que ya no cambia nada,
-  // porque pueden aparecer en cualquier orden («... a del grupo», «... del grupo a ...»)
   let anterior
   do {
     anterior = resto
@@ -173,10 +134,6 @@ export function parsearOrden(rawText = '') {
 
   if (!t) return { action: 'ayuda' }
 
-  /* Tabla ordenada: la primera coincidencia gana. */
-  // Marcadores de duda/pregunta. Si aparecen, NO es una orden: se va a
-  // conversación. Sin esto, «se me olvidó cómo se cambiaba la foto del
-  // grupo» se interpretaba como una orden de cambiar la foto.
   const DUDA = [
     'como se hace', 'como hago', 'como cambio', 'como puedo', 'como era',
     'como funciona', 'se me olvido', 'no me acuerdo', 'olvide como', 'olvidado como',
@@ -192,16 +149,7 @@ export function parsearOrden(rawText = '') {
     },
     {
       action: 'devolverAdmin',
-      // DEBE ir antes que promote/demote: el patrón de promote incluye «admin a»
-      // y se comía frases como «vuelve a darle admin a quien se lo quitaste».
-      // Verbos de «devolver» seguidos de la palabra «admin».
       re: /(^|\s)(devuelve(?:le|les)?|vuelve(?:le|les)?|vuelve\s+a\s+(?:dar|poner)(?:le|les)?|regresa(?:le|les)?|retorna(?:le|les)?|restaura(?:r|le)?|reestablece(?:r)?|restablece(?:r)?|devolver|volver|regresar|deshaz|deshacer|revierte|revertir|undo)\s*(?:\w+\s+){0,4}admin/,
-      // Variante «dale (el) admin <de nuevo|otra vez|...>»: aquí el «admin» ya va
-      // dentro de la frase, así que no puede exigir otro «admin» al final.
-      // Con «dale admin» a secas NO hace match: eso es un promote normal.
-      // El modificador («de vuelta» / «de nuevo» / «otra vez» / «nuevamente»)
-      // es OBLIGATORIO en una de las dos puntas; si no, «dale admin» a secas
-      // (que es un promote) también caería aquí.
       re2: /(^|\s)dale\s+(?:(?:de\s+vuelta|de\s+nuevo|otra\s+vez|nuevamente)\s+(?:el\s+)?admin\b|(?:el\s+)?admin\s+(?:de\s+nuevo|otra\s+vez|nuevamente|de\s+vuelta)\b)/,
       needsGroup: true, needsAdmin: true,
     },
@@ -247,7 +195,6 @@ export function parsearOrden(rawText = '') {
     { action: 'anunciosOn', re: /(^|\s)(activa|activar|prende)\s*(los\s*)?anuncios/, needsGroup: true, needsAdmin: true },
     { action: 'anunciosOff', re: /(^|\s)(desactiva|desactivar|apaga|quita)\s*(los\s*)?anuncios/, needsGroup: true, needsAdmin: true },
 
-    /* «usa <comando>» ANTES que la ayuda: si no, «usa menu» caía en ayuda */
     {
       action: 'comando',
       re: /^(?:usa|usar|ejecuta|ejecutar|corre|correr|lanza|lanzar|aplica|aplicar)\s+(?:el\s+)?(?:comando\s+)?([a-z0-9_-]+)(?:\s+([\s\S]*))?$/,
@@ -273,13 +220,9 @@ export function parsearOrden(rawText = '') {
     return orden
   }
 
-  /* nada coincide: conversación con la IA */
   return { action: 'charlar', value: rawText, usaApi: true }
 }
 
-/**
- * Resuelve a quién va dirigida la acción: mención > citado > número en el texto.
- */
 export function resolverObjetivo(m, args = []) {
   const mencion = Array.isArray(m?.mentionedJid) ? m.mentionedJid.filter(Boolean)[0] : null
   if (mencion) return { jid: mencion, origen: 'mención' }
@@ -293,7 +236,6 @@ export function resolverObjetivo(m, args = []) {
   return null
 }
 
-/** bloquea acciones sobre el propio bot, el creador del grupo y el owner del bot */
 export function esProtegido(jid, { botJid, ownerGrupo, ownerBot }) {
   if (!jid) return 'No indicaste a quién.'
   if (jid === botJid) return 'No puedo hacerme eso a mí misma.'
@@ -302,10 +244,8 @@ export function esProtegido(jid, { botJid, ownerGrupo, ownerBot }) {
   return null
 }
 
-/* ────────────────────────── handler ────────────────────────── */
 
 const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, command, isBotAdmin: isBotAdminCtx }) => {
-  // Doble seguro además de handler.rowner
   if (!isROwner && !isOwner) {
     return conn.reply(m.chat, '⛔ Uy no, cariño. Shadowia solo le hace caso a los owners del bot 😏\n\nConsíguete un dueño y hablamos ✨', m)
   }
@@ -316,8 +256,6 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
   const ownerGrupo = meta?.owner || (m.isGroup ? `${m.chat.split('-')[0]}@s.whatsapp.net` : null)
   const ownerBot = Array.isArray(global.owner?.[0]) ? `${String(global.owner[0][0]).replace(/\D/g, '')}@s.whatsapp.net` : null
 
-  // Preferimos el isBotAdmin que ya calculó src/handler.js (maneja :device y @lid).
-  // Solo si no viene (p. ej. en pruebas) lo calculamos nosotros.
   const botEsAdmin =
     typeof isBotAdminCtx === 'boolean'
       ? isBotAdminCtx
@@ -325,7 +263,6 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
 
   const orden = parsearOrden(entrada)
 
-  /* validaciones comunes de grupo/admin */
   if (orden.needsGroup && !m.isGroup) {
     await m.react?.('❕')
     return conn.reply(m.chat, '🤔 Jefe, eso se hace dentro de un grupo, no aquí en el vacío 😅\n\nLlévame al grupo y me pones a trabajar ✨', m)
@@ -349,16 +286,14 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
 
   try {
     switch (orden.action) {
-      /* ── salir del grupo, con mensaje antes ── */
       case 'salir': {
         await avisar('👋 Entendido, jefe. Me despido y me voy de este grupo.\n\nFue un gusto aguantarlos a todos 😏✨ Cuando quieras, vuélveme a agregar.')
         await m.react?.('👋')
-        await new Promise((r) => setTimeout(r, 2500)) // deja que el mensaje salga
+        await new Promise((r) => setTimeout(r, 2500))
         await conn.groupLeave(m.chat)
         return
       }
 
-      /* ── devolver el admin a quien se lo quitó ── */
       case 'devolverAdmin': {
         const reg = getMemoria(m.chat)
         const ultimoDemote = [...reg.acciones].reverse().find((a) => a.accion === 'demote')
@@ -397,7 +332,6 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
         )
       }
 
-      /* ── promote / demote / kick ── */
       case 'promote':
       case 'demote':
       case 'kick': {
@@ -445,7 +379,6 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
         return avisar(frases[orden.action], { mentions: [jid] })
       }
 
-      /* ── agregar ── */
       case 'add': {
         const numero = String(args.join(' ') || '').match(/\d{9,15}/)?.[0]
         if (!numero) {
@@ -458,7 +391,6 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
         return avisar(`✅ Listo, jefe. *+${numero}* ya está dentro 🎉\n\n¿Le doy la bienvenida o lo dejamos en suspenso? 😏`)
       }
 
-      /* ── nombre del grupo ── */
       case 'nombre': {
         if (!orden.value) {
           await m.react?.('🤔')
@@ -471,7 +403,6 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
         return avisar(`✅ Listo, jefe. El grupo ahora se llama *${nuevoNombre}* ✨\n\nQuedó con más clase, ¿a que sí? 😏 ¿Le cambio también la descripción?`)
       }
 
-      /* ── descripción ── */
       case 'descripcion': {
         if (!orden.value) {
           await m.react?.('🤔')
@@ -483,9 +414,7 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
         return avisar('✅ Listo, jefe. Descripción nueva puesta 📝✨\n\nAhora sí parece un grupo serio… por fuera 😏')
       }
 
-      /* ── foto del grupo ── */
       case 'foto': {
-        // la imagen puede venir citada O adjunta en el mismo mensaje del comando
         const candidatos = [m.quoted, m].filter(Boolean)
         const fuente = candidatos.find((q) => {
           const mime = q?.msg?.mimetype || q?.mimetype || ''
@@ -510,7 +439,6 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
         return avisar('✅ Listo, jefe. Foto del grupo renovada 🖼️✨\n\nAhora sí da gusto entrar aquí, ¿a que sí? 😏')
       }
 
-      /* ── abrir / cerrar / anuncios ── */
       case 'abrir':
       case 'cerrar': {
         const valor = orden.action === 'abrir' ? 'not_announcement' : 'announcement'
@@ -531,7 +459,6 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
           : '✅ Anuncios apagados, jefe 🔕\n\nPaz y silencio… qué raro se siente 😌')
       }
 
-      /* ── autodiagnóstico: ¿por qué no respondo? ── */
       case 'diagnostico': {
         const totalPlugins = Object.keys(global.plugins || {}).length
         const yoCargado = Object.keys(global.plugins || {}).some((k) => /shadowia/i.test(k))
@@ -553,7 +480,6 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
         return avisar(lineas.join('\n'))
       }
 
-      /* ── ayuda ── */
       case 'ayuda': {
         await m.react?.('ℹ️')
         return avisar(
@@ -576,7 +502,6 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
         )
       }
 
-      /* ── ejecutar cualquier plugin del bot ── */
       case 'comando': {
         const nombre = String(orden.value || '').toLowerCase()
         if (BLOQUEADOS.has(nombre)) {
@@ -592,12 +517,10 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
         return
       }
 
-      /* ── conversación con la IA (misma API que Simi) ── */
       case 'charlar':
       default: {
         await conn.sendPresenceUpdate?.('composing', m.chat)
 
-        // contexto corto de la conversación para que Shadowia pueda seguir el hilo
         const reg = getMemoria(m.chat)
         const contexto = reg.conversa.map((c) => `${c.rol === 'user' ? 'Yosue' : 'Shadowia'}: ${c.texto}`).join('\n')
         const bloque = contexto
@@ -639,10 +562,6 @@ const handler = async (m, { conn, args, text, isROwner, isOwner, usedPrefix, com
   }
 }
 
-/**
- * Ejecuta otro plugin del bot en nombre del owner.
- * Devuelve true si encontró y corrió el plugin.
- */
 async function ejecutarComando({ m, conn, args, usedPrefix, nombre, extra, meta, botJid }) {
   const plugins = global.plugins || {}
   const claves = Object.keys(plugins)
@@ -654,7 +573,6 @@ async function ejecutarComando({ m, conn, args, usedPrefix, nombre, extra, meta,
   if (!clave) return false
 
   const plugin = plugins[clave]
-  // igual que src/handler.js: args incluye el nombre del comando como args[0]
   const listaArgs = [nombre, ...(extra ? extra.split(/\s+/).filter(Boolean) : [])]
 
   await plugin.call(conn, m, {
@@ -688,7 +606,7 @@ async function ejecutarComando({ m, conn, args, usedPrefix, nombre, extra, meta,
 handler.help = ['shadowia']
 handler.tags = ['ia']
 handler.command = ['shadowia', 'asistente', 'ayuda', 'shadowiacheck']
-handler.rowner = true // solo owners
+handler.rowner = true
 handler.register = false
 handler.limit = false
 

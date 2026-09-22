@@ -96,7 +96,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         .replace(/{fecha}/gi, `${fecha}`)
 
       if (hasCustomBye) {
-        // MODO LITERAL: si pusiste "hola xd" se queda solo con "hola xd"
         caption = mensaje
       } else {
         const formattedMensaje = mensaje.split('\n').join('\n> ')
@@ -127,7 +126,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         .replace(/{fecha}/gi, `${fecha}`)
 
       if (hasCustomWelcome) {
-        // MODO LITERAL: si pusiste "hola xd" se queda solo con "hola xd"
         caption = mensaje
       } else {
         const formattedMensaje = mensaje.split('\n').join('\n> ')

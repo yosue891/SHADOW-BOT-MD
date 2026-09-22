@@ -22,11 +22,9 @@ let handler = async (m, { conn, participants, groupMetadata, text, args, usedPre
     
     if (m.isGroup) {
         try {
-            // GIF aleatorio desde APIs de anime (con respaldo entre proveedores)
             await enviarReaccionAnime(conn, m, { reaccion: 'lappillow', caption: str, mentions: [who] });
         } catch (e) {
             console.error('[anime-lean] no se pudo enviar el GIF:', e.message)
-            // Si todas las APIs fallan, el comando responde igual con texto
             await conn.sendMessage(m.chat, { text: str, mentions: [who] }, { quoted: m });
         }
     }

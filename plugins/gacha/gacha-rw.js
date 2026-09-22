@@ -42,7 +42,6 @@ async function buscarImagenDelirius(tag) {
 }
 
 const handler = async (m, { conn, usedPrefix, command }) => {
-  // 🔥 Se eliminó la verificación que mostraba el mensaje ❀
   
   const chats = global.db.data.chats;
   if (!chats[m.chat]) chats[m.chat] = {};

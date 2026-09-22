@@ -4,7 +4,6 @@ import path from 'path';
 const RAIZ = path.join(process.cwd(), 'plugins');
 
 const handler = async (m, {conn, isROwner, usedPrefix, command, text}) => {
-  // Claves de global.plugins = ruta relativa, ej: "grupos/group-kick.js"
   const ar = Object.keys(global.plugins).map((v) => v.replace(/\\/g, '/'));
   const ar1 = ar.map((v) => v.replace(/\.js$/i, ''));
 
@@ -15,7 +14,6 @@ const handler = async (m, {conn, isROwner, usedPrefix, command, text}) => {
   }
 
   const pedido = text.trim().replace(/\\/g, '/').replace(/\.js$/i, '');
-  // Acepta el nombre exacto ("fun-top" o "fun/fun-top")
   let clave = ar1.includes(pedido) ? pedido : ar1.find((v) => v.endsWith(`/${pedido}`));
 
   if (!clave) {

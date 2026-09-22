@@ -1,18 +1,14 @@
 const handler = async (m, { conn, text, command, usedPrefix, isAdmin, isOwner, chat: handlerChat }) => {
   try {
-    // ===== VALIDACIÓN PREVIA =====
     if (!m.isGroup) {
       return await m.reply(`❌ *Este comando solo funciona en grupos.*\n\nUsa este comando dentro del grupo donde quieres personalizar el mensaje.`)
     }
 
-    // Aunque handler.group y handler.admin ya validan, reforzamos para mensajes claros
     const isGroupAdmin = isAdmin || isOwner
     if (!isGroupAdmin) {
       return await m.reply(`❌ *Solo administradores* pueden configurar la bienvenida/despedida.\n\n> Tip: Pide a un admin que ejecute: *${usedPrefix}${command} <texto>*`)
     }
 
-    // ===== INICIALIZACIÓN DB - GARANTIZAR AISLAMIENTO POR GRUPO =====
-    // Asegurar que global.db y su estructura existan
     if (!global.db) {
       return await m.reply(`❌ Error interno: base de datos no inicializada. Intenta de nuevo en unos segundos.`)
     }
@@ -24,29 +20,22 @@ const handler = async (m, { conn, text, command, usedPrefix, isAdmin, isOwner, c
       global.db.data.chats = {}
     }
 
-    const groupId = m.chat // ID único del grupo -> clave para aislamiento por grupo
-    // Obtener el chat del grupo. Prioridad: handlerChat (pasado por src/handler.js) -> global.db.data.chats[groupId]
-    // Si no existe, inicializarlo con los defaults del bot (no pisar otros grupos)
+    const groupId = m.chat
     let chat = handlerChat && typeof handlerChat === 'object' ? handlerChat : global.db.data.chats[groupId]
 
     if (!chat || typeof chat !== 'object') {
       chat = {}
     }
 
-    // Si aún no está registrado en DB, registrarlo (solo este grupo)
     if (!global.db.data.chats[groupId] || typeof global.db.data.chats[groupId] !== 'object') {
       global.db.data.chats[groupId] = chat
     } else {
-      // Sincronizar referencia (importante: chat debe ser la misma referencia que está en DB)
-      // Si handlerChat era referencia distinta, unificar
       if (global.db.data.chats[groupId] !== chat) {
-        // Copiar props de handlerChat a la referencia de DB si es necesario
         Object.assign(global.db.data.chats[groupId], chat)
         chat = global.db.data.chats[groupId]
       }
     }
 
-    // Asegurar defaults sin borrar personalizaciones existentes
     if (typeof chat.welcome === 'undefined') chat.welcome = true
     if (typeof chat.sWelcome === 'undefined') chat.sWelcome = ''
     if (typeof chat.sBienvenida === 'undefined') chat.sBienvenida = ''
@@ -54,7 +43,6 @@ const handler = async (m, { conn, text, command, usedPrefix, isAdmin, isOwner, c
     if (typeof chat.sGoodbye === 'undefined') chat.sGoodbye = ''
     if (typeof chat.sDespedida === 'undefined') chat.sDespedida = ''
 
-    // Helpers
     const getGroupName = async () => {
       try {
         if (m.isGroup) {
@@ -66,10 +54,6 @@ const handler = async (m, { conn, text, command, usedPrefix, isAdmin, isOwner, c
     }
 
     const saveDB = async () => {
-      // Guardado robusto: intenta todos los métodos disponibles
-      // 1) lowdb Low.write() (src/index.js usa Low + JSONFile)
-      // 2) Database.save() (lib/database.js)
-      // 3) fallback interval del bot (30s) pero forzamos aquí
       let saved = false
       let lastError = null
       try {
@@ -80,31 +64,23 @@ const handler = async (m, { conn, text, command, usedPrefix, isAdmin, isOwner, c
       } catch (e) { lastError = e }
       try {
         if (!saved && typeof global.db?.save === 'function') {
-          // lib/database.js usa save() encolado
           const r = global.db.save()
           if (r instanceof Promise) await r
-          // Para Database class, esperar un poco a que _save se ejecute
           await new Promise(res => setTimeout(res, 800))
           saved = true
         }
       } catch (e) { lastError = e }
 
-      // Verificación: leer de nuevo y comprobar que el valor quedó en memoria
-      // (Si write falló silenciosamente, al menos queda en memoria hasta el próximo intervalo)
       if (!saved && lastError) console.error('[setwelcome] Error guardando DB:', lastError)
       return saved
     }
 
-    // Obtener texto real: `text` viene de handler (args.join), pero para soportar multilínea
-    // también intentamos extraer del mensaje original después del comando
     let rawText = (typeof text === 'string' ? text : '')
-    // Fallback: extraer directamente de m.text para preservar saltos de línea si `text` vino vacío por algún motivo
     if (!rawText || !rawText.trim()) {
       try {
         const prefix = usedPrefix || ''
         const cmdLen = (prefix + command).length
         const full = (m.text || '').trim()
-        // Quitar prefijo+comando del inicio
         if (full.toLowerCase().startsWith((prefix + command).toLowerCase())) {
           rawText = full.slice(cmdLen).trim()
         }
@@ -112,7 +88,6 @@ const handler = async (m, { conn, text, command, usedPrefix, isAdmin, isOwner, c
     }
     const cleanText = (rawText || '').trim()
 
-    // Obtener nombre del grupo para mensajes
     const groupName = await getGroupName()
 
     switch (command) {
@@ -141,18 +116,14 @@ const handler = async (m, { conn, text, command, usedPrefix, isAdmin, isOwner, c
           return await m.reply(`❌ El mensaje es demasiado largo (máx. 1000 caracteres). Actualmente: ${cleanText.length}`)
         }
 
-        // Guardar SOLO en este grupo (aislamiento por groupId)
         const newMsg = cleanText
         chat.sWelcome = newMsg
         chat.sBienvenida = newMsg
-        // Asegurar que la bienvenida esté activada en este grupo
         chat.welcome = true
-        // Re-asignar referencia en DB (por si era copia)
         global.db.data.chats[groupId] = chat
 
         const saved = await saveDB()
 
-        // Verificación post-guardado
         const verify = global.db.data.chats[groupId]?.sWelcome
         if (verify !== newMsg) {
           console.warn('[setwelcome] Verificación falló, reintentando asignar...')
@@ -202,7 +173,7 @@ const handler = async (m, { conn, text, command, usedPrefix, isAdmin, isOwner, c
         chat.sBye = newMsg
         chat.sGoodbye = newMsg
         chat.sDespedida = newMsg
-        chat.welcome = true // también activa despedida (usa mismo flag)
+        chat.welcome = true
         global.db.data.chats[groupId] = chat
 
         const saved = await saveDB()

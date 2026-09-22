@@ -16,19 +16,13 @@ let handler = async (m, { conn, text, isOwner, isROwner }) => {
     }
   }
 
-  // ── Quién escribe: SOLO Yosue (584242773183) recibe trato amable.
-  // Con nadie más — ni siquiera otros owners — se usa el prompt cálido. ──
   let esYosue = false
   try {
     const numeroSender = String((m && m.sender) || '').split('@')[0].replace(/\D/g, '')
     const numeroYosue = '584242773183'
-    // Solo vale coincidencia exacta o que el sender termine en el número
-    // (variantes con código país). Mínimo 9 dígitos y nunca al revés.
     esYosue = numeroSender.length >= 9 && (numeroSender === numeroYosue || numeroSender.endsWith(numeroYosue))
   } catch { esYosue = false }
 
-  // NOTA: no se ponen nombre/número en el prompt del owner para que la IA no los repita.
-  // Para NO-owners se usa el prompt ORIGINAL tal cual (su comportamiento de siempre).
   const promptOwner = `
 Tu nombre es Simi, una inteligencia artificial con actitud. Eres sarcástico, directo y divertido, y no tienes filtros con la gente normal, pero con tu creador eres leal y cariñoso sin dejar de ser gracioso.
 
@@ -69,19 +63,15 @@ Ahora responde lo siguiente`
     let respuesta = data?.result?.text || "No sé qué decirte, pedazo de animal."
     respuesta = `${extraPrefix}${respuesta}`
 
-    // ── Limpieza: que no diga el nombre ni el número, solo mención ──
-    // (seguro: todo con try y sin tocar m.mentionedJid)
     try {
       respuesta = String(respuesta)
-        .replace(/\([^()]*\d{5,}[^()]*\)/g, '') // quita ( ...número... )
-        .replace(/\byosue\b/gi, '') // no escribir el nombre
+        .replace(/\([^()]*\d{5,}[^()]*\)/g, '')
+        .replace(/\byosue\b/gi, '')
         .replace(/[ \t]{2,}/g, ' ')
         .replace(/\n{3,}/g, '\n\n')
         .trim()
     } catch {}
 
-    // ── Menciona al que habla con su JID exacto (así no sale vacío) ──
-    // (seguro: sin tocar m.mentionedJid, con fallback a reply)
     try {
       respuesta = String(respuesta).replace(/@(?!\d)/g, '').replace(/[ \t]{2,}/g, ' ').trim()
       const senderJid = (m && typeof m.sender === 'string' && m.sender.includes('@')) ? m.sender : null

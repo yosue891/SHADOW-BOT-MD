@@ -10,7 +10,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   }
 
   try {
-    let apiKey = '53759164-e570f6b40878738322bd6681a'; // Reemplaza por tu clave personal si quieres
+    let apiKey = '53759164-e570f6b40878738322bd6681a';
     let res = await fetch(`https://pixabay.com/api/?key=${apiKey}&q=${encodeURIComponent(text)}&image_type=photo&orientation=vertical&per_page=50`);
     let data = await res.json();
 
@@ -33,7 +33,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     await conn.sendButton(
       m.chat,
       str,
-      '🎄✨ Shadow-BOT-MD — La sombra también celebra la Navidad UwU ✨🎄', // Footer fijo navideño
+      '🎄✨ Shadow-BOT-MD — La sombra también celebra la Navidad UwU ✨🎄',
       img,
       [
         ['🔄 Siguiente sombra', `${usedPrefix}${command} ${text}`],

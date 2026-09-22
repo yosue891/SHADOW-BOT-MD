@@ -7,9 +7,6 @@ const handler = async (m, { conn, text, args, usedPrefix, command }) => {
       return await conn.sendMessage(chatId, { text: `Este comando solo se puede usar en grupos.` }, { quoted: m })
     }
 
-    // ── 1. Extraer SOLO el texto (nunca el comando) ──
-    // `text` ya viene sin prefijo ni comando desde src/handler.js,
-    // pero blindamos por si algún subbot/handler alterno pasa m.text crudo.
     let raw = (typeof text === 'string' && text.trim() ? text : (args || []).join(' ')).trim()
     if (raw) {
       raw = raw.replace(/^[\s#!./>]*\s*(tag|todos|hidetag)\b\s*/i, '').trim()
@@ -34,8 +31,6 @@ const handler = async (m, { conn, text, args, usedPrefix, command }) => {
 
     const getQuotedMessage = m.quoted?.message || m.message?.extendedTextMessage?.contextInfo?.quotedMessage
 
-    // Solo usar el citado si el usuario NO escribió texto propio.
-    // Así `.tag hola` respondiendo a algo envía "hola", no el citado ni el comando.
     if (getQuotedMessage && !raw) {
       try {
         const quoted = getQuotedMessage
@@ -63,7 +58,6 @@ const handler = async (m, { conn, text, args, usedPrefix, command }) => {
       }
     }
 
-    // Texto directo = caso más común (.tag hola) → envío inmediato, sin red previa
     if (!messageToForward && raw) {
       messageToForward = { text: raw }
     }
@@ -72,9 +66,6 @@ const handler = async (m, { conn, text, args, usedPrefix, command }) => {
       return await conn.sendMessage(chatId, { text: `Debes responder a un mensaje o escribir algo para etiquetar al grupo.\n\nEjemplo: *${usedPrefix || '.'}${command || 'tag'} hola*` }, { quoted: m })
     }
 
-    // ── 2. Envío RÁPIDO: sin axios/fetch bloqueante, sin productMessage falso ──
-    // El await a postimg + el quoted productMessage era lo que colgaba el envío
-    // (si postimg tarda/falla, el tag tardaba minutos). Ahora se envía directo.
     try {
       if (conn.sendPresenceUpdate) await conn.sendPresenceUpdate('composing', chatId).catch(() => {})
     } catch {}

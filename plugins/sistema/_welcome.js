@@ -33,7 +33,6 @@ function extractUserId(rawUser) {
 
   if (!id || typeof id !== 'string') return null
 
-  // Normalizar JID: extraer número limpio sin sufijos de dispositivo (:1, :2)
   const cleanNum = id.split('@')[0].split(':')[0].replace(/[^0-9]/g, '')
   if (cleanNum) {
     return `${cleanNum}@s.whatsapp.net`
@@ -75,7 +74,6 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
   const desc = groupMetadata?.desc?.toString() || 'Sin descripción'
   const defaultWelcome = '¡Bienvenido/a a las sombras! Que tu estancia sea legendaria.'
 
-  // Detectar si el admin personalizó el mensaje (literal)
   const hasCustomWelcome = !!(chat?.sWelcome?.trim() || chat?.sBienvenida?.trim())
   const rawWelcome = hasCustomWelcome ? (chat.sWelcome || chat.sBienvenida) : defaultWelcome
 
@@ -91,11 +89,8 @@ export async function generarBienvenida({ conn, userId, groupMetadata, chat }) {
 
   let caption
   if (hasCustomWelcome) {
-    // MODO LITERAL: si el admin puso "hola xd", se queda SOLO con "hola xd"
-    // Solo se reemplazan variables, sin marco decorativo
     caption = mensaje
   } else {
-    // MODO POR DEFECTO: marco decorativo cuando no hay personalización
     const formattedMensaje = mensaje.split('\n').join('\n> ')
     caption = `> ── ⚔️ *SHADOW GARDEN* ⚔️ ──
 > ​
@@ -162,7 +157,6 @@ export async function generarDespedida({ conn, userId, groupMetadata, chat }) {
 
   let caption
   if (hasCustomBye) {
-    // MODO LITERAL: "hola xd" se queda solo con "hola xd"
     caption = mensaje
   } else {
     const formattedMensaje = mensaje.split('\n').join('\n> ')
@@ -187,7 +181,6 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
   if (!m.messageStubType || !m.isGroup) return !0
 
   const chat = global.db?.data?.chats?.[m.chat]
-  // La bienvenida está activada por defecto si no se ha desactivado explícitamente
   if (chat && chat.welcome === false) return !0
 
   const primaryBot = chat?.primaryBot

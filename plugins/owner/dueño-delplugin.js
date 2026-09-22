@@ -1,9 +1,3 @@
-/*
-	* Create By Fede Uchiha 
-	* GitHub https://github.com/the-xyzz
-	* Whatsapp: https://whatsapp.com/channel/0029VbBG4i2GE56rSgXsqw2W
-	* Adaptado para plugins organizados en carpetas (owner/, ia/, menus/, ...)
-*/
 
 import fs from 'fs/promises';
 import fsSync from 'fs';
@@ -11,7 +5,6 @@ import path from 'path';
 
 const RAIZ = path.join(process.cwd(), 'plugins');
 
-// Busca un plugin por nombre de archivo en plugins/ y todas sus subcarpetas.
 function buscarPlugins(nombreArchivo, dir = RAIZ, base = '', out = []) {
     let entradas = [];
     try { entradas = fsSync.readdirSync(dir, { withFileTypes: true }) } catch { return out }

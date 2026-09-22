@@ -1,7 +1,6 @@
 let handler = async (m, { conn, command }) => {
   conn.suit = conn.suit ? conn.suit : {}
 
-  // Crear nueva sala de PVP
   if (command === 'pvp' || command === 'ppt') {
     let partnerId = null
     if (m.mentionedJid && m.mentionedJid.length > 0) partnerId = m.mentionedJid[0]
@@ -34,21 +33,16 @@ Responde con "aceptar" o "rechazar".`,
 handler.before = async function (m) {
   this.suit = this.suit ? this.suit : {}
 
-  // Normalizador de elección (corrige variantes y errores comunes)
   const normalizeChoice = (txt) => {
     if (!txt) return null
-    // quitar prefijos como . o ! y espacios extras
     let t = txt.trim().toLowerCase().replace(/^[^\wñ]+/, '').replace(/\s+/g, ' ')
-    // quitar acentos
     t = t.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    // mapas de sinónimos/errores y emojis
     const map = [
       { key: 'piedra', match: /\b(piedra|pierda|pierde|piedro|roca|piedrita|🪨|💎)\b/ },
       { key: 'papel',  match: /\b(papel|papeles|hoja|folio|cuartilla|📄|🧻)\b/ },
       { key: 'tijera', match: /\b(tijera|tijeras|tiseras|corte|✂️|✂)\b/ }
     ]
     for (const m of map) if (m.match.test(t)) return m.key
-    // también aceptar exactos
     if (['piedra', 'papel', 'tijera'].includes(t)) return t
     return null
   }
@@ -59,7 +53,6 @@ handler.before = async function (m) {
   let win = ''
   let tie = false
 
-  // Aceptar/Rechazar
   if (
     m.sender == room.p2 &&
     /^(aceptar|rechazar)$/i.test(m.text) &&
@@ -99,7 +92,6 @@ Responde con tu elección (variante o emoji también sirve).`
     if (!room.pilih2) this.sendMessage(room.p2, { text: opciones })
   }
 
-  // Elecciones (privados)
   if (m.sender == room.p && !room.pilih && !m.isGroup) {
     const choice = normalizeChoice(m.text)
     if (!choice) return m.reply('☽ No entendí tu elección. Usa Piedra, Papel o Tijera (también acepto variantes y emojis).')
@@ -115,7 +107,6 @@ Responde con tu elección (variante o emoji también sirve).`
     m.reply(`☽ Elegiste: ${choice.toUpperCase()}.`)
   }
 
-  // Resultado
   if (room.pilih && room.pilih2) {
     if (room.pilih === room.pilih2) tie = true
     else if (room.pilih === 'piedra' && room.pilih2 === 'tijera') win = room.p

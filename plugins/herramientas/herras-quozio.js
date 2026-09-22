@@ -26,7 +26,6 @@ handler.tags = ['tools'];
 handler.command = handler.help = ["quozio"];
 export default handler;
 
-// api
 async function createQuote(author, message) {
   const host = "https://quozio.com/";
   let path = "api/v1/quotes";

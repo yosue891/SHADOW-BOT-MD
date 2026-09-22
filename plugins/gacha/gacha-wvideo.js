@@ -1,18 +1,15 @@
 import { promises as fs } from 'fs';
 import fetch from 'node-fetch';
 
-// Función para cargar los personajes desde el JSON
 async function loadCharacters() {
     const data = await fs.readFile("./lib/characters.json", "utf-8");
     return JSON.parse(data);
 }
 
-// Aplanar la estructura de personajes
 function flattenCharacters(data) {
     return Object.values(data).flatMap(series => Array.isArray(series.characters) ? series.characters : []);
 }
 
-// Obtener el nombre de la serie/anime
 function getSeriesNameByCharacter(data, charId) {
     const seriesEntry = Object.entries(data).find(([, seriesData]) => 
         Array.isArray(seriesData.characters) && seriesData.characters.some(char => char.id === charId)
@@ -20,7 +17,6 @@ function getSeriesNameByCharacter(data, charId) {
     return seriesEntry?.[1]?.["name"] || "Desconocido";
 }
 
-// Formatear tiempo transcurrido
 function formatElapsed(milliseconds) {
     if (!milliseconds || milliseconds <= 0) {
         return '—';
@@ -42,7 +38,6 @@ function formatElapsed(milliseconds) {
     return timeString.join(" ");
 }
 
-// Buscar imágenes en APIs (Safebooru, Danbooru, etc.)
 async function buscarImagenDelirius(query) {
     const tag = String(query).trim().toLowerCase().replace(/\s+/g, '_');
     const apis = [
@@ -73,25 +68,20 @@ async function buscarImagenDelirius(query) {
 }
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
-    // --- SECCIÓN DE VERIFICACIÓN ELIMINADA ---
 
     try {
-        // Verificar si el grupo tiene activado el modo gacha
         if (!global.db.data.chats?.[m.chat]?.["gacha"] && m.isGroup) {
             return m.reply(`ꕥ Los comandos de *Gacha* están desactivados en este grupo.\n\nUn *administrador* puede activarlos con el comando:\n» *${usedPrefix}gacha on*`);
         }
 
-        // Verificar si se ingresó un nombre
         if (!args.length) {
             return m.reply(`❀ Por favor, proporciona el nombre de un personaje.\n> Ejemplo » *${usedPrefix + command} Yuki Suou*`);
         }
 
-        // Cargar y buscar personaje
         const allCharactersData = await loadCharacters();
         const flatChars = flattenCharacters(allCharactersData);
         const searchQuery = args.join(" ").toLowerCase().trim();
 
-        // Lógica de búsqueda (Exacta -> Incluye -> Tags)
         const character = flatChars.find(c => String(c.name).toLowerCase() === searchQuery) ||
                           flatChars.find(c => String(c.name).toLowerCase().includes(searchQuery) || (Array.isArray(c.tags) && c.tags.some(t => t.toLowerCase().includes(searchQuery)))) ||
                           flatChars.find(c => searchQuery.split(" ").some(q => String(c.name).toLowerCase().includes(q) || (Array.isArray(c.tags) && c.tags.some(t => t.toLowerCase().includes(q)))));
@@ -116,7 +106,6 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
                 const seriesName = getSeriesNameByCharacter(allCharactersData, character.id);
                 
-                // Buscar dueño actual
                 const ownerEntry = Object.entries(dbData.users).find(([, userData]) => Array.isArray(userData.characters) && userData.characters.includes(character.id));
                 
                 let ownerName = "desconocido";
@@ -130,7 +119,6 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
                 
                 const lastVote = typeof charData.lastVotedAt === "number" ? `hace *${formatElapsed(Date.now() - charData.lastVotedAt)}*` : "*Nunca*";
                 
-                // Calcular ranking
                 const sortedChars = Object.values(dbData.characters).filter(c => typeof c.value === "number").sort((a, b) => b.value - a.value);
                 const rank = sortedChars.findIndex(c => c.name === character.name) + 1 || '—';
 

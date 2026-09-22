@@ -1,7 +1,7 @@
 let handler = async (m, { conn, usedPrefix, command, isROwner }) => {
   if (!isROwner) return
   try {
-    await m.react('🎭') // reacción teatral inicial
+    await m.react('🎭')
     m.reply(`🌌 *Discípulo de las Sombras* 🎄\nEl ritual de reinicio ha comenzado...\n○ Invocando a *${global.botname}* જ⁀➴\n> ► Espera mientras el *Socket* renace en las sombras.`)
     await m.react('✔️')
     setTimeout(() => {

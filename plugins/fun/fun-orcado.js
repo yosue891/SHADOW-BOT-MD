@@ -1,7 +1,5 @@
-// 👻 Juego del Ahorcado Shadow Garden + Navidad echo por yosue uwu osea shadow 👻
-let partidas = {} // almacena partidas activas por chat
+let partidas = {}
 
-// Dibujos del ahorcado paso a paso
 const ahorcadoStages = [
   `
   
@@ -67,7 +65,6 @@ let handler = async (m, { command, text }) => {
   const chatId = m.chat
   const jugador = m.pushName || m.sender
 
-  // Palabras fijas estilo Shadow Garden + Navidad
   const palabras = [
     "shadow", "garden", "eminence", "alpha", "beta", "gamma",
     "delta", "epsilon", "zeta", "navidad", "regalo", "nieve",

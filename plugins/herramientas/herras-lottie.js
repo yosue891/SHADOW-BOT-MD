@@ -24,7 +24,6 @@ const handler = async (m, { conn }) => {
   await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
 }
 
-// 🔥 IMPORTANTE (esto arregla tu error)
 handler.command = ['lottie']
 
 export default handler

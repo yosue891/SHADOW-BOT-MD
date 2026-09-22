@@ -10,15 +10,13 @@ let handlerUnreg = async (m, { conn }) => {
   user.name = ''
   user.age = 0
 
-  // Mensaje dramático
   await conn.sendMessage(m.chat, {
     text: `『💀』 El sello ha sido roto...\n\n🌑 La sombra se disuelve en la oscuridad.`
   }, { quoted: m })
 
-  // Documento visual estilo pacto roto
   await conn.sendMessage(m.chat, {
-    document: { url: 'https://files.catbox.moe/4vjomv.jpg' }, // 👈 tu imagen como documento
-    mimetype: 'application/pdf', // 👈 forzado para que se muestre como documento
+    document: { url: 'https://files.catbox.moe/4vjomv.jpg' },
+    mimetype: 'application/pdf',
     fileName: '☽ Pacto Roto de Shadow ☽',
     caption: '『📜』 Documento sellado ha sido destruido...'
   }, { quoted: m })

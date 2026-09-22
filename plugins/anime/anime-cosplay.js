@@ -1,7 +1,7 @@
 let handler = async (m, { conn, usedPrefix}) => {
   try {
     const apiKey = 'yVQTbMhSEqbcGv7q5Z8AfeQL7kbmT45mH7RjYh0hPz7WGnusXpLsn2AZ';
-    const total = 20; // cantidad de resultados para elegir aleatoriamente
+    const total = 20;
     const res = await fetch(`https://api.pexels.com/v1/search?query=cosplay&per_page=${total}`, {
       headers: { Authorization: apiKey}
 });

@@ -25,7 +25,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     for (let i = 0; i < count; i++) {
       await conn.sendMessage(groupId, { text: message });
-      await delay(1000); // espera 1 segundo entre cada mensaje
+      await delay(1000);
     }
 
     m.reply(`✅ Spam completado. Saliendo del grupo...`);

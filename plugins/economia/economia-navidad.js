@@ -8,7 +8,7 @@ var handler = async (m, { conn }) => {
     const currentYear = currentDate.getFullYear();
     const isDecember = currentDate.getMonth() === 11; 
 
-    const cooldown = 365 * 24 * 60 * 60 * 1000; // 1 año en milisegundos
+    const cooldown = 365 * 24 * 60 * 60 * 1000;
     let timeRemaining = user.christmas + cooldown - currentDate.getTime();
 
     if (!isDecember) {
@@ -19,7 +19,6 @@ var handler = async (m, { conn }) => {
         return m.reply(`🎅 Ya reclamaste tu regalo navideño este año. Vuelve en:\n *${msToTime(timeRemaining)}*`);
     }
 
-    // Solo pesos como recompensa
     let coinReward = pickRandom([5000, 10000, 15000, 20000]);
 
     user.coin = (user.coin || 0) + coinReward;

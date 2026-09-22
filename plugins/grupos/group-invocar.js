@@ -19,9 +19,6 @@ let handler = async (m, { conn, text }) => {
     const participants = metadata.participants
     const mentionIds = participants.map(p => p.id)
 
-    // `text` ya viene SIN el comando desde src/handler.js.
-    // Antes se hacía split+slice(1) y se perdía la primera palabra
-    // (.tagall hola → enviaba vacío). Ahora se usa directo.
     const extraMsg = (text || '').trim()
 
     let caption = 

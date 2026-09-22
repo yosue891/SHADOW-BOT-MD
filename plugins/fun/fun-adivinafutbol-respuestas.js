@@ -1,7 +1,3 @@
-/* Respuestas de fútbol escritas en el grupo, sin prefijo ni cita.
- * before se ejecuta antes de que src/handler.js descarte mensajes sin prefijo.
- * No registrar a/b/c/d como comandos: .c y .d son de gacha y economía.
- */
 import { partidas, responder, textoDeRespuesta } from './fun-adivinafutbol.js'
 
 const handler = async () => {}

@@ -20,7 +20,6 @@ let handler = async (m, { conn, participants, groupMetadata, text, args, usedPre
     }
     
     if (m.isGroup) {
-        // Imagen eliminada: i.ibb.co/3NfYh9k/default-avatar.png ya no existe (404).
         let mentions = [who];
         await conn.sendMessage(m.chat, { text: str, mentions }, { quoted: m });
     }

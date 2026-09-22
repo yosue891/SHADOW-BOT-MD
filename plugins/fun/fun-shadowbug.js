@@ -1,16 +1,15 @@
 import { generateWAMessageFromContent, prepareWAMessageMedia } from '@whiskeysockets/baileys'
 
 let handler = async (m, { conn }) => {
-  const bannerUrl = 'https://files.catbox.moe/xytfun.jpg' // imagen grande arriba
-  const miniaturaUrl = 'https://files.catbox.moe/your_red_icon.jpg' // ícono rojo pequeño
-  const documentoUrl = 'https://files.catbox.moe/xytfun.jpg' // 👈 pacto shadow intacto actualizado
+  const bannerUrl = 'https://files.catbox.moe/xytfun.jpg'
+  const miniaturaUrl = 'https://files.catbox.moe/your_red_icon.jpg'
+  const documentoUrl = 'https://files.catbox.moe/xytfun.jpg'
 
   const media = await prepareWAMessageMedia({ image: { url: bannerUrl } }, { upload: conn.waUploadToServer })
   const thumb = (await conn.getFile(miniaturaUrl)).data
 
   const cargaTexto = "i ᡃ⃝ᡃ⃝ᡃ⃝...".repeat(5000)
 
-  // 1) Panel interactivo con frases shadow
   const content = {
     viewOnceMessage: {
       message: {
@@ -60,9 +59,8 @@ let handler = async (m, { conn }) => {
   const msg = generateWAMessageFromContent(m.chat, content, { userJid: m.sender })
   await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
 
-  // 2) Documento visual del pacto Shadow intacto
   await conn.sendMessage(m.chat, {
-    document: { url: documentoUrl }, // 👈 nueva URL
+    document: { url: documentoUrl },
     fileName: '☽ Shadow ☽',
     mimetype: 'application/pdf',
     caption: "『📜』 SHADOW-BOT-MD...\nPOWERED BY SHADOWBUG",
@@ -72,7 +70,7 @@ let handler = async (m, { conn }) => {
 
 handler.help = ['shadowbug']
 handler.tags = ['fun']
-handler.command = ['shadowbug'] // 👈 comando shadowbug
+handler.command = ['shadowbug']
 handler.register = true
 
 export default handler

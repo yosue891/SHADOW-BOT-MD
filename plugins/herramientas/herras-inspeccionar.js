@@ -33,7 +33,6 @@ let handler = async (m, { conn, command, args, text }) => {
         console.log(e)
     }
 
-    // Helper para construir y enviar el mensaje interactivo
     const buildInteractive = async ({ title, caption, footer, imageUrl, buttons }) => {
         const { imageMessage } = await generateWAMessageContent(
             { image: { url: imageUrl || icons } },
@@ -64,9 +63,6 @@ let handler = async (m, { conn, command, args, text }) => {
         await conn.relayMessage(m.chat, interactive.message, { messageId: interactive.key.id })
     }
 
-    // ============================================================
-    // COMANDO: idgp / gp  →  ID del grupo actual
-    // ============================================================
     if (isGetGroupIdCommand) {
         if (!m.isGroup) {
             return conn.reply(m.chat, '*ⓘ Este comando solo funciona en grupos.*', m);
@@ -106,16 +102,12 @@ let handler = async (m, { conn, command, args, text }) => {
         return;
     }
 
-    // ============================================================
-    // COMANDO: inspect / inspeccionar / inspector / id
-    // ============================================================
     if (isInspectCommand) {
         if (!text) {
             return conn.reply(m.chat, '`ⓘ Ingrese un enlace de grupo/comunidad o canal.`', m)
         }
 
         try {
-            // -------------------- GRUPO / COMUNIDAD --------------------
             const inviteUrl = text?.match(/(?:https:\/\/)?(?:www\.)?(?:chat\.|wa\.)?whatsapp\.com\/(?:invite\/|joinchat\/)?([0-9A-Za-z]{22,24})/i)?.[1]
 
             if (inviteUrl) {
@@ -170,7 +162,6 @@ let handler = async (m, { conn, command, args, text }) => {
                 }
             }
 
-            // -------------------- CANAL --------------------
             if (channelUrl) {
                 try {
                     const newsletterInfo = await conn.newsletterMetadata("invite", channelUrl).catch(() => null)
@@ -182,7 +173,6 @@ let handler = async (m, { conn, command, args, text }) => {
                     const channelID = newsletterInfo.id || 'ID no encontrado'
                     const fullLink = text || `https://whatsapp.com/channel/${channelUrl}`
 
-                    // Imagen del canal de forma segura
                     let channelPP = icons
                     if (newsletterInfo?.picture?.url) channelPP = newsletterInfo.picture.url
 
@@ -222,7 +212,6 @@ let handler = async (m, { conn, command, args, text }) => {
                 return
             }
 
-            // -------------------- LINK NO VÁLIDO --------------------
             return conn.reply(m.chat, `*Verifique que sea un enlace válido de grupo, comunidad o canal de WhatsApp.*`, m)
 
         } catch (e) {

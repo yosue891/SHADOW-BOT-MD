@@ -37,6 +37,5 @@ handler.help = ['search']
 handler.tags = ['search']
 handler.command = ['search', 'google']
 handler.group = true
-//handler.coin = 15
 
 export default handler

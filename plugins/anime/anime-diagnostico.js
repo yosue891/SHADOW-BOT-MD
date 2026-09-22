@@ -1,18 +1,5 @@
 import { diagnosticar, reaccionesDisponibles } from '../../lib/anime-media.js'
 
-/**
- * Diagnóstico de los GIFs de anime.
- *
- * Comprueba desde TU servidor (no desde otro lado) si el bot puede:
- *   • usar fetch (Node 18+ o node-fetch)
- *   • ejecutar ffmpeg para convertir GIF → MP4
- *   • conectarse a cada API de reacciones anime
- *
- * Uso:
- *   .animediag            → prueba las 8 acciones de los comandos reparados
- *   .animediag todo       → prueba todas las acciones soportadas
- *   .animediag kill       → prueba una acción concreta
- */
 const handler = async (m, { conn, args, usedPrefix, command }) => {
   const opcion = (args[0] || '').toLowerCase()
   let acciones = ['kill', 'sip', 'cuddle', 'bite', 'peek', 'lappillow', 'stare', 'pat', 'yawn']

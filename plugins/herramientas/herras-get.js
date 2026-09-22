@@ -7,22 +7,19 @@ let handler = async (m, { conn, usedPrefix, text }) => {
     return m.reply(`❄️✨ *Discípulo de las Sombras*, entrega la *URL* para invocar su contenido.`)
 
   let url = text
-  await m.react('🎭') // reacción teatral
+  await m.react('🎭')
 
   try {
     let res = await fetch(url)
 
-    // Protección contra archivos gigantes
     if (res.headers.get('content-length') > 100 * 1024 * 1024 * 1024) {
       throw `📦 El archivo es demasiado grande (${res.headers.get('content-length')})`
     }
 
-    // Si no es texto/JSON, lo manda como archivo
     if (!/text|json/.test(res.headers.get('content-type'))) {
       return conn.sendFile(m.chat, url, 'shadow_file', `🎄 *Archivo invocado desde las Sombras*`, m)
     }
 
-    // Procesa contenido
     let txt = await res.buffer()
     try {
       txt = format(JSON.parse(txt + ''))

@@ -21,7 +21,6 @@ let handler = async (m, { conn, text, usedPrefix }) => {
   let width = parseInt(input[0])
   let height = parseInt(input[1])
 
-  // Identificar correctamente si es un mensaje citado o el directo
   let q = m.quoted ? m.quoted : m
   let mime = (q.msg || q).mimetype || ''
 
@@ -30,7 +29,6 @@ let handler = async (m, { conn, text, usedPrefix }) => {
   }
 
   try {
-    // DESCARGA CORRECTA USANDO EL MÉTODO NATIVO DE BAILEYS
     let media = await downloadMediaMessage(
       q,
       'buffer',

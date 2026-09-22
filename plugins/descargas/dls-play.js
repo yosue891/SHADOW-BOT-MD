@@ -1,13 +1,3 @@
-/**
- * SHADOW-BOT-MD — PLAY híbrido
- * Basado en ourinv3/plugins/search/play.js (botones) 
- * + API audio de Shadow-BOT-MD (gohan) + API video de ourin (firefly maiku)
- * 
- * - Búsqueda con yt-search
- * - Muestra botones MP3 / MP4 (ourin style)
- * - Descarga audio con https://api-gohan-v1.onrender.com (Shadow)
- * - Descarga video con https://firefly.maiku.my.id (ourin - OurinNextGen)
- */
 
 import yts from "yt-search"
 import axios from "axios"
@@ -15,10 +5,9 @@ import fetch from "node-fetch"
 import sharp from "sharp"
 import { generateWAMessageFromContent } from "@whiskeysockets/baileys"
 
-// ===== APIs =====
 const SHADOW_AUDIO_API = "https://api-gohan-v1.onrender.com/download/ytaudio?url="
 const OURIN_VIDEO_API = "https://firefly.maiku.my.id/api/ytdown"
-const FIREFLY_KEY = "OurinNextGen" // de ourinv3/config.js APIkey.firefly
+const FIREFLY_KEY = "OurinNextGen"
 
 function cleanName(name) {
   const cleaned = String(name || "audio").replace(/[^\w\s._-]/gi, "").trim()
@@ -39,9 +28,7 @@ function isYouTubeUrl(url) {
   return /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test(url)
 }
 
-// ===== DESCARGAS =====
 
-// Audio con API de Shadow (gohan)
 async function getShadowAudio(url) {
   const apiUrl = `${SHADOW_AUDIO_API}${encodeURIComponent(url)}`
   const r = await fetch(apiUrl)
@@ -57,7 +44,6 @@ async function getShadowAudio(url) {
   }
 }
 
-// Video con API de Ourin (firefly)
 async function getOurinVideo(url) {
   const { data } = await axios.get(OURIN_VIDEO_API, {
     params: { apikey: FIREFLY_KEY, url },
@@ -89,7 +75,6 @@ async function getOurinVideo(url) {
     }
   }
 
-  // Fallback a Shadow si firefly falla (opcional)
   try {
     const fallbackUrl = `https://api-gohan-v1.onrender.com/download/ytvideo?url=${encodeURIComponent(url)}`
     const fr = await fetch(fallbackUrl)
@@ -131,19 +116,14 @@ async function sendVideoDownload(conn, m, url) {
   return title
 }
 
-// ===== HANDLER PRINCIPAL =====
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
   try {
-    // texto real: `text` es args después de .play, `m.text` es mensaje completo
     const textParam = (text || "").trim()
     const fullText = (m.text || "").trim()
 
-    // --- Detectar click de botón: "mp3 <url>" o "mp4 <url>" ---
-    // El botón envía ".play mp3 https://youtu.be/..." → textParam = "mp3 https://..."
     let btnMatch = textParam.match(/^(mp3|mp4)\s+(https?:\/\/\S+)/i)
     if (!btnMatch) {
-      // fallback: quitar prefijo+comando de fullText
       const withoutPrefix = fullText.replace(new RegExp(`^${usedPrefix || "\\."}${command}\\s*`, "i"), "").trim()
       btnMatch = withoutPrefix.match(/^(mp3|mp4)\s+(https?:\/\/\S+)/i)
     }
@@ -177,7 +157,6 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       return
     }
 
-    // --- Sin botón: es búsqueda ---
     const query = textParam || fullText.replace(new RegExp(`^${usedPrefix || "\\."}${command}\\s*`, "i"), "").trim()
     if (!query) {
       return m.reply(
@@ -193,9 +172,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 
     await m.react("🔎")
 
-    // Si es URL directa, igual buscamos para obtener info y mostrar botones
     let searchQuery = query
-    // yt-search soporta URL, pero para info usamos yts
     const search = await yts(searchQuery)
     if (!search?.videos?.length) {
       await m.react("❌")
@@ -211,7 +188,6 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     const url = video.url
     const thumbnailUrl = video.thumbnail
 
-    // Info texto estilo ourin
     let info = `🔎 *RESULTADO SHADOW x OURIN*\n\n`
     info += `📌 *Título:* ${title}\n\n`
     info += `*DETALLES*\n`
@@ -229,7 +205,6 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     info += `🎵 *MP3* → Audio (Shadow API)\n`
     info += `🎬 *MP4* → Video (Ourin API)`
 
-    // Thumbnail para locationMessage
     let jpegThumbnail
     try {
       if (thumbnailUrl) {
@@ -245,7 +220,6 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 
     const prefix = usedPrefix || "."
 
-    // Contenido con botones (estilo ourin original con buttonsMessage + locationMessage)
     const buttonsContent = {
       buttonsMessage: {
         buttons: [
@@ -263,7 +237,6 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
         contentText: info,
         footerText: "🍅 Shadow x Ourin — Selecciona formato",
         headerType: 6,
-        // locationMessage como header visual (ourin)
         ...(jpegThumbnail
           ? {
               locationMessage: {
@@ -274,8 +247,6 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       },
     }
 
-    // Algunos clientes no soportan locationMessage sin name, alternativa con header
-    // Si no hay thumbnail, usamos contentText solo
     try {
       const msg = generateWAMessageFromContent(
         m.chat,
@@ -284,7 +255,6 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       )
       await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
     } catch (e) {
-      // Fallback: si buttonsMessage falla, enviar con image + botones nativos
       console.warn("[PLAY] buttonsMessage falló, fallback a image+buttons:", e.message)
       try {
         const thumb = jpegThumbnail || Buffer.from(await (await fetch("https://i.ibb.co/83pbxQN/5eecaebbc7c3.jpg")).arrayBuffer())
@@ -303,7 +273,6 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
           { quoted: m }
         )
       } catch (e2) {
-        // Último fallback: solo texto con instrucciones manuales
         await conn.sendMessage(m.chat, { text: info + `\n\n*Responde con:*\n• \`${prefix}play mp3 ${url}\` para audio\n• \`${prefix}play mp4 ${url}\` para video` }, { quoted: m })
       }
     }

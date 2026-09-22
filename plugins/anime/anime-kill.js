@@ -5,7 +5,7 @@ let handler = async (m, { conn, participants, groupMetadata, text, args, usedPre
   const hayMencion = hasMention || via === 'mention' || via === 'text';
   const name = await nombreSeguro(conn, who);
   const name2 = await nombreSeguro(conn, m.sender);
-  await m.react('🗡️'); // Solo la espada
+  await m.react('🗡️');
 
   let str = hayMencion
     ? `\`${name2}\` *mató a* \`${name}\` 💫.`
@@ -15,11 +15,9 @@ let handler = async (m, { conn, participants, groupMetadata, text, args, usedPre
 
     if (m.isGroup) {
         try {
-            // GIF aleatorio desde APIs de anime (con respaldo entre proveedores)
             await enviarReaccionAnime(conn, m, { reaccion: 'kill', caption: str, mentions: [who] });
         } catch (e) {
             console.error('[anime-kill] no se pudo enviar el GIF:', e.message)
-            // Si todas las APIs fallan, el comando responde igual con texto
             await conn.sendMessage(m.chat, { text: str, mentions: [who] }, { quoted: m });
         }
     }

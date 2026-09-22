@@ -1,7 +1,6 @@
 import { performance} from 'perf_hooks';
 
 const handler = async (m, { conn, text}) => {
-  // Detectar objetivo: por mención, respuesta o texto
   let target;
   if (m.mentionedJid && m.mentionedJid.length) {
     target = m.mentionedJid[0];

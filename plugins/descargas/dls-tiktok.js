@@ -32,7 +32,6 @@ var handler = async (m, { conn, args, usedPrefix, command }) => {
     const videoURL = tiktokData.data.play
     const shadowInfo = `📜 Fragmento extraído:\n> ${tiktokData.data.title || 'Sin título'}`
 
-    // Header tipo WhatsApp Business (miniatura + descripción debajo)
     const businessHeader = {
       key: { remoteJid: m.chat, participant: '0@s.whatsapp.net', fromMe: false, id: 'ShadowHeader' },
       message: {

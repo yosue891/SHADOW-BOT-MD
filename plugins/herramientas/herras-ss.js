@@ -3,12 +3,10 @@ import fetch from 'node-fetch'
 let handler = async (m, { conn, command, args, usedPrefix }) => {
   if (!args[0]) return conn.reply(m.chat, `❄️✨ *Discípulo de las Sombras*, entrega el *link* de la página para invocar su reflejo.`, m)
   try {
-    await m.react('🎭') // reacción teatral
+    await m.react('🎭')
 
-    // Captura de pantalla completa con Thum.io
     let ss = await (await fetch(`https://image.thum.io/get/fullpage/${args[0]}`)).buffer()
 
-    // Envía la imagen con estilo Shadow Garden navideño
     await conn.sendFile(
       m.chat,
       ss,

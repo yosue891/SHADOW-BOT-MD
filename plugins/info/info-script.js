@@ -19,14 +19,13 @@ let handler = async (m, { conn }) => {
     txt += `『☽』 *En las sombras, el poder se oculta tras la calma...*\n\n`
     txt += `👑  *Creador*: Yosue`
 
-    // 🔥 Imagen pequeña estilo WhatsApp Business
     const thumbBuffer = await (await fetch('https://i.postimg.cc/rFfVL8Ps/image.jpg')).buffer()
 
     const fkontak = {
       key: { participants: '0@s.whatsapp.net', fromMe: false, id: 'ShadowScript' },
       message: {
         locationMessage: {
-          name: '📜 script', // ← Texto que pediste
+          name: '📜 script',
           jpegThumbnail: thumbBuffer,
           vcard:
             'BEGIN:VCARD\n' +
@@ -45,7 +44,6 @@ let handler = async (m, { conn }) => {
       participant: '0@s.whatsapp.net'
     }
 
-    // 🔥 Imagen grande del header del menú
     const media = await generateWAMessageContent(
       { image: { url: 'https://files.catbox.moe/owpjte.jpg' } },
       { upload: conn.waUploadToServer }

@@ -56,7 +56,7 @@ const handler = async (m, { conn, command, text, isAdmin }) => {
 
   if (command === 'mute') {
     if (userData.mute === true) return conn.reply(m.chat, '🚩 *Este discípulo ya ha sido silenciado por las Sombras*', m);
-    global.db.data.users[user].mute = true; // 🔑 Guardar como booleano exacto
+    global.db.data.users[user].mute = true;
     return conn.reply(m.chat, '❄️ *Tus mensajes serán consumidos por la oscuridad* 🕯️', fkontak, null, { mentions: [user] });
   }
 
@@ -64,12 +64,11 @@ const handler = async (m, { conn, command, text, isAdmin }) => {
     if (userData.mute !== true) return conn.reply(m.chat, '🚩 *Este discípulo no está bajo el silencio sombrío*', m);
     if (user === m.sender) return conn.reply(m.chat, '🚩 *Sólo otro administrador puede liberarte del silencio sombrío*', m);
 
-    global.db.data.users[user].mute = false; // uwu
+    global.db.data.users[user].mute = false;
     return conn.reply(m.chat, '🎁 *Tus mensajes volverán a brillar bajo las luces navideñas* ✨', fkontak, null, { mentions: [user] });
   }
 };
 
-// uwu
 handler.before = async function (m, { conn }) {
   if (!m.isGroup) return;
   const sender = m.sender;

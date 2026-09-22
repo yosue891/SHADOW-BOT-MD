@@ -1,11 +1,9 @@
-// 💫 Sopa de Letras Shadow Garden + Navidad
-let juegos = {} // almacena partidas activas por chat
+let juegos = {}
 
 function generarSopaDeLetras(palabras) {
   const size = 12
   let grid = Array.from({ length: size }, () => Array(size).fill(' '))
   
-  // Insertar palabras horizontalmente (simplificado)
   palabras.forEach((p, idx) => {
     if (idx < size) {
       for (let i = 0; i < p.length && i < size; i++) {
@@ -14,7 +12,6 @@ function generarSopaDeLetras(palabras) {
     }
   })
   
-  // Rellenar espacios vacíos con letras aleatorias
   const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
   for (let r = 0; r < size; r++) {
     for (let c = 0; c < size; c++) {
@@ -31,7 +28,6 @@ let handler = async (m, { command, text }) => {
   const chatId = m.chat
   const jugador = m.pushName || m.sender
 
-  // Palabras fijas estilo Shadow Garden + Navidad
   const palabras = [
     "shadow", "garden", "eminence", "alpha", "beta", "gamma",
     "delta", "epsilon", "zeta", "navidad", "regalo", "nieve",
@@ -54,21 +50,18 @@ ${sopa}
 ✨ Busca las palabras antes de que las sombras festivas consuman la Navidad...`
     )
 
-    // Advertencia a los 5 minutos
     setTimeout(() => {
       if (juegos[chatId]) {
         m.reply(`⚠️ ${juegos[chatId].jugador}, han pasado 5 minutos... las sombras festivas se acercan 🎄🌑`)
       }
     }, 5 * 60 * 1000)
 
-    // Advertencia a los 9 minutos
     setTimeout(() => {
       if (juegos[chatId]) {
         m.reply(`⏳ ${juegos[chatId].jugador}, solo queda 1 minuto... ¡apresúrate antes de que la Navidad se pierda en las sombras! ❄️`)
       }
     }, 9 * 60 * 1000)
 
-    // Fin del tiempo a los 10 minutos
     setTimeout(() => {
       if (juegos[chatId]) {
         m.reply(`❌ Tiempo agotado, ${juegos[chatId].jugador}... las sombras han sellado tu destino 🎭🌑`)
@@ -77,7 +70,6 @@ ${sopa}
     }, 10 * 60 * 1000)
   }
 
-  // Resolver partida
   if (command === 'resolver') {
     if (!juegos[chatId]) return m.reply("⚠️ No hay ninguna sopa activa en este chat.")
     if (!text) return m.reply("🧩 Ingresa las palabras que encontraste separadas por comas.")

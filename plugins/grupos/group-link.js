@@ -1,8 +1,3 @@
-/*
-	* Create By Fede Uchiha 
-	* GitHub https://github.com/the-xyzz
-	* Whatsapp: https://whatsapp.com/channel/0029VbBG4i2GE56rSgXsqw2W
-*/
 
 import { generateWAMessageContent, generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
 

@@ -10,7 +10,6 @@ function getCharacterById(id, db) {
 }
 
 let handler = async (m, { conn, usedPrefix, command }) => {
-  // 🔥 Se eliminó la verificación que mostraba el mensaje ❀
 
   const chatData = global.db.data.chats?.[m.chat] || {};
   if (!chatData.gacha && m.isGroup) {
@@ -21,7 +20,6 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     const userData = global.db.data.users[m.sender];
     const now = Date.now();
 
-    // Cooldown de reclamo
     if (userData.lastClaim && now < userData.lastClaim) {
       const wait = Math.ceil((userData.lastClaim - now) / 1000);
       const min = Math.floor(wait / 60);
@@ -51,7 +49,6 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     charData.value = typeof charData.value === 'number' ? charData.value : char.value || 0;
     charData.votes = charData.votes || 0;
 
-    // Protección temporal
     if (charData.reservedBy && charData.reservedBy !== m.sender && now < charData.reservedUntil) {
       let reservedName = await (async () => {
         try {
@@ -65,13 +62,11 @@ let handler = async (m, { conn, usedPrefix, command }) => {
       return m.reply("ꕥ Este personaje está protegido por *" + reservedName + "* durante *" + remaining + "s.*");
     }
 
-    // Expiración
     if (charData.expiresAt && now > charData.expiresAt && !charData.user && !(charData.reservedBy && now < charData.reservedUntil)) {
       const expired = ((now - charData.expiresAt) / 1000).toFixed(1);
       return m.reply("ꕥ El personaje ha expirado » " + expired + 's.');
     }
 
-    // Ya reclamado
     if (charData.user) {
       let claimedName = await (async () => {
         try {
@@ -84,12 +79,11 @@ let handler = async (m, { conn, usedPrefix, command }) => {
       return m.reply("ꕥ El personaje *" + charData.name + "* ya ha sido reclamado por *" + claimedName + '*');
     }
 
-    // Reclamar personaje
     charData.user = m.sender;
     charData.claimedAt = now;
     delete charData.reservedBy;
     delete charData.reservedUntil;
-    userData.lastClaim = now + 1800000; // 30 min cooldown
+    userData.lastClaim = now + 1800000;
 
     if (!Array.isArray(userData.characters)) userData.characters = [];
     if (!userData.characters.includes(charId)) userData.characters.push(charId);

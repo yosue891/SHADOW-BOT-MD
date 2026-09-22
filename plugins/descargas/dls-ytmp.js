@@ -107,7 +107,6 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
     let sent = await conn.sendMessage(m.chat, { text: msg }, { quoted: m })
 
     if (type === "mp4") {
-      // Video: API de Lempi
       const apiUrl = `https://api.lempi.lat/dl/ytv?url=${encodeURIComponent(url)}&quality=360&apikey=lem715`
       const response = await fetch(apiUrl)
       const data = await response.json()
@@ -134,7 +133,6 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
       return
     }
 
-    // Audio: sigue usando la API anterior (Lempi no nos dio endpoint de mp3 todavía)
     const apiUrl = `https://api-gohan-v1.onrender.com/download/ytaudio?url=${encodeURIComponent(url)}`
     const response = await fetch(apiUrl)
     const data = await response.json()

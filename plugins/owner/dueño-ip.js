@@ -5,7 +5,7 @@ let handler = async (m, { conn, usedPrefix, text }) => {
     return conn.reply(m.chat, `🌌 *Discípulo de las Sombras* 🎄\nDebes entregar una *IP* para invocar el oráculo.`, m)
   }
   try {
-    await m.react('🎭') // reacción teatral inicial
+    await m.react('🎭')
     const res = await axios.get(`http://ip-api.com/json/${text}?fields=status,message,country,countryCode,region,regionName,city,district,zip,lat,lon,timezone,isp,org,as,mobile,hosting,query`)
     const data = res.data
     if (String(data.status) !== "success") {

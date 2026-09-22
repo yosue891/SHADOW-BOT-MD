@@ -20,7 +20,6 @@ const handler = async (m, { conn, usedPrefix, text }) => {
       if (!zipName) zipName = `${repo}-${user}.zip`
       zipBuffer = await zipRes.buffer()
       repos.push(repoData)
-      // 🎄 Imagen temática navideña con estilo Shadow Garden
       image = 'https://raw.githubusercontent.com/The-King-Destroy/Adiciones/main/Contenido/shadow-christmas.jpg'
     } else {
       const res = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(text)}`)

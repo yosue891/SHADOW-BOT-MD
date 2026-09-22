@@ -46,7 +46,7 @@ let handler = async (m, { conn, participants, groupMetadata, text, args, usedPre
 
     const name = await nombreSeguro(conn, who);
     const name2 = await nombreSeguro(conn, m.sender);
-    m.react('☕'); // Reacción con emoji de café
+    m.react('☕');
 
     let str;
     if (hayMencion || via === 'quoted') {
@@ -56,9 +56,6 @@ let handler = async (m, { conn, participants, groupMetadata, text, args, usedPre
     }
 
     if (m.isGroup) {
-        // Se descarga en el bot y se manda el buffer (no la URL): así no
-        // depende de que los servidores de WhatsApp puedan descargar pone.rs.
-        // Se prueban los videos en orden aleatorio hasta que uno funcione.
         let enviado = false
         let ultimoError = null
         for (const url of mezclar(CAFE_VIDEOS)) {
@@ -67,7 +64,6 @@ let handler = async (m, { conn, participants, groupMetadata, text, args, usedPre
                 try {
                     await conn.sendMessage(m.chat, { video: buf, mimetype: 'video/mp4', gifPlayback: true, caption: str, mentions: [who] }, { quoted: m });
                 } catch (e) {
-                    // Si falla como GIF, reintento como video normal
                     console.warn('[anime-cafe] gifPlayback falló, reintento sin gifPlayback:', e.message)
                     await conn.sendMessage(m.chat, { video: buf, mimetype: 'video/mp4', caption: str, mentions: [who] }, { quoted: m });
                 }

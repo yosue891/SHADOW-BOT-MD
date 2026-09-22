@@ -1,33 +1,14 @@
-/* ============================================================
-   herras-zipcode.js  —  Shadow Bot MD
-   ------------------------------------------------------------
-   Responde a un mensaje que contenga código (o texto largo,
-   un documento, una imagen/video/audio) y el bot te devuelve
-   un archivo .ZIP listo para descargar.
-
-   Uso:
-     1. Responde (citar) al mensaje con el código y escribe:  >zip
-     2. O escribe el comando seguido del código en el mismo mensaje:
-        >zip script.py
-        print("hola")
-     3. Con nombre personalizado:   >zip nombre | <código citado>
-
-   Aliases: zip, zipcode, codezip, zipc, azip, tozip, zip-code
-   ============================================================ */
 
 import AdmZip from 'adm-zip'
 import { fileTypeFromBuffer } from 'file-type'
 
-/* ---------- utilidades ---------- */
 
 const clean = (s = '') => String(s).replace(/[^\w.\-+]+/g, '_').replace(/^_+|_+$/g, '')
 
 const kb = (n = 0) => (n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(2)} MB`)
 
-/** extensiones que se consideran "texto/código" al responder un documento */
 const TEXT_EXT = /\.(txt|js|mjs|cjs|jsx|ts|tsx|json|json5|py|php|html?|css|scss|sass|less|java|kt|c|h|cpp|hpp|cc|cs|go|rs|rb|sh|bash|zsh|bat|ps1|sql|yml|yaml|toml|ini|conf|cfg|env|xml|svg|md|markdown|csv|lua|pl|r|m|swift|dart|vue|svelte|ino)$/i
 
-/** mapa etiqueta del bloque ``` -> extensión de archivo */
 const LANG_EXT = {
   js: 'js', javascript: 'js', node: 'js', mjs: 'js', cjs: 'js', ts: 'ts', typescript: 'ts',
   jsx: 'jsx', tsx: 'tsx', json: 'json', json5: 'json5', py: 'py', python: 'py', python3: 'py',
@@ -54,12 +35,10 @@ export function extractCode(raw = '') {
     return { code, lang: tag || 'texto', ext: LANG_EXT[tag] || 'txt' }
   }
 
-  // sin bloque: quita las ``` sueltas que a veces deja WhatsApp
   const code = text.replace(/```[a-zA-Z0-9+#._-]*\s*/g, '').replace(/\s+$/, '')
   return { code, lang: 'texto', ext: 'txt' }
 }
 
-/** infiere extensión a partir del nombre de archivo de un documento citado */
 export function extFromName(name = '') {
   const m = /\.([a-z0-9]{1,8})$/i.exec(String(name).trim())
   if (!m) return null
@@ -69,7 +48,6 @@ export function extFromName(name = '') {
   return e.length <= 5 ? e : null
 }
 
-/* ---------- handler ---------- */
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
   const quoted = m.quoted || null
@@ -92,7 +70,6 @@ _Aliases: zip · zipcode · codezip · azip · tozip_`,
     )
   }
 
-  /* --- argumentos opcionales: "nombre | resto del texto" --- */
   let argText = text || ''
   let customName = ''
   let customExt = ''
@@ -101,7 +78,6 @@ _Aliases: zip · zipcode · codezip · azip · tozip_`,
     const rawName = clean(first)
     const dot = rawName.lastIndexOf('.')
     const maybeExt = dot > 0 ? rawName.slice(dot + 1) : ''
-    // si el "nombre" trae extensión reconocible, se respeta (bot.py -> bot + py)
     if (maybeExt && maybeExt.length <= 5 && (LANG_EXT[maybeExt.toLowerCase()] || extFromName(`x.${maybeExt}`))) {
       customName = rawName.slice(0, dot)
       customExt = maybeExt.toLowerCase()
@@ -118,17 +94,14 @@ _Aliases: zip · zipcode · codezip · azip · tozip_`,
   let isCode = false
 
   try {
-    /* 1) ¿hay un documento citado? (archivo enviado como documento) */
     const qDoc = quoted?.msg?.documentMessage
     const qDocName = qDoc?.fileName || quoted?.filename || ''
 
-    /* 2) ¿hay una media citada? (imagen / video / audio / sticker) */
     const qMime = quoted?.mimetype || quoted?.msg?.mimetype || ''
     const hasMedia = !!quoted && /^(image|video|audio|application\/ogg|sticker)/i.test(qMime) && !qDoc
 
     if (qDoc || hasMedia) {
       await m.react?.('🗜️')
-      // simple.js elimina quoted.download cuando no hay media (línea ~2281)
       if (typeof quoted.download !== 'function') throw new Error('no puedo descargar el mensaje citado (media expirada o no disponible)')
       buffer = await quoted.download()
 
@@ -146,8 +119,6 @@ _Aliases: zip · zipcode · codezip · azip · tozip_`,
       if (!buffer?.length) throw new Error('el archivo citado llegó vacío')
       buffer = zipEntries([{ name: qDocName || `archivo.${fileExt}`, data: buffer }])
     } else {
-      /* 3) texto: el del mensaje citado o el escrito junto al comando */
-      // en Baileys: quoted.text (conversation/extendedText), quoted.caption (imagen/video)
       let raw = quoted?.text || quoted?.caption || quoted?.msg?.text || ''
       if (argText.trim()) raw = raw ? `${raw}\n${argText}` : argText
 
@@ -172,12 +143,10 @@ _Aliases: zip · zipcode · codezip · azip · tozip_`,
         )
       }
 
-      // ¿el usuario indicó un nombre con extensión? ej: "zip script.py"
       const named = argText.trim().split(/\s+/)[0] || ''
       const namedExt = extFromName(named)
       const baseName = namedExt ? named.split('.').slice(0, -1).join('.') : named
 
-      // 1º extensión dada por el usuario, 2º la del bloque ```lang, 3º .txt
       fileExt = customExt || (parsed.ext !== 'txt' ? parsed.ext : null) || namedExt || fileExt
 
       const base = clean(customName || baseName || 'codigo')
@@ -190,7 +159,6 @@ _Aliases: zip · zipcode · codezip · azip · tozip_`,
       info = `📝 \`${entryName}\` · ${lines} líneas · ${kb(Buffer.byteLength(code))}`
     }
 
-    /* --- entrega --- */
     await conn.sendFile(m.chat, buffer, fileName, `🗜️ *Listo*\n\n${info}\n📦 ${kb(buffer.length)} comprimido`, m, false, {
       mimetype: 'application/zip',
       asDocument: true,
@@ -203,7 +171,6 @@ _Aliases: zip · zipcode · codezip · azip · tozip_`,
   }
 }
 
-/** arma el .zip en memoria y devuelve el Buffer */
 function zipEntries(entries) {
   const zip = new AdmZip()
   for (const e of entries) zip.addFile(e.name, Buffer.isBuffer(e.data) ? e.data : Buffer.from(String(e.data), 'utf8'))

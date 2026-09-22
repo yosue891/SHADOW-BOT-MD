@@ -3,7 +3,6 @@ import path from 'path'
 
 const RAIZ = path.join(process.cwd(), 'plugins')
 
-// Lista todos los plugins de plugins/ y sus subcarpetas (categorías).
 function listarPlugins(dir = RAIZ, base = '', out = []) {
     let entradas = []
     try { entradas = fs.readdirSync(dir, { withFileTypes: true }) } catch { return out }

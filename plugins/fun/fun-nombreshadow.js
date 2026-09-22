@@ -7,7 +7,6 @@ function handler(m, { conn, text }) {
 
   let teks = text ? text : m.quoted && m.quoted.text ? m.quoted.text : m.text
 
-  // Diccionario Shadow Garden estilo ninja + navidad
   const diccionario = {
     'a': 'ka',
     'b': 'tsu',

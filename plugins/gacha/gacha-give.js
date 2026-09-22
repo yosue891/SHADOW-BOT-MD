@@ -16,12 +16,10 @@ let handler = async (m, { conn, args, usedPrefix }) => {
       return m.reply("❀ Debes mencionar o citar el mensaje del destinatario.");
     }
 
-    // Nombre del personaje
     const charName = m.quoted
       ? args.join(" ").toLowerCase().trim()
       : args.slice(0, -1).join(" ").toLowerCase().trim();
 
-    // Buscar personaje reclamado por el remitente
     const charId = Object.keys(global.db.data.characters).find(id => {
       const c = global.db.data.characters[id];
       return typeof c.name === "string" && c.name.toLowerCase() === charName && c.user === m.sender;
@@ -42,14 +40,12 @@ let handler = async (m, { conn, args, usedPrefix }) => {
     }
     if (!Array.isArray(targetUser.characters)) targetUser.characters = [];
 
-    // Transferencia
     if (!targetUser.characters.includes(charId)) {
       targetUser.characters.push(charId);
     }
     senderUser.characters = senderUser.characters.filter(id => id !== charId);
     char.user = target;
 
-    // Limpiar favoritos/ventas
     if (senderUser.sales?.[charId]?.user === m.sender) delete senderUser.sales[charId];
     if (senderUser.favorite === charId) delete senderUser.favorite;
     if (global.db.data.users[m.sender]?.favorite === charId) delete global.db.data.users[m.sender].favorite;

@@ -7,7 +7,7 @@ const handler = async (m, { conn, isROwner, text}) => {
   if (!pesan) throw '⚠️ Te faltó el texto para enviar';
 
   for (const id of groups) {
-    await delay(500); // Evita spam masivo
+    await delay(500);
     await conn.sendMessage(id, { text: `🌌 MENSAJE AUTOMÁTICO 🌌\n\n${pesan}`}, { quoted: m}).catch(() => {});
 }
 

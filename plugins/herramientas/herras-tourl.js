@@ -1,5 +1,3 @@
-// Tourl de Ourin (ourinv3) adaptado al sistema de plugins de Shadow-BOT-MD.
-// Sube el media respondido a TODOS los hosts y devuelve los enlaces.
 import FormData from "form-data"
 import fetch from "node-fetch"
 import mime from "mime-types"
