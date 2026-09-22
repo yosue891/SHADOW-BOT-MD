@@ -96,7 +96,62 @@ const BANCO = [
 
 /* ─────────────────────────── ESTADO POR CHAT ─────────────────────────── */
 
-const partidas = new Map()
+// El cargador usa ?update=...: cada import crea un módulo nuevo, pero todos
+// deben consultar el MISMO registro, incluido el plugin de respuestas.
+const REGISTRO = Symbol.for('shadow.futbol.partidas.v2')
+const partidas = (globalThis[REGISTRO] ||= new Map())
+
+function mismaConexion(a, b) {
+  if (a === b) return true
+  const ids = c => [c?.user?.jid, c?.user?.id, c?.user?.lid]
+    .filter(v => typeof v === 'string' && v.includes('@'))
+    .map(v => v.replace(/:\d+@/, '@').replace(/@c\.us$/, '@s.whatsapp.net'))
+  return ids(a).some(id => ids(b).includes(id))
+}
+
+function citaDe(m) {
+  const context = m.msg?.contextInfo || m.message?.extendedTextMessage?.contextInfo || {}
+  return {
+    id: m.quoted?.id || m.quoted?.key?.id || context.stanzaId,
+    chat: m.quoted?.chat || m.quoted?.key?.remoteJid || context.remoteJid,
+  }
+}
+
+async function reaccionar(m, conn, emoji) {
+  try {
+    if (typeof m.react === 'function') return await m.react(emoji)
+  } catch {}
+  const key = m.key || (m.id ? { remoteJid: m.chat, id: m.id, fromMe: !!m.fromMe, participant: m.sender } : null)
+  if (!key?.id) return
+  try { await conn.sendMessage(m.chat, { react: { text: emoji, key } }) } catch {}
+}
+
+async function enviarTexto(conn, chat, text, contextInfo = {}) {
+  const key = { remoteJid: chat, fromMe: true, id: `3EB0${randomBytes(9).toString('hex').toUpperCase()}` }
+  await conn.relayMessage(chat, { extendedTextMessage: { text, contextInfo } }, { messageId: key.id })
+  return key
+}
+
+async function desfijarPanel(m, ctx, partida) {
+  if (!partida.fijada) return
+  partida.fijada = false
+  try { await ctx.conn.sendMessage(m.chat, { pin: partida.panelKey, type: 2, time: 0 }) }
+  catch (error) { console.warn('[futbol] No se pudo desfijar:', error?.message || error) }
+}
+
+async function fijarPanel(m, ctx, partida) {
+  if (partida.pinIntentado || !partida.panelKey) return
+  partida.pinIntentado = true
+  try {
+    await ctx.conn.sendMessage(m.chat, { pin: partida.panelKey, type: 1, time: 86400 })
+    partida.fijada = true
+    if (partida.cerrada || partidas.get(m.chat) !== partida) await desfijarPanel(m, ctx, partida)
+  } catch (error) {
+    console.warn('[futbol] No se pudo fijar:', error?.message || error)
+    partida.avisoFijado = '📌 No pude fijar la partida. Revisa los permisos del bot (puede necesitar ser administrador) o fija este mensaje manualmente.'
+    await actualizarPanel(m, ctx, partida, () => partida.textoPanel, () => partida.mencionesPanel || [])
+  }
+}
 
 const aleatorio = (n) => Math.floor(Math.random() * n)
 
@@ -184,6 +239,7 @@ async function falloPanel(m, ctx, partida, error) {
   partida.actual = null
   partida.aceptando = false
   terminarTimers(partida)
+  await desfijarPanel(m, ctx, partida)
   if (partidas.get(m.chat) === partida) partidas.delete(m.chat)
   console.error('[futbol] No se pudo actualizar el panel:', error?.message || error)
   // Un único aviso; no reenviar una pregunta nueva en cada fallo de edición.
@@ -202,18 +258,14 @@ async function actualizarPanel(m, ctx, partida, texto, menciones = [], { final =
     const nombres = typeof menciones === 'function' ? menciones() : menciones
     const ranking = final ? [] : rankingDe(partida).slice(0, 10)
     const mentions = [...new Set([...nombres, ...ranking.map(j => j.jid)])]
-    const text = final ? base : `${base}\n\n${textoMarcador(partida)}`
+    const text = final ? base : `${base}\n\n${textoMarcador(partida)}${partida.avisoFijado ? `\n\n${partida.avisoFijado}` : ''}`
     try {
       if (partida.panelKey) {
         await ctx.conn.sendMessage(m.chat, { text, mentions, edit: partida.panelKey })
       } else {
         // sendMessage(text) pasa por setreply y podría transformarse en imagen,
         // documento o carrusel. Crear texto nativo para que SIEMPRE sea editable.
-        const key = { remoteJid: m.chat, fromMe: true, id: `3EB0${randomBytes(9).toString('hex').toUpperCase()}` }
-        await ctx.conn.relayMessage(m.chat, {
-          extendedTextMessage: { text, contextInfo: { mentionedJid: mentions } },
-        }, { messageId: key.id })
-        partida.panelKey = key
+        partida.panelKey = await enviarTexto(ctx.conn, m.chat, text, { mentionedJid: mentions })
       }
       partida.textoPanel = base
       partida.mencionesPanel = nombres
@@ -241,6 +293,7 @@ async function cerrarPartida(m, ctx, partida, motivo) {
   partida.aceptando = false
   terminarTimers(partida)
   partidas.delete(m.chat)
+  await desfijarPanel(m, ctx, partida)
   const ranking = rankingDe(partida)
   if (!ranking.length) {
     return actualizarPanel(m, ctx, partida,
@@ -292,18 +345,30 @@ async function siguientePregunta(m, ctx, partida) {
     vigente: () => partida.actual === actual,
   })
   if (!publicado || partidas.get(m.chat) !== partida || partida.actual !== actual || partida.cerrada) return
+  await fijarPanel(m, ctx, partida)
+  if (partida.cerrada || partidas.get(m.chat) !== partida || partida.actual !== actual) return
   // El reloj arranca DESPUÉS de enviar/editar, no durante la subida del mensaje.
   actual.preguntadaEn = Date.now()
   partida.aceptando = true
   partida.aviso = setTimeout(() => {
-    actualizarPanel(m, ctx, partida,
-      `${textoPregunta(actual, partida.indice, partida.total)}\n\n⏱️ ¡Quedan *${AVISO_EN_SEGUNDOS} segundos*! ⚡`, [],
-      { vigente: () => partida.actual === actual && partida.aceptando }
-    ).catch(error => falloPanel(m, ctx, partida, error))
+    avisarTiempo(m, ctx, partida, actual).catch(error => console.warn('[futbol] Aviso:', error?.message || error))
   }, (LIMITE_SEGUNDOS - AVISO_EN_SEGUNDOS) * 1000)
   partida.timer = setTimeout(() => {
     agotarPregunta(m, ctx, partida, actual).catch(error => falloPanel(m, ctx, partida, error))
   }, LIMITE_SEGUNDOS * 1000)
+}
+
+async function avisarTiempo(m, ctx, partida, actual) {
+  if (partidas.get(m.chat) !== partida || partida.actual !== actual || !partida.aceptando || actual.avisoEnviado) return
+  actual.avisoEnviado = true
+  const contextInfo = {
+    stanzaId: partida.panelKey.id,
+    quotedMessage: { extendedTextMessage: { text: partida.textoPanel } },
+  }
+  const botJid = ctx.conn.user?.jid || ctx.conn.user?.id
+  if (botJid) contextInfo.participant = botJid
+  actual.avisoKey = await enviarTexto(ctx.conn, m.chat,
+    `⏳⚽ ¡Quedan *${AVISO_EN_SEGUNDOS} segundos* para la pregunta ${partida.indice}/${partida.total}!\nResponde al panel fijado (o a este aviso) con *a, b, c o d*, sin prefijo.`, contextInfo)
 }
 
 /* ─────────────────────────── RESPUESTA SIN PREFIJO ─────────────────────────── */
@@ -311,22 +376,17 @@ async function siguientePregunta(m, ctx, partida) {
 async function responder(m, ctx, partida, entrada) {
   const actual = partida.actual
   if (!actual || !partida.aceptando || partida.cerrada || partidas.get(m.chat) !== partida) return
-  if (!m.isGroup || ctx.conn !== partida.conn || !m.sender) return
-  const quoted = m.quoted
-  if (!partida.panelKey?.id || (quoted?.id || quoted?.key?.id) !== partida.panelKey.id) return
-  if (!(quoted?.fromMe ?? quoted?.key?.fromMe)) return
-  if ((quoted.chat || quoted.key?.remoteJid) && (quoted.chat || quoted.key?.remoteJid) !== m.chat) return
-  // Una cita conserva el texto anterior a una edición. No puntuar respuestas
-  // a preguntas viejas cuando el cliente todavía muestra esa versión.
-  if (quoted.text) {
-    const numero = /— pregunta (\d+)\/(\d+)/.exec(quoted.text)
-    if (!numero || Number(numero[1]) !== partida.indice || Number(numero[2]) !== partida.total) return
-  }
+  if (!m.isGroup || !mismaConexion(ctx.conn, partida.conn) || !m.sender) return
+  const quoted = citaDe(m)
+  const permitidas = [partida.panelKey?.id, actual.avisoKey?.id].filter(Boolean)
+  if (!quoted.id || !permitidas.includes(quoted.id)) return
+  if (quoted.chat && quoted.chat !== m.chat) return
+  // La key del panel + chat + bot identifica la cita. No exigir fromMe (LID)
+  // ni el texto citado: WhatsApp puede conservar la versión previa a editar.
   if (Date.now() - actual.preguntadaEn >= LIMITE_SEGUNDOS * 1000) {
     return agotarPregunta(m, ctx, partida, actual)
   }
   const jugador = m.sender
-  if (actual.respondieron.has(jugador)) return
   const texto = String(entrada || '').trim()
   if (/^[#!./]/.test(texto)) return
   const letra = /^[a-d]$/i.exec(texto)
@@ -339,13 +399,17 @@ async function responder(m, ctx, partida, entrada) {
     if (i < 0) return
     elegida = LETRAS[i]
   }
+  if (actual.respondieron.has(jugador)) {
+    await reaccionar(m, ctx.conn, '🔁')
+    return
+  }
   actual.respondieron.add(jugador)
   const j = (partida.jugadores[jugador] ||= {
     nombre: nombreDe(ctx.conn, m), puntos: 0, aciertos: 0, fallos: 0,
   })
   if (elegida !== actual.correcta) {
     j.fallos++
-    try { await m.react?.('❌') } catch {}
+    await reaccionar(m, ctx.conn, '❌')
     return
   }
   // Cerrar la ronda antes del primer await: solo un ganador por pregunta.
@@ -356,6 +420,7 @@ async function responder(m, ctx, partida, entrada) {
   const ganados = puntosPor(segundos)
   j.puntos += ganados
   j.aciertos++
+  await reaccionar(m, ctx.conn, '✅')
   const publicado = await actualizarPanel(m, ctx, partida, [
     `⚽🎉 *¡GOL de @${jugador.split('@')[0]}!*`, '',
     `✅ ${actual.correcta}. ${actual.opciones[LETRAS.indexOf(actual.correcta)]}`,
@@ -372,7 +437,7 @@ let handler = async (m, ctx) => {
   const partida = partidas.get(m.chat)
   // El registro es compartido por los subbots, pero solo el socket creador
   // puede editar su mensaje o controlar esta partida.
-  if (partida && partida.conn !== conn) return
+  if (partida && !mismaConexion(partida.conn, conn)) return
 
   if (command === 'marcador' || command === 'tabla') {
     if (!partida) return conn.reply(m.chat, '⚽ No hay ningún partido en juego.\n\nArranca uno con *.futbol*')
@@ -392,12 +457,13 @@ let handler = async (m, ctx) => {
     total = Math.min(total, MAX_PREGUNTAS, BANCO.length)
     const nueva = {
       preguntas: barajar(BANCO).slice(0, total), total, indice: 1,
-      actual: null, jugadores: {}, creador: m.sender, conn,
+      actual: null, jugadores: {}, creador: m.sender, conn, responder,
       timer: null, aviso: null, siguiente: null,
       panelKey: null, colaPanel: Promise.resolve(), cerrada: false, aceptando: false,
     }
     partidas.set(m.chat, nueva)
     try {
+      await reaccionar(m, conn, '⚽')
       await conn.reply(m.chat, [
         '⚽🏆 *¡ARRANCA ADIVINA EL JUGADOR!*', '',
         `🎯 ${total} preguntas sobre los grandes del fútbol`,
@@ -405,6 +471,9 @@ let handler = async (m, ctx) => {
         '✍️ Usa *Responder* sobre el siguiente mensaje y escribe solo la letra: *a*, *b*, *c* o *d*, sin prefijo.',
         'También puedes responder con el texto exacto de la opción.',
         '🔄 Ese mismo mensaje se irá editando durante toda la partida.',
+        '📌 Intentaré fijarlo en el grupo y lo desfijaré al terminar.',
+        '⏳ Enviaré un aviso aparte cuando queden 10 segundos.',
+        '✅ Acierto · ❌ Fallo · 🔁 Ya respondiste esta pregunta.',
         `🎁 ${PUNTOS_BASE} puntos + hasta ${PUNTOS_BONUS} de bonus por rapidez`, '',
         '📊 *.marcador* actualiza el panel · ⏹️ *.terminar* para cortar', '',
         '¡Vamos con la primera! 🔥',
@@ -420,7 +489,8 @@ let handler = async (m, ctx) => {
     '*.futbol* — partida de 10 preguntas',
     `*.futbol 15* — partida de 15 (máx. ${MAX_PREGUNTAS})`,
     'Responde al mensaje de la pregunta con a/b/c/d o el texto de la opción, sin prefijo.',
-    'Las preguntas, los avisos y el resultado se editan en el mismo mensaje.',
+    'Las preguntas y el resultado se editan en el panel fijado.',
+    'A los 10 segundos restantes llega un aviso aparte. ✅ Acierto · ❌ Fallo · 🔁 Intento repetido.',
     '*.marcador* — actualiza la tabla en el panel',
     '*.terminar* — cortar y ver al ganador', '',
     `${BANCO.length} preguntas sobre grandes del fútbol. 🌍`,
@@ -434,5 +504,5 @@ handler.tags = ['game']
 handler.command = ['futbol', 'futbolito', 'adivinafutbol', 'adivinajugador', 'quienjugador', 'trivalfutbol', 'marcador', 'terminar', 'finpartido', 'futbolayuda']
 handler.group = true
 
-export { BANCO, partidas, barajar, normalizar, prepararPregunta, puntosPor, textoPregunta, siguientePregunta, cerrarPartida, responder, LIMITE_SEGUNDOS, PUNTOS_BASE, PUNTOS_BONUS, MAX_PREGUNTAS }
+export { BANCO, partidas, barajar, normalizar, prepararPregunta, puntosPor, textoPregunta, siguientePregunta, cerrarPartida, responder, citaDe, LIMITE_SEGUNDOS, PUNTOS_BASE, PUNTOS_BONUS, MAX_PREGUNTAS }
 export default handler

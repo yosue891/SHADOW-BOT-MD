@@ -27,7 +27,7 @@ afterEach(() => {
 })
 
 function crearCtx(chat = GRUPO) {
-  const sent = { nuevos: [], edits: [], reactions: [] }
+  const sent = { nuevos: [], edits: [], reactions: [], pins: [] }
   const conn = {
     getName: jid => NOMBRES[jid] || 'Anónimo',
     async reply(chat, text, quoted, opts) {
@@ -43,6 +43,16 @@ function crearCtx(chat = GRUPO) {
         mentions: message.extendedTextMessage.contextInfo.mentionedJid, key })
     },
     async sendMessage(chat, content) {
+      if (content.pin) {
+        if (this.fallarPin) throw Error('sin permisos para fijar')
+        sent.pins.push(content)
+        return { key: content.pin }
+      }
+      if (content.react) {
+        if (this.fallarReaccion) throw Error('falló la reacción')
+        sent.reactions.push(content.react.text)
+        return {}
+      }
       assert.ok(content.edit, 'el texto inicial no debe pasar por setreply')
       if (this.bloquearEdit) await this.bloquearEdit()
       if (this.fallarEdit) throw Error('fallo de transporte simulado')
@@ -218,7 +228,6 @@ test('sin cita, otra cita, chat ajeno, mensaje ajeno y privado no puntúan', asy
   for (const override of [
     { quoted: null },
     { quoted: { id: 'otra-key', fromMe: true } },
-    { quoted: { id: g.p.panelKey.id, fromMe: false } },
     { quoted: { id: g.p.panelKey.id, fromMe: true, chat: 'otro@g.us' } },
     { isGroup: false }, { isBaileys: true },
   ]) await contestar(g, buena, override)
@@ -273,7 +282,7 @@ test('error solo reacciona; no hay segundo intento ni mensajes nuevos', async t 
   const mala = ['A', 'B', 'C', 'D'].find(l => l !== correcta)
   await contestar(g, mala)
   await contestar(g, correcta)
-  assert.deepEqual(g.sent.reactions, ['❌'])
+  assert.deepEqual(g.sent.reactions, ['❌', '🔁'])
   assert.equal(g.p.jugadores[P1].fallos, 1)
   assert.equal(g.p.jugadores[P1].puntos, 0)
   assert.equal(g.sent.nuevos.length, 2)
@@ -296,23 +305,22 @@ test('dos aciertos simultáneos: solo puntúa el primero y se edita el panel', a
   assert.equal(g.sent.edits.at(-1).edit.id, g.p.panelKey.id)
 })
 
-test('cita de la pregunta anterior se ignora tras editar a pregunta 2', async t => {
+test('cita con texto anterior sigue apuntando al mismo panel editado', async t => {
   const g = await iniciar(t)
   const quoted = mensajeRespuesta(g, '').quoted
   await contestar(g, g.p.actual.correcta)
   await avanzar(t, 2500)
   await contestar(g, g.p.actual.correcta, { sender: P2, quoted })
-  assert.equal(g.p.jugadores[P2], undefined)
-  await contestar(g, g.p.actual.correcta, { sender: P2 })
   assert.equal(g.p.jugadores[P2].aciertos, 1)
 })
 
-test('aviso, tiempo agotado y siguiente pregunta editan siempre el segundo mensaje', async t => {
+test('aviso aparte a los 10 segundos; tiempo agotado y siguiente editan el panel', async t => {
   const g = await iniciar(t)
   const buena = g.p.actual.correcta
   await avanzar(t, 30000)
-  assert.match(ultimo(g), /Quedan \*10 segundos\*/)
-  assert.match(ultimo(g), /pregunta 1\/10/)
+  assert.match(g.sent.nuevos.at(-1).text, /Quedan \*10 segundos\*/)
+  assert.match(g.sent.nuevos.at(-1).text, /pregunta 1\/10/)
+  assert.equal(g.sent.edits.length, 0)
   await avanzar(t, 9999)
   assert.ok(g.p.actual)
   await avanzar(t, 1)
@@ -321,7 +329,7 @@ test('aviso, tiempo agotado y siguiente pregunta editan siempre el segundo mensa
   assert.ok(ultimo(g).includes(`*${buena}.`))
   await avanzar(t, 2500)
   assert.match(ultimo(g), /pregunta 2\/10/)
-  assert.equal(g.sent.nuevos.length, 2)
+  assert.equal(g.sent.nuevos.length, 3)
   assert.ok(g.sent.edits.every(e => e.edit.id === g.p.panelKey.id))
 })
 
@@ -383,7 +391,7 @@ test('fin sin aciertos se edita y se limpian temporizadores', async t => {
   await avanzar(t, 2500)
   assert.match(ultimo(g), /Nadie llegó a anotar/)
   assert.equal(partidas.has(GRUPO), false)
-  assert.equal(g.sent.nuevos.length, 2)
+  assert.equal(g.sent.nuevos.length, 3)
 })
 
 test('partida completa de 20 preguntas: solo 2 mensajes originales', async t => {
@@ -419,21 +427,13 @@ test('error inicial no deja una partida bloqueada', async t => {
   }
 })
 
-test('cola de ediciones: un aviso lento no sobrescribe el resultado final', async t => {
+test('acertar antes del aviso cancela el mensaje de cuenta atrás', async t => {
   const g = await iniciar(t)
-  let liberar
-  const bloqueo = new Promise(resolve => { liberar = resolve })
-  g.conn.bloquearEdit = () => bloqueo
-  await avanzar(t, 30000)
-  const respuesta = contestar(g, g.p.actual.correcta)
-  const cierre = comando(g, 'terminar')
-  liberar()
-  await Promise.all([respuesta, cierre])
-  await flush()
+  await avanzar(t, 29000)
+  await contestar(g, g.p.actual.correcta)
+  await comando(g, 'terminar')
+  await avanzar(t, 120000)
   assert.match(ultimo(g), /FIN DEL PARTIDO/)
-  const n = g.sent.edits.length
-  await avanzar(t, 100000)
-  assert.equal(g.sent.edits.length, n)
   assert.equal(g.sent.nuevos.length, 2)
 })
 
@@ -491,4 +491,157 @@ test('marcador solicitado durante un gol lento no restaura la pregunta anterior'
   assert.match(ultimo(g), /¡GOL/)
   assert.match(ultimo(g), /MARCADOR/)
   assert.equal(g.sent.nuevos.length, 2)
+})
+
+test('REGRESIÓN: import con ?update como el cargador comparte partidas con el lector sin query', async t => {
+  reloj(t)
+  const recargado = await import(`../plugins/fun/fun-adivinafutbol.js?update=regresion-${Date.now()}`)
+  assert.equal(recargado.partidas, partidas)
+  const g = crearCtx()
+  await recargado.default(g.m, g.ctx)
+  g.p = partidas.get(GRUPO)
+  assert.equal(g.p.responder, recargado.responder)
+  const lector = await import('../plugins/fun/fun-adivinafutbol-respuestas.js?update=lector-regresion')
+  await lector.default.before(mensajeRespuesta(g, g.p.actual.correcta.toLowerCase()), g.ctx)
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
+  assert.deepEqual(g.sent.reactions, ['✅'])
+})
+
+test('recargar solo el principal durante una partida no pierde el registro activo', async t => {
+  const g = await iniciar(t)
+  const recargado = await import('../plugins/fun/fun-adivinafutbol.js?update=partida-viva')
+  assert.equal(recargado.partidas.get(GRUPO), g.p)
+  await contestar(g, g.p.actual.correcta)
+  await avanzar(t, 2500)
+  assert.match(ultimo(g), /pregunta 2\/10/)
+})
+
+test('cita PN/LID con fromMe falso y texto antiguo no bloquea la respuesta', async t => {
+  const g = await iniciar(t)
+  await contestar(g, g.p.actual.correcta.toLowerCase(), {
+    quoted: { id: g.p.panelKey.id, fromMe: false, text: 'Texto guardado por WhatsApp antes de editar' },
+  })
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
+  assert.deepEqual(g.sent.reactions, ['✅'])
+})
+
+test('cita solo con stanzaId en contextInfo se acepta sin m.quoted', async t => {
+  const g = await iniciar(t)
+  await contestar(g, g.p.actual.correcta, {
+    quoted: undefined,
+    msg: { contextInfo: { stanzaId: g.p.panelKey.id } },
+  })
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
+})
+
+test('serialización básica: texto y cita en extendedTextMessage sin getters', async t => {
+  const g = await iniciar(t)
+  const m = { ...g.m, text: undefined, quoted: undefined, message: {
+    extendedTextMessage: { text: g.p.actual.correcta, contextInfo: { stanzaId: g.p.panelKey.id } },
+  } }
+  await respuestas.before(m, g.ctx)
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
+})
+
+test('socket envuelto del mismo bot se acepta; otro número se ignora', async t => {
+  const g = await iniciar(t)
+  g.conn.user = { id: '584121234567:4@s.whatsapp.net' }
+  const otro = { ...g.conn, user: { jid: '584129999999@s.whatsapp.net' } }
+  await contestar(g, g.p.actual.correcta, {}, { conn: otro })
+  assert.deepEqual(g.p.jugadores, {})
+  const envuelto = { ...g.conn, user: { jid: '584121234567@s.whatsapp.net' } }
+  await contestar(g, g.p.actual.correcta, {}, { conn: envuelto })
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
+})
+
+test('pin fija exactamente el panel por 24h una vez y lo desfija al terminar', async t => {
+  const g = await iniciar(t)
+  assert.equal(g.sent.pins.length, 1)
+  assert.equal(g.sent.pins[0].pin.id, g.p.panelKey.id)
+  assert.equal(g.sent.pins[0].type, 1)
+  assert.equal(g.sent.pins[0].time, 86400)
+  await contestar(g, g.p.actual.correcta)
+  await avanzar(t, 2500)
+  assert.equal(g.sent.pins.length, 1)
+  await comando(g, 'terminar')
+  assert.equal(g.sent.pins.length, 2)
+  assert.equal(g.sent.pins[1].type, 2)
+  assert.equal(g.sent.pins[1].pin.id, g.p.panelKey.id)
+})
+
+test('sin permiso para fijar: muestra aviso en panel, no cancela ni insiste cada ronda', async t => {
+  reloj(t)
+  const g = crearCtx()
+  let intentos = 0
+  const send = g.conn.sendMessage.bind(g.conn)
+  g.conn.sendMessage = async (chat, content) => {
+    if (content.pin) { intentos++; throw Error('403: sin permiso') }
+    return send(chat, content)
+  }
+  await handler(g.m, g.ctx)
+  g.p = partidas.get(GRUPO)
+  assert.ok(g.p.aceptando)
+  assert.match(ultimo(g), /No pude fijar/)
+  await contestar(g, g.p.actual.correcta)
+  await avanzar(t, 2500)
+  assert.equal(intentos, 1)
+  assert.equal(g.p.indice, 2)
+  assert.equal(g.sent.nuevos.length, 2)
+})
+
+test('el aviso separado referencia el panel y permite contestar sin prefijo', async t => {
+  const g = await iniciar(t)
+  await avanzar(t, 30000)
+  const key = g.p.actual.avisoKey
+  assert.ok(key?.id)
+  assert.notEqual(key.id, g.p.panelKey.id)
+  assert.equal(g.sent.nuevos.length, 3)
+  await contestar(g, g.p.actual.correcta, { quoted: { id: key.id } })
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
+  await avanzar(t, 2500)
+  await contestar(g, g.p.actual.correcta, { sender: P2, quoted: { id: key.id } })
+  assert.equal(g.p.jugadores[P2], undefined, 'no aceptar un aviso de otra ronda')
+})
+
+test('fallar el envío del aviso no detiene la pregunta ni el timeout', async t => {
+  const g = await iniciar(t)
+  const relay = g.conn.relayMessage.bind(g.conn)
+  g.conn.relayMessage = async (chat, message, opts) => {
+    if (message.extendedTextMessage.text.includes('¡Quedan')) throw Error('fallo aviso')
+    return relay(chat, message, opts)
+  }
+  await avanzar(t, 30000)
+  assert.ok(g.p.aceptando)
+  await avanzar(t, 10000)
+  assert.match(ultimo(g), /Se acabó el tiempo/)
+  assert.ok(partidas.has(GRUPO))
+})
+
+test('reacción usa sendMessage si no existe m.react', async t => {
+  const g = await iniciar(t)
+  await contestar(g, g.p.actual.correcta, {
+    react: undefined, key: { remoteJid: GRUPO, id: 'RESPUESTA-USUARIO', participant: P1, fromMe: false },
+  })
+  assert.deepEqual(g.sent.reactions, ['✅'])
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
+})
+
+test('reacciones fallidas no impiden sumar ni pasar a la siguiente pregunta', async t => {
+  const g = await iniciar(t)
+  g.conn.fallarReaccion = true
+  await contestar(g, g.p.actual.correcta, {
+    react: async () => { throw Error('no se pudo reaccionar') },
+    key: { remoteJid: GRUPO, id: 'USER-2', participant: P1 },
+  })
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
+  await avanzar(t, 2500)
+  assert.match(ultimo(g), /pregunta 2\/10/)
+})
+
+test('comando inicial reacciona con fútbol', async t => {
+  reloj(t)
+  const g = crearCtx()
+  g.m.react = async emoji => g.sent.reactions.push(emoji)
+  await handler(g.m, g.ctx)
+  assert.deepEqual(g.sent.reactions, ['⚽'])
 })
