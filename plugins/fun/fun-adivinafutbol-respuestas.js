@@ -1,33 +1,24 @@
-/*
- * ⚽ RESPUESTAS del minijuego "Adivina el Jugador"
- *
- * Plugin aparte a propósito: usa customPrefix '' para que los jugadores
- * respondan escribiendo SOLO la letra (a / b / c / d), sin prefijo.
- *
- * Si las letras fueran comandos normales (.a .b .c .d) chocarían con
- * plugins que ya existen: 'c' es gacha-reclamar y 'd' es economia-dep,
- * y el handler ejecuta TODOS los plugins que coinciden (no hay break),
- * así que se dispararían los dos a la vez.
- *
- * customPrefix '' hace match con cualquier mensaje y no consume texto
- * (handler.js: usedPrefix = match[0][0]; noPrefix = text.replace('', '')),
- * así que 'command' sale como la primera palabra del mensaje.
- * Solo reacciona a a/b/c/d y solo si hay una partida viva en ese chat.
+/* Respuestas al panel de fútbol sin prefijo.
+ * before se ejecuta antes de que src/handler.js descarte mensajes sin prefijo.
+ * No registrar a/b/c/d como comandos: .c y .d son de gacha y economía.
  */
-
 import { partidas, responder } from './fun-adivinafutbol.js'
 
-const LETRAS = ['a', 'b', 'c', 'd']
+const handler = async () => {}
 
-let handler = async (m, ctx) => {
+handler.before = async function (m, ctx) {
+  if (!m.isGroup || m.isBaileys) return false
   const partida = partidas.get(m.chat)
-  if (!partida || !partida.actual) return
-  return responder(m, ctx, partida, ctx.command)
+  if (!partida?.actual || !m.quoted) return false
+  const chat = ctx.chat || global.db?.data?.chats?.[m.chat]
+  const user = global.db?.data?.users?.[m.sender]
+  if (chat?.isBanned || (user?.banned && !ctx.isMods)) return false
+  if (chat?.modoadmin && !(ctx.isAdmin || ctx.isOwner || ctx.isMods)) return false
+  await responder(m, ctx, partida, m.text)
+  return false
 }
 
-handler.customPrefix = ''
 handler.tags = ['game']
-handler.command = LETRAS
 handler.group = true
 
 export default handler

@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto'
+
 /*
  * ⚽ ADIVINA EL JUGADOR — minijuego de fútbol para grupos
  *
@@ -7,7 +9,7 @@
  *
  * Comandos:
  *   .futbol [nº de preguntas]   -> arranca la partida (por defecto 10)
- *   a / b / c / d               -> responder: solo la letra, sin prefijo
+ *   a / b / c / d               -> responder AL PANEL, sin prefijo
  *                                (lo maneja fun-adivinafutbol-respuestas.js)
  *   .marcador                   -> tabla de posiciones
  *   .terminar                   -> cortar la partida y ver el ganador
@@ -136,15 +138,12 @@ function prepararPregunta(ficha) {
 function textoPregunta(p, indice, total) {
   return [
     `⚽ *ADIVINA EL JUGADOR* — pregunta ${indice}/${total}`,
-    ``,
-    `🏷️ ${p.ficha.cat}`,
-    `❓ *${p.ficha.q}*`,
-    ``,
+    ``, `🏷️ ${p.ficha.cat}`, `❓ *${p.ficha.q}*`, ``,
     ...p.opciones.map((op, i) => `${LETRAS[i]}. ${op}`),
-    ``,
-    `⏱️ *${LIMITE_SEGUNDOS} segundos* — responde con una letra (a/b/c/d)`,
+    ``, `⏱️ *${LIMITE_SEGUNDOS} segundos*`,
+    `✍️ Responde a ESTE mensaje con *a/b/c/d* o el texto de la opción, sin prefijo.`,
     `🎯 ${PUNTOS_BASE} pts + hasta ${PUNTOS_BONUS} de bonus por rapidez`,
-    `🥇 Gana el primero que acierte.`,
+    `🥇 Gana el primero que acierte. Un intento por jugador.`,
   ].join('\n')
 }
 
@@ -157,161 +156,213 @@ function medalla(puesto) {
   return ['🥇', '🥈', '🥉'][puesto] || '▫️'
 }
 
-async function tablaDe(partida, conn, m) {
-  const ranking = Object.entries(partida.jugadores)
+function rankingDe(partida) {
+  return Object.entries(partida.jugadores)
     .map(([jid, j]) => ({ jid, ...j }))
     .sort((a, b) => b.puntos - a.puntos || b.aciertos - a.aciertos)
+}
 
-  if (!ranking.length) return '📊 Nadie ha sumado puntos todavía.'
-
-  const lineas = ranking.slice(0, 10).map((j, i) =>
-    `${medalla(i)} @${String(j.jid).split('@')[0]} — *${j.puntos} pts* (${j.aciertos} ✅ / ${j.fallos} ❌)`)
-
-  const texto = [
-    `📊 *MARCADOR* — pregunta ${Math.min(partida.indice, partida.total)} de ${partida.total}`,
-    ``,
-    ...lineas,
-  ].join('\n')
-
-  await conn.reply(m.chat, texto, null, { mentions: ranking.slice(0, 10).map((j) => j.jid) })
+function textoMarcador(partida) {
+  const ranking = rankingDe(partida).slice(0, 10)
+  return ranking.length ? [
+    '📊 *MARCADOR*',
+    ...ranking.map((j, i) => `${medalla(i)} @${j.jid.split('@')[0]} — *${j.puntos} pts* (${j.aciertos} ✅ / ${j.fallos} ❌)`),
+  ].join('\n') : '📊 Nadie ha sumado puntos todavía.'
 }
 
 function terminarTimers(partida) {
-  if (partida.timer) clearTimeout(partida.timer)
-  if (partida.aviso) clearTimeout(partida.aviso)
-  partida.timer = null
-  partida.aviso = null
+  for (const key of ['timer', 'aviso', 'siguiente']) {
+    if (partida[key]) clearTimeout(partida[key])
+    partida[key] = null
+  }
+}
+
+async function falloPanel(m, ctx, partida, error) {
+  if (partida.errorNotificado) return
+  partida.errorNotificado = true
+  partida.cerrada = true
+  partida.actual = null
+  partida.aceptando = false
+  terminarTimers(partida)
+  if (partidas.get(m.chat) === partida) partidas.delete(m.chat)
+  console.error('[futbol] No se pudo actualizar el panel:', error?.message || error)
+  // Un único aviso; no reenviar una pregunta nueva en cada fallo de edición.
+  try {
+    await ctx.conn.reply(m.chat, '⚠️ No pude actualizar el mensaje de fútbol. La partida se detuvo para evitar mensajes repetidos. Puedes iniciar otra con .futbol.')
+  } catch {}
+}
+
+/* Todas las actualizaciones usan la MISMA key del segundo mensaje.
+ * La cola impide que un aviso lento sobrescriba un gol o el resultado final. */
+async function actualizarPanel(m, ctx, partida, texto, menciones = [], { final = false, vigente = () => true } = {}) {
+  const tarea = (partida.colaPanel || Promise.resolve()).then(async () => {
+    if (partida.errorNotificado || !vigente()) return false
+    if (!final && (partida.cerrada || partidas.get(m.chat) !== partida)) return false
+    const base = typeof texto === 'function' ? texto() : texto
+    const nombres = typeof menciones === 'function' ? menciones() : menciones
+    const ranking = final ? [] : rankingDe(partida).slice(0, 10)
+    const mentions = [...new Set([...nombres, ...ranking.map(j => j.jid)])]
+    const text = final ? base : `${base}\n\n${textoMarcador(partida)}`
+    try {
+      if (partida.panelKey) {
+        await ctx.conn.sendMessage(m.chat, { text, mentions, edit: partida.panelKey })
+      } else {
+        // sendMessage(text) pasa por setreply y podría transformarse en imagen,
+        // documento o carrusel. Crear texto nativo para que SIEMPRE sea editable.
+        const key = { remoteJid: m.chat, fromMe: true, id: `3EB0${randomBytes(9).toString('hex').toUpperCase()}` }
+        await ctx.conn.relayMessage(m.chat, {
+          extendedTextMessage: { text, contextInfo: { mentionedJid: mentions } },
+        }, { messageId: key.id })
+        partida.panelKey = key
+      }
+      partida.textoPanel = base
+      partida.mencionesPanel = nombres
+      return true
+    } catch (error) {
+      await falloPanel(m, ctx, partida, error)
+      return false
+    }
+  })
+  partida.colaPanel = tarea
+  return tarea
+}
+
+async function tablaDe(partida, conn, m) {
+  if (!partida.panelKey) return
+  return actualizarPanel(m, { conn }, partida, () => partida.textoPanel, () => partida.mencionesPanel || [])
 }
 
 /* ─────────────────────────── FIN DE PARTIDA ─────────────────────────── */
 
-async function cerrarPartida(m, { conn }, partida, motivo) {
+async function cerrarPartida(m, ctx, partida, motivo) {
+  if (partidas.get(m.chat) !== partida || partida.cerrada) return
+  partida.cerrada = true
+  partida.actual = null
+  partida.aceptando = false
   terminarTimers(partida)
   partidas.delete(m.chat)
-
-  const ranking = Object.entries(partida.jugadores)
-    .map(([jid, j]) => ({ jid, ...j }))
-    .sort((a, b) => b.puntos - a.puntos || b.aciertos - a.aciertos)
-
+  const ranking = rankingDe(partida)
   if (!ranking.length) {
-    return conn.reply(m.chat, `⚽ *Partido terminado* (${motivo})\n\nNadie llegó a anotar. 😅\n\nCuando quieras otra: *.futbol*`)
+    return actualizarPanel(m, ctx, partida,
+      `⚽ *Partido terminado* (${motivo})\n\nNadie llegó a anotar. 😅\n\nCuando quieras otra: *.futbol*`, [], { final: true })
   }
-
   const [campeon, ...resto] = ranking
-  const menciones = [campeon.jid]
-
   const lineas = [
-    `🏆 *¡FIN DEL PARTIDO!* ${motivo}`,
-    ``,
-    `🥇 @${String(campeon.jid).split('@')[0]} gana con *${campeon.puntos} puntos* (${campeon.aciertos} aciertos de ${partida.total})`,
+    `🏆 *¡FIN DEL PARTIDO!* ${motivo}`, ``,
+    `🥇 @${campeon.jid.split('@')[0]} gana con *${campeon.puntos} puntos* (${campeon.aciertos} aciertos de ${partida.total})`,
   ]
-
   if (resto.length) {
-    lineas.push(``, `*Resto del marcador:*`)
-    resto.slice(0, 9).forEach((j, i) => {
-      menciones.push(j.jid)
-      lineas.push(`${medalla(i + 1)} @${String(j.jid).split('@')[0]} — ${j.puntos} pts`)
-    })
+    lineas.push('', '*Resto del marcador:*')
+    resto.slice(0, 9).forEach((j, i) => lineas.push(`${medalla(i + 1)} @${j.jid.split('@')[0]} — ${j.puntos} pts`))
   }
-
-  lineas.push(``, `⚽ ¿Revancha? *.futbol*`)
-
-  return conn.reply(m.chat, lineas.join('\n'), null, { mentions: menciones })
+  lineas.push('', '⚽ ¿Revancha? *.futbol*')
+  return actualizarPanel(m, ctx, partida, lineas.join('\n'), ranking.slice(0, 10).map(j => j.jid), { final: true })
 }
 
-/* ─────────────────────────── SIGUIENTE PREGUNTA ─────────────────────────── */
+function programarSiguiente(m, ctx, partida) {
+  if (partidas.get(m.chat) !== partida || partida.cerrada) return
+  partida.indice++
+  partida.siguiente = setTimeout(() => {
+    partida.siguiente = null
+    siguientePregunta(m, ctx, partida).catch(error => falloPanel(m, ctx, partida, error))
+  }, ESPERA_SIGUIENTE)
+}
+
+async function agotarPregunta(m, ctx, partida, actual) {
+  if (partidas.get(m.chat) !== partida || partida.actual !== actual || !partida.aceptando) return
+  partida.actual = null
+  partida.aceptando = false
+  terminarTimers(partida)
+  const publicado = await actualizarPanel(m, ctx, partida, [
+    '⏰ *¡Se acabó el tiempo!*', '',
+    `La respuesta era *${actual.correcta}. ${actual.opciones[LETRAS.indexOf(actual.correcta)]}*`, '',
+    partida.indice < partida.total ? 'Siguiente pregunta... ⚽' : 'Calculando el resultado final…',
+  ].join('\n'))
+  if (publicado) programarSiguiente(m, ctx, partida)
+}
 
 async function siguientePregunta(m, ctx, partida) {
-  if (!partidas.has(m.chat) || partidas.get(m.chat) !== partida) return
+  if (partidas.get(m.chat) !== partida || partida.cerrada) return
+  if (partida.indice > partida.total) return cerrarPartida(m, ctx, partida, 'se acabaron las preguntas')
 
-  if (partida.indice > partida.total) {
-    return cerrarPartida(m, ctx, partida, 'se acabaron las preguntas')
-  }
-
-  const ficha = partida.preguntas[partida.indice - 1]
-  partida.actual = prepararPregunta(ficha)
-
-  await ctx.conn.reply(m.chat, textoPregunta(partida.actual, partida.indice, partida.total))
-
+  const actual = prepararPregunta(partida.preguntas[partida.indice - 1])
+  partida.actual = actual
+  partida.aceptando = false
+  const publicado = await actualizarPanel(m, ctx, partida, textoPregunta(actual, partida.indice, partida.total), [], {
+    vigente: () => partida.actual === actual,
+  })
+  if (!publicado || partidas.get(m.chat) !== partida || partida.actual !== actual || partida.cerrada) return
+  // El reloj arranca DESPUÉS de enviar/editar, no durante la subida del mensaje.
+  actual.preguntadaEn = Date.now()
+  partida.aceptando = true
   partida.aviso = setTimeout(() => {
-    const viva = partidas.get(m.chat)
-    if (!viva || viva !== partida || !partida.actual) return
-    ctx.conn.reply(m.chat, `⏱️ ¡Quedan *${AVISO_EN_SEGUNDOS} segundos*! ⚡`).catch(() => {})
+    actualizarPanel(m, ctx, partida,
+      `${textoPregunta(actual, partida.indice, partida.total)}\n\n⏱️ ¡Quedan *${AVISO_EN_SEGUNDOS} segundos*! ⚡`, [],
+      { vigente: () => partida.actual === actual && partida.aceptando }
+    ).catch(error => falloPanel(m, ctx, partida, error))
   }, (LIMITE_SEGUNDOS - AVISO_EN_SEGUNDOS) * 1000)
-
   partida.timer = setTimeout(() => {
-    const viva = partidas.get(m.chat)
-    if (!viva || viva !== partida || !partida.actual) return
-
-    const fallida = partida.actual
-    partida.actual = null
-    terminarTimers(partida)
-
-    ctx.conn.reply(m.chat, [
-      `⏰ *¡Se acabó el tiempo!*`,
-      ``,
-      `La respuesta era *${fallida.correcta}. ${fallida.opciones[LETRAS.indexOf(fallida.correcta)]}*`,
-      ``,
-      `Siguiente pregunta... ⚽`,
-    ].join('\n'), null, { mentions: [] }).catch(() => {})
-
-    partida.indice++
-    setTimeout(() => siguientePregunta(m, ctx, partida), ESPERA_SIGUIENTE)
+    agotarPregunta(m, ctx, partida, actual).catch(error => falloPanel(m, ctx, partida, error))
   }, LIMITE_SEGUNDOS * 1000)
 }
 
-/* ─────────────────────────── RESPUESTA ─────────────────────────── */
+/* ─────────────────────────── RESPUESTA SIN PREFIJO ─────────────────────────── */
 
 async function responder(m, ctx, partida, entrada) {
   const actual = partida.actual
-  if (!actual) return
-
+  if (!actual || !partida.aceptando || partida.cerrada || partidas.get(m.chat) !== partida) return
+  if (!m.isGroup || ctx.conn !== partida.conn || !m.sender) return
+  const quoted = m.quoted
+  if (!partida.panelKey?.id || (quoted?.id || quoted?.key?.id) !== partida.panelKey.id) return
+  if (!(quoted?.fromMe ?? quoted?.key?.fromMe)) return
+  if ((quoted.chat || quoted.key?.remoteJid) && (quoted.chat || quoted.key?.remoteJid) !== m.chat) return
+  // Una cita conserva el texto anterior a una edición. No puntuar respuestas
+  // a preguntas viejas cuando el cliente todavía muestra esa versión.
+  if (quoted.text) {
+    const numero = /— pregunta (\d+)\/(\d+)/.exec(quoted.text)
+    if (!numero || Number(numero[1]) !== partida.indice || Number(numero[2]) !== partida.total) return
+  }
+  if (Date.now() - actual.preguntadaEn >= LIMITE_SEGUNDOS * 1000) {
+    return agotarPregunta(m, ctx, partida, actual)
+  }
   const jugador = m.sender
   if (actual.respondieron.has(jugador)) return
-
-  const letra = /^[a-dA-D]$/.exec(entrada)
-  let elegida = null
-  if (letra) {
-    elegida = letra[0].toUpperCase()
-  } else {
-    const buscado = normalizar(entrada)
+  const texto = String(entrada || '').trim()
+  if (/^[#!./]/.test(texto)) return
+  const letra = /^[a-d]$/i.exec(texto)
+  let elegida
+  if (letra) elegida = letra[0].toUpperCase()
+  else {
+    const buscado = normalizar(texto)
     if (buscado.length < 3) return
-    const i = actual.opciones.findIndex((op) => normalizar(op) === buscado)
+    const i = actual.opciones.findIndex(op => normalizar(op) === buscado)
     if (i < 0) return
     elegida = LETRAS[i]
   }
-
   actual.respondieron.add(jugador)
-
   const j = (partida.jugadores[jugador] ||= {
     nombre: nombreDe(ctx.conn, m), puntos: 0, aciertos: 0, fallos: 0,
   })
-
   if (elegida !== actual.correcta) {
     j.fallos++
-    return m.react?.('❌')
+    try { await m.react?.('❌') } catch {}
+    return
   }
-
+  // Cerrar la ronda antes del primer await: solo un ganador por pregunta.
+  partida.actual = null
+  partida.aceptando = false
+  terminarTimers(partida)
   const segundos = (Date.now() - actual.preguntadaEn) / 1000
   const ganados = puntosPor(segundos)
   j.puntos += ganados
   j.aciertos++
-
-  const fallida = actual
-  partida.actual = null
-  terminarTimers(partida)
-
-  await ctx.conn.reply(m.chat, [
-    `⚽🎉 *¡GOL de @${String(jugador).split('@')[0]}!*`,
-    ``,
-    `✅ ${fallida.correcta}. ${fallida.opciones[LETRAS.indexOf(fallida.correcta)]}`,
-    `⚡ ${segundos.toFixed(1)}s → *+${ganados} puntos* (total: ${j.puntos})`,
-    ``,
-    `Siguiente...`,
-  ].join('\n'), null, { mentions: [jugador] })
-
-  partida.indice++
-  setTimeout(() => siguientePregunta(m, ctx, partida), ESPERA_SIGUIENTE)
+  const publicado = await actualizarPanel(m, ctx, partida, [
+    `⚽🎉 *¡GOL de @${jugador.split('@')[0]}!*`, '',
+    `✅ ${actual.correcta}. ${actual.opciones[LETRAS.indexOf(actual.correcta)]}`,
+    `⚡ ${segundos.toFixed(1)}s → *+${ganados} puntos* (total: ${j.puntos})`, '',
+    partida.indice < partida.total ? 'Siguiente...' : 'Calculando el resultado final…',
+  ].join('\n'), [jugador])
+  if (publicado) programarSiguiente(m, ctx, partida)
 }
 
 /* ─────────────────────────── HANDLER ─────────────────────────── */
@@ -319,87 +370,67 @@ async function responder(m, ctx, partida, entrada) {
 let handler = async (m, ctx) => {
   const { conn, command, args } = ctx
   const partida = partidas.get(m.chat)
+  // El registro es compartido por los subbots, pero solo el socket creador
+  // puede editar su mensaje o controlar esta partida.
+  if (partida && partida.conn !== conn) return
 
-  /* ── marcador ── */
   if (command === 'marcador' || command === 'tabla') {
     if (!partida) return conn.reply(m.chat, '⚽ No hay ningún partido en juego.\n\nArranca uno con *.futbol*')
     return tablaDe(partida, conn, m)
   }
-
-  /* ── terminar ── */
   if (command === 'terminar' || command === 'finpartido') {
     if (!partida) return conn.reply(m.chat, '⚽ No hay ningún partido en juego.')
     return cerrarPartida(m, ctx, partida, 'lo cortaron')
   }
-
-  /* ── arrancar ── */
-  if (command === 'futbol' || command === 'futbolito' || command === 'adivinafutbol' ||
-      command === 'adivinajugador' || command === 'quienjugador' || command === 'trivalfutbol') {
+  if (['futbol', 'futbolito', 'adivinafutbol', 'adivinajugador', 'quienjugador', 'trivalfutbol'].includes(command)) {
     if (partida) {
-      return conn.reply(m.chat, [
-        `⚽ *Ya hay un partido en juego.*`,
-        ``,
-        `Pregunta ${Math.min(partida.indice, partida.total)} de ${partida.total}.`,
-        `Para cortarlo: *.terminar*`,
-      ].join('\n'))
+      // Un segundo .futbol refresca el panel, no abre ni anuncia otra partida.
+      return tablaDe(partida, conn, m)
     }
-
     let total = parseInt(args?.[0], 10)
     if (!Number.isFinite(total) || total < 1) total = 10
     total = Math.min(total, MAX_PREGUNTAS, BANCO.length)
-
-    if (BANCO.length < total) total = BANCO.length
-
     const nueva = {
-      preguntas: barajar(BANCO).slice(0, total),
-      total,
-      indice: 1,
-      actual: null,
-      jugadores: {},
-      creador: m.sender,
-      timer: null,
-      aviso: null,
+      preguntas: barajar(BANCO).slice(0, total), total, indice: 1,
+      actual: null, jugadores: {}, creador: m.sender, conn,
+      timer: null, aviso: null, siguiente: null,
+      panelKey: null, colaPanel: Promise.resolve(), cerrada: false, aceptando: false,
     }
     partidas.set(m.chat, nueva)
-
-    await conn.reply(m.chat, [
-      `⚽🏆 *¡ARRANCA ADIVINA EL JUGADOR!*`,
-      ``,
-      `🎯 ${total} preguntas sobre los grandes del fútbol`,
-      `⏱️ ${LIMITE_SEGUNDOS} segundos por pregunta`,
-      `✍️ Responde escribiendo solo la letra: *a*, *b*, *c* o *d* — gana el primero en acertar`,
-      `🎁 ${PUNTOS_BASE} puntos + hasta ${PUNTOS_BONUS} de bonus por rapidez`,
-      ``,
-      `📊 *.marcador* para ver la tabla  ·  ⏹️ *.terminar* para cortar`,
-      ``,
-      `¡Vamos con la primera! 🔥`,
-    ].join('\n'))
-
-    return siguientePregunta(m, ctx, nueva)
+    try {
+      await conn.reply(m.chat, [
+        '⚽🏆 *¡ARRANCA ADIVINA EL JUGADOR!*', '',
+        `🎯 ${total} preguntas sobre los grandes del fútbol`,
+        `⏱️ ${LIMITE_SEGUNDOS} segundos por pregunta`,
+        '✍️ Usa *Responder* sobre el siguiente mensaje y escribe solo la letra: *a*, *b*, *c* o *d*, sin prefijo.',
+        'También puedes responder con el texto exacto de la opción.',
+        '🔄 Ese mismo mensaje se irá editando durante toda la partida.',
+        `🎁 ${PUNTOS_BASE} puntos + hasta ${PUNTOS_BONUS} de bonus por rapidez`, '',
+        '📊 *.marcador* actualiza el panel · ⏹️ *.terminar* para cortar', '',
+        '¡Vamos con la primera! 🔥',
+      ].join('\n'))
+      return await siguientePregunta(m, ctx, nueva)
+    } catch (error) {
+      return falloPanel(m, ctx, nueva, error)
+    }
   }
-
-  /* ── ayuda ── */
   return conn.reply(m.chat, [
-    `⚽ *ADIVINA EL JUGADOR*`,
-    ``,
-    `Trivial de fútbol con 4 opciones y ${LIMITE_SEGUNDOS} segundos por pregunta.`,
-    ``,
-    `*.futbol* — partida de 10 preguntas`,
+    '⚽ *ADIVINA EL JUGADOR*', '',
+    `Trivial de fútbol con 4 opciones y ${LIMITE_SEGUNDOS} segundos por pregunta.`, '',
+    '*.futbol* — partida de 10 preguntas',
     `*.futbol 15* — partida de 15 (máx. ${MAX_PREGUNTAS})`,
-    `a / b / c / d — responder (solo la letra, sin prefijo)`,
-    `*.marcador* — tabla de posiciones`,
-    `*.terminar* — cortar y ver al ganador`,
-    ``,
-    `${BANCO.length} preguntas sobre Messi, Cristiano, Pelé, Maradona, Cruyff,`,
-    `Zidane, Ronaldinho, Mbappé, Yamal y muchos más. 🌍`,
+    'Responde al mensaje de la pregunta con a/b/c/d o el texto de la opción, sin prefijo.',
+    'Las preguntas, los avisos y el resultado se editan en el mismo mensaje.',
+    '*.marcador* — actualiza la tabla en el panel',
+    '*.terminar* — cortar y ver al ganador', '',
+    `${BANCO.length} preguntas sobre grandes del fútbol. 🌍`,
   ].join('\n'))
 }
 
 handler.help = ['futbol [preguntas]', 'marcador', 'terminar']
 handler.tags = ['game']
-// OJO: 'a'/'b'/'c'/'d' NO van acá. Los maneja fun-adivinafutbol-respuestas.js,
-// que usa customPrefix '' para que se responda escribiendo solo la letra.
-// Acá irían chocando con 'c' (gacha-reclamar) y 'd' (economia-dep).
+// Las respuestas llegan por el hook before del plugin de respuestas, no
+// como comandos: .c y .d siguen perteneciendo a gacha y economía.
 handler.command = ['futbol', 'futbolito', 'adivinafutbol', 'adivinajugador', 'quienjugador', 'trivalfutbol', 'marcador', 'terminar', 'finpartido', 'futbolayuda']
 handler.group = true
 

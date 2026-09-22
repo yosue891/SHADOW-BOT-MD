@@ -1,152 +1,101 @@
-/*
- * Tests del minijuego ⚽ Adivina el Jugador
- *   plugins/fun/fun-adivinafutbol.js
- *   plugins/fun/fun-adivinafutbol-respuestas.js
- *
- * Corre con: npm test
- */
-
-import { test } from 'node:test'
+/* Pruebas del juego de fútbol: transporte simulado, reloj controlado y
+ * hook before como lo invoca src/handler.js. No requieren WhatsApp. */
+import { test, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-
+import fs from 'node:fs'
 import handler, {
   BANCO, partidas, barajar, normalizar, prepararPregunta, puntosPor,
   textoPregunta, LIMITE_SEGUNDOS, PUNTOS_BASE, PUNTOS_BONUS, MAX_PREGUNTAS,
 } from '../plugins/fun/fun-adivinafutbol.js'
 import respuestas from '../plugins/fun/fun-adivinafutbol-respuestas.js'
 
-// src/index.js:109 -> global.prefix = new RegExp('^[#!./]')
-const PREFIJO_GLOBAL = /^[#!./]/
-// los dos plugins que ya usan 'c' y 'd' como comando con prefijo
-const GACHA = { command: ['claim', 'c', 'reclamar'] }
-const ECONOMIA = { command: ['deposit', 'depositar', 'd', 'dep'] }
-
 const GRUPO = '120363000000000000@g.us'
 const P1 = '584241111111@s.whatsapp.net'
 const P2 = '584242222222@s.whatsapp.net'
-const espera = (ms) => new Promise((r) => setTimeout(r, ms))
-
 const NOMBRES = { [P1]: 'Yosue', [P2]: 'Dvilker' }
+let secuencia = 0
+const flush = async () => { for (let i = 0; i < 40; i++) await Promise.resolve() }
+async function avanzar(t, ms) { t.mock.timers.tick(ms); await flush() }
+function reloj(t) { t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 1700000000000 }) }
 
-function crearCtx() {
-  const sent = { replies: [], reactions: [] }
-  const conn = {
-    async reply(chat, texto, quoted, opts) { sent.replies.push({ chat, texto, opts: opts || {} }) },
-    getName: (jid) => NOMBRES[jid] || 'Anónimo',
-  }
-  return { sent, conn }
-}
-
-async function corre({ text, sender = P1, command = 'futbol', args = [], chat = GRUPO } = {}) {
-  const { sent, conn } = crearCtx()
-  const m = { chat, sender, text, isGroup: true, pushName: NOMBRES[sender], async react() {} }
-  m.react = (e) => sent.reactions.push(e)
-  await handler(m, { conn, command, args, text })
-  return { sent, m, conn }
-}
-
-async function contesto(text, { sender = P1, chat = GRUPO } = {}) {
-  const { sent, conn } = crearCtx()
-  const m = { chat, sender, text, isGroup: true, pushName: NOMBRES[sender], async react() {} }
-  m.react = (e) => sent.reactions.push(e)
-  await respuestas(m, { conn, command: text.toLowerCase(), args: [], text })
-  return sent
-}
-
-async function limpio() {
+afterEach(() => {
   for (const p of partidas.values()) {
-    if (p.timer) clearTimeout(p.timer)
-    if (p.aviso) clearTimeout(p.aviso)
+    for (const key of ['timer', 'aviso', 'siguiente']) clearTimeout(p[key])
   }
   partidas.clear()
+  delete global.db
+})
+
+function crearCtx(chat = GRUPO) {
+  const sent = { nuevos: [], edits: [], reactions: [] }
+  const conn = {
+    getName: jid => NOMBRES[jid] || 'Anónimo',
+    async reply(chat, text, quoted, opts) {
+      if (this.fallarAnuncio) throw Error('fallo anuncio')
+      const key = { id: `msg-${++secuencia}`, remoteJid: chat, fromMe: true }
+      sent.nuevos.push({ text, key, ...opts }); return { key }
+    },
+    async relayMessage(chat, message, options) {
+      if (this.fallarEnvio) throw Error('fallo de transporte simulado')
+      assert.ok(message.extendedTextMessage, 'panel nativo, sin variante setreply')
+      const key = { id: options.messageId, remoteJid: chat, fromMe: true }
+      sent.nuevos.push({ text: message.extendedTextMessage.text,
+        mentions: message.extendedTextMessage.contextInfo.mentionedJid, key })
+    },
+    async sendMessage(chat, content) {
+      assert.ok(content.edit, 'el texto inicial no debe pasar por setreply')
+      if (this.bloquearEdit) await this.bloquearEdit()
+      if (this.fallarEdit) throw Error('fallo de transporte simulado')
+      sent.edits.push(content)
+      return { key: content.edit }
+    },
+  }
+  const m = { chat, sender: P1, text: '.futbol', isGroup: true, pushName: NOMBRES[P1] }
+  const ctx = { conn, command: 'futbol', args: [] }
+  return { sent, conn, m, ctx }
 }
+async function iniciar(t, total = 10, chat = GRUPO) {
+  reloj(t)
+  const g = crearCtx(chat)
+  g.ctx.args = [String(total)]
+  await handler(g.m, g.ctx)
+  g.p = partidas.get(chat)
+  return g
+}
+function mensajeRespuesta(g, text, overrides = {}) {
+  const p = g.p
+  const quoted = { id: p.panelKey.id, fromMe: true, chat: g.m.chat,
+    text: p.actual ? textoPregunta(p.actual, p.indice, p.total) : p.textoPanel }
+  return { ...g.m, text, quoted, react: async emoji => g.sent.reactions.push(emoji), ...overrides }
+}
+async function contestar(g, text, overrides = {}, ctx = {}) {
+  return respuestas.before(mensajeRespuesta(g, text, overrides), { ...g.ctx, ...ctx })
+}
+async function comando(g, command) { return handler(g.m, { ...g.ctx, command }) }
+const ultimo = g => g.sent.edits.at(-1)?.text || g.sent.nuevos.at(-1)?.text
 
-function preguntaActual() { return partidas.get(GRUPO)?.actual }
-
-/* ═══════════════════ CONFIGURACIÓN Y METADATOS ═══════════════════ */
-
-test('el límite de tiempo es de 40 segundos, como se pidió', () => {
+test('metadatos: solo grupos y respuestas mediante before, sin comandos a/b/c/d', () => {
   assert.equal(LIMITE_SEGUNDOS, 40)
-})
-
-test('metadatos: comandos, tag de juego y solo grupos', () => {
   assert.ok(handler.command.includes('futbol'))
-  assert.equal(handler.tags[0], 'game')
   assert.equal(handler.group, true)
-  assert.ok(Array.isArray(handler.help) && handler.help.length > 0)
-})
-
-test('las letras NO están como comandos con prefijo (chocarían con gacha y economía)', () => {
-  for (const letra of ['a', 'b', 'c', 'd']) {
-    assert.ok(!handler.command.includes(letra),
-      `'${letra}' no debe ser comando del plugin principal`)
-  }
-  assert.deepEqual(respuestas.command, ['a', 'b', 'c', 'd'])
-  assert.equal(respuestas.customPrefix, '', 'las respuestas deben entrar sin prefijo')
   assert.equal(respuestas.group, true)
+  assert.equal(typeof respuestas.before, 'function')
+  assert.equal(respuestas.command, undefined)
+  assert.equal(respuestas.customPrefix, undefined)
+  for (const l of ['a', 'b', 'c', 'd']) assert.ok(!handler.command.includes(l))
 })
 
-test('customPrefix vacío: las letras sueltas entran y nada más (extracción de handler.js)', () => {
-  const regex = new RegExp(respuestas.customPrefix)
-  const extraer = (texto) => {
-    const match = [[regex.exec(texto), respuestas.customPrefix]].find((x) => x[0]) || [null, null]
-    const usedPrefix = (match[0] || '')[0]
-    if (!usedPrefix && usedPrefix !== '') return null
-    const noPrefix = texto.replace(usedPrefix, '')
-    const [cmd] = noPrefix.trim().split(' ').filter((v) => v)
-    return (cmd || '').toLowerCase()
-  }
-  for (const letra of ['a', 'B', 'c', 'd']) {
-    assert.ok(respuestas.command.includes(extraer(letra)), `«${letra}» debe aceptarse`)
-  }
-  for (const ruido of ['hola', 'abc', 'marcador', 'aeiou', '']) {
-    assert.ok(!respuestas.command.includes(extraer(ruido) || ''),
-      `«${ruido}» no debe aceptarse`)
-  }
+test('integración: el before recibe texto sin prefijo que el dispatcher descarta después', async t => {
+  const g = await iniciar(t)
+  const src = fs.readFileSync(new URL('../src/handler.js', import.meta.url), 'utf8')
+  assert.ok(src.indexOf('await plugin.before.call') < src.indexOf('if (!usedPrefix) continue'))
+  const m = mensajeRespuesta(g, g.p.actual.correcta.toLowerCase())
+  const pluginPrefix = respuestas.customPrefix || /^[#!./]/
+  assert.equal(pluginPrefix.exec(m.text), null)
+  await respuestas.before.call(g.conn, m, g.ctx)
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
+  assert.equal(g.sent.nuevos.length, 2)
 })
-
-test('las letras sueltas no chocan con .c (gacha) ni .d (economía): matcheo real de prefijos', () => {
-  // Replica src/handler.js:345-361. El bot no tiene break en el bucle de
-  // plugins, así que si dos coincidieran se ejecutarían los dos.
-  const prefijosDe = (p) => {
-    const cp = p.customPrefix
-    if (cp instanceof RegExp) return [cp]
-    if (Array.isArray(cp)) return cp.map((x) => (x instanceof RegExp ? x : new RegExp(x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))))
-    if (typeof cp === 'string') return [new RegExp(cp.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))]
-    return [PREFIJO_GLOBAL]
-  }
-  const comandosDe = (p) => { const c = p?.command; return Array.isArray(c) ? c : c ? [c] : [] }
-  const quienResponde = (texto) => {
-    const ganadores = []
-    for (const p of [respuestas, GACHA, ECONOMIA, handler]) {
-      const match = prefijosDe(p).map((re) => { re.lastIndex = 0; return [re.exec(texto), re] }).find((x) => x[0])
-      if (!match) continue
-      const usedPrefix = (match[0] || '')[0]
-      if (!usedPrefix && usedPrefix !== '') continue
-      const [cmd] = texto.replace(usedPrefix, '').trim().split(' ').filter((v) => v)
-      const comando = (cmd || '').toLowerCase()
-      if (comandosDe(p).some((c) => c === comando)) ganadores.push(p)
-    }
-    return ganadores
-  }
-
-  // lo que escriben los jugadores: letra suelta, sin prefijo
-  for (const letra of ['a', 'b', 'c', 'd']) {
-    assert.deepEqual(quienResponde(letra), [respuestas],
-      `«${letra}» debe disparar SOLO el plugin de respuestas`)
-  }
-  // y los comandos con prefijo siguen siendo de sus dueños originales
-  assert.deepEqual(quienResponde('.c'), [GACHA], '.c sigue siendo de gacha-reclamar')
-  assert.deepEqual(quienResponde('.d'), [ECONOMIA], '.d sigue siendo de economia-dep')
-  assert.deepEqual(quienResponde('.futbol'), [handler])
-  // ruido cotidiano del grupo
-  for (const ruido of ['hola', 'abc', 'adios', 'ok']) {
-    assert.deepEqual(quienResponde(ruido), [], `«${ruido}» no debe disparar nada`)
-  }
-})
-
-
-/* ═══════════════════ BANCO DE PREGUNTAS ═══════════════════ */
 
 test('banco: 4 opciones distintas y una correcta válida en cada pregunta', () => {
   assert.ok(BANCO.length >= 40, `esperaba al menos 40 preguntas, hay ${BANCO.length}`)
@@ -167,7 +116,7 @@ test('banco: incluye a Messi, Cristiano y otros grandes', () => {
   }
 })
 
-test('banco: los datos de los últimos torneos son los verificados', () => {
+test('banco: conserva las respuestas que ya estaban en el repositorio', () => {
   const porPregunta = (fragmento) => BANCO.find((p) => p.q.includes(fragmento))
 
   const final2026 = porPregunta('final del Mundial 2026')
@@ -243,218 +192,303 @@ test('normalizar quita tildes, mayúsculas y signos', () => {
   assert.equal(normalizar(null), '')
 })
 
-/* ═══════════════════ ARRANQUE ═══════════════════ */
 
-test('arrancar: anuncia la partida y lanza la pregunta 1', async () => {
-  await limpio()
-  const { sent } = await corre({ text: '.futbol' })
-  assert.equal(sent.replies.length, 2, 'anuncio + primera pregunta')
-  assert.match(sent.replies[0].texto, /ARRANCA ADIVINA EL JUGADOR/)
-  assert.match(sent.replies[0].texto, /40 segundos/)
-  assert.match(sent.replies[0].texto, /solo la letra/)
-  assert.match(sent.replies[1].texto, /pregunta 1\/10/)
-  assert.ok(preguntaActual(), 'debe quedar una pregunta activa')
-  await limpio()
+test('arranca con instrucciones y panel; conserva key y arranca reloj al publicarse', async t => {
+  const g = await iniciar(t)
+  assert.equal(g.sent.nuevos.length, 2)
+  assert.match(g.sent.nuevos[0].text, /Usa \*Responder\*/)
+  assert.match(ultimo(g), /pregunta 1\/10/)
+  assert.equal(g.p.panelKey.id, g.sent.nuevos[1].key.id)
+  assert.equal(g.p.actual.preguntadaEn, Date.now())
+  assert.equal(g.p.aceptando, true)
 })
 
-test('arrancar: .futbol 15 hace 15 preguntas y respeta el máximo', async () => {
-  await limpio()
-  await corre({ command: 'futbol', args: ['15'] })
-  assert.equal(partidas.get(GRUPO).total, 15)
-  await limpio()
-
-  await corre({ command: 'futbol', args: ['999'] })
-  assert.equal(partidas.get(GRUPO).total, MAX_PREGUNTAS)
-  await limpio()
+test('cantidad de preguntas: inválida usa 10 y se limita a 20', async t => {
+  reloj(t)
+  for (const [arg, total] of [['banana', 10], ['999', MAX_PREGUNTAS], ['15', 15], ['0', 10]]) {
+    const g = crearCtx(`${arg}@g.us`)
+    await handler(g.m, { ...g.ctx, args: [arg] })
+    assert.equal(partidas.get(g.m.chat).total, total)
+  }
 })
 
-test('arrancar: un argumento inválido cae en 10 preguntas', async () => {
-  await limpio()
-  await corre({ command: 'futbol', args: ['banana'] })
-  assert.equal(partidas.get(GRUPO).total, 10)
-  await limpio()
+test('sin cita, otra cita, chat ajeno, mensaje ajeno y privado no puntúan', async t => {
+  const g = await iniciar(t)
+  const buena = g.p.actual.correcta
+  for (const override of [
+    { quoted: null },
+    { quoted: { id: 'otra-key', fromMe: true } },
+    { quoted: { id: g.p.panelKey.id, fromMe: false } },
+    { quoted: { id: g.p.panelKey.id, fromMe: true, chat: 'otro@g.us' } },
+    { isGroup: false }, { isBaileys: true },
+  ]) await contestar(g, buena, override)
+  assert.deepEqual(g.p.jugadores, {})
+  assert.equal(g.sent.edits.length, 0)
 })
 
-test('no arranca un segundo partido si ya hay uno', async () => {
-  await limpio()
-  await corre({})
-  const primera = partidas.get(GRUPO)
-  const { sent } = await corre({})
-  assert.equal(partidas.get(GRUPO), primera, 'no debe reemplazar la partida')
-  assert.match(sent.replies[0].texto, /Ya hay un partido en juego/)
-  await limpio()
+test('texto completo de la opción, con tildes y mayúsculas, se acepta sin prefijo', async t => {
+  const g = await iniciar(t)
+  const p = prepararPregunta({ cat: 'Test', q: 'Prueba', o: ['Ángel Di María', 'Pelé', 'Messi', 'Zidane'], ok: 0 })
+  g.p.actual = p
+  await contestar(g, '  ANGEL DI MARIA  ')
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
+  assert.match(ultimo(g), /¡GOL/)
 })
 
-/* ═══════════════════ RESPUESTAS ═══════════════════ */
-
-test('acierto: suma puntos, felicita al jugador y pasa a la siguiente', async () => {
-  await limpio()
-  await corre({})
-  const buena = preguntaActual().correcta.toLowerCase()
-  const total = partidas.get(GRUPO).total
-
-  const sent = await contesto(buena)
-  assert.match(sent.replies[0].texto, /¡GOL de @584241111111!/)
-  assert.match(sent.replies[0].texto, /puntos/)
-  assert.equal(sent.replies[0].opts.mentions[0], P1)
-
-  const j = partidas.get(GRUPO).jugadores[P1]
-  assert.ok(j.puntos >= PUNTOS_BASE)
-  assert.equal(j.aciertos, 1)
-  assert.equal(j.fallos, 0)
-  assert.equal(j.nombre, 'Yosue')
-
-  await espera(ESPERA_TEST)
-  assert.equal(partidas.get(GRUPO).indice, 2, 'debe avanzar a la pregunta 2')
-  assert.match(partidas.get(GRUPO).actual.ficha.q, /.+/)
-  await limpio()
+test('letras con prefijo y ruido no consumen intento; .c/.d no son comandos del juego', async t => {
+  const g = await iniciar(t)
+  for (const text of ['.a', '.b', '.c', '.d', '!a', '/b', '#c', 'a hola', 'hola']) await contestar(g, text)
+  assert.deepEqual(g.p.jugadores, {})
+  assert.equal(g.p.actual.respondieron.size, 0)
+  await contestar(g, `  ${g.p.actual.correcta.toLowerCase()}  `)
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
 })
 
-const ESPERA_TEST = 2900
-
-test('error: marca ❌, cuenta el fallo y no suma puntos', async () => {
-  await limpio()
-  await corre({})
-  const buena = preguntaActual().correcta
-  const mala = ['a', 'b', 'c', 'd'].find((l) => l.toUpperCase() !== buena)
-
-  const sent = await contesto(mala)
-  assert.deepEqual(sent.replies, [], 'un error no debe mandar mensaje')
-  assert.deepEqual(sent.reactions, ['❌'])
-
-  const j = partidas.get(GRUPO).jugadores[P1]
-  assert.equal(j.puntos, 0)
-  assert.equal(j.fallos, 1)
-  assert.equal(partidas.get(GRUPO).indice, 1, 'no debe avanzar con un error')
-  await limpio()
+test('usuarios baneados y modo admin respetados por el hook', async t => {
+  const g = await iniciar(t)
+  global.db = { data: { users: { [P1]: { banned: true } } } }
+  await contestar(g, g.p.actual.correcta)
+  assert.deepEqual(g.p.jugadores, {})
+  delete global.db
+  await contestar(g, g.p.actual.correcta, {}, { chat: { isBanned: true } })
+  await contestar(g, g.p.actual.correcta, {}, { chat: { modoadmin: true } })
+  assert.deepEqual(g.p.jugadores, {})
+  await contestar(g, g.p.actual.correcta, {}, { chat: { modoadmin: true }, isAdmin: true })
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
 })
 
-test('el primero que acierta gana; el segundo no suma', async () => {
-  await limpio()
-  await corre({})
-  const buena = preguntaActual().correcta.toLowerCase()
-
-  await contesto(buena, { sender: P1 })
-  const delPrimero = partidas.get(GRUPO).jugadores[P1].puntos
-
-  const sent2 = await contesto(buena, { sender: P2 })
-  assert.deepEqual(sent2.replies, [], 'el segundo en acertar no debe recibir nada')
-  assert.equal(partidas.get(GRUPO).jugadores[P2], undefined)
-  assert.equal(partidas.get(GRUPO).jugadores[P1].puntos, delPrimero)
-  await limpio()
+test('otro subbot no puede puntuar ni editar la partida del socket creador', async t => {
+  const g = await iniciar(t)
+  const ajeno = crearCtx()
+  await contestar(g, g.p.actual.correcta, {}, { conn: ajeno.conn })
+  await handler(g.m, { ...ajeno.ctx, command: 'terminar' })
+  assert.equal(partidas.get(GRUPO), g.p)
+  assert.deepEqual(g.p.jugadores, {})
+  assert.equal(ajeno.sent.edits.length, 0)
 })
 
-test('un jugador no puede responder dos veces la misma pregunta', async () => {
-  await limpio()
-  await corre({})
-  const buena = preguntaActual().correcta
-  const mala = ['a', 'b', 'c', 'd'].find((l) => l.toUpperCase() !== buena)
-
-  await contesto(mala)
-  const fallos = partidas.get(GRUPO).jugadores[P1].fallos
-  await contesto(buena)
-  assert.equal(partidas.get(GRUPO).jugadores[P1].fallos, fallos,
-    'tras fallar ya no puede volver a intentar esa pregunta')
-  await limpio()
+test('error solo reacciona; no hay segundo intento ni mensajes nuevos', async t => {
+  const g = await iniciar(t)
+  const correcta = g.p.actual.correcta
+  const mala = ['A', 'B', 'C', 'D'].find(l => l !== correcta)
+  await contestar(g, mala)
+  await contestar(g, correcta)
+  assert.deepEqual(g.sent.reactions, ['❌'])
+  assert.equal(g.p.jugadores[P1].fallos, 1)
+  assert.equal(g.p.jugadores[P1].puntos, 0)
+  assert.equal(g.sent.nuevos.length, 2)
+  assert.equal(g.sent.edits.length, 0)
 })
 
-test('si no hay partida, las letras se ignoran en silencio', async () => {
-  await limpio()
-  const sent = await contesto('a')
-  assert.deepEqual(sent.replies, [])
-  assert.deepEqual(sent.reactions, [])
+test('dos aciertos simultáneos: solo puntúa el primero y se edita el panel', async t => {
+  const g = await iniciar(t)
+  const buena = g.p.actual.correcta
+  const m1 = mensajeRespuesta(g, buena), m2 = mensajeRespuesta(g, buena, { sender: P2 })
+  await Promise.all([respuestas.before(m1, g.ctx), respuestas.before(m2, g.ctx)])
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
+  assert.equal(g.p.jugadores[P2], undefined)
+  assert.equal(g.sent.edits.length, 1)
+  assert.equal(g.sent.edits[0].edit.id, g.p.panelKey.id)
+  assert.deepEqual(g.sent.edits[0].mentions, [P1])
+  assert.equal(g.sent.nuevos.length, 2)
+  await avanzar(t, 2500)
+  assert.match(ultimo(g), /pregunta 2\/10/)
+  assert.equal(g.sent.edits.at(-1).edit.id, g.p.panelKey.id)
 })
 
-test('marcador sin partida avisa cómo empezar', async () => {
-  await limpio()
-  const { sent } = await corre({ command: 'marcador' })
-  assert.match(sent.replies[0].texto, /No hay ningún partido en juego/)
-  assert.match(sent.replies[0].texto, /\.futbol/)
+test('cita de la pregunta anterior se ignora tras editar a pregunta 2', async t => {
+  const g = await iniciar(t)
+  const quoted = mensajeRespuesta(g, '').quoted
+  await contestar(g, g.p.actual.correcta)
+  await avanzar(t, 2500)
+  await contestar(g, g.p.actual.correcta, { sender: P2, quoted })
+  assert.equal(g.p.jugadores[P2], undefined)
+  await contestar(g, g.p.actual.correcta, { sender: P2 })
+  assert.equal(g.p.jugadores[P2].aciertos, 1)
 })
 
-/* ═══════════════════ TIEMPO AGOTADO (40 s reales) ═══════════════════ */
-
-test('a los 40 segundos revela la respuesta y sigue con la siguiente pregunta', { timeout: 90_000 }, async () => {
-  await limpio()
-  await corre({})
-
-  const buena = preguntaActual().correcta
-  const correctaTexto = preguntaActual().opciones[['A', 'B', 'C', 'D'].indexOf(buena)]
-  assert.ok(correctaTexto.length > 1, 'debe saber cuál era la respuesta correcta')
-
-  // A los 35 s no puede haber pasado nada todavía. Se usan 35 y no 39 para
-  // que el test no dependa de la carga de la máquina: si el temporizador se
-  // adelantara, acá ya se vería.
-  await espera(35_000)
-  assert.equal(partidas.get(GRUPO).indice, 1, 'antes de los 40 s no debe avanzar')
-  assert.ok(preguntaActual(), 'la pregunta debe seguir activa antes de los 40 s')
-
-  // Sondeo en vez de sleep fijo: espera a que el bot dé por perdida la pregunta.
-  const inicio = Date.now()
-  while (partidas.get(GRUPO).indice === 1 && Date.now() - inicio < 20_000) await espera(250)
-  const tardó = (Date.now() - inicio) / 1000
-
-  const partida = partidas.get(GRUPO)
-  assert.equal(partida.indice, 2, 'debe avanzar al acabarse los 40 segundos')
-  assert.ok(tardó >= 3 && tardó <= 15, `el corte llegó ${tardó.toFixed(1)} s después del chequeo de los 35 s`)
-
-  // tras la pausa ya está la pregunta 2 en pantalla
-  const arranque = Date.now()
-  while (!partidas.get(GRUPO).actual && Date.now() - arranque < 8000) await espera(250)
-  assert.match(partidas.get(GRUPO).actual.ficha.q, /.+/, 'debe haber una pregunta 2')
-  assert.ok(preguntaActual().correcta, 'la pregunta 2 debe tener su respuesta')
-  await limpio()
+test('aviso, tiempo agotado y siguiente pregunta editan siempre el segundo mensaje', async t => {
+  const g = await iniciar(t)
+  const buena = g.p.actual.correcta
+  await avanzar(t, 30000)
+  assert.match(ultimo(g), /Quedan \*10 segundos\*/)
+  assert.match(ultimo(g), /pregunta 1\/10/)
+  await avanzar(t, 9999)
+  assert.ok(g.p.actual)
+  await avanzar(t, 1)
+  assert.equal(g.p.actual, null)
+  assert.match(ultimo(g), /Se acabó el tiempo/)
+  assert.ok(ultimo(g).includes(`*${buena}.`))
+  await avanzar(t, 2500)
+  assert.match(ultimo(g), /pregunta 2\/10/)
+  assert.equal(g.sent.nuevos.length, 2)
+  assert.ok(g.sent.edits.every(e => e.edit.id === g.p.panelKey.id))
 })
 
-/* ═══════════════════ MARCADOR Y FIN ═══════════════════ */
-
-test('marcador: muestra la tabla con menciones', async () => {
-  await limpio()
-  await corre({})
-  await contesto(preguntaActual().correcta.toLowerCase())
-
-  const { sent } = await corre({ command: 'marcador' })
-  assert.match(sent.replies[0].texto, /MARCADOR/)
-  assert.match(sent.replies[0].texto, /584241111111/)
-  assert.match(sent.replies[0].texto, /pts/)
-  assert.deepEqual(sent.replies[0].opts.mentions, [P1])
-  await limpio()
+test('respuesta tardía no gana aunque el callback de timeout esté retrasado', async t => {
+  const g = await iniciar(t)
+  g.p.actual.preguntadaEn -= 40000
+  await contestar(g, g.p.actual.correcta)
+  assert.deepEqual(g.p.jugadores, {})
+  assert.match(ultimo(g), /Se acabó el tiempo/)
 })
 
-test('terminar: corona al que más puntos hizo y limpia la partida', async () => {
-  await limpio()
-  await corre({})
-  await contesto(preguntaActual().correcta.toLowerCase(), { sender: P2 })
-
-  const { sent } = await corre({ command: 'terminar' })
-  assert.match(sent.replies[0].texto, /FIN DEL PARTIDO/)
-  assert.match(sent.replies[0].texto, /@584242222222 gana con/)
-  assert.ok(!partidas.has(GRUPO), 'la partida debe borrarse')
-  assert.deepEqual(sent.replies[0].opts.mentions[0], P2)
-  await limpio()
+test('marcador vacío y con puntos refresca panel sin mensajes adicionales', async t => {
+  const g = await iniciar(t)
+  await comando(g, 'marcador')
+  assert.match(ultimo(g), /Nadie ha sumado/)
+  await contestar(g, g.p.actual.correcta)
+  await avanzar(t, 2500)
+  await comando(g, 'marcador')
+  assert.match(ultimo(g), /pregunta 2\/10/)
+  assert.match(ultimo(g), /MARCADOR/)
+  assert.ok(ultimo(g).includes(P1.split('@')[0]))
+  assert.equal(g.sent.nuevos.length, 2)
 })
 
-test('terminar sin partida avisa', async () => {
-  await limpio()
-  const { sent } = await corre({ command: 'terminar' })
-  assert.match(sent.replies[0].texto, /No hay ningún partido en juego/)
+test('segundo .futbol no crea otro partido ni otro mensaje', async t => {
+  const g = await iniciar(t)
+  await comando(g, 'futbol')
+  assert.equal(partidas.get(GRUPO), g.p)
+  assert.equal(g.sent.nuevos.length, 2)
 })
 
-test('partida de una sola pregunta: al acertar se termina sola', async () => {
-  await limpio()
-  await corre({ command: 'futbol', args: ['1'] })
-  await contesto(preguntaActual().correcta.toLowerCase())
-
-  await espera(ESPERA_TEST)
-  assert.ok(!partidas.has(GRUPO), 'debe cerrarse al acabar las preguntas')
-  await limpio()
+test('terminar edita resultado final, cancela pausa y no revive la partida', async t => {
+  const g = await iniciar(t)
+  await contestar(g, g.p.actual.correcta)
+  await comando(g, 'terminar')
+  assert.match(ultimo(g), /FIN DEL PARTIDO/)
+  assert.ok(!partidas.has(GRUPO))
+  assert.equal(g.p.actual, null)
+  for (const k of ['timer', 'aviso', 'siguiente']) assert.equal(g.p[k], null)
+  const count = g.sent.edits.length
+  await avanzar(t, 60000)
+  assert.equal(g.sent.edits.length, count)
+  assert.equal(g.sent.nuevos.length, 2)
 })
 
-test('ayuda: explica cómo se juega', async () => {
-  await limpio()
-  const { sent } = await corre({ command: 'futbolayuda' })
-  assert.match(sent.replies[0].texto, /ADIVINA EL JUGADOR/)
-  assert.match(sent.replies[0].texto, /40 segundos/)
-  assert.match(sent.replies[0].texto, /sin prefijo/)
-  await limpio()
+test('partida de una pregunta termina automáticamente editando el mismo panel', async t => {
+  const g = await iniciar(t, 1)
+  await contestar(g, g.p.actual.correcta, { sender: P2 })
+  await avanzar(t, 2500)
+  assert.match(ultimo(g), /FIN DEL PARTIDO/)
+  assert.ok(ultimo(g).includes(`@${P2.split('@')[0]} gana`))
+  assert.equal(partidas.has(GRUPO), false)
+  assert.equal(g.sent.nuevos.length, 2)
+})
+
+test('fin sin aciertos se edita y se limpian temporizadores', async t => {
+  const g = await iniciar(t, 1)
+  await avanzar(t, 40000)
+  await avanzar(t, 2500)
+  assert.match(ultimo(g), /Nadie llegó a anotar/)
+  assert.equal(partidas.has(GRUPO), false)
+  assert.equal(g.sent.nuevos.length, 2)
+})
+
+test('partida completa de 20 preguntas: solo 2 mensajes originales', async t => {
+  const g = await iniciar(t, 20)
+  for (let i = 0; i < 20; i++) {
+    await contestar(g, g.p.actual.correcta)
+    await avanzar(t, 2500)
+  }
+  assert.match(ultimo(g), /FIN DEL PARTIDO/)
+  assert.equal(g.p.jugadores[P1].aciertos, 20)
+  assert.equal(g.sent.nuevos.length, 2)
+  assert.ok(g.sent.edits.every(e => e.edit.id === g.p.panelKey.id))
+})
+
+test('fallo de edición detiene el juego y da un único aviso sin recrear preguntas', async t => {
+  const g = await iniciar(t)
+  g.conn.fallarEdit = true
+  await contestar(g, g.p.actual.correcta)
+  assert.equal(partidas.has(GRUPO), false)
+  assert.match(g.sent.nuevos.at(-1).text, /partida se detuvo/)
+  assert.equal(g.sent.nuevos.length, 3)
+  await avanzar(t, 120000)
+  assert.equal(g.sent.nuevos.length, 3)
+})
+
+test('error inicial no deja una partida bloqueada', async t => {
+  reloj(t)
+  for (const propiedad of ['fallarEnvio', 'fallarAnuncio']) {
+    const g = crearCtx(`${propiedad}@g.us`)
+    g.conn[propiedad] = true
+    await handler(g.m, g.ctx)
+    assert.equal(partidas.has(g.m.chat), false)
+  }
+})
+
+test('cola de ediciones: un aviso lento no sobrescribe el resultado final', async t => {
+  const g = await iniciar(t)
+  let liberar
+  const bloqueo = new Promise(resolve => { liberar = resolve })
+  g.conn.bloquearEdit = () => bloqueo
+  await avanzar(t, 30000)
+  const respuesta = contestar(g, g.p.actual.correcta)
+  const cierre = comando(g, 'terminar')
+  liberar()
+  await Promise.all([respuesta, cierre])
+  await flush()
+  assert.match(ultimo(g), /FIN DEL PARTIDO/)
+  const n = g.sent.edits.length
+  await avanzar(t, 100000)
+  assert.equal(g.sent.edits.length, n)
+  assert.equal(g.sent.nuevos.length, 2)
+})
+
+test('reiniciar después de cerrar no recibe temporizadores ni citas del juego anterior', async t => {
+  const g = await iniciar(t)
+  const vieja = mensajeRespuesta(g, '').quoted
+  await contestar(g, g.p.actual.correcta)
+  await comando(g, 'terminar')
+  await comando(g, 'futbol')
+  const nueva = partidas.get(GRUPO)
+  assert.notEqual(nueva.panelKey.id, vieja.id)
+  g.p = nueva
+  await contestar(g, nueva.actual.correcta, { quoted: vieja })
+  assert.deepEqual(nueva.jugadores, {})
+  await avanzar(t, 2500)
+  assert.equal(nueva.indice, 1)
+  assert.equal(g.sent.nuevos.length, 4)
+})
+
+test('grupos distintos tienen paneles y puntajes independientes', async t => {
+  const g = await iniciar(t)
+  const otro = crearCtx('999@g.us')
+  await handler(otro.m, otro.ctx)
+  otro.p = partidas.get(otro.m.chat)
+  await contestar(g, g.p.actual.correcta)
+  assert.deepEqual(otro.p.jugadores, {})
+  assert.equal(otro.sent.edits.length, 0)
+  assert.notEqual(g.p.panelKey.id, otro.p.panelKey.id)
+})
+
+test('sin partida: letras se ignoran, comandos informan y ayuda explica las citas', async t => {
+  reloj(t)
+  const g = crearCtx()
+  await respuestas.before({ ...g.m, text: 'a', quoted: { id: 'old' } }, g.ctx)
+  assert.equal(g.sent.nuevos.length, 0)
+  await comando(g, 'marcador')
+  assert.match(ultimo(g), /No hay ningún partido/)
+  await comando(g, 'terminar')
+  assert.match(ultimo(g), /No hay ningún partido/)
+  await comando(g, 'futbolayuda')
+  assert.match(ultimo(g), /sin prefijo/)
+  assert.match(ultimo(g), /Responde al mensaje/)
+})
+
+test('marcador solicitado durante un gol lento no restaura la pregunta anterior', async t => {
+  const g = await iniciar(t)
+  let liberar
+  const bloqueo = new Promise(resolve => { liberar = resolve })
+  g.conn.bloquearEdit = () => bloqueo
+  const respuesta = contestar(g, g.p.actual.correcta)
+  await flush()
+  const marcador = comando(g, 'marcador')
+  liberar()
+  await Promise.all([respuesta, marcador])
+  assert.match(ultimo(g), /¡GOL/)
+  assert.match(ultimo(g), /MARCADOR/)
+  assert.equal(g.sent.nuevos.length, 2)
 })
