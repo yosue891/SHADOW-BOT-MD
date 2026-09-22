@@ -76,12 +76,12 @@ async function main() {
 
   /* 3. Dependencias */
   seccion('3. Dependencias')
-  try {
-    await import('axios')
-    ok('axios instalado')
-  } catch (e) {
-    fail('axios NO esta instalado (' + (e?.code || e?.message) + ')', 'Ejecuta: npm install')
+  const faltan = []
+  for (const dep of ['axios', 'cfonts', 'adm-zip']) {
+    try { await import(dep) } catch { faltan.push(dep) }
   }
+  if (!faltan.length) ok('dependencias instaladas (axios, cfonts, adm-zip)')
+  else fail('faltan dependencias: ' + faltan.join(', '), 'Ejecuta: npm install')
 
   /* 4. El modulo importa */
   seccion('4. Importar el modulo')
@@ -145,7 +145,7 @@ async function main() {
     }
     if (chocan.length) {
       for (const c of chocan) warn('comando compartido: ' + c,
-        'El bot ejecuta el primero que encuentra; si ese otro plugin gana, renombra el comando en ia-shadowia.js')
+        'Ojo: el bot ejecuta TODOS los plugins que coinciden (no hay break), asi que se dispararian los dos a la vez. Renombra el comando en ia-shadowia.js')
     } else ok('ningun otro plugin usa los mismos comandos')
   }
 
