@@ -112,18 +112,21 @@ const handler = async (m, { conn, usedPrefix }) => {
     }
   })
 
-  // Lista de respaldo: si el carrusel no se puede enviar, al menos llega esto.
-  const textoRespaldo = [
-    `🌴 *Sub-Bots activos: ${conectados.length}/${MAX_SUBBOTS}*`,
+  // Lista en texto: se manda SIEMPRE, antes que el carrusel.
+  // Un carrusel puede no dibujarse en el WhatsApp del usuario (versión vieja,
+  // WhatsApp Web, algún mod) y relayMessage no avisa: simplemente no se ve.
+  // Si el dato fuera solo el carrusel, el usuario se quedaría sin nada otra vez.
+  const listaTexto = [
+    `🌴 *Sub-Bots conectados: ${conectados.length} de ${MAX_SUBBOTS}*`,
     ``,
     ...conectados.map((v, i) => {
+      const botNumber = v.user.jid.split('@')[0]
+      const nombre = v.user?.name || `Sub-Bot ${i + 1}`
       const uptime = v.uptime
-        ? convertirMsADiasHorasMinutosSegundos(Date.now() - v.uptime)
-        : "Activo desde ahora"
-      return `🪴 *${i + 1}. ${v.user?.name || `Sub-Bot ${i + 1}`}*\n🔢 wa.me/${v.user.jid.split('@')[0]}?text=.menu\n🍄 Uptime: ${uptime}`
+        ? `\n🍄 Uptime: ${convertirMsADiasHorasMinutosSegundos(Date.now() - v.uptime)}`
+        : ''
+      return `🪴 *${i + 1}. ${nombre}*\n🔢 wa.me/${botNumber}?text=.menu${uptime}`
     }),
-    ``,
-    `Selecciona un Sub-Bot del carrusel 🌿`,
   ].join('\n')
 
   try {
@@ -146,9 +149,10 @@ const handler = async (m, { conn, usedPrefix }) => {
     }, { quoted: m })
 
     await conn.relayMessage(m.chat, messageContent.message, { messageId: messageContent.key.id })
+    // El dato ya se mandó en texto; el carrusel es la vista bonita encima.
+    await m.reply(listaTexto)
   } catch (error) {
-    // Si el carrusel falla (versión de WhatsApp, imagen, etc.) mandamos la lista.
-    await m.reply(`⚠︎ No pude mostrar el carrusel (${error?.message || 'error desconocido'}).\n\nTe dejo la lista:\n\n${textoRespaldo}`)
+    await m.reply(`⚠︎ No pude mostrar el carrusel (${error?.message || 'error desconocido'}).\n\n${listaTexto}`)
   }
 }
 
