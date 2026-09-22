@@ -9,7 +9,7 @@ import { randomBytes } from 'node:crypto'
  *
  * Comandos:
  *   .futbol [nº de preguntas]   -> arranca la partida (por defecto 10)
- *   a / b / c / d               -> responder AL PANEL, sin prefijo
+ *   a / b / c / d               -> escribir en el grupo, sin prefijo ni cita
  *                                (lo maneja fun-adivinafutbol-respuestas.js)
  *   .marcador                   -> tabla de posiciones
  *   .terminar                   -> cortar la partida y ver el ganador
@@ -118,79 +118,19 @@ function citaDe(m) {
   }
 }
 
-// Baileys puede entregar el ID en m.text o dentro del mensaje interactivo.
-function botonDe(m) {
+// Solo texto: ignorar pulsaciones de tarjetas de versiones anteriores.
+function textoDeRespuesta(m) {
   let message = m.message || {}
   for (let i = 0; i < 5; i++) {
     const inner = message.ephemeralMessage?.message || message.viewOnceMessage?.message || message.viewOnceMessageV2?.message
     if (!inner) break
     message = inner
   }
-  const native = message.interactiveResponseMessage?.nativeFlowResponseMessage
-    || m.msg?.nativeFlowResponseMessage
-  let id
-  if (native) {
-    try {
-      if (typeof native.paramsJson !== 'string' || native.paramsJson.length > 4096) return null
-      const params = JSON.parse(native.paramsJson)
-      id = params?.id || params?.selectedId || params?.selected_id
-    } catch { return null }
-  } else {
-    id = message.buttonsResponseMessage?.selectedButtonId
-      || message.templateButtonReplyMessage?.selectedId
-      || m.msg?.selectedButtonId || m.msg?.selectedId || m.text || m.body
-  }
-  if (typeof id !== 'string') return null
-  const match = /^futbol:([a-f0-9]{16}):([a-f0-9]{16}):([A-D])$/.exec(id.trim())
-  return match ? { sesion: match[1], ronda: match[2], letra: match[3] } : null
-}
-
-async function retirarBotones(m, ctx, actual) {
-  if (!actual?.botonesKey) return
-  const key = actual.botonesKey
-  actual.botonesKey = null
-  try { await ctx.conn.sendMessage(m.chat, { delete: key }) }
-  catch (error) { console.warn('[futbol] No se pudieron retirar los botones:', error?.message || error) }
-}
-
-async function enviarBotones(m, ctx, partida, actual) {
-  const key = { remoteJid: m.chat, fromMe: true, id: `3EB0${randomBytes(9).toString('hex').toUpperCase()}` }
-  const content = {
-    viewOnceMessage: {
-      message: {
-        messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2, messageSecret: randomBytes(32) },
-        interactiveMessage: {
-          header: { hasMediaAttachment: false },
-          body: { text: textoPregunta(actual, partida.indice, partida.total) },
-          footer: { text: '2 intentos por jugador · ❌ Te queda 1 · 🚫 Sin intentos · ✅ Acierto' },
-          nativeFlowMessage: {
-            buttons: LETRAS.map(letra => ({
-              name: 'quick_reply',
-              buttonParamsJson: JSON.stringify({
-                display_text: letra,
-                id: `futbol:${partida.id}:${actual.id}:${letra}`,
-              }),
-            })),
-          },
-        },
-      },
-    },
-  }
-  try {
-    // El Baileys incluido reconoce nativeFlowMessage y añade los nodos biz.
-    await ctx.conn.relayMessage(m.chat, content, { messageId: key.id })
-    actual.botonesKey = key
-    if (partida.cerrada || partidas.get(m.chat) !== partida || partida.actual !== actual) {
-      await retirarBotones(m, ctx, actual)
-      return false
-    }
-    return true
-  } catch (error) {
-    console.warn('[futbol] No se pudieron enviar los botones:', error?.message || error)
-    partida.avisoBotones = '⚠️ No pude enviar los botones. Responde al panel con a/b/c/d; también tienes 2 intentos.'
-    await actualizarPanel(m, ctx, partida, () => partida.textoPanel, () => partida.mencionesPanel || [])
-    return false
-  }
+  if (message.interactiveResponseMessage || message.buttonsResponseMessage || message.templateButtonReplyMessage
+    || m.msg?.nativeFlowResponseMessage || m.msg?.selectedButtonId || m.msg?.selectedId
+    || ['interactiveResponseMessage', 'buttonsResponseMessage', 'templateButtonReplyMessage'].includes(m.mtype)) return ''
+  const texto = m.text || m.body || message.conversation || message.extendedTextMessage?.text || m.msg?.text
+  return typeof texto === 'string' ? texto.trim() : ''
 }
 
 async function reaccionar(m, conn, emoji) {
@@ -262,7 +202,6 @@ function prepararPregunta(ficha) {
     opciones,
     correcta: LETRAS[opciones.indexOf(ficha.o[ficha.ok])],
     preguntadaEn: Date.now(),
-    id: randomBytes(8).toString('hex'),
     intentos: new Map(),
     mensajes: new Set(),
   }
@@ -274,7 +213,7 @@ function textoPregunta(p, indice, total) {
     ``, `🏷️ ${p.ficha.cat}`, `❓ *${p.ficha.q}*`, ``,
     ...p.opciones.map((op, i) => `${LETRAS[i]}. ${op}`),
     ``, `⏱️ *${LIMITE_SEGUNDOS} segundos*`,
-    `🎮 Pulsa A/B/C/D en la tarjeta de botones de esta pregunta.\n✍️ Si no aparecen, responde a este mensaje con a/b/c/d, sin prefijo.`,
+    `✍️ Escribe *a, b, c o d* (o el texto de la opción) directamente en el grupo. *Sin prefijo ni citar mensajes.*`,
     `🎯 ${PUNTOS_BASE} pts + hasta ${PUNTOS_BONUS} de bonus por rapidez`,
     `🥇 Gana el primero que acierte. *2 intentos por jugador en cada pregunta.*`,
   ].join('\n')
@@ -314,11 +253,9 @@ async function falloPanel(m, ctx, partida, error) {
   if (partida.errorNotificado) return
   partida.errorNotificado = true
   partida.cerrada = true
-  const anterior = partida.actual
   partida.actual = null
   partida.aceptando = false
   terminarTimers(partida)
-  await retirarBotones(m, ctx, anterior)
   await desfijarPanel(m, ctx, partida)
   if (partidas.get(m.chat) === partida) partidas.delete(m.chat)
   console.error('[futbol] No se pudo actualizar el panel:', error?.message || error)
@@ -338,7 +275,7 @@ async function actualizarPanel(m, ctx, partida, texto, menciones = [], { final =
     const nombres = typeof menciones === 'function' ? menciones() : menciones
     const ranking = final ? [] : rankingDe(partida).slice(0, 10)
     const mentions = [...new Set([...nombres, ...ranking.map(j => j.jid)])]
-    const text = final ? base : `${base}\n\n${textoMarcador(partida)}${partida.avisoFijado ? `\n\n${partida.avisoFijado}` : ''}${partida.avisoBotones ? `\n\n${partida.avisoBotones}` : ''}`
+    const text = final ? base : `${base}\n\n${textoMarcador(partida)}${partida.avisoFijado ? `\n\n${partida.avisoFijado}` : ''}`
     try {
       if (partida.panelKey) {
         await ctx.conn.sendMessage(m.chat, { text, mentions, edit: partida.panelKey })
@@ -369,12 +306,10 @@ async function tablaDe(partida, conn, m) {
 async function cerrarPartida(m, ctx, partida, motivo) {
   if (partidas.get(m.chat) !== partida || partida.cerrada) return
   partida.cerrada = true
-  const anterior = partida.actual
   partida.actual = null
   partida.aceptando = false
   terminarTimers(partida)
   partidas.delete(m.chat)
-  await retirarBotones(m, ctx, anterior)
   await desfijarPanel(m, ctx, partida)
   const ranking = rankingDe(partida)
   if (!ranking.length) {
@@ -408,7 +343,6 @@ async function agotarPregunta(m, ctx, partida, actual) {
   partida.actual = null
   partida.aceptando = false
   terminarTimers(partida)
-  await retirarBotones(m, ctx, actual)
   const publicado = await actualizarPanel(m, ctx, partida, [
     '⏰ *¡Se acabó el tiempo!*', '',
     `La respuesta era *${actual.correcta}. ${actual.opciones[LETRAS.indexOf(actual.correcta)]}*`, '',
@@ -423,15 +357,12 @@ async function siguientePregunta(m, ctx, partida) {
 
   const actual = prepararPregunta(partida.preguntas[partida.indice - 1])
   partida.actual = actual
-  partida.avisoBotones = ''
   partida.aceptando = false
   const publicado = await actualizarPanel(m, ctx, partida, textoPregunta(actual, partida.indice, partida.total), [], {
     vigente: () => partida.actual === actual,
   })
   if (!publicado || partidas.get(m.chat) !== partida || partida.actual !== actual || partida.cerrada) return
   await fijarPanel(m, ctx, partida)
-  if (partida.cerrada || partidas.get(m.chat) !== partida || partida.actual !== actual) return
-  await enviarBotones(m, ctx, partida, actual)
   if (partida.cerrada || partidas.get(m.chat) !== partida || partida.actual !== actual) return
   // El reloj arranca DESPUÉS de enviar/editar, no durante la subida del mensaje.
   actual.preguntadaEn = Date.now()
@@ -454,7 +385,7 @@ async function avisarTiempo(m, ctx, partida, actual) {
   const botJid = ctx.conn.user?.jid || ctx.conn.user?.id
   if (botJid) contextInfo.participant = botJid
   actual.avisoKey = await enviarTexto(ctx.conn, m.chat,
-    `⏳⚽ ¡Quedan *${AVISO_EN_SEGUNDOS} segundos* para la pregunta ${partida.indice}/${partida.total}!\nPulsa los botones de esta pregunta o responde al panel con *a, b, c o d*. Máximo *2 intentos*.`, contextInfo)
+    `⏳⚽ ¡Quedan *${AVISO_EN_SEGUNDOS} segundos* para la pregunta ${partida.indice}/${partida.total}!\nEscribe *a, b, c o d* directamente en el grupo, *sin prefijo ni citar*. Máximo *2 intentos*.`, contextInfo)
 }
 
 /* ─────────────────────────── RESPUESTA SIN PREFIJO ─────────────────────────── */
@@ -463,23 +394,17 @@ async function responder(m, ctx, partida, entrada) {
   const actual = partida.actual
   if (!actual || !partida.aceptando || partida.cerrada || partidas.get(m.chat) !== partida) return
   if (!m.isGroup || !mismaConexion(ctx.conn, partida.conn) || !m.sender) return
-  const boton = botonDe(m)
-  if (boton) {
-    if (boton.sesion !== partida.id || boton.ronda !== actual.id) return
-    const quoted = citaDe(m)
-    if (quoted.chat && quoted.chat !== m.chat) return
-    if (quoted.id && ![actual.botonesKey?.id, partida.panelKey?.id, actual.avisoKey?.id].includes(quoted.id)) return
-  } else {
-    const quoted = citaDe(m)
-    const permitidas = [partida.panelKey?.id, actual.avisoKey?.id, actual.botonesKey?.id].filter(Boolean)
-    if (!quoted.id || !permitidas.includes(quoted.id)) return
-    if (quoted.chat && quoted.chat !== m.chat) return
-  }
+  // No hace falta citar. Si se cita algo, ignorar conversaciones ajenas al
+  // panel/aviso para no contar una letra dirigida a otro mensaje del grupo.
+  const quoted = citaDe(m)
+  const permitidas = [partida.panelKey?.id, actual.avisoKey?.id].filter(Boolean)
+  if (quoted.id && !permitidas.includes(quoted.id)) return
+  if (quoted.chat && quoted.chat !== m.chat) return
   if (Date.now() - actual.preguntadaEn >= LIMITE_SEGUNDOS * 1000) {
     return agotarPregunta(m, ctx, partida, actual)
   }
   const jugador = m.sender
-  const texto = boton?.letra || String(entrada || '').trim()
+  const texto = String(entrada || '').trim()
   if (/^[#!./]/.test(texto)) return
   const letra = /^[a-d]$/i.exec(texto)
   let elegida
@@ -518,7 +443,6 @@ async function responder(m, ctx, partida, entrada) {
   const ganados = puntosPor(segundos)
   j.puntos += ganados
   j.aciertos++
-  await retirarBotones(m, ctx, actual)
   await reaccionar(m, ctx.conn, '✅')
   const publicado = await actualizarPanel(m, ctx, partida, [
     `⚽🎉 *¡GOL de @${jugador.split('@')[0]}!*`, '',
@@ -555,7 +479,6 @@ let handler = async (m, ctx) => {
     if (!Number.isFinite(total) || total < 1) total = 10
     total = Math.min(total, MAX_PREGUNTAS, BANCO.length)
     const nueva = {
-      id: randomBytes(8).toString('hex'),
       preguntas: barajar(BANCO).slice(0, total), total, indice: 1,
       actual: null, jugadores: {}, creador: m.sender, conn, responder,
       timer: null, aviso: null, siguiente: null,
@@ -568,11 +491,11 @@ let handler = async (m, ctx) => {
         '⚽🏆 *¡ARRANCA ADIVINA EL JUGADOR!*', '',
         `🎯 ${total} preguntas sobre los grandes del fútbol`,
         `⏱️ ${LIMITE_SEGUNDOS} segundos por pregunta`,
-        '🎮 Pulsa los botones *A*, *B*, *C* o *D* de cada pregunta.',
+        '✍️ Escribe *a*, *b*, *c* o *d* directamente en el grupo.',
         '🎯 Tienes *2 intentos por pregunta*. Gana el primero que acierte.',
-        '✍️ Si no ves los botones, usa *Responder* sobre el panel con a/b/c/d, sin prefijo.',
+        'No necesitas prefijo, botones ni citar ningún mensaje.',
         'También puedes responder con el texto exacto de la opción.',
-        '🔄 El panel se edita; la tarjeta de botones se retira al terminar cada pregunta.',
+        '🔄 El mismo panel se irá editando durante la partida.',
         '📌 Intentaré fijarlo en el grupo y lo desfijaré al terminar.',
         '⏳ Enviaré un aviso aparte cuando queden 10 segundos.',
         '✅ Acierto · ❌ Te queda 1 intento · 🚫 Sin intentos hasta la próxima pregunta.',
@@ -590,8 +513,8 @@ let handler = async (m, ctx) => {
     `Trivial de fútbol con 4 opciones y ${LIMITE_SEGUNDOS} segundos por pregunta.`, '',
     '*.futbol* — partida de 10 preguntas',
     `*.futbol 15* — partida de 15 (máx. ${MAX_PREGUNTAS})`,
-    'Pulsa A/B/C/D en la tarjeta interactiva. Tienes 2 intentos por pregunta.',
-    'Si no ves los botones, responde al mensaje del panel con a/b/c/d, sin prefijo.',
+    'Escribe a/b/c/d o el texto exacto de la opción directamente en el grupo.',
+    'Sin prefijo ni citar mensajes. Tienes 2 intentos por pregunta.',
     'Las preguntas y el resultado se editan en el panel fijado.',
     'A los 10 segundos restantes llega un aviso aparte. ✅ Acierto · ❌ Queda 1 intento · 🚫 Sin intentos.',
     '*.marcador* — actualiza la tabla en el panel',
@@ -607,5 +530,5 @@ handler.tags = ['game']
 handler.command = ['futbol', 'futbolito', 'adivinafutbol', 'adivinajugador', 'quienjugador', 'trivalfutbol', 'marcador', 'terminar', 'finpartido', 'futbolayuda']
 handler.group = true
 
-export { BANCO, partidas, barajar, normalizar, prepararPregunta, puntosPor, textoPregunta, siguientePregunta, cerrarPartida, responder, citaDe, botonDe, MAX_INTENTOS, LIMITE_SEGUNDOS, PUNTOS_BASE, PUNTOS_BONUS, MAX_PREGUNTAS }
+export { BANCO, partidas, barajar, normalizar, prepararPregunta, puntosPor, textoPregunta, siguientePregunta, cerrarPartida, responder, citaDe, textoDeRespuesta, MAX_INTENTOS, LIMITE_SEGUNDOS, PUNTOS_BASE, PUNTOS_BONUS, MAX_PREGUNTAS }
 export default handler
