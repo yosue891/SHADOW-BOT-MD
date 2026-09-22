@@ -66,6 +66,11 @@ gohan: { url: "https://api-gohan-v1.onrender.com", key: null }
 }
 
 
+// API key para el comando reactwa (reacción en canales de WhatsApp)
+// Obtén tu API key en: https://reaction-whatsapp.edgeone.dev/
+global.reactApiKey = "" // Ejemplo: "API_KEY_DEL_PAIRING"
+
+
 let file = fileURLToPath(import.meta.url)
 watchFile(file, () => {
 unwatchFile(file)
