@@ -3,25 +3,28 @@ import chalk from "chalk"
 import { fileURLToPath } from "url"
 import fs from "fs"
 
-global.botNumber = "" 
+
+global.botNumber = "573145976430" 
+
 
 global.owner = [
 ["584242773183", "yosue </>", true],
+["584241819270", "yosue"],
 ["51921826291"],
 ["523328418129"],
-["5216242255295"],
-["12602764655"],
 ["573133374132"],
 ["5491156178758"],
-["51970334698"],
+["584248272650"],
 ["51900373696"],
 ["50498273976"],
 ["584125877491", "dvwilker", true]
 ]
 
+
 global.mods = []
 global.suittag = ["584242773183"] 
 global.prems = []
+
 
 
 global.libreria = "Baileys Multi Device"
@@ -30,6 +33,7 @@ global.nameqr = "ShadowBot"
 global.sessions = "Sessions/Principal"
 global.jadi = "Sessions/SubBot"
 global.MichiJadibts = false
+
 
 global.multiplier = 1
 global.botname = "Shadow-BOT-MD"
@@ -46,6 +50,7 @@ global.banner = "https://i.ibb.co/3NfYh9k/default-avatar.png"
 global.catalogo = fs.readFileSync('./lib/catalogo.jpg')
 
 
+
 global.group = "https://chat.whatsapp.com/D80dadzwRq4LQqFGUntZfK?mode=ems_copy_t"
 global.community = "https://chat.whatsapp.com/KCIXMcV2YO9ElYbbmbAeo1"
 global.channel = "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
@@ -54,6 +59,7 @@ global.gmail = "minexdt@gmail.com"
 global.ch = {
 ch1: "120363293893278236@newsletter"
 }
+
 
 
 global.APIs = {
