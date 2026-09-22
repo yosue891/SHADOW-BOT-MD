@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import handler, {
   BANCO, partidas, barajar, normalizar, prepararPregunta, puntosPor,
-  textoPregunta, LIMITE_SEGUNDOS, PUNTOS_BASE, PUNTOS_BONUS, MAX_PREGUNTAS,
+  textoPregunta, LIMITE_SEGUNDOS, PUNTOS_BASE, PUNTOS_BONUS, MAX_PREGUNTAS, botonDe, MAX_INTENTOS,
 } from '../plugins/fun/fun-adivinafutbol.js'
 import respuestas from '../plugins/fun/fun-adivinafutbol-respuestas.js'
 
@@ -27,7 +27,7 @@ afterEach(() => {
 })
 
 function crearCtx(chat = GRUPO) {
-  const sent = { nuevos: [], edits: [], reactions: [], pins: [] }
+  const sent = { nuevos: [], edits: [], reactions: [], pins: [], botones: [], borrados: [] }
   const conn = {
     getName: jid => NOMBRES[jid] || 'Anónimo',
     async reply(chat, text, quoted, opts) {
@@ -37,12 +37,23 @@ function crearCtx(chat = GRUPO) {
     },
     async relayMessage(chat, message, options) {
       if (this.fallarEnvio) throw Error('fallo de transporte simulado')
+      if (message.viewOnceMessage?.message?.interactiveMessage) {
+        if (this.fallarBotones) throw Error('fallo botones')
+        const key = { id: options.messageId, remoteJid: chat, fromMe: true }
+        sent.botones.push({ message, options, key })
+        return
+      }
       assert.ok(message.extendedTextMessage, 'panel nativo, sin variante setreply')
       const key = { id: options.messageId, remoteJid: chat, fromMe: true }
       sent.nuevos.push({ text: message.extendedTextMessage.text,
         mentions: message.extendedTextMessage.contextInfo.mentionedJid, key })
     },
     async sendMessage(chat, content) {
+      if (content.delete) {
+        if (this.fallarBorrado) throw Error('fallo borrar botones')
+        sent.borrados.push(content.delete)
+        return {}
+      }
       if (content.pin) {
         if (this.fallarPin) throw Error('sin permisos para fijar')
         sent.pins.push(content)
@@ -206,7 +217,7 @@ test('normalizar quita tildes, mayúsculas y signos', () => {
 test('arranca con instrucciones y panel; conserva key y arranca reloj al publicarse', async t => {
   const g = await iniciar(t)
   assert.equal(g.sent.nuevos.length, 2)
-  assert.match(g.sent.nuevos[0].text, /Usa \*Responder\*/)
+  assert.match(g.sent.nuevos[0].text, /Pulsa los botones/)
   assert.match(ultimo(g), /pregunta 1\/10/)
   assert.equal(g.p.panelKey.id, g.sent.nuevos[1].key.id)
   assert.equal(g.p.actual.preguntadaEn, Date.now())
@@ -248,7 +259,7 @@ test('letras con prefijo y ruido no consumen intento; .c/.d no son comandos del 
   const g = await iniciar(t)
   for (const text of ['.a', '.b', '.c', '.d', '!a', '/b', '#c', 'a hola', 'hola']) await contestar(g, text)
   assert.deepEqual(g.p.jugadores, {})
-  assert.equal(g.p.actual.respondieron.size, 0)
+  assert.equal(g.p.actual.intentos.size, 0)
   await contestar(g, `  ${g.p.actual.correcta.toLowerCase()}  `)
   assert.equal(g.p.jugadores[P1].aciertos, 1)
 })
@@ -276,16 +287,17 @@ test('otro subbot no puede puntuar ni editar la partida del socket creador', asy
   assert.equal(ajeno.sent.edits.length, 0)
 })
 
-test('error solo reacciona; no hay segundo intento ni mensajes nuevos', async t => {
+test('dos errores agotan oportunidades; un tercer intento correcto no puntúa', async t => {
   const g = await iniciar(t)
   const correcta = g.p.actual.correcta
-  const mala = ['A', 'B', 'C', 'D'].find(l => l !== correcta)
-  await contestar(g, mala)
+  const malas = ['A', 'B', 'C', 'D'].filter(l => l !== correcta)
+  await contestar(g, malas[0])
+  await contestar(g, malas[1])
   await contestar(g, correcta)
-  assert.deepEqual(g.sent.reactions, ['❌', '🔁'])
-  assert.equal(g.p.jugadores[P1].fallos, 1)
+  assert.deepEqual(g.sent.reactions, ['❌', '🚫', '🚫'])
+  assert.equal(g.p.actual.intentos.get(P1), 2)
+  assert.equal(g.p.jugadores[P1].fallos, 2)
   assert.equal(g.p.jugadores[P1].puntos, 0)
-  assert.equal(g.sent.nuevos.length, 2)
   assert.equal(g.sent.edits.length, 0)
 })
 
@@ -394,7 +406,7 @@ test('fin sin aciertos se edita y se limpian temporizadores', async t => {
   assert.equal(g.sent.nuevos.length, 3)
 })
 
-test('partida completa de 20 preguntas: solo 2 mensajes originales', async t => {
+test('20 preguntas: dos mensajes base, una tarjeta por ronda y retirada de las 20', async t => {
   const g = await iniciar(t, 20)
   for (let i = 0; i < 20; i++) {
     await contestar(g, g.p.actual.correcta)
@@ -403,6 +415,8 @@ test('partida completa de 20 preguntas: solo 2 mensajes originales', async t => 
   assert.match(ultimo(g), /FIN DEL PARTIDO/)
   assert.equal(g.p.jugadores[P1].aciertos, 20)
   assert.equal(g.sent.nuevos.length, 2)
+  assert.equal(g.sent.botones.length, 20)
+  assert.equal(g.sent.borrados.length, 20)
   assert.ok(g.sent.edits.every(e => e.edit.id === g.p.panelKey.id))
 })
 
@@ -475,7 +489,7 @@ test('sin partida: letras se ignoran, comandos informan y ayuda explica las cita
   assert.match(ultimo(g), /No hay ningún partido/)
   await comando(g, 'futbolayuda')
   assert.match(ultimo(g), /sin prefijo/)
-  assert.match(ultimo(g), /Responde al mensaje/)
+  assert.match(ultimo(g), /responde al mensaje/)
 })
 
 test('marcador solicitado durante un gol lento no restaura la pregunta anterior', async t => {
@@ -607,7 +621,7 @@ test('fallar el envío del aviso no detiene la pregunta ni el timeout', async t 
   const g = await iniciar(t)
   const relay = g.conn.relayMessage.bind(g.conn)
   g.conn.relayMessage = async (chat, message, opts) => {
-    if (message.extendedTextMessage.text.includes('¡Quedan')) throw Error('fallo aviso')
+    if (message.extendedTextMessage?.text?.includes('¡Quedan')) throw Error('fallo aviso')
     return relay(chat, message, opts)
   }
   await avanzar(t, 30000)
@@ -644,4 +658,212 @@ test('comando inicial reacciona con fútbol', async t => {
   g.m.react = async emoji => g.sent.reactions.push(emoji)
   await handler(g.m, g.ctx)
   assert.deepEqual(g.sent.reactions, ['⚽'])
+})
+
+function idBoton(g, letra, ronda = g.p.actual) {
+  return `futbol:${g.p.id}:${ronda.id}:${letra}`
+}
+function pulsacion(g, letra, overrides = {}) {
+  return {
+    ...g.m, text: '', quoted: undefined,
+    key: { id: `click-${++secuencia}`, remoteJid: g.m.chat, participant: P1 },
+    message: { interactiveResponseMessage: { nativeFlowResponseMessage: {
+      name: 'quick_reply', paramsJson: JSON.stringify({ id: idBoton(g, letra) }),
+    } } },
+    react: async emoji => g.sent.reactions.push(emoji), ...overrides,
+  }
+}
+async function pulsar(g, letra, overrides = {}) {
+  return respuestas.before(pulsacion(g, letra, overrides), g.ctx)
+}
+
+test('tarjeta nativa tiene A/B/C/D y IDs únicos por pregunta y partida', async t => {
+  const g = await iniciar(t)
+  assert.equal(MAX_INTENTOS, 2)
+  const card = g.sent.botones[0].message.viewOnceMessage.message.interactiveMessage
+  const buttons = card.nativeFlowMessage.buttons
+  assert.equal(buttons.length, 4)
+  assert.deepEqual(buttons.map(b => JSON.parse(b.buttonParamsJson).display_text), ['A', 'B', 'C', 'D'])
+  assert.ok(buttons.every(b => b.name === 'quick_reply'))
+  assert.equal(new Set(buttons.map(b => JSON.parse(b.buttonParamsJson).id)).size, 4)
+  assert.match(card.footer.text, /2 intentos/)
+  assert.equal(g.sent.pins[0].pin.id, g.p.panelKey.id)
+  assert.notEqual(g.p.actual.botonesKey.id, g.p.panelKey.id)
+})
+
+test('pulsar sin texto ni cita entra por before y suma puntos', async t => {
+  const g = await iniciar(t)
+  await pulsar(g, g.p.actual.correcta)
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
+  assert.deepEqual(g.sent.reactions, ['✅'])
+  assert.equal(g.sent.borrados.length, 1)
+})
+
+test('primera pulsación falla y segunda acierta: dos oportunidades reales', async t => {
+  const g = await iniciar(t)
+  const p = g.p.actual
+  const mala = ['A', 'B', 'C', 'D'].find(x => x !== p.correcta)
+  await pulsar(g, mala)
+  assert.equal(p.intentos.get(P1), 1)
+  assert.equal(g.sent.borrados.length, 0, 'la tarjeta queda para el segundo intento')
+  await pulsar(g, p.correcta)
+  assert.equal(p.intentos.get(P1), 2)
+  assert.equal(g.p.jugadores[P1].fallos, 1)
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
+  assert.deepEqual(g.sent.reactions, ['❌', '✅'])
+})
+
+test('dos botones erróneos bloquean tercer clic incluso si sería correcto', async t => {
+  const g = await iniciar(t)
+  const p = g.p.actual
+  const malas = ['A', 'B', 'C', 'D'].filter(x => x !== p.correcta)
+  await pulsar(g, malas[0]); await pulsar(g, malas[1]); await pulsar(g, p.correcta)
+  assert.equal(p.intentos.get(P1), 2)
+  assert.equal(g.p.jugadores[P1].aciertos, 0)
+  assert.equal(g.p.jugadores[P1].fallos, 2)
+  assert.deepEqual(g.sent.reactions, ['❌', '🚫', '🚫'])
+})
+
+test('tres clics simultáneos no sobrepasan el límite ni puntúan el tercero', async t => {
+  const g = await iniciar(t)
+  const p = g.p.actual
+  const malas = ['A', 'B', 'C', 'D'].filter(x => x !== p.correcta)
+  await Promise.all([pulsar(g, malas[0]), pulsar(g, malas[1]), pulsar(g, p.correcta)])
+  assert.equal(p.intentos.get(P1), 2)
+  assert.equal(g.p.jugadores[P1].puntos, 0)
+})
+
+test('texto y botones comparten el mismo contador de dos intentos', async t => {
+  const g = await iniciar(t)
+  const p = g.p.actual
+  const malas = ['A', 'B', 'C', 'D'].filter(x => x !== p.correcta)
+  await contestar(g, malas[0]); await pulsar(g, malas[1]); await contestar(g, p.correcta)
+  assert.equal(p.intentos.get(P1), 2)
+  assert.equal(g.p.jugadores[P1].aciertos, 0)
+})
+
+test('cada jugador dispone de dos intentos independientes', async t => {
+  const g = await iniciar(t)
+  const p = g.p.actual
+  const mala = ['A', 'B', 'C', 'D'].find(x => x !== p.correcta)
+  await pulsar(g, mala); await pulsar(g, mala)
+  await pulsar(g, p.correcta, { sender: P2 })
+  assert.equal(p.intentos.get(P1), 2)
+  assert.equal(p.intentos.get(P2), 1)
+  assert.equal(g.p.jugadores[P2].aciertos, 1)
+})
+
+test('reintentos se reinician en la siguiente pregunta', async t => {
+  const g = await iniciar(t)
+  const p = g.p.actual
+  const mala = ['A', 'B', 'C', 'D'].find(x => x !== p.correcta)
+  await pulsar(g, mala); await pulsar(g, mala)
+  await avanzar(t, 40000); await avanzar(t, 2500)
+  assert.equal(g.p.actual.intentos.size, 0)
+  await pulsar(g, g.p.actual.correcta)
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
+})
+
+test('reentrega del mismo mensaje no gasta dos intentos', async t => {
+  const g = await iniciar(t)
+  const p = g.p.actual
+  const mala = ['A', 'B', 'C', 'D'].find(x => x !== p.correcta)
+  const m = pulsacion(g, mala)
+  await respuestas.before(m, g.ctx)
+  await respuestas.before(m, g.ctx)
+  assert.equal(p.intentos.get(P1), 1)
+  assert.equal(g.p.jugadores[P1].fallos, 1)
+  assert.deepEqual(g.sent.reactions, ['❌'])
+})
+
+test('IDs de otra pregunta o de una partida anterior no consumen intentos', async t => {
+  const g = await iniciar(t)
+  const anterior = pulsacion(g, g.p.actual.correcta)
+  await respuestas.before(anterior, g.ctx)
+  await avanzar(t, 2500)
+  await respuestas.before({ ...anterior, key: { id: 'OLD-ROUND' } }, g.ctx)
+  assert.equal(g.p.actual.intentos.size, 0)
+  const otraPartida = pulsacion(g, g.p.actual.correcta)
+  await comando(g, 'terminar'); await comando(g, 'futbol')
+  g.p = partidas.get(GRUPO)
+  await respuestas.before(otraPartida, g.ctx)
+  assert.equal(g.p.actual.intentos.size, 0)
+})
+
+test('un botón del otro grupo o del otro bot se ignora', async t => {
+  const g = await iniciar(t)
+  const m = pulsacion(g, g.p.actual.correcta)
+  const otro = crearCtx('otro@g.us')
+  await handler(otro.m, otro.ctx)
+  otro.p = partidas.get(otro.m.chat)
+  await respuestas.before({ ...m, chat: otro.m.chat }, otro.ctx)
+  assert.equal(otro.p.actual.intentos.size, 0)
+  await respuestas.before(m, { ...g.ctx, conn: otro.conn })
+  assert.equal(g.p.actual.intentos.size, 0)
+})
+
+test('parser soporta nativeFlow, m.msg, ID en texto, botones legacy y plantillas', async t => {
+  const g = await iniciar(t)
+  const id = idBoton(g, 'A')
+  const native = { nativeFlowResponseMessage: { paramsJson: JSON.stringify({ id }) } }
+  const formas = [
+    { message: { interactiveResponseMessage: native } },
+    { msg: native }, { text: id }, { body: id },
+    { message: { buttonsResponseMessage: { selectedButtonId: id } } },
+    { message: { templateButtonReplyMessage: { selectedId: id } } },
+    { message: { ephemeralMessage: { message: { interactiveResponseMessage: native } } } },
+    { message: { viewOnceMessage: { message: { interactiveResponseMessage: native } } } },
+  ]
+  for (const m of formas) assert.deepEqual(botonDe(m), { sesion: g.p.id, ronda: g.p.actual.id, letra: 'A' })
+})
+
+test('IDs inválidos y JSON roto se ignoran sin gastar oportunidades', async t => {
+  const g = await iniciar(t)
+  const formas = [
+    { text: 'futbol:foo:bar:A' }, { text: `${idBoton(g, 'A')}basura` },
+    { message: { interactiveResponseMessage: { nativeFlowResponseMessage: { paramsJson: '{mal' } } } },
+    { message: { interactiveResponseMessage: { nativeFlowResponseMessage: { paramsJson: 'x'.repeat(5000) } } } },
+    { message: { interactiveResponseMessage: { nativeFlowResponseMessage: { paramsJson: 'null' } } } },
+  ]
+  for (const m of formas) {
+    assert.equal(botonDe(m), null)
+    await respuestas.before({ ...g.m, text: '', quoted: undefined, ...m }, g.ctx)
+  }
+  assert.equal(g.p.actual.intentos.size, 0)
+})
+
+test('se retiran botones al agotarse el tiempo o al terminar manualmente', async t => {
+  const g = await iniciar(t)
+  const primera = g.p.actual.botonesKey.id
+  await avanzar(t, 40000)
+  assert.equal(g.sent.borrados[0].id, primera)
+  await avanzar(t, 2500)
+  const segunda = g.p.actual.botonesKey.id
+  await comando(g, 'terminar')
+  assert.equal(g.sent.borrados[1].id, segunda)
+})
+
+test('fallar el borrado no habilita botones de una pregunta cerrada', async t => {
+  const g = await iniciar(t)
+  g.conn.fallarBorrado = true
+  const m = pulsacion(g, g.p.actual.correcta)
+  await respuestas.before(m, g.ctx)
+  await avanzar(t, 2500)
+  await respuestas.before({ ...m, key: { id: 'ANTIGUO' } }, g.ctx)
+  assert.equal(g.p.actual.intentos.size, 0)
+  assert.equal(g.p.indice, 2)
+})
+
+test('fallo de envío interactivo mantiene la partida y respuesta de texto con 2 intentos', async t => {
+  reloj(t)
+  const g = crearCtx()
+  g.conn.fallarBotones = true
+  await handler(g.m, g.ctx)
+  g.p = partidas.get(GRUPO)
+  assert.ok(g.p.aceptando)
+  assert.match(ultimo(g), /No pude enviar los botones/)
+  const mala = ['A', 'B', 'C', 'D'].find(x => x !== g.p.actual.correcta)
+  await contestar(g, mala)
+  await contestar(g, g.p.actual.correcta)
+  assert.equal(g.p.jugadores[P1].aciertos, 1)
 })
