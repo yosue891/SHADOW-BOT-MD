@@ -1,5 +1,5 @@
 import { prepareWAMessageMedia, generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
-import { resolverObjetivo, nombreSeguro, resolveToRealJid, jidParaTag } from '../../lib/anime-mention.js'
+import { resolverObjetivo, nombreSeguro, resolveToRealJid, jidParaTag, normalizeJid } from '../../lib/anime-mention.js'
 import { enviarReaccionAnime } from '../../lib/anime-media.js'
 
 // Videos del matrimonio (tipo GIF)
@@ -15,6 +15,74 @@ const pick = (arr) => arr[Math.floor(Math.random() * arr.length)]
 const num = (jid) => String(jid || '').split('@')[0].replace(/[^0-9]/g, '')
 // Token de mención (@userpart): el cliente lo pinta como tag con el nombre
 const part = (jid) => String(jid || '').split('@')[0]
+
+// ── Guardas de botones: solo la persona propuesta puede responder ─────
+// Los botones quick_reply envían texto, por lo que CUALQUIERA del grupo
+// podía presionarlos. Se registra cada propuesta (con su target) y se
+// verifica que el que presiona SEA la persona a la que se le propuso,
+// dentro de la ventana de 50 segundos.
+const TTL_PROPOSAL_MS = 50000
+
+const pendientesMarriage = () => {
+  if (!global.pendingMarries) global.pendingMarries = new Map()
+  return global.pendingMarries
+}
+
+const pendientesDivorcio = () => {
+  if (!global.pendingDivorces) global.pendingDivorces = new Map()
+  return global.pendingDivorces
+}
+
+// Identidades equivalentes de un JID (normalizado, formato del grupo y
+// dígitos) para comparar a pesar de variantes LID/PN.
+const idsDePersona = (conn, participants, groupMetadata, jid) => {
+  const n = normalizeJid(jid, conn)
+  return new Set([n, jidParaTag(jid, conn, participants, groupMetadata), num(n)].filter(Boolean))
+}
+
+const mismaPersona = (a, b, conn, participants, groupMetadata) => {
+  const A = idsDePersona(conn, participants, groupMetadata, a)
+  const B = idsDePersona(conn, participants, groupMetadata, b)
+  return [...A].some((x) => B.has(x))
+}
+
+/**
+ * Busca la propuesta activa para `suitorId` en este chat y verifica que
+ * quien presionó el botón sea la persona propuesta (target).
+ * @returns {{ok:true} | {ok:false, motivo:'inactive'|'locked'}}
+ */
+const validarRespuestaPropuesta = (m, conn, participants, groupMetadata, userId, suitorId) => {
+  const mapa = pendientesMarriage()
+  const presser = new Set()
+  for (const j of [userId, m?.sender]) {
+    for (const x of idsDePersona(conn, participants, groupMetadata, j)) presser.add(x)
+  }
+
+  let activa = null
+  for (const [key, pend] of mapa) {
+    if (pend.chat !== m.chat) continue
+    if (!mismaPersona(pend.suitor, suitorId, conn, participants, groupMetadata)) continue
+    if (Date.now() - pend.ts > TTL_PROPOSAL_MS) {
+      mapa.delete(key)
+      continue
+    }
+    activa = { key, pend }
+    break
+  }
+
+  if (!activa) return { ok: false, motivo: 'inactive' }
+
+  const targetIds = new Set()
+  for (const j of [activa.pend.target, activa.pend.who]) {
+    for (const x of idsDePersona(conn, participants, groupMetadata, j)) targetIds.add(x)
+  }
+  if (![...presser].some((x) => targetIds.has(x))) return { ok: false, motivo: 'locked' }
+
+  mapa.delete(activa.key)
+  return { ok: true }
+}
+
+export const __testMarry = { validarRespuestaPropuesta, idsDePersona, mismaPersona, pendientesMarriage, TTL_PROPOSAL_MS }
 
 /**
  * Envía un mensaje interactivo con video tipo GIF en el header + botones
@@ -109,10 +177,21 @@ const handler = async (m, { conn, command, usedPrefix, text, args, participants,
       { mentions: [partnerTag] }
     )
 
+    // Solo quien pidió el divorcio podrá confirmarlo
+    pendientesDivorcio().set(`${m.chat}|${userId}`, Date.now())
+
     return
   }
 
   if (command === 'confirmdivorce') {
+    // 🔒 Solo quien pidió el divorcio puede confirmar (y por poco tiempo)
+    const claveDiv = `${m.chat}|${userId}`
+    const tDiv = pendientesDivorcio().get(claveDiv)
+    if (!tDiv || Date.now() - tDiv > 120000) {
+      return m.reply('⌛ Esa confirmación ya no está activa. Usa #divorce de nuevo.')
+    }
+    pendientesDivorcio().delete(claveDiv)
+
     const partnerRaw = marryOf(userId, m.sender)
     if (!partnerRaw) return
 
@@ -212,7 +291,18 @@ const handler = async (m, { conn, command, usedPrefix, text, args, participants,
       mentions: [userTag, partnerTag]
     })
 
+    // Registrar la propuesta: solo la persona propuesta podrá responder
+    pendientesMarriage().set(`${m.chat}|${userId}|${partnerId}`, {
+      chat: m.chat,
+      suitor: userId,
+      target: partnerId,
+      who,
+      ts: Date.now()
+    })
+
     setTimeout(async () => {
+      const clave = `${m.chat}|${userId}|${partnerId}`
+      if (pendientesMarriage().has(clave)) pendientesMarriage().delete(clave)
       if (users[userId] && !users[userId].marry) {
         const nameSuitor2 = await nombreSeguro(conn, userId)
         const userTagExp = jidParaTag(userId, conn, participants, groupMetadata)
@@ -240,6 +330,16 @@ const handler = async (m, { conn, command, usedPrefix, text, args, participants,
     if (!suitorRaw) return
 
     const suitorId = resolveJid(suitorRaw)
+
+    // 🔒 Solo la persona a la que se le propuso puede aceptar
+    const validacion = validarRespuestaPropuesta(m, conn, participants, groupMetadata, userId, suitorId)
+    if (!validacion.ok) {
+      return m.reply(
+        validacion.motivo === 'locked'
+          ? '🔒 Solo la persona propuesta puede aceptar o rechazar esta propuesta.'
+          : '⌛ Esta propuesta ya no está activa.'
+      )
+    }
 
     if (!users[suitorId]) users[suitorId] = {}
 
@@ -278,6 +378,16 @@ const handler = async (m, { conn, command, usedPrefix, text, args, participants,
     if (!suitorRaw) return
 
     const suitorId = resolveJid(suitorRaw)
+
+    // 🔒 Solo la persona a la que se le propuso puede rechazar
+    const validacion = validarRespuestaPropuesta(m, conn, participants, groupMetadata, userId, suitorId)
+    if (!validacion.ok) {
+      return m.reply(
+        validacion.motivo === 'locked'
+          ? '🔒 Solo la persona propuesta puede aceptar o rechazar esta propuesta.'
+          : '⌛ Esta propuesta ya no está activa.'
+      )
+    }
 
     const nameSuitor = await nombreSeguro(conn, suitorId)
     const nameTarget = await nombreSeguro(conn, userId)
