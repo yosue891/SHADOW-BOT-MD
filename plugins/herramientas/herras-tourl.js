@@ -481,38 +481,131 @@ function getFileExtension(mimetype) {
   return mimeMap[mimetype] || "bin"
 }
 
+// Tipos de mensaje que contienen media descargable
+const MEDIA_TYPES = new Set([
+  "imageMessage",
+  "videoMessage",
+  "audioMessage",
+  "stickerMessage",
+  "documentMessage",
+])
+
+// Envoltorios que pueden contener la media adentro
+const MEDIA_WRAPPERS = [
+  "viewOnceMessage",
+  "viewOnceMessageV2",
+  "viewOnceMessageV2Extension",
+  "ephemeralMessage",
+  "documentWithCaptionMessage",
+  "editedMessage",
+]
+
+// Desenvuelve envoltorios (viewOnce / ephemeral / documentWithCaption / edited)
+// y devuelve { type, content } del primer media encontrado, o null si no hay.
+function extractMediaInfo(message) {
+  if (!message || typeof message !== "object") return null
+  let msg = message
+  for (let i = 0; i < 6; i++) {
+    const keys = Object.keys(msg || {})
+    const type = keys.find((k) => MEDIA_TYPES.has(k))
+    if (type) return { type, content: msg[type] }
+    const wrapper = keys.find((k) => MEDIA_WRAPPERS.includes(k))
+    if (!wrapper) return null
+    msg = msg[wrapper]?.message || msg[wrapper] || null
+  }
+  return null
+}
+
 let handler = async (m, { conn, usedPrefix, command }) => {
   let media = null
   let mimetype = null
   let filename = "file"
 
-  const hasQuoted = m.quoted && m.quoted.message && Object.keys(m.quoted.message).length
+  const q = m.quoted
 
-  if (hasQuoted) {
-    const type = getContentType(m.quoted.message)
-    if (!type || type === "conversation" || type === "extendedTextMessage") {
-      return m.reply("⚠️ Responde a un archivo (imagen / video / audio / documento).")
+  if (q) {
+    /* Este bot (lib/simple.js) expone en quoted: mtype, mediaType, mediaMessage,
+     * vM y download(). Otros serializadores usan quoted.message — se soportan ambos. */
+    let type = null
+    let content = null
+
+    if (q.mediaType && q.mediaMessage) {
+      // Serializador simple.js (el de este bot): ya desenvuelve viewOnce/ephemeral
+      type = q.mediaType
+      content = q.mediaMessage[type]
+    } else if (q.message) {
+      // Estilo ourin: quoted.message contiene el mensaje citado crudo
+      const info = extractMediaInfo(q.message)
+      type = info?.type || getContentType(q.message) || null
+      content = info?.content || (type ? q.message[type] : null)
+    } else {
+      // Último recurso: el propio objeto quoted (que ES el contenido) o su mtype
+      type = q.mtype || null
+      content = q.mimetype ? q : null
+    }
+
+    if (!type || !MEDIA_TYPES.has(type)) {
+      return m.reply(
+        "⚠️ Responde a un archivo (imagen / video / audio / sticker / documento).",
+      )
     }
 
     try {
-      try { media = await m.quoted.download() } catch { media = null }
+      // 1) download() del serializador (conn.downloadM)
+      try { media = await q.download() } catch { media = null }
+
+      // 2) downloadMediaMessage con el WebMessageInfo del citado (vM)
       if (!media || !media.length) {
-        media = await downloadMediaMessage(
-          { key: m.quoted.key, message: m.quoted.message },
-          "buffer",
-          {},
-        )
+        try {
+          media = q.vM ? await downloadMediaMessage(q.vM, "buffer", {}) : null
+        } catch { media = null }
       }
-      const content = m.quoted.message[type]
-      mimetype = content?.mimetype || "application/octet-stream"
-      filename = content?.fileName || `file.${getFileExtension(mimetype)}`
+
+      // 3) downloadMediaMessage con el mensaje crudo (estilo ourin)
+      if (!media || !media.length) {
+        const raw = q.message || (q.vM ? q.vM.message : null)
+        if (raw) {
+          try {
+            media = await downloadMediaMessage(
+              {
+                key: {
+                  remoteJid: q.chat || m.chat,
+                  id: q.id,
+                  fromMe: q.fromMe,
+                  participant: q.sender,
+                },
+                message: raw,
+              },
+              "buffer",
+              {},
+            )
+          } catch { media = null }
+        }
+      }
+
+      mimetype = content?.mimetype || q.mimetype || "application/octet-stream"
+      filename =
+        content?.fileName ||
+        content?.filename ||
+        `file.${getFileExtension(mimetype)}`
     } catch (e) {
       console.error(`Error en ${usedPrefix + command}:`, e)
       return m.reply("❌ No se pudo descargar el archivo. Inténtalo de nuevo.")
     }
   } else if (m.message) {
-    const type = getContentType(m.message)
-    if (!type || type === "conversation" || type === "extendedTextMessage") {
+    let type = null
+    let content = null
+
+    if (m.mediaType && m.mediaMessage) {
+      // mediaType/mediaMessage desenvuelven viewOnce/ephemeral automáticamente
+      type = m.mediaType
+      content = m.mediaMessage[type]
+    } else {
+      type = getContentType(m.message)
+      content = type ? m.message[type] : null
+    }
+
+    if (!type || !MEDIA_TYPES.has(type)) {
       let txt = `📤 *MEDIA UPLOADER* 📤\n\n`
       txt += `Hola! ¿Necesitas un link para tu media? Puedo subirla a varios servidores gratis.\n\n`
       txt += `*Cómo usar:*\n`
@@ -530,9 +623,11 @@ let handler = async (m, { conn, usedPrefix, command }) => {
           {},
         )
       }
-      const content = m.message[type]
       mimetype = content?.mimetype || "application/octet-stream"
-      filename = content?.fileName || `file.${getFileExtension(mimetype)}`
+      filename =
+        content?.fileName ||
+        content?.filename ||
+        `file.${getFileExtension(mimetype)}`
     } catch (e) {
       console.error(`Error en ${usedPrefix + command}:`, e)
       return m.reply("❌ No se pudo descargar el archivo. Inténtalo de nuevo.")
