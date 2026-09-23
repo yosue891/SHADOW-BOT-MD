@@ -1,5 +1,5 @@
 import { prepareWAMessageMedia, generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
-import { resolverObjetivo, nombreSeguro, resolveToRealJid } from '../../lib/anime-mention.js'
+import { resolverObjetivo, nombreSeguro, resolveToRealJid, jidParaTag } from '../../lib/anime-mention.js'
 import { enviarReaccionAnime } from '../../lib/anime-media.js'
 
 // Videos del matrimonio (tipo GIF)
@@ -13,6 +13,8 @@ const ACCEPT_VIDEOS = [
 
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)]
 const num = (jid) => String(jid || '').split('@')[0].replace(/[^0-9]/g, '')
+// Token de mención (@userpart): el cliente lo pinta como tag con el nombre
+const part = (jid) => String(jid || '').split('@')[0]
 
 /**
  * Envía un mensaje interactivo con video tipo GIF en el header + botones
@@ -89,11 +91,12 @@ const handler = async (m, { conn, command, usedPrefix, text, args, participants,
     }
 
     const partnerId = resolveJid(partnerRaw)
+    const partnerTag = jidParaTag(partnerId, conn, participants, groupMetadata)
     const partnerName = await nombreSeguro(conn, partnerId)
 
     await conn.sendButton(
       m.chat,
-      `¿Estás seguro de que quieres romper tu pacto con *${partnerName}* (@${num(partnerId)})?`,
+      `¿Estás seguro de que quieres romper tu pacto con *${partnerName}* @${part(partnerTag)}?`,
       'Shadow Garden',
       null,
       [
@@ -103,7 +106,7 @@ const handler = async (m, { conn, command, usedPrefix, text, args, participants,
       null,
       null,
       m,
-      { mentions: [partnerId] }
+      { mentions: [partnerTag] }
     )
 
     return
@@ -125,12 +128,14 @@ const handler = async (m, { conn, command, usedPrefix, text, args, participants,
 
     const name1 = await nombreSeguro(conn, userId)
     const name2 = await nombreSeguro(conn, partnerId)
+    const userTagDiv = jidParaTag(userId, conn, participants, groupMetadata)
+    const partnerTagDiv = jidParaTag(partnerId, conn, participants, groupMetadata)
 
     return conn.sendMessage(
       m.chat,
       {
-        text: `💔 El pacto se ha roto.\n\n*${name1}* (@${num(userId)}) y *${name2}* (@${num(partnerId)}) ya no están unidos.`,
-        mentions: [userId, partnerId],
+        text: `💔 El pacto se ha roto.\n\n*${name1}* @${part(userTagDiv)} y *${name2}* @${part(partnerTagDiv)} ya no están unidos.`,
+        mentions: [userTagDiv, partnerTagDiv],
         ...rcanal
       },
       { quoted: m }
@@ -162,15 +167,20 @@ const handler = async (m, { conn, command, usedPrefix, text, args, participants,
 
     const nameSuitor = await nombreSeguro(conn, userId)
     const nameTarget = await nombreSeguro(conn, partnerId)
+    // JIDs en el formato que el grupo usa (LID en grupos LID): así el
+    // cliente pinta el tag con el nombre en vez de mostrar el LID crudo
+    const userTag = jidParaTag(userId, conn, participants, groupMetadata)
+    const partnerTag = jidParaTag(partnerId, conn, participants, groupMetadata)
 
     if (marryOf(userId, m.sender)) {
       const current = resolveJid(marryOf(userId, m.sender))
+      const currentTag = jidParaTag(current, conn, participants, groupMetadata)
       const currentName = await nombreSeguro(conn, current)
       return conn.sendMessage(
         m.chat,
         {
-          text: `⚠️ Ya estás casado con *${currentName}* (@${num(current)}).`,
-          mentions: [current],
+          text: `⚠️ Ya estás casado con *${currentName}* @${part(currentTag)}.`,
+          mentions: [currentTag],
           ...rcanal
         },
         { quoted: m }
@@ -181,8 +191,8 @@ const handler = async (m, { conn, command, usedPrefix, text, args, participants,
       return conn.sendMessage(
         m.chat,
         {
-          text: `⚠️ *${nameTarget}* (@${num(partnerId)}) ya tiene un pacto con alguien más.`,
-          mentions: [partnerId],
+          text: `⚠️ *${nameTarget}* @${part(partnerTag)} ya tiene un pacto con alguien más.`,
+          mentions: [partnerTag],
           ...rcanal
         },
         { quoted: m }
@@ -190,25 +200,27 @@ const handler = async (m, { conn, command, usedPrefix, text, args, participants,
     }
 
     // Propuesta con video tipo GIF + botones + tags con nombre
+    // (mentionedJid con el JID del grupo → el cliente renderiza @nombre)
     await sendVideoButtons(conn, m, {
       video: PROPOSE_VIDEO,
-      text: `💒 *${nameSuitor}* (@${num(userId)}) le propone matrimonio eterno a *${nameTarget}* (@${num(partnerId)}).\n\n¿Aceptas sellar este pacto, ${nameTarget}? 💍`,
+      text: `💒 *${nameSuitor}* @${part(userTag)} le propone matrimonio eterno a *${nameTarget}* @${part(partnerTag)}.\n\n¿Aceptas sellar este pacto, ${nameTarget}? 💍`,
       footer: 'Tienes 50 segundos.',
       buttons: [
         ['ACEPTAR 💍', `${usedPrefix}acceptmarry ${userId}`],
         ['RECHAZAR ❌', `${usedPrefix}declinemarry ${userId}`]
       ],
-      mentions: [userId, partnerId]
+      mentions: [userTag, partnerTag]
     })
 
     setTimeout(async () => {
       if (users[userId] && !users[userId].marry) {
         const nameSuitor2 = await nombreSeguro(conn, userId)
+        const userTagExp = jidParaTag(userId, conn, participants, groupMetadata)
         conn.sendMessage(
           m.chat,
           {
-            text: `🥀 *${nameSuitor2}* (@${num(userId)}), te han dejado plantado... El tiempo expiró.`,
-            mentions: [userId],
+            text: `🥀 *${nameSuitor2}* @${part(userTagExp)}, te han dejado plantado... El tiempo expiró.`,
+            mentions: [userTagExp],
             ...rcanal
           },
           { quoted: m }
@@ -240,6 +252,8 @@ const handler = async (m, { conn, command, usedPrefix, text, args, participants,
 
     const nameSuitor = await nombreSeguro(conn, suitorId)
     const nameTarget = await nombreSeguro(conn, userId)
+    const suitorTag = jidParaTag(suitorId, conn, participants, groupMetadata)
+    const userTag = jidParaTag(userId, conn, participants, groupMetadata)
 
     // Video tipo GIF aleatorio al aceptar
     return conn.sendMessage(
@@ -247,8 +261,8 @@ const handler = async (m, { conn, command, usedPrefix, text, args, participants,
       {
         video: { url: pick(ACCEPT_VIDEOS) },
         gifPlayback: true,
-        caption: `💒 『☽』 Las sombras han sellado el pacto.\n\n*${nameSuitor}* (@${num(suitorId)}) y *${nameTarget}* (@${num(userId)}) ahora están casados.\n\n🎉🥳 *¡VIVAN LOS NOVIOSSS NJD!*`,
-        mentions: [suitorId, userId],
+        caption: `💒 『☽』 Las sombras han sellado el pacto.\n\n*${nameSuitor}* @${part(suitorTag)} y *${nameTarget}* @${part(userTag)} ahora están casados.\n\n🎉🥳 *¡VIVAN LOS NOVIOSSS NJD!*`,
+        mentions: [suitorTag, userTag],
         ...rcanal
       },
       { quoted: m }
@@ -267,16 +281,18 @@ const handler = async (m, { conn, command, usedPrefix, text, args, participants,
 
     const nameSuitor = await nombreSeguro(conn, suitorId)
     const nameTarget = await nombreSeguro(conn, userId)
-    const caption = `💔 *${nameTarget}* (@${num(userId)}) ha rechazado a *${nameSuitor}* (@${num(suitorId)}) en el altar.`
+    const suitorTag = jidParaTag(suitorId, conn, participants, groupMetadata)
+    const userTag = jidParaTag(userId, conn, participants, groupMetadata)
+    const caption = `💔 *${nameTarget}* @${part(userTag)} ha rechazado a *${nameSuitor}* @${part(suitorTag)} en el altar.`
 
     // Usa los GIFs del sistema sad (mismo que el comando #sad)
     try {
-      await enviarReaccionAnime(conn, m, { reaccion: 'sad', caption, mentions: [suitorId, userId] })
+      await enviarReaccionAnime(conn, m, { reaccion: 'sad', caption, mentions: [suitorTag, userTag] })
     } catch (e) {
       console.error('[marry] no se pudo enviar el GIF sad:', e?.message)
       await conn.sendMessage(
         m.chat,
-        { text: caption, mentions: [suitorId, userId], ...rcanal },
+        { text: caption, mentions: [suitorTag, userTag], ...rcanal },
         { quoted: m }
       )
     }

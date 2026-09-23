@@ -7,3 +7,6 @@ database.json
 error.log
 *.log
 tmp/
+
+database/
+qr-bot.png
