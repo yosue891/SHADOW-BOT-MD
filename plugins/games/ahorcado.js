@@ -1,53 +1,60 @@
-import { addCoins, removeCoins, hasCoins } from '../../nucleo/coinsDB.js'
-import { fixLid } from '../../nucleo/message.js'
+const activeGames = new Map()
 
-const activeAhorcados = new Map()
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
+const words = [
+  'PERRO', 'GATO', 'COMPUTADORA', 'WHATSAPP', 'JAVASCRIPT',
+  'PROGRAMACION', 'CELULAR', 'BOTELLA', 'TECLADO', 'PANTALLA',
+  'INTERNET', 'ELEFANTE', 'UNIVERSO', 'GALAXIA', 'ASTRONAUTA',
+  'TELEVISOR', 'VEHICULO', 'GUITARRA', 'MURCIELAGO', 'VIDEOJUEGO',
+  'BIBLIOTECA', 'AEROPUERTO', 'RESTAURANTE', 'HELICOPTERO',
+  'CHOCOLATE', 'ESTUDIANTE', 'DINOSAURIO', 'MARIPOSA',
+  'COCODRILO', 'PARAGUAS', 'PINGÜINO', 'BICICLETA',
+  'ROMPECABEZAS', 'TIBURON', 'TORTUGA', 'UNICORNIO'
+]
 
-const ahorcadoDrawings = [
-  `  +---+
+const drawings = [
+`  +---+
   |   |
       |
       |
       |
       |
 =========`,
-  `  +---+
+`  +---+
   |   |
   O   |
       |
       |
       |
 =========`,
-  `  +---+
+`  +---+
   |   |
   O   |
   |   |
       |
       |
 =========`,
-  `  +---+
+`  +---+
   |   |
   O   |
  /|   |
       |
       |
 =========`,
-  `  +---+
+`  +---+
   |   |
   O   |
  /|\\  |
       |
       |
 =========`,
-  `  +---+
+`  +---+
   |   |
   O   |
  /|\\  |
  /    |
       |
 =========`,
-  `  +---+
+`  +---+
   |   |
   O   |
  /|\\  |
@@ -56,276 +63,194 @@ const ahorcadoDrawings = [
 =========`
 ]
 
-const words = [
-  'PERRO', 'GATO', 'COMPUTADORA', 'WHATSAPP', 'JAVASCRIPT',
-  'PROGRAMACION', 'CELULAR', 'BOTELLA', 'TECLADO', 'PANTALLA',
-  'INTERNET', 'ELEFANTE', 'UNIVERSO', 'GALAXIA', 'ASTRONAUTA',
-  'TELEVISOR', 'VEHICULO', 'GUITARRA', 'MURCIELAGO', 'VIDEOJUEGO',
-  'ABRAZADERA', 'BIBLIOTECA', 'AEROPUERTO', 'RESTAURANTE',
-  'HELICOPTERO', 'CHOCOLATE', 'ESTUDIANTE', 'DESAYUNO',
-  'FOTOGRAFIA', 'ZAPATILLA', 'ENCICLOPEDIA', 'AERODINAMICA',
-  'FOTOSINTESIS', 'HIPOPOTAMO', 'CALEFACCION', 'REFRIGERADOR',
-  'MICROONDAS', 'LABORATORIO', 'ASTRONOMIA', 'MATEMATICAS',
-  'LITERATURA', 'ARQUITECTURA', 'KINESIOLOGIA', 'CONSTELACION',
-  'ELECTROMAGNETISMO', 'REVOLUCION', 'INDEPENDENCIA',
-  'PALEONTOLOGIA', 'CONSTITUCION', 'DEMOCRACIA', 'CIBERSEGURIDAD',
-  'INTELIGENCIA', 'METABOLISMO', 'BIODIVERSIDAD', 'ECOSISTEMA',
-  'ATMOSFERA', 'TEMPERATURA', 'SUPERNOVA', 'TERREMOTO', 'TSUNAMI',
-  'AERODESLIZADOR', 'PARACAIDISMO', 'MARIPOSA', 'DINOSAURIO',
-  'CARAMELO', 'COCODRILO', 'LAMPARA', 'PARAGUAS', 'SEMAFORO',
-  'VOLEIBOL', 'ATLETISMO', 'CAMPAMENTO', 'BRUJULA', 'CALENDARIO',
-  'MANDARINA', 'SOMBRERO', 'PINGÜINO', 'RELAMPAGO', 'CAMISETA',
-  'BICICLETA', 'ALMOHADA', 'CANGREJO', 'DELFINES', 'ESMERALDA',
-  'SERPIENTE', 'LABERINTO', 'MANZANA', 'NARANJAS', 'DURAZNO',
-  'SANDWICH', 'ROMPECABEZAS', 'TIBURON', 'TORTUGA', 'UNICORNIO',
-  'ESPERANZA', 'AVENTURA', 'CABALLERO', 'CASCABEL', 'ESCOPETA',
-  'HORMIGUERO', 'LEOPARDO'
-]
-
-function getDisplayWord(word, guessed) {
-  return word
-    .split('')
+function displayWord(word, guessed) {
+  return [...word]
     .map(letter => guessed.has(letter) ? letter : '_')
     .join(' ')
 }
 
-function ensureUser(sender) {
-  const users = globalThis.db?.data?.users
-
-  if (users && !users[sender]) {
-    users[sender] = {
-      coins: 0,
-      exp: 0
-    }
-  }
-}
-
-function resetGameTimeout(conn, chat, game) {
+function resetTimeout(conn, chat, game) {
   clearTimeout(game.timeout)
 
   game.timeout = setTimeout(async () => {
-    // Evita que un temporizador viejo elimine una partida nueva
-    if (activeAhorcados.get(chat) !== game) return
+    if (activeGames.get(chat) !== game) return
 
-    activeAhorcados.delete(chat)
+    activeGames.delete(chat)
 
     try {
-      await conn.sendMessage(chat, {
-        text:
-          `⏳ *Juego de Ahorcado cancelado por inactividad.*\n` +
-          `La palabra era: *${game.word}*`
-      })
+      await conn.reply(
+        chat,
+        `⏳ *Partida cancelada por inactividad.*\n` +
+        `La palabra era: *${game.word}*`,
+        null
+      )
     } catch (error) {
-      console.error('[AHORCADO] Error al cancelar la partida:', error)
+      console.error('[AHORCADO] Error en timeout:', error)
     }
   }, 60000)
 }
 
-/*
- * Interceptor ejecutado con cada mensaje.
- * Solo actúa cuando existe una partida y el mensaje es una letra.
- */
-const before = async (m, { conn }) => {
-  try {
-    if (!m?.chat || m.fromMe || m.isBaileys) return false
+function gameStatus(game, title) {
+  return (
+    `${title}\n\n` +
+    `${displayWord(game.word, game.guessed)}\n\n` +
+    `*Errores:* ${game.errors}/6\n` +
+    `\`\`\`${drawings[game.errors]}\`\`\``
+  )
+}
 
-    const game = activeAhorcados.get(m.chat)
-    if (!game) return false
+let handler = async (m, { conn }) => {
+  const currentGame = activeGames.get(m.chat)
 
-    const guess = String(m.text || '').trim().toUpperCase()
+  if (currentGame) {
+    return conn.reply(
+      m.chat,
+      `🙄 *Ya hay una partida en este grupo.*\n\n` +
+      `*Palabra:* ${displayWord(
+        currentGame.word,
+        currentGame.guessed
+      )}\n` +
+      `*Errores:* ${currentGame.errors}/6\n\n` +
+      `Envía una sola letra para jugar.`,
+      m
+    )
+  }
 
-    // También acepta Ñ, vocales acentuadas y Ü
-    if (!/^[A-ZÁÉÍÓÚÜÑ]$/.test(guess)) return false
+  const game = {
+    word: words[Math.floor(Math.random() * words.length)],
+    guessed: new Set(),
+    errors: 0,
+    timeout: null
+  }
 
-    let sender = m.sender
+  activeGames.set(m.chat, game)
+  resetTimeout(conn, m.chat, game)
 
-    try {
-      sender = await fixLid(conn, {
-        key: m.key,
-        chat: m.chat,
-        fromMe: m.fromMe
-      }) || m.sender
-    } catch {
-      sender = m.sender
-    }
+  return conn.reply(
+    m.chat,
+    `🎮 *EL AHORCADO* 🎮\n\n` +
+    `Adivina la palabra enviando una sola letra.\n\n` +
+    `*Palabra:* ${displayWord(game.word, game.guessed)}\n` +
+    `*Errores permitidos:* 6\n\n` +
+    `\`\`\`${drawings[0]}\`\`\`\n\n` +
+    `_Se cancelará después de 60 segundos sin jugar._`,
+    m
+  )
+}
 
-    if (game.guessed.has(guess)) {
-      await conn.reply(
-        m.chat,
-        `🙄 Ya intentaste la letra *${guess}*. Prueba con otra.`,
-        m
-      )
+handler.before = async function (m, { conn }) {
+  const game = activeGames.get(m.chat)
 
-      return true
-    }
+  if (!game || !m.text || m.fromMe) return false
 
-    game.guessed.add(guess)
-    resetGameTimeout(conn, m.chat, game)
+  const guess = m.text.trim().toUpperCase()
 
-    const currentDisplay = getDisplayWord(game.word, game.guessed)
+  if (!/^[A-ZÁÉÍÓÚÜÑ]$/.test(guess)) return false
 
-    if (game.word.includes(guess)) {
-      const completed = !currentDisplay.includes('_')
-
-      if (completed) {
-        clearTimeout(game.timeout)
-        activeAhorcados.delete(m.chat)
-
-        ensureUser(sender)
-        addCoins(sender, 100)
-
-        await conn.sendPresenceUpdate('composing', m.chat)
-        await delay(1000)
-
-        await conn.sendMessage(
-          m.chat,
-          {
-            text:
-              `🎉 *¡Felicidades @${sender.split('@')[0]}!* 🎉\n\n` +
-              `Acertaste la palabra: *${game.word}*\n` +
-              `🎁 *Has ganado 100 Coins.*`,
-            mentions: [sender]
-          },
-          { quoted: m }
-        )
-
-        return true
-      }
-
-      await conn.reply(
-        m.chat,
-        `✅ *¡Letra correcta!*\n\n` +
-        `${currentDisplay}\n\n` +
-        `*Errores:* ${game.errors}/6\n` +
-        `\`\`\`${ahorcadoDrawings[game.errors]}\`\`\``,
-        m
-      )
-
-      return true
-    }
-
-    game.errors++
-
-    if (game.errors >= 6) {
-      ensureUser(sender)
-
-      const extraLifeCost = 50
-
-      if (hasCoins(sender, extraLifeCost)) {
-        removeCoins(sender, extraLifeCost)
-        game.errors = 5
-
-        await conn.sendPresenceUpdate('composing', m.chat)
-        await delay(1000)
-
-        await conn.sendMessage(
-          m.chat,
-          {
-            text:
-              `❤️ *¡VIDA EXTRA CONSUMIDA!*\n\n` +
-              `@${sender.split('@')[0]} gastó *${extraLifeCost} Coins* ` +
-              `para evitar el Game Over.\n\n` +
-              `${currentDisplay}\n\n` +
-              `*Errores:* 5/6\n` +
-              `\`\`\`${ahorcadoDrawings[5]}\`\`\``,
-            mentions: [sender]
-          },
-          { quoted: m }
-        )
-
-        return true
-      }
-
-      clearTimeout(game.timeout)
-      activeAhorcados.delete(m.chat)
-
-      await conn.sendPresenceUpdate('composing', m.chat)
-      await delay(1000)
-
-      await conn.reply(
-        m.chat,
-        `💀 *¡GAME OVER!* 💀\n\n` +
-        `El ahorcado se completó y nadie tenía Coins suficientes ` +
-        `para una vida extra.\n\n` +
-        `La palabra era: *${game.word}*\n\n` +
-        `\`\`\`${ahorcadoDrawings[6]}\`\`\``,
-        m
-      )
-
-      return true
-    }
-
+  if (game.guessed.has(guess)) {
     await conn.reply(
       m.chat,
-      `❌ *¡Letra incorrecta!*\n\n` +
-      `${currentDisplay}\n\n` +
-      `*Errores:* ${game.errors}/6\n` +
-      `\`\`\`${ahorcadoDrawings[game.errors]}\`\`\``,
+      `🙄 Ya intentaron la letra *${guess}*.`,
       m
     )
 
     return true
-  } catch (error) {
-    console.error('[AHORCADO] Error procesando una letra:', error)
-    return false
   }
-}
 
-var handler = async (m, { conn }) => {
-  try {
-    const existingGame = activeAhorcados.get(m.chat)
+  game.guessed.add(guess)
+  resetTimeout(conn, m.chat, game)
 
-    if (existingGame) {
-      return conn.reply(
+  if (game.word.includes(guess)) {
+    const completed =
+      !displayWord(game.word, game.guessed).includes('_')
+
+    if (completed) {
+      clearTimeout(game.timeout)
+      activeGames.delete(m.chat)
+
+      const user = global.db.data.users[m.sender]
+      user.coin = Number(user.coin) || 0
+      user.coin += 100
+
+      await conn.sendMessage(
         m.chat,
-        `🙄 *Ya hay una partida de Ahorcado en curso.*\n\n` +
-        `*Palabra:* ${getDisplayWord(
-          existingGame.word,
-          existingGame.guessed
-        )}\n` +
-        `*Errores:* ${existingGame.errors}/6\n\n` +
-        `Envía una sola letra para jugar.`,
-        m
+        {
+          text:
+            `🎉 *¡Felicidades @${m.sender.split('@')[0]}!*\n\n` +
+            `La palabra era: *${game.word}*\n` +
+            `🎁 Ganaste *100 ${global.moneda || 'coins'}*.`,
+          mentions: [m.sender]
+        },
+        { quoted: m }
       )
+
+      return true
     }
 
-    const randomWord = words[Math.floor(Math.random() * words.length)]
-
-    const game = {
-      word: randomWord,
-      guessed: new Set(),
-      errors: 0,
-      timeout: null
-    }
-
-    activeAhorcados.set(m.chat, game)
-    resetGameTimeout(conn, m.chat, game)
-
-    const initialDisplay = getDisplayWord(randomWord, game.guessed)
-
-    const text =
-      `🎮 *EL AHORCADO* 🎮\n\n` +
-      `Adivina la palabra oculta enviando una sola letra.\n\n` +
-      `*Palabra:* ${initialDisplay}\n` +
-      `*Errores permitidos:* 6\n\n` +
-      `\`\`\`${ahorcadoDrawings[0]}\`\`\`\n\n` +
-      `_La partida se cancelará después de 60 segundos sin jugar._`
-
-    await conn.reply(m.chat, text, m)
-  } catch (error) {
-    console.error('[AHORCADO] Error al iniciar la partida:', error)
     await conn.reply(
       m.chat,
-      '🙄 *Todo explotó intentando crear el Ahorcado.*',
+      gameStatus(game, '✅ *¡Letra correcta!*'),
       m
     )
+
+    return true
   }
+
+  game.errors++
+
+  if (game.errors >= 6) {
+    const user = global.db.data.users[m.sender]
+    user.coin = Number(user.coin) || 0
+
+    if (user.coin >= 50) {
+      user.coin -= 50
+      game.errors = 5
+
+      await conn.sendMessage(
+        m.chat,
+        {
+          text:
+            `❤️ *¡VIDA EXTRA!*\n\n` +
+            `@${m.sender.split('@')[0]} gastó ` +
+            `*50 ${global.moneda || 'coins'}* para salvar la partida.\n\n` +
+            `${displayWord(game.word, game.guessed)}\n\n` +
+            `*Errores:* 5/6\n` +
+            `\`\`\`${drawings[5]}\`\`\``,
+          mentions: [m.sender]
+        },
+        { quoted: m }
+      )
+
+      return true
+    }
+
+    clearTimeout(game.timeout)
+    activeGames.delete(m.chat)
+
+    await conn.reply(
+      m.chat,
+      `💀 *¡GAME OVER!*\n\n` +
+      `La palabra era: *${game.word}*\n\n` +
+      `\`\`\`${drawings[6]}\`\`\``,
+      m
+    )
+
+    return true
+  }
+
+  await conn.reply(
+    m.chat,
+    gameStatus(game, '❌ *¡Letra incorrecta!*'),
+    m
+  )
+
+  return true
 }
 
-handler.before = before
-handler.help = ['pene', 'xdd']
+handler.help = ['ahorcado', 'pene']
 handler.tags = ['game']
 handler.command = /^(ahorcado|hangman)$/i
+handler.group = true
+handler.register = true
 
-export { activeAhorcados }
 export default handler
