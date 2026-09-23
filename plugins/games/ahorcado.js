@@ -323,7 +323,7 @@ var handler = async (m, { conn }) => {
 }
 
 handler.before = before
-handler.help = ['ahorcado', 'hangman']
+handler.help = ['ahorcado', 'xdd']
 handler.tags = ['game']
 handler.command = /^(ahorcado|hangman)$/i
 
