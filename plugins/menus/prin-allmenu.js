@@ -7,7 +7,7 @@ import { prepareWAMessageMedia, generateWAMessageFromContent, proto } from '@whi
 
 const botname = global.botname || "Shadow Garden"
 const dev = global.dev || "Cid Kagenou"
-const banner = "https://u.pone.rs/usqizddv.mp4"
+const banner = "https://u.pone.rs/jsdvjbfl.mp4"
 const channelRD = global.channelRD || { id: "0@newsletter", name: "Shadow Channel" }
 
 let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
