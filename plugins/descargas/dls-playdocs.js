@@ -1,4 +1,4 @@
-import yts from "yt-search"
+import { firstYouTubeResult } from "../../lib/youtube-search.js"
 import fetch from "node-fetch"
 
 const handler = async (m, { conn, text, command }) => {
@@ -15,9 +15,8 @@ const handler = async (m, { conn, text, command }) => {
     let thumbnail = ""
 
     if (!text.startsWith("https://")) {
-      const res = await yts(text)
-      if (!res?.videos?.length) return m.reply("🚫 No encontré nada.")
-      const video = res.videos[0]
+      const video = await firstYouTubeResult(text)
+      if (!video) return m.reply("🚫 No encontré nada.")
       title = video.title
       authorName = video.author?.name
       durationTimestamp = video.timestamp

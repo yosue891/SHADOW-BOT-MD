@@ -1,4 +1,4 @@
-import yts from "yt-search"
+import { searchYouTube, firstYouTubeResult } from "../../lib/youtube-search.js"
 import fetch from "node-fetch"
 import { generateWAMessageContent, generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
 
@@ -17,11 +17,11 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
       let thumb = ""
 
       if (!url.startsWith("https://")) {
-        const res = await yts(text)
-        if (!res?.videos?.length) return m.reply("❌ Nada fue encontrado…")
-        url = res.videos[0].url
-        title = res.videos[0].title
-        thumb = res.videos[0].thumbnail
+        const video = await firstYouTubeResult(text)
+        if (!video) return m.reply("❌ Nada fue encontrado…")
+        url = video.url
+        title = video.title
+        thumb = video.thumbnail
       }
 
       await downloadMedia(conn, m, url, title, thumb, isDirectAudio ? "mp3" : "mp4")
@@ -30,7 +30,7 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
 
     if (isSearchAction) {
       await m.react("🕘")
-      const results = await yts(text)
+      const results = await searchYouTube(text)
       const videos = results.videos.slice(0, 6)
       if (!videos.length) return m.reply("❌ No se encontraron resultados.")
 

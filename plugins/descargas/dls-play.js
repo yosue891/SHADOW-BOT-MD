@@ -1,5 +1,5 @@
 
-import yts from "yt-search"
+import { searchYouTube } from "../../lib/youtube-search.js"
 import axios from "axios"
 import fetch from "node-fetch"
 import sharp from "sharp"
@@ -173,7 +173,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     await m.react("🔎")
 
     let searchQuery = query
-    const search = await yts(searchQuery)
+    const search = await searchYouTube(searchQuery)
     if (!search?.videos?.length) {
       await m.react("❌")
       return m.reply("❌ No se encontró resultado para: " + query)

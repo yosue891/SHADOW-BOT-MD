@@ -1,4 +1,5 @@
 import yts from "yt-search"
+import { firstYouTubeResult } from "../../lib/youtube-search.js"
 import fetch from "node-fetch"
 import fs from "fs"
 import path from "path"
@@ -74,13 +75,12 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       thumbnail = res.thumbnail || thumbnail
       url = res.url || url
     } else {
-      const res = await yts(url)
-      if (!res?.videos?.length) {
+      const video = await firstYouTubeResult(url)
+      if (!video) {
         if (m.react) await m.react("❌")
         return m.reply("[ 🕳️ ] La sombra buscó en los confines de la red y no encontró nada.")
       }
 
-      const video = res.videos[0]
       title = video.title || title
       authorName = video.author?.name || authorName
       durationTimestamp = video.timestamp || durationTimestamp
