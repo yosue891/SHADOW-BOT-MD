@@ -8,7 +8,21 @@ import { prepareWAMessageMedia, generateWAMessageFromContent, proto } from '@whi
 const botname = global.botname || "Shadow Garden"
 const dev = global.dev || "Cid Kagenou"
 const banner = "https://u.pone.rs/jsdvjbfl.mp4"
+const allMenuAudio = "https://u.pone.rs/drnkzprg.m4a"
 const channelRD = global.channelRD || { id: "0@newsletter", name: "Shadow Channel" }
+
+async function sendAllMenuAudio(conn, m) {
+  await conn.sendMessage(
+    m.chat,
+    {
+      audio: { url: allMenuAudio },
+      mimetype: 'audio/mp4',
+      fileName: 'shadow-allmenu.m4a',
+      ptt: true
+    },
+    { quoted: m }
+  )
+}
 
 let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
   let mentionedJid = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.sender
@@ -219,12 +233,14 @@ ${readMore}
         messageOptions.mentionedJid = [mentionedJid]
         await conn.sendMessage(m.chat, messageOptions, { quoted: fkontak })
       }
+      await sendAllMenuAudio(conn, m)
       return
     } else {
       messageOptions.image = { url: finalBanner }
     }
 
     await conn.sendMessage(m.chat, messageOptions, { quoted: fkontak })
+    await sendAllMenuAudio(conn, m)
 
   } catch (e) {
     console.error(e)
