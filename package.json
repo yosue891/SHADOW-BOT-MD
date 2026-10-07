@@ -10,8 +10,7 @@
     "src": "src"
   },
   "scripts": {
-    "start": "node src/index.js",
-    "postinstall": "node tools/fix-baileys.cjs"
+    "start": "node src/index.js"
   },
   "repository": {
     "type": "git",
@@ -29,7 +28,7 @@
     "@hapi/boom": "^10.0.1",
     "@napi-rs/canvas": "^1.0.9",
     "@vitalets/google-translate-api": "^8.0.0",
-    "@whiskeysockets/baileys": "file:vendor/baileys",
+    "@whiskeysockets/baileys": "github:muleff/b",
     "acrcloud": "^1.4.0",
     "adm-zip": "^0.5.18",
     "aptoide-scraper": "^1.0.1",
