@@ -286,6 +286,12 @@ export async function handler(chatUpdate) {
     const isAdmin = isAdminParticipant(userGroup);
     const isBotAdmin = isAdminParticipant(botGroup);
 
+    // Modo administrador: bloquear cualquier interacción de miembros no autorizados
+    // antes de ejecutar plugins, respuestas automáticas o comandos.
+    if (m.isGroup && chat.modoadmin && !isOwner && !isAdmin && !isMods && !isROwner) {
+        return;
+    }
+
     const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), "../plugins");
     for (const name in global.plugins) {
         const plugin = global.plugins[name];
