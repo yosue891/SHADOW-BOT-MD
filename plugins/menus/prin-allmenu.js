@@ -7,7 +7,19 @@ import { prepareWAMessageMedia, generateWAMessageFromContent, proto } from '@whi
 
 const botname = global.botname || "Shadow Garden"
 const dev = global.dev || "Cid Kagenou"
-const banner = "https://u.pone.rs/vazblnca.mp4"
+const banners = [
+  "https://u.pone.rs/jsdvjbfl.mp4",
+  "https://u.pone.rs/uehppizl.mp4",
+  "https://u.pone.rs/vazblnca.mp4"
+]
+let availableBanners = []
+
+function getNextBanner() {
+  if (!availableBanners.length) {
+    availableBanners = [...banners].sort(() => Math.random() - 0.5)
+  }
+  return availableBanners.shift()
+}
 const allMenuAudio = "https://u.pone.rs/drnkzprg.m4a"
 const channelRD = global.channelRD || { id: "0@newsletter", name: "Shadow Channel" }
 
@@ -147,8 +159,8 @@ ${readMore}
 
     await m.react('🔥')
 
-    let finalBanner = banner
-    let isVideo = banner.split('?')[0].endsWith('.mp4') || banner.includes('video')
+    let finalBanner = getNextBanner()
+    let isVideo = finalBanner.split('?')[0].endsWith('.mp4') || finalBanner.includes('video')
     
     try {
       const ctrl2 = new AbortController()
