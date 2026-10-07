@@ -7,7 +7,7 @@ import { prepareWAMessageMedia, generateWAMessageFromContent, proto } from '@whi
 
 const botname = global.botname || "Shadow Garden"
 const dev = global.dev || "Cid Kagenou"
-const banner = "https://u.pone.rs/jsdvjbfl.mp4"
+const banner = "https://u.pone.rs/vazblnca.mp4"
 const allMenuAudio = "https://u.pone.rs/drnkzprg.m4a"
 const channelRD = global.channelRD || { id: "0@newsletter", name: "Shadow Channel" }
 
