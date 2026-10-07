@@ -90,7 +90,7 @@ plugins/
 ## Detalle completo (archivo → comandos)
 
 ### plugins/ajustes/ — 1 archivos
-- `_options.js` → `welcome`, `bienvenida`, `antiprivado`, `antiprivate`, `restrict`, `restringir`, `autolevelup`, `autonivel`, `antibot`, `antibots`, `autoaceptar`, `aceptarauto`, `autorechazar`, `rechazarauto`, `autoresponder`, `autorespond`, `antisubbots`, `antibot2`, `modoadmin`, `soloadmin`, `reaction`, `reaccion`, `nsfw`, `modohorny`, `antispam`, `jadibotmd`, `modejadibot`, `subbots`, `detect`, `avisos`, `antilink`, `antifake`, `autoread`
+- `_options.js` → `welcome`, `bienvenida`, `antiprivado`, `antiprivate`, `restrict`, `restringir`, `autolevelup`, `autonivel`, `autoaceptar`, `aceptarauto`, `autorechazar`, `rechazarauto`, `autoresponder`, `autorespond`, `modoadmin`, `soloadmin`, `reaction`, `reaccion`, `nsfw`, `modohorny`, `antispam`, `jadibotmd`, `modejadibot`, `subbots`, `detect`, `avisos`, `antilink`, `antifake`, `autoread`
 
 ### plugins/anime/ — 30 archivos
 - `anime-cafe.js` → `coffee`, `cafe`, `taza`
@@ -355,7 +355,6 @@ plugins/
 - `_antiprivado-arabes.js` → (hook interno, sin comando)
 - `_antiprivate.js` → (hook interno, sin comando)
 - `_antispam.js` → (hook interno, sin comando)
-- `_antisubbots.js` → (hook interno, sin comando)
 - `_cmdWithMedia.js` → (hook interno, sin comando)
 - `_fakes.js` → (hook interno, sin comando)
 - `_infomessage.js` → (hook interno, sin comando)

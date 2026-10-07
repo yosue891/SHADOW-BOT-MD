@@ -70,16 +70,12 @@ let handler = async (m, { conn, usedPrefix }) => {
 *│*  .restringir
 *│*  .autolevelup
 *│*  .autonivel
-*│*  .antibot
-*│*  .antibots
 *│*  .autoaceptar
 *│*  .aceptarauto
 *│*  .autorechazar
 *│*  .rechazarauto
 *│*  .autoresponder
 *│*  .autorespond
-*│*  .antisubbots
-*│*  .antibot2
 *│*  .modoadmin
 *│*  .soloadmin
 *│*  .reaction
