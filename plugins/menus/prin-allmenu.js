@@ -127,6 +127,7 @@ ${readMore}
     let messageOptions = {
       caption: infoUser + menuTexto,
       contextInfo: {
+        forwardingScore: 777,
         isForwarded: true,
         forwardedNewsletterMessageInfo: {
           newsletterJid: channelRD.id,
@@ -170,6 +171,7 @@ ${readMore}
                 deviceListMetadataVersion: 2
               },
               interactiveMessage: proto.Message.InteractiveMessage.create({
+                contextInfo: messageOptions.contextInfo,
                 body: proto.Message.InteractiveMessage.Body.create({ text: infoUser + menuTexto }),
                 footer: proto.Message.InteractiveMessage.Footer.create({ text: `${global.dev || dev} • Menú completo` }),
                 header: proto.Message.InteractiveMessage.Header.create({
