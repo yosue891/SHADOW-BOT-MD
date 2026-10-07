@@ -136,6 +136,25 @@ ${readMore}
       }
     }
 
+    // Conserva el contexto de WhatsApp Business del menú sin enviar una imagen adicional.
+    const businessThumbnail = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64')
+    const fkontak = {
+      key: { fromMe: false, participant: '0@s.whatsapp.net', remoteJid: 'status@broadcast' },
+      message: {
+        productMessage: {
+          product: {
+            productImage: { mimetype: 'image/gif', jpegThumbnail: businessThumbnail },
+            title: `Menú de la Sombra - ${botname}`,
+            description: '« Soy quien actúa en las sombras, fingiendo ser un simple extra. »',
+            currencyCode: 'USD',
+            priceAmount1000: 0,
+            retailerId: 'menu'
+          },
+          businessOwnerJid: '584242773183@s.whatsapp.net'
+        }
+      }
+    }
+
     if (isVideo) {
       let sent = false
       try {
@@ -173,7 +192,7 @@ ${readMore}
               })
             }
           }
-        }, { quoted: m })
+        }, { quoted: fkontak })
         await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
         sent = true
       } catch (ev) {
@@ -187,20 +206,20 @@ ${readMore}
             mimetype: 'video/mp4',
             caption: `${botname} • Menú completo`,
             contextInfo: messageOptions.contextInfo
-          }, { quoted: m })
+          }, { quoted: fkontak })
         } catch (ev2) {
           console.error('No se pudo enviar el video del menú:', ev2)
         }
         delete messageOptions.caption
         messageOptions.text = infoUser + menuTexto
         messageOptions.mentionedJid = [mentionedJid]
-        await conn.sendMessage(m.chat, messageOptions, { quoted: m })
+        await conn.sendMessage(m.chat, messageOptions, { quoted: fkontak })
       }
       await sendAllMenuAudio(conn, m)
       return
     }
 
-    await conn.sendMessage(m.chat, messageOptions, { quoted: m })
+    await conn.sendMessage(m.chat, messageOptions, { quoted: fkontak })
     await sendAllMenuAudio(conn, m)
 
   } catch (e) {
