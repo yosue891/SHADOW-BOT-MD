@@ -59,7 +59,7 @@ let handler = async (m, { conn, usedPrefix }) => {
 `.trim()
 
     let finalMenu = infoUser + '\n\n' + listaDescargas + '\n\n' + after
-    let imagenUrl = 'https://h.uguu.se/omqzfNRm.jpeg'
+    let imagenUrl = 'https://u.pone.rs/qhsqizgs.jpg'
 
     let media;
     try {
