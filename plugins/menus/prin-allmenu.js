@@ -119,59 +119,10 @@ ${comandos}
 ${readMore}
 乂 PROTOCOLO DE COMANDOS DE LA SOMBRA 乂\n`.trim()
 
-    const icon = [
-      'https://raw.githubusercontent.com/yosue891/Shadow-MD/refs/heads/main/G9i8jTSWgAAppEQ.jpg',
-      'https://raw.githubusercontent.com/yosue891/Shadow-MD/refs/heads/main/G9i8jTSWgAAppEQ.jpg'
-    ]
-    let icons = icon[Math.floor(Math.random() * icon.length)]
-
-    let Shadow_url = null
-    try {
-      const ctrl = new AbortController()
-      const t = setTimeout(() => ctrl.abort(), 4000)
-      let resIcon = await fetch(icons, { signal: ctrl.signal })
-      if (resIcon.ok) {
-        Shadow_url = await resIcon.buffer()
-      } else {
-        throw new Error()
-      }
-      clearTimeout(t)
-    } catch {
-      Shadow_url = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64')
-    }
-
-    const fkontak = {
-      key: { fromMe: false, participant: "0@s.whatsapp.net", remoteJid: "status@broadcast" },
-      message: {
-        productMessage: {
-          product: {
-            productImage: { mimetype: "image/jpeg", jpegThumbnail: Shadow_url },
-            title: `Menú de la Sombra - ${botname}`,
-            description: "« Soy quien actúa en las sombras, fingiendo ser un simple extra. »",
-            currencyCode: "USD",
-            priceAmount1000: 0,
-            retailerId: "menu"
-          },
-          businessOwnerJid: "584242773183@s.whatsapp.net"
-        }
-      }
-    }
-
     await m.react('🔥')
 
-    let finalBanner = getNextBanner()
-    let isVideo = finalBanner.split('?')[0].endsWith('.mp4') || finalBanner.includes('video')
-    
-    try {
-      const ctrl2 = new AbortController()
-      const t2 = setTimeout(() => ctrl2.abort(), 5000)
-      let checkBanner = await fetch(banner, { method: 'HEAD', signal: ctrl2.signal })
-      clearTimeout(t2)
-      if (!checkBanner.ok) throw new Error()
-    } catch {
-      finalBanner = icons
-      isVideo = false
-    }
+    const finalBanner = getNextBanner()
+    const isVideo = true
 
     let messageOptions = {
       caption: infoUser + menuTexto,
@@ -222,7 +173,7 @@ ${readMore}
               })
             }
           }
-        }, { quoted: fkontak })
+        }, { quoted: m })
         await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
         sent = true
       } catch (ev) {
@@ -236,22 +187,20 @@ ${readMore}
             mimetype: 'video/mp4',
             caption: `${botname} • Menú completo`,
             contextInfo: messageOptions.contextInfo
-          }, { quoted: fkontak })
+          }, { quoted: m })
         } catch (ev2) {
           console.error('No se pudo enviar el video del menú:', ev2)
         }
         delete messageOptions.caption
         messageOptions.text = infoUser + menuTexto
         messageOptions.mentionedJid = [mentionedJid]
-        await conn.sendMessage(m.chat, messageOptions, { quoted: fkontak })
+        await conn.sendMessage(m.chat, messageOptions, { quoted: m })
       }
       await sendAllMenuAudio(conn, m)
       return
-    } else {
-      messageOptions.image = { url: finalBanner }
     }
 
-    await conn.sendMessage(m.chat, messageOptions, { quoted: fkontak })
+    await conn.sendMessage(m.chat, messageOptions, { quoted: m })
     await sendAllMenuAudio(conn, m)
 
   } catch (e) {
