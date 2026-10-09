@@ -1,6 +1,22 @@
 import ws from "ws"
 import axios from "axios"
-import { generateWAMessageContent, generateWAMessageFromContent, getAdditionalNode, proto } from '@whiskeysockets/baileys'
+import { generateWAMessageContent, generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
+
+const getAdditionalNode = (name) => {
+  return [{
+    tag: 'biz',
+    attrs: { actual_actors: '2', host_storage: '2' },
+    content: [{
+      tag: 'interactive',
+      attrs: { type: 'native_flow', v: '1' },
+      content: [{
+        tag: 'native_flow',
+        attrs: { v: '9', name: 'mixed' },
+        content: []
+      }]
+    }]
+  }]
+}
 
 const IMAGEN_CARRUSEL = "https://files.catbox.moe/mwhyfm.jpg"
 const CANAL_OFICIAL = "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"

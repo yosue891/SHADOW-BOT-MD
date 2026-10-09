@@ -50,7 +50,7 @@ const explicit = "export { BufferJSON } from './generics.js';"
 
 const candidates = [
   path.join(process.cwd(), 'node_modules', '@whiskeysockets', 'baileys', 'lib', 'Utils', 'index.js'),
-  path.join(process.cwd(), 'vendor', 'baileys', 'lib', 'Utils', 'index.js')
+  path.join(process.cwd(), 'node_modules', '@itsliaaa', 'baileys', 'lib', 'Utils', 'index.js')
 ]
 
 for (const target of candidates) {
