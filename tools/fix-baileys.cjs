@@ -20,6 +20,24 @@ try {
       } catch {}
     }
   }
+  // --- Shim para '@whiskeysockets/baileys' desde '@itsliaaa/baileys' ---
+  const wsDir = path.join(process.cwd(), 'node_modules', '@whiskeysockets')
+  const wsPath = path.join(wsDir, 'baileys')
+  const liaPath = path.join(process.cwd(), 'node_modules', '@itsliaaa', 'baileys')
+  if (!fs.existsSync(wsPath) && fs.existsSync(liaPath)) {
+    try {
+      if (!fs.existsSync(wsDir)) fs.mkdirSync(wsDir, { recursive: true })
+      const type = process.platform === 'win32' ? 'junction' : 'dir'
+      fs.symlinkSync(path.relative(wsDir, liaPath), wsPath, type)
+      console.log('[fix-baileys] Symlink creado: @whiskeysockets/baileys -> @itsliaaa/baileys')
+    } catch (e) {
+      try {
+        fs.cpSync(liaPath, wsPath, { recursive: true, force: true })
+        console.log('[fix-baileys] Copia creada: @whiskeysockets/baileys desde @itsliaaa/baileys')
+      } catch {}
+    }
+  }
+
   // Verificar @ffmpeg-installer/ffmpeg
   const ffmpegPath = path.join(process.cwd(), 'node_modules', '@ffmpeg-installer', 'ffmpeg')
   if (!fs.existsSync(ffmpegPath)) {
