@@ -3,25 +3,25 @@ import { generateWAMessageContent, generateWAMessageFromContent, proto } from '@
 
 const handler = async (m, { conn }) => {
   try {
-    await m.react("👑")
+    await m.react("🎃")
 
     const creators = [
       {
         name: "Yosue",
-        role: "Owner Principal",
+        role: "👑 Lord Shadow (Owner Principal)",
         number: "584242773183",
         image: "https://i.ibb.co/3NfYh9k/default-avatar.png",
-        description: "Creador principal y encargado del desarrollo general.\n\n🌐 GitHub: github.com/yosue891\n📢 Canal: https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O\n📦 Repo: https://github.com/yosue891/SHADOW-BOT-MD.git",
-        btnLabel: "Canal de Yosue",
+        description: "🎃 Creador principal y líder de Shadow Garden en Halloween.\n\n🌐 GitHub: github.com/yosue891\n📢 Canal: https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O\n📦 Repo: https://github.com/yosue891/SHADOW-BOT-MD.git",
+        btnLabel: "🎃 Canal de Yosue 🦇",
         btnUrl: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
       },
       {
         name: "Ado",
-        role: "Segundo Creador Principal",
+        role: "🦇 Segundo Creador Principal",
         number: "50498273976",
         image: "https://i.ibb.co/3NfYh9k/default-avatar.png",
-        description: "Co-creador y encargado de la optimización y soporte del proyecto.\n\n🌐 GitHub: github.com/ado-hub\n📢 Canal: https://whatsapp.com/channel/0029VbD5h6s0AgWBpfCQlw2P\n📦 Repo: https://github.com/yosue891/SHADOW-BOT-MD.git",
-        btnLabel: "Canal de Ado",
+        description: "🕯️ Co-creador y encargado de la optimización del aquelarre sombrío.\n\n🌐 GitHub: github.com/ado-hub\n📢 Canal: https://whatsapp.com/channel/0029VbD5h6s0AgWBpfCQlw2P\n📦 Repo: https://github.com/yosue891/SHADOW-BOT-MD.git",
+        btnLabel: "🎃 Canal de Ado 🦇",
         btnUrl: "https://whatsapp.com/channel/0029VbD5h6s0AgWBpfCQlw2P"
       }
     ]
@@ -45,13 +45,13 @@ const handler = async (m, { conn }) => {
 
       cards.push({
         body: proto.Message.InteractiveMessage.Body.fromObject({ 
-          text: `Desarrollador: ${creator.name}\nRol: ${creator.role}\n\n${creator.description}` 
+          text: `🎃 Desarrollador: ${creator.name}\n🦇 Rol: ${creator.role}\n\n${creator.description}` 
         }),
         footer: proto.Message.InteractiveMessage.Footer.fromObject({ 
-          text: "error404 project" 
+          text: "🎃 SHADOW GARDEN • HALLOWEEN 🦇" 
         }),
         header: proto.Message.InteractiveMessage.Header.fromObject({ 
-          title: creator.name, 
+          title: `🎃 ${creator.name} 🦇`, 
           hasMediaAttachment: true, 
           imageMessage 
         }),
@@ -60,7 +60,7 @@ const handler = async (m, { conn }) => {
             {
               name: "cta_url",
               buttonParamsJson: JSON.stringify({
-                display_text: `Chatear con ${creator.name}`,
+                display_text: `🎃 Chatear con ${creator.name}`,
                 url: `https://wa.me/${creator.number}?text=Hola+${creator.name},+vengo+desde+el+bot.`
               })
             },
@@ -74,7 +74,7 @@ const handler = async (m, { conn }) => {
             {
               name: "cta_url",
               buttonParamsJson: JSON.stringify({
-                display_text: "Repositorio GitHub",
+                display_text: "📦 Repositorio GitHub 🦇",
                 url: "https://github.com/yosue891/SHADOW-BOT-MD.git"
               })
             }

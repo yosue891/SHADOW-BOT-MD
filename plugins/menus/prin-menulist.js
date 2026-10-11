@@ -91,34 +91,33 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
     const headerGreet = `${limaGreetingText()}`
     const tagUser = '@' + m.sender.split('@')[0]
 
-    const menu = `hello *${tagUser}!* ${headerGreet}
-bienvenido uwu *${meName || 'MyBot'}*, soy Shadow-BOT-MD estoy aquí para ayudarte 🌌
+    const menu = `🎃 ¡Saludos en la Noche de Brujas, *${tagUser}*! 🦇 ${headerGreet}
+Bienvenido a *${meName || 'Shadow-BOT-MD'}*, donde el Shadow Garden despierta bajo la luna de Halloween 🌌🕸️
 
-╭──┈➤ *\`𝗜𝗡𝗙𝗢 𝗨𝗦𝗘𝗥\`*
+╭──┈➤ 🎃 *\`CONTRATISTA SOMBRÍO\`* 🦇
 │ 𔓕 *Nombre*  : ${name}
 │ 𔓕 *Tag*     : ${tagUser}
 │ 𔓕 *Rol*     : ${role}
 │ 𔓕 *Nivel*   : ${level} (${(exp - (min || 0))}/${xp || 100})
-│ 𔓕 *Límite*  : ${limit}
-│ 𔓕 *Money*   : S/.${money.toLocaleString('es-PE')}
-│ 𔓕 *Premium* : ${prem ? '✅' : '❌'}
+│ 𔓕 *Límite*  : ${limit} 🩸
+│ 𔓕 *Money*   : S/.${money.toLocaleString('es-PE')} 🪙
+│ 𔓕 *Premium* : ${prem ? '🎃 Sellado' : '❌ Sin pacto'}
 ╰────────────────┈➤
 
-╭──┈➤ *\`𝗜𝗡𝗙𝗢 𝗕𝗢𝗧\`*
-│ 𔓕 *Nombre*     : ${meName || 'Bot'}
-│ 𔓕 *Owner*      : ${_package?.author?.name || 'dev'}
-│ 𔓕 *Powered*    : WhatsApp Business
+╭──┈➤ 🦇 *\`NÚCLEO DE LA SOMBRA\`* 🎃
+│ 𔓕 *Nombre*     : ${meName || 'ShadowBot'}
+│ 𔓕 *Maestro*    : ${_package?.author?.name || 'dev'}
+│ 𔓕 *Aura*       : WhatsApp Business
 │ 𔓕 *Prefix*     : ${_p}
-│ 𔓕 *Mode*       : ${global.opts?.['self'] ? 'Privado' : 'Público'}
-│ 𔓕 *Total Fitur*: ${totalFitur}+
+│ 𔓕 *Modo*       : ${global.opts?.['self'] ? 'Oculto (Privado)' : 'Manifiesto (Público)'}
+│ 𔓕 *Rituales*   : ${totalFitur}+
 │ 𔓕 *Version*    : ${_package?.version || '1.0.0'}
-│ 𔓕 *Language*   : Javascript
-│ 𔓕 *Type*       : NodeJs/Case
-│ 𔓕 *Library*    : Baileys-MD
-│ 𔓕 *Uptime*     : ${uptime}
-│ 𔓕 *Users*      : ${totalreg} (${rtotalreg} reg.)
-│ 𔓕 *Hora*       : ${time} WIB
-│ 𔓕 *Día*        : ${week}
+│ 𔓕 *Arcano*     : Javascript (NodeJs)
+│ 𔓕 *Librería*   : Baileys-MD
+│ 𔓕 *Vigilia*    : ${uptime} 🕯️
+│ 𔓕 *Almas*      : ${totalreg} (${rtotalreg} iniciadas) 👻
+│ 𔓕 *Hora*       : ${time}
+│ 𔓕 *Noche*      : ${week}
 │ 𔓕 *Fecha*      : ${date}
 ╰────────────────┈➤`.trim()
 
@@ -131,7 +130,7 @@ bienvenido uwu *${meName || 'MyBot'}*, soy Shadow-BOT-MD estoy aquí para ayudar
           fileLength: { low: -727379969, high: 232, unsigned: true },
           pageCount: 0,
           mediaKey: Buffer.from('3163ba7c8db6dd363c4f48bda2735cc0d0413e57567f0a758f514f282889173c', 'hex'),
-          fileName: '🕷 Shadow 😎',
+          fileName: '🎃 Shadow Garden • Halloween 🦇',
           fileEncSha256: Buffer.from('652f2ff6d8a8dae9f5c9654e386de5c01c623fe98d81a28f63dfb0979a44a22f', 'hex'),
           directPath: '/v/t62.7119-24/539012045_745537058346694_1512031191239726227_n.enc',
           mediaKeyTimestamp: { low: 1756370084, high: 0, unsigned: false },

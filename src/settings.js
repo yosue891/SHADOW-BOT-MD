@@ -37,11 +37,11 @@ global.MichiJadibts = false
 
 
 global.multiplier = 1
-global.botname = "Shadow-BOT-MD"
-global.textbot = "Shadow-BOT, yosue"
+global.botname = "Shadow-BOT-MD 🎃"
+global.textbot = "Shadow-BOT-MD 🦇 Halloween Edition"
 global.dev = "SHADOW-BOT-MD"
-global.author = "*SHADOW-BOT-MD* © mᥲძᥱ ᥕі𝗍һ 𝙮𝙤𝙨𝙪𝙚"
-global.etiqueta = "© 𝙮𝙤𝙨𝙪𝙚 | 𝟤𝟢𝟤𝟧"
+global.author = "🎃 *SHADOW GARDEN* 🦇 © 𝙮𝙤𝙨𝙪𝙚"
+global.etiqueta = "🎃 𝙮𝙤𝙨𝙪𝙚 | 𝟤𝟢𝟤𝟧 🦇"
 global.currency = "¢ Pesos"
 global.michipg = "https://i.ibb.co/3NfYh9k/default-avatar.png"
 global.icono = "https://i.ibb.co/3NfYh9k/default-avatar.png"

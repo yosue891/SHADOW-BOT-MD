@@ -428,11 +428,11 @@ export async function handler(chatUpdate) {
 
         if (plugin.coin && isNumber(plugin.coin) && plugin.coin > 0) {
             if (user.coin < plugin.coin) {
-                await this.reply(m.chat, `ꕥ No tienes suficientes *${global.currency}* para usar este comando. Necesitas ${plugin.coin} *${global.currency}*, pero tienes ${user.coin} *${global.currency}*.`, m);
+                await this.reply(m.chat, `> 🎃 🪙 *[ 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 • 𝐇𝐀𝐋𝐋𝐎𝐖𝐄𝐄𝐍 ]*\n> ☾ No posees suficientes *${global.currency}* para este ritual.\n> » Necesitas: *${plugin.coin}* | Tu cofre: *${user.coin}* 🦇`, m);
                 continue;
             }
             user.coin -= plugin.coin;
-            await this.reply(m.chat, `> ꕥ Se cobraran ${plugin.coin} *${global.currency}* por usar el comando *${usedPrefix}${command}*.\n> » *_Saldo actual: ${user.coin} ${global.currency}._*`, m);
+            await this.reply(m.chat, `> 🎃 🪙 *[ 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 ]* Se ofrendaron *${plugin.coin} ${global.currency}* por invocar *${usedPrefix}${command}*.\n> » *_Saldo restante: ${user.coin} ${global.currency}._* 🦇`, m);
         }
 
         commandHandled = true;
@@ -524,16 +524,16 @@ export async function handler(chatUpdate) {
 
 global.dfail = (type, m, conn) => {
     const msg = {
-        rowner: `> 〄 El comando *${global.comando}* solo puede ser usado por los creadores del bot.`,
-        owner: `> 〄 El comando *${global.comando}* solo puede ser usado por los desarrolladores del bot.`,
-        mods: `> 〄 El comando *${global.comando}* solo puede ser usado por los moderadores del bot.`,
-        premium: `> 〄 El comando *${global.comando}* solo puede ser usado por los usuarios premium.`,
-        group: `> 〄 El comando *${global.comando}* solo puede ser usado en grupos.`,
-        private: `> 〄 El comando *${global.comando}* solo puede ser usado al chat privado del bot.`,
-        admin: `> 〄 El comando *${global.comando}* solo puede ser usado por los administradores del grupo.`,
-        botAdmin: `> 〄 Para ejecutar el comando *${global.comando}* debo ser administrador del grupo.`,
-        restrict: `> 〄 Esta característica está desactivada.`
+        rowner: `> 🎃 ⚰️ *[ 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 • 𝐇𝐀𝐋𝐋𝐎𝐖𝐄𝐄𝐍 ]*\n> ☾ El ritual *${global.comando}* está sellado solo para el Maestro Supremo de las sombras. 🦇`,
+        owner: `> 🎃 ⚰️ *[ 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 • 𝐇𝐀𝐋𝐋𝐎𝐖𝐄𝐄𝐍 ]*\n> ☾ El comando *${global.comando}* solo puede ser ejecutado por los arquitectos de la sombra. 🦇`,
+        mods: `> 🎃 🕯️ *[ 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 • 𝐇𝐀𝐋𝐋𝐎𝐖𝐄𝐄𝐍 ]*\n> ☾ El comando *${global.comando}* requiere el rango de Moderador del Aquelarre. 🕸️`,
+        premium: `> 🎃 🩸 *[ 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 • 𝐇𝐀𝐋𝐋𝐎𝐖𝐄𝐄𝐍 ]*\n> ☾ El pacto de *${global.comando}* está reservado únicamente para usuarios con sello Premium. 🦇`,
+        group: `> 🎃 🏰 *[ 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 • 𝐇𝐀𝐋𝐋𝐎𝐖𝐄𝐄𝐍 ]*\n> ☾ Este ritual *${global.comando}* solo puede manifestarse dentro de un Círculo de Sombras (Grupo). 🕸️`,
+        private: `> 🎃 🌑 *[ 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 • 𝐇𝐀𝐋𝐋𝐎𝐖𝐄𝐄𝐍 ]*\n> ☾ Este susurro *${global.comando}* debe realizarse en las sombras del chat privado. 🦇`,
+        admin: `> 🎃 ⚔️ *[ 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 • 𝐇𝐀𝐋𝐋𝐎𝐖𝐄𝐄𝐍 ]*\n> ☾ Solo los Administradores del aquelarre pueden invocar *${global.comando}*. 🕸️`,
+        botAdmin: `> 🎃 💀 *[ 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 • 𝐇𝐀𝐋𝐋𝐎𝐖𝐄𝐄𝐍 ]*\n> ☾ Para desatar el poder de *${global.comando}*, la Sombra debe tener permisos de Administrador en el grupo. 🦇`,
+        restrict: `> 🎃 🚫 *[ 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 • 𝐇𝐀𝐋𝐋𝐎𝐖𝐄𝐄𝐍 ]*\n> ☾ Esta técnica oscura se encuentra sellada actualmente por el pacto de Halloween. 🕯️`
     }[type];
-    if (msg) return conn.reply(m.chat, msg, m).then(() => m.react('✖️'));
+    if (msg) return conn.reply(m.chat, msg, m).then(() => m.react('🎃'));
 };
 

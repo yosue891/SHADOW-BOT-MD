@@ -16,81 +16,83 @@ let handler = async (m, { conn, usedPrefix }) => {
     let muptime = clockString(process.uptime() * 1000)
 
     let infoUser = `
-ʜᴏʟᴀ, ${nombre}
-*乂 ɪɴꜰᴏ ᴅᴇʟ ᴜꜱᴜᴀʀɪᴏ*
-┌  ◦ ᴇꜱᴛᴀᴅᴏ: ᴜꜱᴜᴀʀɪᴏ
-└  ◦ ʟíᴍɪᴛᴇ: ${limite}
+🎃 ʜᴏʟᴀ, ${nombre} 🦇
+*« Las sombras del aquelarre te dan la bienvenida... »* 🕯️
 
-*乂 ɪɴꜰᴏ ᴅᴇʟ ʙᴏᴛ*
-┌  ◦ ɢʀᴜᴘᴏꜱ: ${groupsCount}
-│  ◦ ᴛɪᴇᴍᴘᴏ ᴀᴄᴛɪᴠᴏ: ${muptime}
-│  ◦ ᴜsᴜᴀʀɪᴏs: ${totalreg}
-└  ◦ ᴘʟᴀᴛᴀꜰᴏʀᴍᴀ: ʟɪɴᴜx
+*乂 🎃 ɪɴꜰᴏ ᴅᴇʟ ᴄᴏɴᴛʀᴀᴛɪꜱᴛᴀ 🦇*
+┌  ◦ ᴇꜱᴛᴀᴅᴏ: ᴜꜱᴜᴀʀɪᴏ 🕯️
+└  ◦ ʟíᴍɪᴛᴇ: ${limite} 🩸
+
+*乂 🕸️ ɪɴꜰᴏ ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ ⚰️*
+┌  ◦ ᴄíʀᴄᴜʟᴏꜱ: ${groupsCount} 🏰
+│  ◦ ᴛɪᴇᴍᴘᴏ ᴀᴄᴛɪᴠᴏ: ${muptime} ⏳
+│  ◦ ᴀʟᴍᴀꜱ: ${totalreg} 👻
+└  ◦ ʀᴇɪɴᴏ: ʟɪɴᴜx 🌘
 `.trim()
 
     let comandosGrupo = `
-*╭──* 'CÍRCULOS DE SOMBRA' *⚜︎*
-*│*  .banearbot
-*│*  .cerrar <número> segundos/minutos/horas
-*│*  .close
-*│*  .open
-*│*  .delete
-*│*  .delprimary
-*│*  .demote
-*│*  .encuesta <opción1|opción2|...>
-*│*  .fantasmas
-*│*  .kickfantasmas
-*│*  .infogrupo
-*│*  .invocar
-*│*  .kick
-*│*  .lid
-*│*  .lidnum
-*│*  .lid <@mención|número>
-*│*  .listonline
-*│*  .link
-*│*  .profile
-*│*  .promote
-*│*  .rastrear
-*│*  .revoke
-*│*  .gpbanner
-*│*  .groupimg
-*│*  .gpdesc
-*│*  .groupdesc
-*│*  .gpname
-*│*  .groupname
-*│*  .setprimary
-*│*  .desbanearbot
-*│*  .welcome
-*│*  .welcome @usuario *⚜︎*
-*│*  .welcome
-*│*  .bienvenida
-*│*  .antiprivado
-*│*  .antiprivate
-*│*  .restrict
-*│*  .restringir
-*│*  .autolevelup
-*│*  .autonivel
-*│*  .autoaceptar
-*│*  .aceptarauto
-*│*  .autorechazar
-*│*  .rechazarauto
-*│*  .autoresponder
-*│*  .autorespond
-*│*  .modoadmin
-*│*  .soloadmin
-*│*  .reaction
-*│*  .reaccion
-*│*  .nsfw
-*│*  .modohorny
-*│*  .antispam
-*│*  .jadibotmd
-*│*  .modejadibot
-*│*  .subbots
-*│*  .detect
-*│*  .avisos
-*│*  .antilink
-*│*  .antifake
-*│*  .autoread
+*╭──* 🎃 \`CÍRCULOS DEL AQUIELARRE\` *🦇*
+*│ 🕸️*  .banearbot
+*│ 🕸️*  .cerrar <número> segundos/minutos/horas
+*│ 🕸️*  .close
+*│ 🕸️*  .open
+*│ 🕸️*  .delete
+*│ 🕸️*  .delprimary
+*│ 🕸️*  .demote
+*│ 🕸️*  .encuesta <opción1|opción2|...>
+*│ 🕸️*  .fantasmas
+*│ 🕸️*  .kickfantasmas
+*│ 🕸️*  .infogrupo
+*│ 🕸️*  .invocar
+*│ 🕸️*  .kick
+*│ 🕸️*  .lid
+*│ 🕸️*  .lidnum
+*│ 🕸️*  .lid <@mención|número>
+*│ 🕸️*  .listonline
+*│ 🕸️*  .link
+*│ 🕸️*  .profile
+*│ 🕸️*  .promote
+*│ 🕸️*  .rastrear
+*│ 🕸️*  .revoke
+*│ 🕸️*  .gpbanner
+*│ 🕸️*  .groupimg
+*│ 🕸️*  .gpdesc
+*│ 🕸️*  .groupdesc
+*│ 🕸️*  .gpname
+*│ 🕸️*  .groupname
+*│ 🕸️*  .setprimary
+*│ 🕸️*  .desbanearbot
+*│ 🕸️*  .welcome
+*│ 🕸️*  .welcome @usuario *🦇*
+*│ 🕸️*  .welcome
+*│ 🕸️*  .bienvenida
+*│ 🕸️*  .antiprivado
+*│ 🕸️*  .antiprivate
+*│ 🕸️*  .restrict
+*│ 🕸️*  .restringir
+*│ 🕸️*  .autolevelup
+*│ 🕸️*  .autonivel
+*│ 🕸️*  .autoaceptar
+*│ 🕸️*  .aceptarauto
+*│ 🕸️*  .autorechazar
+*│ 🕸️*  .rechazarauto
+*│ 🕸️*  .autoresponder
+*│ 🕸️*  .autorespond
+*│ 🕸️*  .modoadmin
+*│ 🕸️*  .soloadmin
+*│ 🕸️*  .reaction
+*│ 🕸️*  .reaccion
+*│ 🕸️*  .nsfw
+*│ 🕸️*  .modohorny
+*│ 🕸️*  .antispam
+*│ 🕸️*  .jadibotmd
+*│ 🕸️*  .modejadibot
+*│ 🕸️*  .subbots
+*│ 🕸️*  .detect
+*│ 🕸️*  .avisos
+*│ 🕸️*  .antilink
+*│ 🕸️*  .antifake
+*│ 🕸️*  .autoread
 *╰─────────────╯*`.trim()
 
     let finalMenu = infoUser + '\n\n' + comandosGrupo
@@ -102,7 +104,7 @@ let handler = async (m, { conn, usedPrefix }) => {
       message: { contactMessage: { displayName: "SHADOW-BOT-MD", vcard: vcard } } 
     }
 
-    await m.react('🔥')
+    await m.react('🎃')
 
     let media
     try {
@@ -119,7 +121,7 @@ let handler = async (m, { conn, usedPrefix }) => {
         message: {
           interactiveMessage: {
             body: { text: finalMenu },
-            footer: { text: botname },
+            footer: { text: "🎃 " + botname + " 🦇" },
             header: media ? {
               hasMediaAttachment: true,
               imageMessage: media.imageMessage
@@ -129,35 +131,35 @@ let handler = async (m, { conn, usedPrefix }) => {
                 {
                   name: "cta_url",
                   buttonParamsJson: JSON.stringify({
-                    display_text: "🍃 Canal Oficial",
+                    display_text: "🎃 Canal Oficial 🦇",
                     url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
                   })
                 },
                 {
                   name: "quick_reply",
                   buttonParamsJson: JSON.stringify({
-                    display_text: "💻 Code",
+                    display_text: "💻 Code 🎃",
                     id: `${usedPrefix}code`
                   })
                 },
                 {
                   name: "quick_reply",
                   buttonParamsJson: JSON.stringify({
-                    display_text: "🚀 Ping",
+                    display_text: "🦇 Ping ⚡",
                     id: `${usedPrefix}ping`
                   })
                 },
                 {
                   name: "quick_reply",
                   buttonParamsJson: JSON.stringify({
-                    display_text: "💻 qr",
+                    display_text: "🕯️ QR 🕸️",
                     id: `${usedPrefix}qr`
                   })
                 },
                 {
                   name: "quick_reply",
                   buttonParamsJson: JSON.stringify({
-                    display_text: "👤 Owner",
+                    display_text: "👑 Lord Shadow 🦇",
                     id: `${usedPrefix}owner`
                   })
                 }

@@ -1,6 +1,7 @@
 let handler = async (m, {conn, command}) => {
+  await m.react('🎃')
 
-  const footer = (typeof global !== 'undefined' && global.wm) ? global.wm : 'Shadow-BOT-MD ⚔️';
+  const footer = (typeof global !== 'undefined' && global.wm) ? global.wm : '🎃 SHADOW-BOT-MD • HALLOWEEN 🦇';
 
   let fkontak = {
     key: {participants: '0@s.whatsapp.net', remoteJid: 'status@broadcast', fromMe: false, id: 'Halo'},
@@ -14,11 +15,11 @@ let handler = async (m, {conn, command}) => {
 
   let media = 'https://files.catbox.moe/lcn1kw.mp4'
 
-  let texto = `🌑⚔️ 𝘽𝙄𝙀𝙉𝙑𝙀𝙉𝙄𝘿𝙊(𝘼) 𝘼 𝙇𝘼𝙎 𝘾𝙐𝙀𝙉𝙏𝘼𝙎 𝙊𝙁𝙄𝘾𝙄𝘼𝙇𝙀𝙎 ⚔️🌑
-💜 𝙒𝙀𝙇𝘾𝙊𝙈𝙀 𝙏𝙊 𝙏𝙃𝙀 𝙊𝙁𝙁𝙄𝘾𝙄𝘼𝙇 𝘼𝘾𝘾𝙊𝙐𝙉𝙏𝙎
+  let texto = `🎃🦇 𝘽𝙄𝙀𝙉𝙑𝙀𝙉𝙄𝘿𝙊(𝘼) 𝘼 𝙇𝘼𝙎 𝘾𝙐𝙀𝙉𝙏𝘼𝙎 𝙊𝙁𝙄𝘾𝙄𝘼𝙇𝙀𝙎 𝘿𝙀𝙇 𝘼𝙌𝙐𝙀𝙇𝘼𝙍𝙍𝙀 🦇🎃
+🕯️ 𝙒𝙀𝙇𝘾𝙊𝙈𝙀 𝙏𝙊 𝙏𝙃𝙀 𝙊𝙁𝙁𝙄𝘾𝙄𝘼𝙇 𝘼𝘾𝘾𝙊𝙐𝙉𝙏𝙎
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-💖 𝙎𝙝𝙖𝙙𝙤𝙬-𝘽𝙊𝙏-𝙈𝘿 ⚔️✨
-『☽』 El poder oculto se revela solo en las sombras...
+🎃 𝙎𝙝𝙖𝙙𝙤𝙬-𝘽𝙊𝙏-𝙈𝘿 • 𝙃𝙖𝙡𝙡𝙤𝙬𝙚𝙚𝙣 🦇
+『🎃』 En la noche de brujas, las sombras susurran los pactos...
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 ✅ *GITHUB OFICIAL*
 https://github.com/yosue891
@@ -33,17 +34,17 @@ https://whatsapp.com/channel/0029VbBIgz1HrDZg92ISUl2M
 https://chat.whatsapp.com/ETHW7aP7kOICrR2RBrfE6N
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 👑 Creador Principal: +58 424-2773183 (Yosue)
-⚔️ Segundo Creador: +504 9373-2693 (Ado)
-🤩 Colaborador: +51 900 373 696 (Gian Pool)
+🦇 Segundo Creador: +504 9373-2693 (Ado)
+🧙 Colaborador: +51 900 373 696 (Gian Pool)
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-🌌✨ *Shadow-BOT-MD* — El jardín sombrío nunca duerme ✨🌌`
+🎃🦇 *Shadow-BOT-MD* — El aquelarre sombrío nunca duerme 🕯️`
 
   await conn.sendButton(m.chat, texto, footer, media, [
-   ['👑 Creadores 💗', '#owner'],
-   ['☘️ Volver al Menú', '/menu']
+   ['👑 Creadores 🦇', '#owner'],
+   ['🎃 Volver al Menú 🕯️', '/menu']
        ],
     null, [
-   ['Shadow-BOT-MD ⚔️', 'https://github.com/yosue891/SHADOW-BOT-MD']
+   ['🎃 Shadow-BOT-MD 🦇', 'https://github.com/yosue891/SHADOW-BOT-MD']
        ],
     fkontak
   )

@@ -18,76 +18,76 @@ const handler = async (m, { conn, text, command, usedPrefix, args }) => {
     switch (command) {
       case 'suggest':
       case 'sug': {
-        if (!text) return conn.sendMessage(m.chat, { text: '✐ Por favor, escribe la sugerencia que deseas enviar al desarrollador.', ...rcanal }, { quoted: m });
-        if (text.length < 10) return conn.sendMessage(m.chat, { text: 'ꕥ La sugerencia debe contener al menos 10 caracteres.', ...rcanal }, { quoted: m });
-        await m.react('🕒');
+        if (!text) return conn.sendMessage(m.chat, { text: '🎃 Por favor, escribe la sugerencia que deseas enviar al desarrollador.', ...rcanal }, { quoted: m });
+        if (text.length < 10) return conn.sendMessage(m.chat, { text: '🦇 La sugerencia debe contener al menos 10 caracteres.', ...rcanal }, { quoted: m });
+        await m.react('⏳');
 
-        const sug = `「✦」SUGERENCIA RECIBIDA
+        const sug = `「🎃」SUGERENCIA ARCANO RECIBIDA 🦇
 
-✐ Usuario » *${nombre}*
+🕯️ Usuario » *${nombre}*
 ✩ Tag » *${tag}*
-✿ Sugerencia » ${text}
-✰ Chat » *${chatLabel}*
-🜸 Fecha » *${horario}*
-♤ InfoBot » *${botname} / ${vs}*`;
+🕸️ Sugerencia » ${text}
+🏰 Chat » *${chatLabel}*
+⏳ Horario » *${horario}*
+⚰️ InfoBot » *${botname} / ${vs}*`;
 
         await conn.sendMessage(`${suittag}@s.whatsapp.net`, { text: sug, mentions: [m.sender, ...usertag], ...rcanal }, { quoted: m });
-        await m.react('✔️');
-        await conn.sendMessage(m.chat, { text: '❒ Tu sugerencia ha sido enviada correctamente. Gracias por contribuir a mejorar el Bot.', ...rcanal }, { quoted: m });
+        await m.react('🎃');
+        await conn.sendMessage(m.chat, { text: '🎃 Tu mensaje ha sido enviado entre las sombras al desarrollador. Gracias por colaborar con Shadow Garden.', ...rcanal }, { quoted: m });
         break;
       }
 
       case 'report':
       case 'reportar': {
-        if (!text) return conn.sendMessage(m.chat, { text: '✐ Por favor, describe el error que deseas reportar.', ...rcanal }, { quoted: m });
-        if (text.length < 10) return conn.sendMessage(m.chat, { text: 'ꕥ El reporte debe contener al menos 10 caracteres.', ...rcanal }, { quoted: m });
-        await m.react('🕒');
+        if (!text) return conn.sendMessage(m.chat, { text: '🎃 Por favor, describe el error o fisura que deseas reportar.', ...rcanal }, { quoted: m });
+        if (text.length < 10) return conn.sendMessage(m.chat, { text: '🦇 El reporte debe contener al menos 10 caracteres.', ...rcanal }, { quoted: m });
+        await m.react('⏳');
 
-        const rep = `「✦」REPORTE RECIBIDO
+        const rep = `「🎃」REPORTE DE FISURA RECIBIDO 🦇
 
-✐ Usuario » *${nombre}*
+🕯️ Usuario » *${nombre}*
 ✩ Tag » *${tag}*
-✿ Reporte » ${text}
-✰ Chat » *${chatLabel}*
-🜸 Fecha » *${horario}*
-♤ InfoBot » *${botname} / ${vs}*`;
+🕸️ Reporte » ${text}
+🏰 Chat » *${chatLabel}*
+⏳ Horario » *${horario}*
+⚰️ InfoBot » *${botname} / ${vs}*`;
 
         await conn.sendMessage(`${suittag}@s.whatsapp.net`, { text: rep, mentions: [m.sender, ...usertag], ...rcanal }, { quoted: m });
-        await m.react('✔️');
-        await conn.sendMessage(m.chat, { text: '❒ El reporte ha sido enviado correctamente. Si el error es falso o malintencionado, podrían aplicarse restricciones.', ...rcanal }, { quoted: m });
+        await m.react('🎃');
+        await conn.sendMessage(m.chat, { text: '🎃 El reporte de la anomalía ha sido enviado a la corte de las sombras.', ...rcanal }, { quoted: m });
         break;
       }
 
       case 'invite': {
-        if (!text) return conn.sendMessage(m.chat, { text: '✐ Debes enviar un enlace válido para invitar al Bot a tu grupo.', ...rcanal }, { quoted: m });
+        if (!text) return conn.sendMessage(m.chat, { text: '🎃 Debes enviar un enlace válido para convocar a Lord Shadow a tu aquelarre.', ...rcanal }, { quoted: m });
         let [_, code] = text.match(linkRegex) || [];
-        if (!code) return conn.sendMessage(m.chat, { text: 'ꕥ El enlace de invitación no es válido.', ...rcanal }, { quoted: m });
-        await m.react('🕒');
+        if (!code) return conn.sendMessage(m.chat, { text: '🦇 El enlace de invitación no es válido.', ...rcanal }, { quoted: m });
+        await m.react('⏳');
 
-        const invite = `「✦」INVITACIÓN RECIBIDA
+        const invite = `「🎃」CONVOCATORIA RECIBIDA 🦇
 
-✐ Usuario » *${nombre}*
+🕯️ Usuario » *${nombre}*
 ✩ Tag » *${tag}*
-✰ Chat » *${chatLabel}*
-🜸 Fecha » *${horario}*
-♤ InfoBot » *${botname} / ${vs}*
-❒ Link » ${text}`;
+🏰 Chat » *${chatLabel}*
+⏳ Horario » *${horario}*
+⚰️ InfoBot » *${botname} / ${vs}*
+🕸️ Link » ${text}`;
 
         const mainBotNumber = global.conn.user.jid.split('@')[0];
         const senderBotNumber = conn.user.jid.split('@')[0];
         const destino = mainBotNumber === senderBotNumber ? `${suittag}@s.whatsapp.net` : `${senderBotNumber}@s.whatsapp.net`;
 
         await conn.sendMessage(destino, { text: invite, mentions: [m.sender, ...usertag], ...rcanal }, { quoted: m });
-        await m.react('✔️');
-        await conn.sendMessage(m.chat, { text: '❒ El enlace ha sido enviado correctamente. Gracias por tu invitación.', ...rcanal }, { quoted: m });
+        await m.react('🎃');
+        await conn.sendMessage(m.chat, { text: '🎃 El pergamino de invitación ha sido enviado con éxito.', ...rcanal }, { quoted: m });
         break;
       }
 
       case 'fixmsg':
       case 'ds': {
         if (global.conn.user.jid !== conn.user.jid)
-          return conn.sendMessage(m.chat, { text: '✐ Este comando solo puede ejecutarse desde el número principal del Bot.', ...rcanal }, { quoted: m });
-        await m.react('🕒');
+          return conn.sendMessage(m.chat, { text: '🎃 Este comando arcano solo puede ejecutarse desde el núcleo principal de la Sombra.', ...rcanal }, { quoted: m });
+        await m.react('⏳');
 
         const chatIdList = m.isGroup ? [m.chat, m.sender] : [m.sender];
         const sessionPath = './Sessions/';
@@ -104,16 +104,16 @@ const handler = async (m, { conn, text, command, usedPrefix, args }) => {
           }
         }
 
-        await m.react(count === 0 ? '✖️' : '✔️');
+        await m.react(count === 0 ? '✖️' : '🎃');
         await conn.sendMessage(m.chat, { text: count === 0
-          ? 'ꕥ No se encontraron archivos de sesión relacionados con tu ID.'
-          : `❒ Se eliminaron *${count}* archivos de sesión correctamente.`, ...rcanal }, { quoted: m });
+          ? '🦇 No se encontraron residuos de sesión relacionados con tu ID.'
+          : `🎃 Se purgaron *${count}* archivos residuales de la cripta correctamente.`, ...rcanal }, { quoted: m });
         break;
       }
     }
   } catch (err) {
     await m.react('✖️');
-    await conn.sendMessage(m.chat, { text: `⚠︎ Ocurrió un error inesperado.\n> Usa *${usedPrefix}report* para informarlo.\n\n🜸 Detalles: ${err.message}`, ...rcanal }, { quoted: m });
+    await conn.sendMessage(m.chat, { text: `⚠︎ Ocurrió una perturbación en el abismo.\n> Usa *${usedPrefix}report* para notificar a la corte.\n\n🦇 Detalles: ${err.message}`, ...rcanal }, { quoted: m });
   }
 };
 

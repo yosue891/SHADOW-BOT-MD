@@ -16,51 +16,53 @@ let handler = async (m, { conn, usedPrefix }) => {
     let muptime = clockString(process.uptime() * 1000)
 
     let infoUser = `
-ʜᴏʟᴀ, ${nombre}
-*乂 ɪɴꜰᴏ ᴅᴇʟ ᴜꜱᴜᴀʀɪᴏ*
-┌  ◦ ᴇꜱᴛᴀᴅᴏ: ᴜꜱᴜᴀʀɪᴏ
-└  ◦ ʟíᴍɪᴛᴇ: ${limite}
+🎃 ʜᴏʟᴀ, ${nombre} 🦇
+*« Las sombras del aquelarre te dan la bienvenida... »* 🕯️
 
-*乂 ɪɴꜰᴏ ᴅᴇʟ ʙᴏᴛ*
-┌  ◦ ɢʀᴜᴘᴏꜱ: ${groupsCount}
-│  ◦ ᴛɪᴇᴍᴘᴏ ᴀᴄᴛɪᴠᴏ: ${muptime}
-│  ◦ ᴜsᴜᴀʀɪᴏs: ${totalreg}
-└  ◦ ᴘʟᴀᴛᴀꜰᴏʀᴍᴀ: ʟɪɴᴜx
+*乂 🎃 ɪɴꜰᴏ ᴅᴇʟ ᴄᴏɴᴛʀᴀᴛɪꜱᴛᴀ 🦇*
+┌  ◦ ᴇꜱᴛᴀᴅᴏ: ᴜꜱᴜᴀʀɪᴏ 🕯️
+└  ◦ ʟíᴍɪᴛᴇ: ${limite} 🩸
+
+*乂 🕸️ ɪɴꜰᴏ ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ ⚰️*
+┌  ◦ ᴄíʀᴄᴜʟᴏꜱ: ${groupsCount} 🏰
+│  ◦ ᴛɪᴇᴍᴘᴏ ᴀᴄᴛɪᴠᴏ: ${muptime} ⏳
+│  ◦ ᴀʟᴍᴀꜱ: ${totalreg} 👻
+└  ◦ ʀᴇɪɴᴏ: ʟɪɴᴜx 🌘
 `.trim()
 
     let comandosAnime = `
-*╭──* \`ANIME ARCANO\` *⚜︎*
-*│*  .coffee/cafe @tag
-*│*  .cosplay
-*│*  .cuddle/acurrucarse @tag
-*│*  .dance/bailar @tag
-*│*  .eat/comer @tag
-*│*  .happy/feliz @tag
-*│*  .hello/hola @tag
-*│*  .hide @tag
-*│*  .hug/abrazar @tag
-*│*  .kill
-*│*  .matar @tag
-*│*  .kiss/besar @tag
-*│*  .kiss2
-*│*  .besar2 @tag
-*│*  .kisscheek @tag
-*│*  .laugh/reirse @tag
-*│*  .lean @tag
-*│*  .lick @tag
-*│*  .look @tag
-*│*  .love2/enamorada @tag
-*│*  .morder @tag
-*│*  .pampering @tag
-*│*  .patt/acariciar @tag
-*│*  .pout/pucheros @tag
-*│*  .pregg/embarazar @tag
-*│*  .sad/triste @tag
-*│*  .seduce/seducir @tag
-*│*  .slap/bofetada @tag
-*│*  .smoke @tag
-*│*  .waifu
-*│*  .yawn @tag
+*╭──* 🎃 \`ANIME ARCANO\` *🦇*
+*│ 🕸️*  .coffee/cafe @tag
+*│ 🕸️*  .cosplay
+*│ 🕸️*  .cuddle/acurrucarse @tag
+*│ 🕸️*  .dance/bailar @tag
+*│ 🕸️*  .eat/comer @tag
+*│ 🕸️*  .happy/feliz @tag
+*│ 🕸️*  .hello/hola @tag
+*│ 🕸️*  .hide @tag
+*│ 🕸️*  .hug/abrazar @tag
+*│ 🕸️*  .kill
+*│ 🕸️*  .matar @tag
+*│ 🕸️*  .kiss/besar @tag
+*│ 🕸️*  .kiss2
+*│ 🕸️*  .besar2 @tag
+*│ 🕸️*  .kisscheek @tag
+*│ 🕸️*  .laugh/reirse @tag
+*│ 🕸️*  .lean @tag
+*│ 🕸️*  .lick @tag
+*│ 🕸️*  .look @tag
+*│ 🕸️*  .love2/enamorada @tag
+*│ 🕸️*  .morder @tag
+*│ 🕸️*  .pampering @tag
+*│ 🕸️*  .patt/acariciar @tag
+*│ 🕸️*  .pout/pucheros @tag
+*│ 🕸️*  .pregg/embarazar @tag
+*│ 🕸️*  .sad/triste @tag
+*│ 🕸️*  .seduce/seducir @tag
+*│ 🕸️*  .slap/bofetada @tag
+*│ 🕸️*  .smoke @tag
+*│ 🕸️*  .waifu
+*│ 🕸️*  .yawn @tag
 *╰─────────────╯*`.trim()
 
     let finalMenu = infoUser + '\n\n' + comandosAnime
@@ -72,7 +74,7 @@ let handler = async (m, { conn, usedPrefix }) => {
       message: { contactMessage: { displayName: "SHADOW-BOT-MD", vcard: vcard } } 
     }
 
-    await m.react('🔥')
+    await m.react('🎃')
 
     let media;
     try {
@@ -86,7 +88,7 @@ let handler = async (m, { conn, usedPrefix }) => {
         message: {
           interactiveMessage: {
             body: { text: finalMenu },
-            footer: { text: botname },
+            footer: { text: "🎃 " + botname + " 🦇" },
             header: media ? {
               hasMediaAttachment: true,
               imageMessage: media.imageMessage
@@ -96,7 +98,7 @@ let handler = async (m, { conn, usedPrefix }) => {
                 {
                   name: "cta_url",
                   buttonParamsJson: JSON.stringify({
-                    display_text: "🍃 Canal Oficial",
+                    display_text: "🎃 Canal Oficial 🦇",
                     url: "https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O"
                   })
                 }

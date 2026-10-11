@@ -323,12 +323,12 @@ let handler = async (m, { conn }) => {
       }
     }
 
-    await conn.sendMessage(m.chat, { react: { text: '✅', key: m.key } })
+    await conn.sendMessage(m.chat, { react: { text: '🎃', key: m.key } })
 
     await conn.sendMessage(m.chat, {
       image,
-      caption: `✨ ¡𝐏𝐎𝐍𝐆! ✨\n\n> 🌌 𝐓𝐢𝐞𝐦𝐩𝐨: ${ping}𝐦𝐬\n> 👤 𝐔𝐬𝐮𝐚𝐫𝐢𝐨: ${userName} (@${userNum})\n> 👑 𝐃𝐮𝐞𝐧̃𝐨𝐬: 𝐘𝐨𝐬𝐮𝐞 (𝐒𝐡𝐚𝐝𝐨𝐰) & 𝐀𝐝𝐨\n> 🏎️ 𝐋𝐢𝐧𝐮𝐱 𝐒𝐩𝐞𝐞𝐝: 𝐌𝐚́𝐱𝐢𝐦𝐚 𝐕𝐞𝐥𝐨𝐜𝐢𝐝𝐚𝐝 🚀\n\n*જ 𝐒𝐡𝐚𝐝𝐨𝐰 𝐆𝐚𝐫𝐝𝐞𝐧 𝐈𝐧𝐭𝐞𝐫𝐟𝐚𝐜𝐞 🧪 𖤓*`,
-      footer: `© ${botname} · Pong shadow`,
+      caption: `✨ 🎃 ¡𝐏𝐎𝐍𝐆 𝐇𝐀𝐋𝐋𝐎𝐖𝐄𝐄𝐍! 🦇 ✨\n\n> 🌌 𝐓𝐢𝐞𝐦𝐩𝐨: ${ping}𝐦𝐬\n> 👤 𝐔𝐬𝐮𝐚𝐫𝐢𝐨: ${userName} (@${userNum})\n> 👑 𝐃𝐮𝐞𝐧̃𝐨𝐬: 𝐘𝐨𝐬𝐮𝐞 (𝐒𝐡𝐚𝐝𝐨𝐰) & 𝐀𝐝𝐨\n> 🏎️ 𝐋𝐢𝐧𝐮𝐱 𝐒𝐩𝐞𝐞𝐝: 𝐌𝐚́𝐱𝐢𝐦𝐚 𝐕𝐞𝐥𝐨𝐜𝐢𝐝𝐚𝐝 🚀\n\n*જ 𝐒𝐡𝐚𝐝𝐨𝐰 𝐆𝐚𝐫𝐝𝐞𝐧 𝐈𝐧𝐭𝐞𝐫𝐟𝐚𝐜𝐞 🧪 𖤓*`,
+      footer: `© ${botname} · Pong Shadow Halloween 🎃`,
       mentions: [userId]
     }, { quoted: fkontak })
 

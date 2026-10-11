@@ -58,27 +58,27 @@ let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
     let pais = phone.getRegionCode() || 'Dominio Desconocido'
 
     let tags = {
-      info: 'INFO DE LA SOMBRA',
-      main: 'ESTADO DEL CÓDIGO',
-      anime: 'ANIME ARCANO',
-      menu: 'MENÚS OCULTOS',
-      search: 'BÚSQUEDAS ESOTÉRICAS',
-      descargas: 'DESCARGAS DE LA SOMBRA',
-      socket: 'CONEXIONES OCULTAS',
-      rg: 'PERFIL DEL CONTRATISTA',
-      fun: 'JUEGOS DE SOMBRA',
-      rpg: 'ECONOMÍA OCULTA',
-      gacha: 'EVENTOS GACHA',
-      game: 'JUEGOS ARCANOS',
-      grupos: 'CÍRCULOS DE SOMBRA',
-      nable: 'MODO ON / OFF',
-      ia: 'INTELIGENCIA ARCANA',
-      stalk: 'OBSERVACIÓN SILENCIOSA',
-      maker: 'ALQUIMIA VISUAL',
-      tools: 'HERRAMIENTAS DE LA SOMBRA',
-      sticker: 'SELLOS ARCANOS',
-      owner: 'MAESTRO DE LA ORGANIZACIÓN',
-      nsfw: 'ZONA RESTRINGIDA (+18)'
+      info: 'INFO DE LA SOMBRA 🎃',
+      main: 'ESTADO DEL CÓDIGO 🦇',
+      anime: 'ANIME DE PESADILLA 🕸️',
+      menu: 'MENÚS Y RITUALES 🕯️',
+      search: 'BÚSQUEDAS ESOTÉRICAS 🔮',
+      descargas: 'DESCARGAS DE LA CRIPTA ⚰️',
+      socket: 'CONEXIONES ESPECTRALES 🕷️',
+      rg: 'PERFIL DEL CONTRATISTA 📜',
+      fun: 'JUEGOS EMBRUJADOS 🎃',
+      rpg: 'ECONOMÍA DEL INFRAMUNDO 🪙',
+      gacha: 'INVOCACIÓN DE ESPÍRITUS 🍬',
+      game: 'JUEGOS ARCANOS 🃏',
+      grupos: 'CÍRCULOS Y AQUELARRES 🌘',
+      nable: 'SELLOS ON / OFF ⚙️',
+      ia: 'INTELIGENCIA ARCANA 🧠',
+      stalk: 'OJO DE LA SOMBRA 👁️',
+      maker: 'ALQUIMIA VISUAL 🎨',
+      tools: 'HERRAMIENTAS OSCURAS 🛠️',
+      sticker: 'SELLOS ARCANOS 🏷️',
+      owner: 'MAESTRO DE LA NOCHE 👑',
+      nsfw: 'ZONA RESTRINGIDA (+18) 🔞'
     }
 
     let commands = Object.values(global.plugins)
@@ -92,34 +92,36 @@ let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
     for (let tag in tags) {
       let comandos = commands
         .filter(cmd => cmd.tags.includes(tag))
-        .map(cmd => cmd.help.map(e => `*│*  ${usedPrefix}${e}`).join('\n'))
+        .map(cmd => cmd.help.map(e => `*│ 🦇*  ${usedPrefix}${e}`).join('\n'))
         .join('\n')
       if (comandos) {
-        menuTexto += `\n*╭──* \`${tags[tag]}\` *⚜︎*
+        menuTexto += `\n*╭─━─━─⊱* 🎃 \`${tags[tag]}\` *🦇 ⊰─━─━─╮*
 ${comandos}
-*╰─────────────╯*\n`
+*╰─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─╯*\n`
       }
     }
 
     let date = `${dia}, ${fechaTxt}, ${hora}`
     let infoUser = `
-> 🌑 Bienvenido a la sombra, ${name}.
-> Ya estaba escuchando tus pasos...
-
-> ⚜︎ — INFO SHADOW BOT
-> • Nombre clave: ${conn.user?.name || 'Shadow Unit'}
-> • Clasificación: ${(conn.user.jid == global.conn.user.jid ? 'Núcleo Principal' : 'Unidad Subordinada')}
-> • Comandos: ${totalCommands}
-> • Tiempo activo: ${uptime}
-> • Dominio: ${pais}
-> • Almas: ${totalreg}
-> • Celdas: ${groupsCount}
-> • Tiempo: ${date}
+╭─━─━─━─⊱ 🎃 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 🦇 ⊰─━─━─━─╮
+│ 🌑 *¡Bienvenido al Jardín de las Sombras, ${name}!*
+│ 🕸️ *« En la noche de Halloween, las sombras bailan bajo la luna »*
+│
+│ ⚜︎ ───⊱ 🕯️ ɪɴꜰᴏ ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ 🎃 ⊰─── ⚜︎
+│ • 🦇 *Nombre clave:* ${conn.user?.name || 'Lord Shadow'}
+│ • 🕸️ *Jerarquía:* ${(conn.user.jid == global.conn.user.jid ? 'Núcleo Supremo' : 'Unidad Espectral')}
+│ • 🎃 *Hechizos:* ${totalCommands}
+│ • ⏳ *Resplandor:* ${uptime}
+│ • 🏰 *Dominio:* ${pais}
+│ • 👻 *Almas pactadas:* ${totalreg}
+│ • ⚰️ *Círculos oscuros:* ${groupsCount}
+│ • 🌘 *Hora de brujas:* ${date}
+╰─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─╯
 
 ${readMore}
-乂 PROTOCOLO DE COMANDOS DE LA SOMBRA 乂\n`.trim()
+乂 🎃 𝐑𝐈𝐓𝐔𝐀𝐋𝐄𝐒 𝐘 𝐂𝐎𝐌𝐀𝐍𝐃𝐎𝐒 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀 🦇 乂\n`.trim()
 
-    await m.react('🔥')
+    await m.react('🎃')
 
     const finalBanner = getNextBanner()
     const isVideo = true
@@ -184,7 +186,7 @@ ${readMore}
                     {
                       name: 'cta_url',
                       buttonParamsJson: JSON.stringify({
-                        display_text: '📢 Canal Oficial',
+                        display_text: '🎃 Canal Oficial 🦇',
                         url: global.channel || 'https://whatsapp.com',
                         has_multiple_buttons: true
                       })

@@ -81,33 +81,34 @@ let handler = async (m, { conn, usedPrefix }) => {
     }
 
     const infoUser = [
-      "─┈➤ *`INFO USER`*",
-      `𔓕 *Nombre* : ${name}`,
-      `𔓕 *Tag* : ${tagUser}`,
-      `𔓕 *Registro* : ${isRegistered ? "✅" : "❌"}`
+      "─┈➤ 🎃 *`CONTRATISTA SOMBRÍO`* 🦇",
+      `𔓕 *Nombre*   : ${name}`,
+      `𔓕 *Tag*      : ${tagUser}`,
+      `𔓕 *Pacto*    : ${isRegistered ? "🎃 Sellado" : "❌ Sin sellar"}`
     ].join("\n")
 
     const infoBot = [
-      "╭──┈ *`INFO BOT`*",
-      `│ 🐢 *Nombre* : ${botNameToShow}`,
-      `│ 🌲 *Tipo* : ${botType}`,
-      `│ 🌾 *Prefix* : ${usedPrefix}`,
-      `│ 🪴 *Uptime* : ${uptime}`,
-      `│ 🌵 *Hora* : ${time}`,
-      `│ 🌱 *Fecha* : ${date}`,
-      "╰------------------------------------------"
+      "╭──┈ 🎃 *`SHADOW GARDEN • HALLOWEEN`* 🦇",
+      `│ 🎃 *Nombre*  : ${botNameToShow}`,
+      `│ 🦇 *Linaje*  : ${botType}`,
+      `│ 🕸️ *Prefijo* : ${usedPrefix}`,
+      `│ 🕯️ *Vigilia* : ${uptime}`,
+      `│ 🌘 *Hora*    : ${time}`,
+      `│ 🍂 *Fecha*   : ${date}`,
+      "╰─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─"
     ].join("\n")
 
     const menuText = [
-      `Hola *${tagUser}!*`,
-      `Bienvenido a *${botNameToShow}*`,
+      `¡Saludos en la noche de brujas, *${tagUser}*! 🎃`,
+      `Bienvenido a *${botNameToShow}* 🦇`,
+      `_« Las sombras cobran vida bajo la luna de Halloween... »_ 🕯️`,
       ``,
       infoUser,
       ``,
       infoBot,
       ``,
-      ` *\`CANAL\`*`,
-      `🌵 ${channelUrl}`
+      ` 🎃 *\`CANAL OFICIAL\`* 🦇`,
+      `🕸️ ${channelUrl}`
     ].join("\n")
 
     const thumbBuffer = await getBufferFromUrl(bannerUrl).catch(() => null)
@@ -127,32 +128,32 @@ let handler = async (m, { conn, usedPrefix }) => {
 
     const sections = [
       {
-        title: "👑 OWNER",
-        highlight_label: "✨",
+        title: "👑 MAESTRO SUPREMO (OWNER)",
+        highlight_label: "🎃",
         rows: [
-          { title: "Menú Owner", description: "Comandos exclusivos para creadores", id: `${usedPrefix}menuowner` }
+          { title: "Menú Owner", description: "Comandos exclusivos del Maestro de las Sombras", id: `${usedPrefix}menuowner` }
         ]
       },
       {
-        title: "📁 CATEGORIAS PRINCIPALES",
-        highlight_label: "🤖",
+        title: "🎃 RITUALES Y CATEGORÍAS 🦇",
+        highlight_label: "🕯️",
         rows: [
-          { title: "Menú Grupos", description: "Comandos de administración de grupos", id: `${usedPrefix}menugrupo` },
-          { title: "Menú Descargas", description: "Descargar videos, música y fotos", id: `${usedPrefix}menudescargas` },
-          { title: "Menú Fun", description: "Comandos de entretenimiento y diversión", id: `${usedPrefix}menufun` },
-          { title: "Menú Gacha", description: "Comandos de juegos gacha y casino", id: `${usedPrefix}menugacha` },
-          { title: "Menú IA", description: "Interactuar con Inteligencias Artificiales", id: `${usedPrefix}menuia` },
-          { title: "Menú Herramientas", description: "Utilidades y herramientas útiles", id: `${usedPrefix}menuherramientas` },
-          { title: "Menú Anime", description: "Comandos e imágenes del mundo anime", id: `${usedPrefix}menuanime` }
+          { title: "Menú Grupos", description: "Comandos para gobernar círculos y grupos", id: `${usedPrefix}menugrupo` },
+          { title: "Menú Descargas", description: "Extraer tesoros multimedia de la cripta", id: `${usedPrefix}menudescargas` },
+          { title: "Menú Fun", description: "Entretenimiento y juegos de sombras", id: `${usedPrefix}menufun` },
+          { title: "Menú Gacha", description: "Invocación de espíritus y personajes", id: `${usedPrefix}menugacha` },
+          { title: "Menú IA", description: "Oráculo e inteligencias arcanas", id: `${usedPrefix}menuia` },
+          { title: "Menú Herramientas", description: "Artefactos y utilidades oscuras", id: `${usedPrefix}menuherramientas` },
+          { title: "Menú Anime", description: "Manifestaciones del plano anime", id: `${usedPrefix}menuanime` }
         ]
       }
     ]
 
     const nativeFlowPayload = {
-      body: { text: `𝗠𝗘𝗡𝗨 • ${botNameToShow}` },
+      body: { text: `🎃 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 • ${botNameToShow} 🦇` },
       footer: { text: menuText },
       header: media ? {
-        title: `🐢 ${botNameToShow}`,
+        title: `🎃 ${botNameToShow} 🦇`,
         subtitle: `👤 ${name} • ⏱ ${uptime}`,
         hasMediaAttachment: true,
         imageMessage: media.imageMessage

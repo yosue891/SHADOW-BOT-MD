@@ -87,25 +87,25 @@ const handler = async (m, { conn, usedPrefix = '.' }) => {
     }]
   })
 
-  const resumen = `🌴 *Sub-Bots conectados: ${conectados.length}/${MAX_SUBBOTS}*`
+  const resumen = `🎃 *Clones del Aquelarre conectados: ${conectados.length}/${MAX_SUBBOTS}* 🦇`
   if (!conectados.length) {
-    return m.reply(`${resumen}\n\nNo hay Sub-Bots activos ahora mismo.\nUsa \`${usedPrefix}code\` o \`${usedPrefix}qr\` para vincular uno.`)
+    return m.reply(`${resumen}\n\nNo hay clones sombríos activos en este momento.\nUsa \`${usedPrefix}code\` o \`${usedPrefix}qr\` para vincular un clon a las sombras.`)
   }
 
   await m.reply(resumen)
 
   const describir = (bot, i) => [
-    `🪴 Sub-Bot ${i + 1}`,
-    `🌱 Nombre: ${bot.name}`,
+    `🎃 Clon de Sombra ${i + 1} 🦇`,
+    `🕯️ Nombre: ${bot.name}`,
     bot.number ? `🔢 https://wa.me/${bot.number}` : `🔢 ID: ${bot.jid}`,
-    `🍄 Uptime: ${bot.uptime}`,
+    `⏳ Tiempo activo: ${bot.uptime}`,
   ].join('\n')
 
   const enviarLista = async (desde = 0) => {
     for (let offset = desde; offset < conectados.length; offset += TARJETAS_POR_MENSAJE) {
       const lista = conectados.slice(offset, offset + TARJETAS_POR_MENSAJE)
         .map((bot, i) => describir(bot, offset + i)).join('\n\n')
-      await m.reply(`📋 *Lista de Sub-Bots conectados*\n\n${lista}`)
+      await m.reply(`📜🎃 *Lista de Clones Sombríos Conectados*\n\n${lista}`)
     }
   }
 
@@ -132,17 +132,17 @@ const handler = async (m, { conn, usedPrefix = '.' }) => {
       const lote = conectados.slice(offset, offset + TARJETAS_POR_MENSAJE)
       const cards = lote.map((bot, i) => ({
         body: { text: describir(bot, offset + i) },
-        footer: { text: '✨ Usa el botón para interactuar' },
-        header: { title: bot.name, hasMediaAttachment: true, imageMessage },
+        footer: { text: '🎃 SHADOW GARDEN • HALLOWEEN 🦇' },
+        header: { title: `🎃 ${bot.name} 🦇`, hasMediaAttachment: true, imageMessage },
         nativeFlowMessage: {
           buttons: [
             {
               name: 'quick_reply',
-              buttonParamsJson: JSON.stringify({ display_text: 'Ser Sub-Bot', id: `${usedPrefix}code` }),
+              buttonParamsJson: JSON.stringify({ display_text: '🎃 Ser Sub-Bot 🦇', id: `${usedPrefix}code` }),
             },
             {
               name: 'cta_url',
-              buttonParamsJson: JSON.stringify({ display_text: 'Canal Oficial', url: CANAL_OFICIAL, merchant_url: CANAL_OFICIAL }),
+              buttonParamsJson: JSON.stringify({ display_text: '🎃 Canal Oficial 🦇', url: CANAL_OFICIAL, merchant_url: CANAL_OFICIAL }),
             },
           ],
         },

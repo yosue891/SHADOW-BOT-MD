@@ -3,6 +3,7 @@ import { execSync} from 'child_process'
 
 let handler = async (m, { conn, usedPrefix, command, participants, isOwner}) => {
   try {
+    await m.react('🎃')
     const uptimeSeconds = process.uptime()
     const uptime = formatDuration(uptimeSeconds)
 
@@ -47,7 +48,7 @@ let handler = async (m, { conn, usedPrefix, command, participants, isOwner}) => 
     let latency = '⏳ N/A'
     try {
       const start = Date.now()
-      const sent = await conn.sendMessage(m.chat, { text: '🧭 Invocando la esencia...'})
+      const sent = await conn.sendMessage(m.chat, { text: '🎃 Convocando los espíritus de la noche... 🦇'})
       const elapsed = Date.now() - start
       latency = `⚡ ${elapsed} ms`
       try {
@@ -65,17 +66,17 @@ let handler = async (m, { conn, usedPrefix, command, participants, isOwner}) => 
 }
 
     let report = []
-    report.push(`🕵️‍♂️ Informe Secreto — ${pkgInfo.name} v${pkgInfo.version}`)
-    report.push(`⏱️ Tiempo activo: ${uptime} (${Math.floor(uptimeSeconds)}s)`)
-    report.push(`⚡ Latencia espectral: ${latency}`)
+    report.push(`🎃🦇 Informe Arcano de Halloween — ${pkgInfo.name} v${pkgInfo.version} 🕯️`)
+    report.push(`⏱️ Tiempo activo en las sombras: ${uptime} (${Math.floor(uptimeSeconds)}s)`)
+    report.push(`🕯️ Latencia espectral: ${latency}`)
     report.push(`🖥️ Entorno: ${platform}`)
     report.push(`🧬 Node.js: ${nodeVersion}`)
-    report.push(`🧠 Núcleo: ${cpuModel} — ${cpuCores} núcleos`)
+    report.push(`🧠 Núcleo arcano: ${cpuModel} — ${cpuCores} núcleos`)
     report.push(`📊 Carga (1m/5m/15m): ${load.map(n => n.toFixed(2)).join(' / ')}`)
     report.push(`💾 Memoria: total=${formatBytes(memTotal)} usada=${formatBytes(memUsed)} libre=${formatBytes(memFree)}`)
     report.push(`📦 Proceso: rss=${formatBytes(pMem.rss)}, heap=${formatBytes(pMem.heapUsed)}, externo=${formatBytes(pMem.external || 0)}`)
-    report.push(`💬 Chats: ${chatsCount} (👥 Grupos: ${groupsCount} • 👤 Privados: ${privateChats})`)
-    report.push(`🧑‍💼 Identidad del maestro: ${ownerInfo}`)
+    report.push(`💬 Círculos: ${chatsCount} (🏰 Grupos: ${groupsCount} • 👤 Privados: ${privateChats})`)
+    report.push(`👑 Identidad del maestro: ${ownerInfo}`)
 
     const textReport = report.join('\n');
     await conn.sendMessage(m.chat, { text: textReport});

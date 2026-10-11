@@ -3,22 +3,24 @@ let handlerUnreg = async (m, { conn }) => {
   const pp = await conn.profilePictureUrl(m.sender, 'image').catch(() => 'https://raw.githubusercontent.com/Andresv27728/dtbs/main/shadow.jpg')
 
   if (!user.registered) {
-    return m.reply('『⚠️』 No tienes ningún pacto activo...')
+    return m.reply('『🎃⚠️』 No tienes ningún pacto sombrío activo en el aquelarre...')
   }
+
+  await m.react('🕯️')
 
   user.registered = false
   user.name = ''
   user.age = 0
 
   await conn.sendMessage(m.chat, {
-    text: `『💀』 El sello ha sido roto...\n\n🌑 La sombra se disuelve en la oscuridad.`
+    text: `『🎃💀』 El sello arcano ha sido roto...\n\n🦇 La sombra se disuelve en la noche eterna de Halloween.`
   }, { quoted: m })
 
   await conn.sendMessage(m.chat, {
     document: { url: 'https://files.catbox.moe/4vjomv.jpg' },
     mimetype: 'application/pdf',
-    fileName: '☽ Pacto Roto de Shadow ☽',
-    caption: '『📜』 Documento sellado ha sido destruido...'
+    fileName: '🎃 Pacto Roto de Ultratumba 🦇',
+    caption: '『📜🕯️』 El pergamino del pacto ha sido consumido por el fuego fatuo...'
   }, { quoted: m })
 }
 
