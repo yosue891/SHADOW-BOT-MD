@@ -57,7 +57,7 @@ handler.all = async function(m) {
     for (let key in respuestas) {
         const regex = new RegExp(`^${key}$`, "i");
         if (regex.test(m.text)) {
-            conn.reply(m.chat, respuestas[key], m, rcanal);
+            await this.reply(m.chat, respuestas[key], m, global.rcanal);
             return !0;
         }
     }

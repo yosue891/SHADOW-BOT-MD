@@ -1,5 +1,5 @@
 import { proto, generateWAMessage, areJidsSameUser, decryptPollVote } from '@whiskeysockets/baileys'
-export async function all(m, chatUpdate) {
+export async function all(m, { chatUpdate } = {}) {
 if (m.isBaileys) {
 return
 }
@@ -89,7 +89,7 @@ if (m.isGroup) {
 const msg = {
     ...chatUpdate,
     messages: [proto.WebMessageInfo.fromObject(messages)].map((v) => (v.conn = this, v)),
-    type: 'append',
+    type: 'append', isSynthetic: true,
 }
 this.ev.emit('messages.upsert', msg)
 }

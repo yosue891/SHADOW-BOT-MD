@@ -111,29 +111,21 @@ global.prefix = new RegExp('^[#!./]')
 global.db = new Low(/https?:\/\//.test(opts['db'] || '') ? new cloudDBAdapter(opts['db']) : new JSONFile('database.json'))
 global.DATABASE = global.db; 
 global.loadDatabase = async function loadDatabase() {
-if (global.db.READ) {
-return new Promise((resolve) => setInterval(async function() {
-if (!global.db.READ) {
-clearInterval(this);
-resolve(global.db.data == null ? global.loadDatabase() : global.db.data)
-}}, 1 * 1000))
-}
-if (global.db.data !== null) return
-global.db.READ = true
-await global.db.read().catch(console.error)
-global.db.READ = null
+if (global.db.data !== null) return global.db.data
+if (global.db._readPromise) return global.db._readPromise
+global.db._readPromise = (async () => {
+await global.db.read()
 global.db.data = {
-users: {},
-chats: {},
-stats: {},
-msgs: {},
-sticker: {},
-settings: {},
+users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {},
 ...(global.db.data || {}),
 }
 global.db.chain = chain(global.db.data)
+return global.db.data
+})()
+try { return await global.db._readPromise }
+finally { global.db._readPromise = null }
 }
-loadDatabase()
+await loadDatabase()
 
 const sessionCredsPath = join(global.sessions, 'creds.json')
 if (existsSync(sessionCredsPath)) {
@@ -170,8 +162,8 @@ console.log(chalk.gray(`[ Baileys ] Versión Web: ${currentBaileysVersion.join('
 console.log(chalk.gray(`[ Baileys ] Usando versión integrada: ${error.message}`))
 }
 const msgRetryCounterMap = new Map()
-const msgRetryCounterCache = new NodeCache({ stdTTL: 0, checkperiod: 0 })
-const userDevicesCache = new NodeCache({ stdTTL: 0, checkperiod: 0 })
+const msgRetryCounterCache = new NodeCache({ stdTTL: 3600, checkperiod: 120, useClones: false })
+const userDevicesCache = new NodeCache({ stdTTL: 300, checkperiod: 120, useClones: false })
 let phoneNumber = process.env.BOT_NUMBER || process.env.PHONE_NUMBER || global.botNumber
 const methodCodeQR = process.argv.includes("qr") || process.argv.includes("--qr")
 const methodCode = process.argv.includes("code") || process.argv.includes("--code")
@@ -217,15 +209,15 @@ syncFullHistory: false,
 getMessage: async (key) => {
 try {
 let jid = jidNormalizedUser(key.remoteJid);
-let msg = await store.loadMessage(jid, key.id)
-return msg?.message || ""
+let msg = global.conn?.chats?.[jid]?.messages?.[key.id]
+return msg?.message
 } catch (error) {
-return ""
+return undefined
 }},
 msgRetryCounterCache: msgRetryCounterCache || new Map(),
 userDevicesCache: userDevicesCache || new Map(),
-defaultQueryTimeoutMs: undefined,
-cachedGroupMetadata: (jid) => globalThis.conn?.chats?.[jid]?.metadata ?? {},
+defaultQueryTimeoutMs: 60000,
+cachedGroupMetadata: async (jid) => globalThis.conn?.chats?.[jid]?.metadata,
 keepAliveIntervalMs: 45000, 
 maxIdleTimeMs: 120000, 
 }
@@ -303,7 +295,7 @@ console.log(chalk.yellowBright('\n⚠︎ El canal de WhatsApp no estuvo listo pa
 if (!state.creds.registered) {
 if (opcion === '2' || methodCode) {
 opcion = '2'
-if (methodCode && !!phoneNumber) {
+if (phoneNumber) {
 global._pairingNumber = phoneNumber.replace(/[^0-9]/g, '')
 } else {
 do {
@@ -318,8 +310,10 @@ global._pairingNumber = phoneNumber.replace(/\D/g, '')
 }}
 
 global.conn = makeWASocket(connectionOptions)
-try { conn.ev.on('connection.update', connectionUpdate.bind(global.conn)) } catch {}
-conn.ev.on('creds.update', saveCreds)
+conn.connectionUpdate = connectionUpdate.bind(conn)
+conn.credsUpdate = saveCreds
+conn.ev.on('connection.update', conn.connectionUpdate)
+conn.ev.on('creds.update', conn.credsUpdate)
 global._reconnectAttempts = 0
 global._pairingCodeIssued = false
 global._pairingRequestStarted = false
@@ -330,12 +324,18 @@ conn.isInit = false
 conn.well = false
 conn.logger.info(`[ 🍐 ]  H E C H O\n`)
 if (!opts['test']) {
+let writingDatabase = false
 if (global.db) setInterval(async () => {
+if (writingDatabase) return
+writingDatabase = true
+try {
 if (global.db.data) await global.db.write()
 if (opts['autocleartmp'] && (global.support || {}).find) {
 const tmpDirs = [os.tmpdir(), 'tmp', `${jadi}`]
 tmpDirs.forEach((filename) => spawn('find', [filename, '-amin', '3', '-type', 'f', '-delete']))
 }
+} catch (error) { console.error('Error guardando database.json:', error) }
+finally { writingDatabase = false }
 }, 30 * 1000)
 }
 
@@ -440,6 +440,7 @@ return message
 }}
 
 async function connectionUpdate(update) {
+if (this !== global.conn) return
 const {connection, lastDisconnect, isNewLogin, qr} = update
 global.stopped = connection
 if (isNewLogin) conn.isInit = true
@@ -492,6 +493,9 @@ await joinChannels(conn)
 }}
 let reason = new Boom(lastDisconnect?.error)?.output?.statusCode
 if (connection === 'close') {
+    if (this._reconnectPending) return
+    this._reconnectPending = true
+    try {
     const isAuthenticated = !!(conn?.user?.id)
     const manualPairing = (opcion === '2' || methodCode) && !state.creds.registered
     if (manualPairing) {
@@ -620,7 +624,8 @@ return
         await delay(backoff)
         await global.reloadHandler(true).catch(console.error)
         if (connection === 'open') global._reconnectAttempts = 0
-    }}}
+    }} finally { this._reconnectPending = false }
+}}
 process.on('uncaughtException', console.error)
 process.on('unhandledRejection', (err) => {
 if (err?.message?.includes('Connection Closed') || err?.message?.includes('not opened')) return
@@ -633,7 +638,7 @@ reloadHandlerImpl = async function(restatConn) {
 if (global._reloading) return
 global._reloading = true
 try {
-const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error);
+const Handler = restatConn || isInit ? handler : await import(`./handler.js?update=${Date.now()}`);
 if (Object.keys(Handler || {}).length) handler = Handler
 } catch (e) {
 console.error(e);
@@ -643,7 +648,8 @@ try {
         await refreshPrincipalAuth().catch(() => {})
         const oldChats = global.conn.chats
         try {
-            conn.ev.removeAllListeners('connection.update')
+            conn.ev.removeAllListeners()
+            conn.end?.(new Error('Restarting'))
             global.conn.ws.close()
             await delay(2000)
         } catch { }
@@ -652,12 +658,11 @@ try {
         global.conn = newConn
         isInit = true
     }
-if (!isInit) {
-conn.ev.off('messages.upsert', conn.handler)
-conn.ev.off('connection.update', conn.connectionUpdate)
-conn.ev.off('creds.update', conn.credsUpdate)
-}
-conn.handler = handler.handler.bind(global.conn)
+if (conn.handler) conn.ev.off('messages.upsert', conn.handler)
+if (conn.connectionUpdate) conn.ev.off('connection.update', conn.connectionUpdate)
+if (conn.credsUpdate) conn.ev.off('creds.update', conn.credsUpdate)
+const activeSocket = conn
+conn.handler = (update) => handler.handler.call(activeSocket, update).catch(error => console.error('Error procesando mensajes:', error))
 conn.connectionUpdate = connectionUpdate.bind(global.conn)
 conn.credsUpdate = saveCreds.bind(global.conn, true)
 conn.ev.on('messages.upsert', conn.handler)
@@ -719,11 +724,11 @@ async function loadPluginFile(relPath, cacheBust = false) {
   const abs = join(pluginFolder, relPath)
   if (!existsSync(abs)) { delete global.plugins[relPath]; return }
   try {
-    const url = global.__filename(abs, true)
+    const url = pathToFileURL(abs).href
     const mod = await import(cacheBust ? `${url}?update=${Date.now()}` : url)
     global.plugins[relPath] = normalizeOurinPlugin(mod)
   } catch (e) {
-    conn?.logger?.error?.(`error al cargar plugin '${relPath}': ${e?.message || e}`)
+    console.error(`Error al cargar plugin '${relPath}': ${e?.stack || e}`)
     delete global.plugins[relPath]
   }
 }
@@ -818,7 +823,7 @@ try {
 watch(dir, { recursive: true }, global.reload)
 } catch {
 const walk = (d) => {
-try { watch(d, global.reload) } catch {}
+try { watch(d, (event, filename) => global.reload(event, filename ? path.relative(pluginFolder, join(d, String(filename))) : undefined)) } catch {}
 for (const entry of readdirSync(d, { withFileTypes: true })) {
 if (entry.isDirectory() && !entry.name.startsWith('.')) walk(join(d, entry.name))
 }
@@ -828,6 +833,10 @@ walk(dir)
 }
 watchPlugins()
 await global.reloadHandler()
+fs.watchFile(join(__dirname, 'handler.js'), () => {
+  global.reloadHandler(false).catch(console.error)
+})
+rl.close()
 async function _quickTest() {
 const test = await Promise.all([
 spawn('ffmpeg'),
@@ -873,7 +882,7 @@ setInterval(async () => {
 }, 10 * 60 * 1000)
 
 setInterval(async () => {
-const tmpDir = join(__dirname, 'tmp')
+const tmpDir = join(process.cwd(), 'tmp')
 try {
 const filenames = await fs.promises.readdir(tmpDir)
 const now = Date.now()
@@ -884,13 +893,6 @@ if (now - stat.mtimeMs > 300000) await fs.promises.unlink(join(tmpDir, f)).catch
 } catch {}}
 } catch {}}, 120 * 1000)
 
-setInterval(async () => {
-const orphanFiles = ['database.json']
-for (const file of orphanFiles) {
-try {
-if (existsSync(file)) await fs.promises.unlink(file).catch(() => {})
-} catch {}
-} }, 10 * 60 * 1000)
 setInterval(() => {
   if (!Array.isArray(global.conns)) return
   for (let i = global.conns.length - 1; i >= 0; i--) {

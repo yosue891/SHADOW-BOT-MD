@@ -9,15 +9,7 @@ export async function before(m, { conn }) {
   user.afk = typeof user.afk === 'number' ? user.afk : -1
   user.afkReason = typeof user.afkReason === 'string' ? user.afkReason : ''
 
-  let thumb = null
-  try {
-    const res = await fetch('https://i.postimg.cc/rFfVL8Ps/image.jpg')
-    if (res.ok) {
-      thumb = Buffer.from(await res.arrayBuffer())
-    }
-  } catch {
-    thumb = null
-  }
+  const thumb = Buffer.isBuffer(global.catalogo) ? global.catalogo : null
 
   const shadow_xyz = {
     key: {

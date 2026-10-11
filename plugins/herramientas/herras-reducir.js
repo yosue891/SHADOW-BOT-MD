@@ -42,8 +42,8 @@ let handler = async (m, { conn, text, usedPrefix }) => {
     if (!media) throw new Error('No se pudo descargar el archivo de WhatsApp.')
 
     let image = await Jimp.read(media)
-    image.resize({ width: width, height: height })
-    let buffer = await image.getBufferAsync('image/jpeg')
+    image.resize({ w: width, h: height })
+    let buffer = await image.getBuffer('image/jpeg')
 
     let formData = new FormData()
     formData.append('image', buffer, { filename: 'imagen.jpg', contentType: 'image/jpeg' })

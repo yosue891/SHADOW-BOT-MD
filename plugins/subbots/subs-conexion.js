@@ -389,7 +389,7 @@ export async function MichiJadiBot(options) {
   } catch (e) {
     console.error('[SUB-BOT] No se pudo obtener la versión reciente de WhatsApp Web:', e.message)
   }
-  const msgRetryCounterCache = new NodeCache()
+  const msgRetryCounterCache = new NodeCache({ stdTTL: 3600, checkperiod: 120, useClones: false })
   const { state, saveCreds } = await useMultiFileAuthState(pathMichiJadiBot)
   const connectionOptions = {
     logger: pino({ level: 'fatal' }),
@@ -401,6 +401,9 @@ export async function MichiJadiBot(options) {
     generateHighQualityLinkPreview: true,
     markOnlineOnConnect: true,
     syncFullHistory: false,
+    defaultQueryTimeoutMs: 60000,
+    cachedGroupMetadata: async jid => sock?.chats?.[jid]?.metadata,
+    getMessage: async key => sock?.chats?.[key.remoteJid]?.messages?.[key.id]?.message,
     keepAliveIntervalMs: 30000
   }
 
@@ -450,6 +453,7 @@ export async function MichiJadiBot(options) {
   }
 
   async function connectionUpdate(update) {
+    if (this !== sock) return
     const { connection, lastDisconnect, isNewLogin, qr } = update
     if (isNewLogin) sock.isInit = false
 
@@ -464,6 +468,9 @@ export async function MichiJadiBot(options) {
 
     const reason = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode
     if (connection === 'close') {
+      if (this._reconnectPending) return
+      this._reconnectPending = true
+      try {
       const subReconnectCount = sock._reconnectCount || 0
       if (subReconnectCount >= 20) {
         console.log(chalk.bold.redBright(`\n┆ Sesión (+${path.basename(pathMichiJadiBot)}) alcanzó máximo de reconexiones. Reintentando limpiar...`))
@@ -499,7 +506,8 @@ export async function MichiJadiBot(options) {
       }
 
       await delay(backoff)
-      return creloadHandler(true).catch(console.error)
+      return await creloadHandler(true).catch(console.error)
+      } finally { this._reconnectPending = false }
     }
 
     if (connection === 'open') {
@@ -520,7 +528,7 @@ export async function MichiJadiBot(options) {
   let handlerModule = await loadHandlerModule()
   const creloadHandler = async function (restatConn) {
     try {
-      const Handler = await loadHandlerModule(true)
+      const Handler = await loadHandlerModule()
       if (typeof Handler?.handler === 'function') handlerModule = Handler
     } catch (e) {
       console.error('⚠︎ Error al recargar handler:', e)
@@ -528,9 +536,14 @@ export async function MichiJadiBot(options) {
 
     if (restatConn) {
       const oldChats = sock.chats
-      try { sock.ws?.close() } catch {}
+      const oldSock = sock
+      const reconnectCount = sock._reconnectCount || 0
       try { sock.ev.removeAllListeners() } catch {}
+      try { sock.end?.(new Error("Restarting")); sock.ws?.close() } catch {}
       sock = makeWASocket(connectionOptions, { chats: oldChats })
+      sock._reconnectCount = reconnectCount
+      const connectionIndex = global.conns.indexOf(oldSock)
+      if (connectionIndex !== -1) global.conns[connectionIndex] = sock
       sock.isInit = false
       sock.isPairingRequested = false
       isInit = true
@@ -542,7 +555,8 @@ export async function MichiJadiBot(options) {
       sock.ev.off('creds.update', sock.credsUpdate)
     }
 
-    sock.handler = handlerModule.handler.bind(sock)
+    const activeSocket = sock
+    sock.handler = update => handlerModule.handler.call(activeSocket, update).catch(error => console.error('[SUB-BOT] Error procesando mensajes:', error))
     sock.connectionUpdate = connectionUpdate.bind(sock)
     sock.credsUpdate = saveCreds.bind(sock, true)
     sock.ev.on('messages.upsert', sock.handler)

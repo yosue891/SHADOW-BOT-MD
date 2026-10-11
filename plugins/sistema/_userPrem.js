@@ -1,12 +1,13 @@
-const handler = (m) => m
-export async function all(m) {
-for (const user of Object.values(global.db.data.users)) {
-if (user.premiumTime != 0 && user.premium) {
-if (new Date() * 1 >= user.premiumTime) {
-user.premiumTime = 0
-user.premium = false
-const JID = Object.keys(global.db.data.users).find((key) => global.db.data.users[key] === user)
-const usuarioJid = JID.split`@`[0]
-const textoo = `✐ @${usuarioJid} Se agotó tu tiempo como usuario premium`
-await this.sendMessage(JID, {text: textoo, mentions: [JID]}, {quoted: m })
-}}}}
+let nextCheck = 0
+export async function all() {
+  const now = Date.now()
+  if (now < nextCheck) return
+  nextCheck = now + 60000
+  for (const [jid, user] of Object.entries(global.db.data.users)) {
+    if (!user.premium || !(user.premiumTime > 0) || now < user.premiumTime) continue
+    user.premiumTime = 0
+    user.premium = false
+    const number = jid.split('@')[0]
+    await this.sendMessage(jid, { text: `✐ @${number} Se agotó tu tiempo como usuario premium`, mentions: [jid] }).catch(console.error)
+  }
+}

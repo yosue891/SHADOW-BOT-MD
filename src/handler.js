@@ -2,7 +2,7 @@ import { smsg } from "../lib/simple.js";
 import { format } from "util";
 import { fileURLToPath } from "url";
 import path, { join } from "path";
-import fs, { unwatchFile, watchFile } from "fs";
+import fs from "fs";
 import chalk from "chalk";
 import fetch from "node-fetch";
 import ws from "ws";
@@ -12,7 +12,7 @@ const delay = ms => isNumber(ms) && new Promise(resolve => setTimeout(resolve, m
 const printModule = await import("../lib/print.js").then(m => m.default).catch(() => null);
 
 const prefixCache = new Map();
-const groupMetadataCache = global.__shadowGroupMetadataCache || (global.__shadowGroupMetadataCache = new Map());
+const groupCaches = new WeakMap();
 const GROUP_METADATA_TTL = 30 * 1000;
 
 function normalizeJid(jid, conn) {
@@ -101,6 +101,8 @@ function normalizeParticipant(participant, conn) {
 
 async function getGroupMetadataCached(conn, jid) {
     if (!jid?.endsWith("@g.us")) return { participants: [] };
+    let groupMetadataCache = groupCaches.get(conn);
+    if (!groupMetadataCache) { groupMetadataCache = new Map(); groupCaches.set(conn, groupMetadataCache); }
     const now = Date.now();
     const cached = groupMetadataCache.get(jid);
     if (cached && now - cached.ts < GROUP_METADATA_TTL) return cached.data;
@@ -128,7 +130,8 @@ function isAdminParticipant(participant) {
 export async function handler(chatUpdate) {
     this.msgqueque = this.msgqueque || [];
     this.uptime = this.uptime || Date.now();
-    if (!chatUpdate) return;
+    if (!chatUpdate || !this.user?.id) return;
+    if (chatUpdate.type === "append" && !chatUpdate.isSynthetic) return;
     const messages = Array.isArray(chatUpdate.messages) ? chatUpdate.messages.filter(Boolean) : [];
     if (!messages.length) return;
     // WhatsApp can deliver several messages in one upsert. Processing only the
@@ -139,17 +142,18 @@ export async function handler(chatUpdate) {
         }
         return;
     }
-    this.pushMessage(chatUpdate.messages).catch(console.error);
+    await this.pushMessage(chatUpdate.messages).catch(console.error);
     let m = messages[0];
     if (!m) return;
     if (global.db.data == null) await global.loadDatabase();
     m = smsg(this, m) || m;
-    if (!m) return;
+    if (!m || !m.sender || !m.chat || m.chat === "status@broadcast" || m.chat.endsWith("@newsletter")) return;
 
     let prefixRegex = global.prefix;
     let usedPrefix = global.prefix || "";
     const senderNumber = (this.user.jid || this.user.id || '').split('@')[0].replace(/:\d+$/, '');
     if (!prefixCache.has(senderNumber)) {
+        prefixCache.set(senderNumber, global.prefix);
         const botPath = path.join('./Sessions/SubBot', senderNumber);
         const configPath = path.join(botPath, 'config.json');
         try {
@@ -238,7 +242,7 @@ export async function handler(chatUpdate) {
         user.name = nuevoNombre;
     }
 
-    const conn = m.conn || global.conn;
+    const conn = this;
     const groupMetadata = m.isGroup ? await getGroupMetadataCached(this, m.chat) : { participants: [] };
     const participants = m.isGroup ? (groupMetadata.participants || []).map(p => normalizeParticipant(p, this)) : [];
 
@@ -292,7 +296,8 @@ export async function handler(chatUpdate) {
         return;
     }
 
-    const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), "../plugins");
+    const __dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), "../plugins");
+    let commandHandled = false;
     for (const name in global.plugins) {
         const plugin = global.plugins[name];
         if (!plugin || plugin.disabled) continue;
@@ -312,7 +317,7 @@ export async function handler(chatUpdate) {
 
         if (typeof plugin.all === "function") {
             try {
-                await plugin.all.call(this, m, { chatUpdate, __dirname, __filename: join(___dirname, name), user, chat, settings });
+                await plugin.all.call(this, m, { chatUpdate, __dirname, __filename: join(__dirname, name), user, chat, settings });
             } catch (err) {
                 console.error(`Error en plugin all (${name}):`, err);
             }
@@ -338,7 +343,7 @@ export async function handler(chatUpdate) {
                     isPrems,
                     chatUpdate,
                     __dirname,
-                    __filename: join(___dirname, name),
+                    __filename: join(__dirname, name),
                     chat,
                     settings
                 })) continue;
@@ -348,6 +353,7 @@ export async function handler(chatUpdate) {
             }
         }
 
+        if (commandHandled) continue;
         usedPrefix = (match[0] || "")[0];
         if (!usedPrefix) continue;
 
@@ -386,37 +392,37 @@ export async function handler(chatUpdate) {
         if (chat.modoadmin && !isOwner && m.isGroup && !isAdmin && (plugin.botAdmin || plugin.admin || plugin.group)) return;
 
         if (plugin.rowner && !isROwner) {
-            global.dfail("rowner", m, this);
+            await global.dfail("rowner", m, this);
             continue;
         }
         if (plugin.owner && !isOwner) {
-            global.dfail("owner", m, this);
+            await global.dfail("owner", m, this);
             continue;
         }
         if (plugin.mods && !isMods) {
-            global.dfail("mods", m, this);
+            await global.dfail("mods", m, this);
             continue;
         }
         if (plugin.premium && !isPrems) {
-            global.dfail("premium", m, this);
+            await global.dfail("premium", m, this);
             continue;
         }
         if (plugin.group && !m.isGroup) {
-            global.dfail("group", m, this);
+            await global.dfail("group", m, this);
             continue;
         }
 
         if (plugin.admin && !isAdmin) {
-            global.dfail("admin", m, this);
+            await global.dfail("admin", m, this);
             continue;
         }
         
         if (plugin.botAdmin && !isBotAdmin) {
-            global.dfail("botAdmin", m, this);
+            await global.dfail("botAdmin", m, this);
             continue;
         }
         if (plugin.private && m.isGroup) {
-            global.dfail("private", m, this);
+            await global.dfail("private", m, this);
             continue;
         }
 
@@ -429,6 +435,7 @@ export async function handler(chatUpdate) {
             await this.reply(m.chat, `> ꕥ Se cobraran ${plugin.coin} *${global.currency}* por usar el comando *${usedPrefix}${command}*.\n> » *_Saldo actual: ${user.coin} ${global.currency}._*`, m);
         }
 
+        commandHandled = true;
         m.isCommand = true;
         m.exp += plugin.exp ? parseInt(plugin.exp) : 10;
 
@@ -466,7 +473,7 @@ export async function handler(chatUpdate) {
                 isPrems,
                 chatUpdate,
                 __dirname,
-                __filename: join(___dirname, name),
+                __filename: join(__dirname, name),
                 chat,
                 settings
             });
@@ -493,7 +500,7 @@ export async function handler(chatUpdate) {
                     isPrems,
                     chatUpdate,
                     __dirname,
-                    __filename: join(___dirname, name),
+                    __filename: join(__dirname, name),
                     chat,
                     settings
                 });
@@ -530,9 +537,3 @@ global.dfail = (type, m, conn) => {
     if (msg) return conn.reply(m.chat, msg, m).then(() => m.react('✖️'));
 };
 
-let file = global.__filename(import.meta.url, true);
-watchFile(file, async () => {
-    unwatchFile(file);
-    console.log(chalk.magenta("Se actualizó 'handler.js'"));
-    import(`${file}?update=${Date.now()}`);
-});

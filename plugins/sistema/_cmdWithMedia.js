@@ -1,9 +1,9 @@
 import { proto, generateWAMessage, areJidsSameUser } from '@whiskeysockets/baileys'
 
-export async function all(m, chatUpdate) {
+export async function all(m, { chatUpdate } = {}) {
 if (m.isBaileys) return
 if (!m.message) return
-if (!m.msg.fileSha256) return
+if (!m.msg?.fileSha256) return
 if (!(Buffer.from(m.msg.fileSha256).toString('base64') in global.db.data.sticker)) return
 let hash = global.db.data.sticker[Buffer.from(m.msg.fileSha256).toString('base64')]
 let { text, mentionedJid } = hash
@@ -12,6 +12,6 @@ messages.key.fromMe = areJidsSameUser(m.sender, this.user.id)
 messages.key.id = m.key.id
 messages.pushName = m.pushName
 if (m.isGroup) messages.participant = m.sender
-let msg = { ...chatUpdate, messages: [proto.WebMessageInfo.fromObject(messages)], type: 'append' }
+let msg = { ...chatUpdate, messages: [proto.WebMessageInfo.fromObject(messages)], type: 'append', isSynthetic: true }
 this.ev.emit('messages.upsert', msg)
 }

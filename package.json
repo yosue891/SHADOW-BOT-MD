@@ -11,7 +11,8 @@
   },
   "scripts": {
     "start": "node src/index.js",
-    "postinstall": "node tools/fix-baileys.cjs"
+    "postinstall": "node tools/fix-baileys.cjs",
+    "test": "node --test tests/*.test.js"
   },
   "repository": {
     "type": "git",
@@ -48,7 +49,7 @@
     "google-libphonenumber": "^3.2.38",
     "human-readable": "^0.2.1",
     "iconv-lite": "^0.6.3",
-    "jimp": "*",
+    "jimp": "^1.6.1",
     "jsdom": "^20.0.3",
     "lmdb": "3.5.6",
     "lodash": "^4.18.1",
@@ -74,7 +75,8 @@
     "url-regex-safe": "^3.0.0",
     "ws": "^8.21.1",
     "yargs": "^17.7.3",
-    "yt-search": "^2.13.1"
+    "yt-search": "^2.13.1",
+    "protobufjs": "^7.5.4"
   },
   "optionalDependencies": {
     "moment-timezone": "^0.5.37",

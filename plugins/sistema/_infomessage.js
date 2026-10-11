@@ -1,18 +1,14 @@
 import { WAMessageStubType } from '@whiskeysockets/baileys'
-import chalk from 'chalk'
-import fs from 'fs'
-import path from 'path'
-
-const groupMetadataCache = new Map()
-const lidCache = new Map()
 const handler = m => m
 handler.before = async function (m, { conn, participants, groupMetadata }) {
-if (!m.messageStubType || !m.isGroup) return
+if (!m.messageStubType || !m.isGroup || m.messageStubType === WAMessageStubType.CIPHERTEXT) return
 const primaryBot = global.db.data.chats[m.chat].primaryBot
 if (primaryBot && conn.user.jid !== primaryBot) throw !1
 const chat = global.db.data.chats[m.chat]
 const users = m.messageStubParameters?.[0] || ''
-const usuario = await resolveLidToRealJid(m?.sender, conn, m?.chat)
+const sender = String(m?.sender || '')
+const participant = participants.find(p => [p.id, p.lid, p.jid, p.phoneNumber].includes(sender))
+const usuario = participant?.phoneNumber || participant?.jid || sender
 const groupAdmins = participants.filter(p => p.admin)
 
 const rcanalBase = {
@@ -35,14 +31,7 @@ const userNumber = users.split('@')[0] || 'un usuario'
 const admingp = `> ❀ @${userNumber} Ahora es admin del grupo.\n> ✦ Acción hecha por:\n> » @${usuario.split('@')[0]}`
 const noadmingp = `> ❀ @${userNumber} Deja de ser admin del grupo.\n> ✦ Acción hecha por:\n> » @${usuario.split('@')[0]}`
 
-if (chat.detect && m.messageStubType == 2) {
-const uniqid = (m.isGroup ? m.chat : m.sender).split('@')[0]
-const sessionPath = `./${global.sessions}/`
-for (const file of await fs.promises.readdir(sessionPath)) {
-if (file.includes(uniqid)) {
-await fs.promises.unlink(path.join(sessionPath, file))
-console.log(`${chalk.yellow.bold('✎ Delete!')} ${chalk.greenBright(`'${file}'`)}\n${chalk.redBright('Que provoca el "undefined" en el chat.')}`)
-}}} if (chat.detect && m.messageStubType == 21) {
+if (chat.detect && m.messageStubType == 21) {
 await this.sendMessage(m.chat, { text: nombre, contextInfo: { ...rcanalBase, mentionedJid: [usuario, ...groupAdmins.map(v => v.id)] } }, { quoted: null })
 } if (chat.detect && m.messageStubType == 22) {
 const rcanalFoto = { ...rcanalBase }
@@ -67,35 +56,3 @@ type: WAMessageStubType[m.messageStubType],
 })}}
 
 export default handler
-
-async function resolveLidToRealJid(lid, conn, groupChatId, maxRetries = 3, retryDelay = 60000) {
-const inputJid = lid.toString()
-if (!inputJid.endsWith("@lid") || !groupChatId?.endsWith("@g.us")) { return inputJid.includes("@") ? inputJid : `${inputJid}@s.whatsapp.net` }
-if (lidCache.has(inputJid)) { return lidCache.get(inputJid) }
-const lidToFind = inputJid.split("@")[0]
-let attempts = 0
-while (attempts < maxRetries) {
-try {
-const metadata = await conn?.groupMetadata(groupChatId)
-if (!metadata?.participants) { throw new Error("No se obtuvieron participantes") }
-for (const participant of metadata.participants) {
-try {
-if (!participant?.jid) continue
-const contactDetails = await conn?.onWhatsApp(participant.jid)
-if (!contactDetails?.[0]?.lid) continue
-const possibleLid = contactDetails[0].lid.split("@")[0]
-if (possibleLid === lidToFind) {
-lidCache.set(inputJid, participant.jid)
-return participant.jid
-}} catch (e) { continue }}
-lidCache.set(inputJid, inputJid)
-return inputJid
-} catch (e) {
-if (++attempts >= maxRetries) {
-lidCache.set(inputJid, inputJid)
-return inputJid
-}
-await new Promise((resolve) => setTimeout(resolve, retryDelay))
-}}
-return inputJid
-}
