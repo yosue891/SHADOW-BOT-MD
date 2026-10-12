@@ -151,9 +151,9 @@ async function sendAudio(conn, m, data) {
 }
 
 let handler = async (m, { conn, command, text, usedPrefix }) => {
-  if (!text) return m.reply(`✎ Ingresa algún término de búsqueda para buscar tu canción.`)
+  if (!text) return m.reply(`🎃🦇 Ingresa el nombre o enlace de Spotify para invocar tu música de Halloween.`)
 
-  await m.react('🕓')
+  await m.react('🎃')
 
   let stage = 'consulta a la API'
 
@@ -163,17 +163,17 @@ let handler = async (m, { conn, command, text, usedPrefix }) => {
     const downloadUrl = data.downloadUrl
     if (!downloadUrl) {
       await m.react('❌')
-      return m.reply('No se pudo obtener el enlace de descarga.')
+      return m.reply('🎃 No se pudo obtener la melodía de las sombras.')
     }
 
     const duracion = data.durationSeconds 
       ? Math.floor(data.durationSeconds / 60) + ':' + String(data.durationSeconds % 60).padStart(2, '0') 
       : 'Desconocida'
 
-    const info = `Descargando... *${data.title || 'Sin título'}*\n\n` +
-                 `> ꕥ Duración › *${duracion}*\n` +
-                 `> ✧ Calidad › *${data.quality || 'Desconocida'}*\n` +
-                 `> ❀ Fuente › *${text}*`
+    const info = `🎃 Invocando melodía de ultratumba... *${data.title || 'Sin título'}* 🦇\n\n` +
+                 `> ⏳ Duración › *${duracion}*\n` +
+                 `> 🕯️ Calidad › *${data.quality || 'Desconocida'}*\n` +
+                 `> 🕸️ Fuente › *${text}*`
 
     stage = 'envío de la portada'
 

@@ -14,8 +14,8 @@ const handler = async (m, { conn, usedPrefix, command, args, isOwner, isAdmin, i
     isEnable = false
   } else {
     if (type === 'welcome' || type === 'bienvenida') return
-    const estado = isEnable ? '✓ Activado' : '✗ Desactivado'
-    return conn.reply(m.chat, `「✦」Un administrador puede activar o desactivar el *${command}* utilizando:\n\n> ✐ *${usedPrefix}${command} on* para activar.\n> ✐ *${usedPrefix}${command} off* para desactivar.\n\n✧ Estado actual » *${estado}*`, m)
+    const estado = isEnable ? '🎃 Sellado (Activado)' : '🦇 Roto (Desactivado)'
+    return conn.reply(m.chat, `「🎃」Un líder del aquelarre puede sellar o romper *${command}* usando:\n\n> 🕯️ *${usedPrefix}${command} on* para sellar.\n> ⚰️ *${usedPrefix}${command} off* para desactivar.\n\n🕸️ Estado actual » *${estado}*`, m)
   }
 
   switch (type) {
@@ -193,7 +193,7 @@ const handler = async (m, { conn, usedPrefix, command, args, isOwner, isAdmin, i
 
   chat[type] = isEnable
 
-  conn.reply(m.chat, `《✦》La función *${type}* se *${isEnable ? 'activó' : 'desactivó'}* ${isAll ? 'para este Bot' : isUser ? '' : 'para este chat'}`, m)
+  conn.reply(m.chat, `《🎃》El sello arcano *${type}* ha sido *${isEnable ? 'activado' : 'desactivado'}* ${isAll ? 'en el núcleo del Bot' : isUser ? '' : 'en este aquelarre'} 🦇`, m)
 }
 
 handler.help = ['welcome', 'bienvenida', 'antiprivado', 'antiprivate', 'restrict', 'restringir', 'autolevelup', 'autonivel', 'autoaceptar', 'aceptarauto', 'autorechazar', 'rechazarauto', 'autoresponder', 'autorespond', 'modoadmin', 'soloadmin', 'reaction', 'reaccion', 'nsfw', 'modohorny', 'antispam', 'jadibotmd', 'modejadibot', 'subbots', 'detect', 'avisos', 'antilink', 'antifake', 'autoread']

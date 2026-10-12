@@ -377,14 +377,14 @@ export async function handler(chatUpdate) {
 
         if (chat.isBanned && !isMods && name !== "group-banchat.js") {
             if (!chat.primaryBot || chat.primaryBot === this.user.jid) {
-                await this.reply(m.chat, `ꕥ El bot *${settings.botname}* está desactivado en este grupo\n\n> ✦ Un *administrador* puede activarlo con el comando:\n> » *${usedPrefix}bot on*`, m);
+                await this.reply(m.chat, `🎃🦇 *[ 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 • 𝐇𝐀𝐋𝐋𝐎𝐖𝐄𝐄𝐍 ]*\n> ☾ El bot *${settings.botname}* descansa en la cripta de este grupo.\n\n> ✦ Un *administrador* puede despertarlo con:\n> » *${usedPrefix}bot on* 🕯️`, m);
                 return;
             }
         }
 
         if (user.banned && !isMods && m.text) {
             if (!chat.primaryBot || chat.primaryBot === this.user.jid) {
-                await this.reply(m.chat, `ꕥ Estas baneado/a, no puedes usar comandos en este bot!\n\n> ● *Razón ›* ${user.bannedReason}\n\n> ● Si este Bot es cuenta oficial y tienes evidencia que respalde que este mensaje es un error, puedes exponer tu caso con un moderador.`, m);
+                await this.reply(m.chat, `🎃⚰️ *[ 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 • 𝐇𝐀𝐋𝐋𝐎𝐖𝐄𝐄𝐍 ]*\n> ☾ Tu alma ha sido desterrada, no puedes usar rituales en este bot.\n\n> ● *Razón ›* ${user.bannedReason}\n\n> 🦇 Si tienes pruebas de que es una confusión, contacta a un líder de la noche.`, m);
                 return;
             }
         }
@@ -511,7 +511,7 @@ export async function handler(chatUpdate) {
             m.error = err;
             console.error(err);
             try {
-                await this.reply(m.chat, `❌ No pude completar *${usedPrefix}${command}*.\n> ${err?.message || 'Error interno del comando.'}`, m);
+                await this.reply(m.chat, `🎃🦇 *[ 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 • 𝐇𝐀𝐋𝐋𝐎𝐖𝐄𝐄𝐍 ]*\n> ☾ Una perturbación en las sombras impidió invocar *${usedPrefix}${command}*.\n> 🕸️ Detalle: ${err?.message || 'Fallo interno en el aquelarre.'}`, m);
             } catch (replyError) {
                 console.error('No se pudo enviar el error del comando:', replyError);
             }

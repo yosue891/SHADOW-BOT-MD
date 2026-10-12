@@ -57,10 +57,10 @@ export async function before(m, { conn }) {
       m.chat,
       {
         text:
-          `🌑 *Discípulo de las Sombras*\n` +
-          `Has regresado del reino de la inactividad.\n` +
+          `🎃 *Discípulo de las Sombras • Halloween* 🦇\n` +
+          `Has regresado de la cripta de los espíritus.\n` +
           `○ Motivo » *${user.afkReason || 'sin especificar'}*\n` +
-          `○ Tiempo ausente » *${tiempo}*`
+          `○ Tiempo ausente » *${tiempo}* ⏳`
       },
       { quoted: shadow_xyz }
     )
@@ -91,10 +91,10 @@ export async function before(m, { conn }) {
       m.chat,
       {
         text:
-          `🌑 *Invocación Sombría*\n` +
-          `El usuario ${await conn.getName(jid)} está AFK.\n` +
+          `🎃 *Invocación Sombría* 🦇\n` +
+          `El usuario ${await conn.getName(jid)} vaga por el inframundo (AFK).\n` +
           `○ Motivo: ${target.afkReason || 'sin especificar'}\n` +
-          `○ Tiempo ausente: ${tiempo}`
+          `○ Tiempo ausente: ${tiempo} ⏳`
       },
       { quoted: shadow_xyz }
     )

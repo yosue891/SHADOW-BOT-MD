@@ -4,13 +4,13 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     if (!text) {
         let helpMsg =
-        `🧠 *Comando de Inteligencia Artificial (GPT)*\n\n` +
-        `❖ *Uso:*\n` +
-        `Escribe tu pregunta después del comando.\n\n` +
+        `🎃🧠 *Oráculo Arcano de Halloween (GPT)* 🦇\n\n` +
+        `❖ *Invocación:*\n` +
+        `Escribe tu pregunta o conjuro después del comando.\n\n` +
         `❖ *Ejemplos:*\n` +
-        `▸ ${usedPrefix + command} Dame un plan para aprender inglés en 1 mes\n` +
-        `▸ ${usedPrefix + command} Escríbeme un código para una página web simple\n` +
-        `▸ ${usedPrefix + command} Cuéntame un chiste`
+        `▸ ${usedPrefix + command} Cuéntame una historia de terror en el aquelarre\n` +
+        `▸ ${usedPrefix + command} Escríbeme un código para una página web oscura\n` +
+        `▸ ${usedPrefix + command} ¿Cuál es el significado de las sombras?`
 
         return conn.sendMessage(m.chat, { text: helpMsg }, { quoted: m })
     }
@@ -19,15 +19,15 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         await conn.sendPresenceUpdate('composing', m.chat)
 
         try {
-            await conn.sendMessage(m.chat, { react: { text: '🧠', key: m.key } })
+            await conn.sendMessage(m.chat, { react: { text: '🎃', key: m.key } })
         } catch (e) {}
 
-        let username = m.pushName || "amigo"
+        let username = m.pushName || "contratista"
         let systemPrompt = `
-        Eres un asistente inteligente y útil en WhatsApp.
-        Tu nombre: ChatGPT.
-        El usuario que te habla se llama: ${username}.
-        Responde en español, de forma clara, amable y directa.
+        Eres un sabio arcano y asistente sombrío de Shadow Garden en temática de Halloween.
+        Tu nombre: ChatGPT Shadow Halloween.
+        El contratista que te habla se llama: ${username}.
+        Responde en español con un tono misterioso, elocuente, sabio y útil.
         `.trim()
 
         let apiUrl = `https://text.pollinations.ai/${encodeURIComponent(text)}?model=openai&system=${encodeURIComponent(systemPrompt)}`

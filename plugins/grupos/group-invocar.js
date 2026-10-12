@@ -5,11 +5,11 @@ let handler = async (m, { conn, text }) => {
     const chatId = m.chat
     const isGroup = chatId.endsWith('@g.us')
 
-    await conn.sendMessage(chatId, { react: { text: '🌑', key: m.key } })
+    await conn.sendMessage(chatId, { react: { text: '🎃', key: m.key } })
 
     if (!isGroup) {
       await conn.sendMessage(chatId, {
-        text: `❒ Este comando solo puede ejecutarse dentro de grupos.`,
+        text: `🎃🦇 Este ritual solo puede ejecutarse dentro de un aquelarre (grupo).`,
         quoted: m
       })
       return
@@ -23,20 +23,20 @@ let handler = async (m, { conn, text }) => {
 
     let caption = 
 `┏━━━━━━━━━━━━━━━━━━━┓
-⚔️ Invocación Sombría ⚔️
+🎃 Invocación del Aquelarre 🦇
 ┗━━━━━━━━━━━━━━━━━━━┛
 
-✐ Grupo: *${metadata.subject}*
-ⴵ Miembros: *${participants.length}*`
+🕯️ Aquelarre: *${metadata.subject}*
+👻 Almas: *${participants.length}*`
 
-    if (extraMsg) caption += `\n✰ Mensaje: *${extraMsg}*`
+    if (extraMsg) caption += `\n🕸️ Mensaje: *${extraMsg}*`
 
-    caption += `\n\n❒ Menciones:\n`
+    caption += `\n\n⚰️ Convocatoria de Sombras:\n`
     caption += participants.map(p => `» @${p.id.split('@')[0]}`).join('\n')
 
     const vs = "^1.3.2"
-    caption += `\n\n🌌 Versión: *${vs}*`
-    caption += `\n『☽』 En el jardín sombrío, todos responden al llamado de las sombras.`
+    caption += `\n\n🎃 Versión: *${vs}*`
+    caption += `\n『🎃』 En la noche de Halloween, todos responden a la llamada de Lord Shadow. 🦇`
 
     await conn.sendMessage(chatId, {
       image: { url: 'https://raw.githubusercontent.com/Andresv27728/dtbs/main/shadow.jpg' },
@@ -46,7 +46,7 @@ let handler = async (m, { conn, text }) => {
         forwardedNewsletterMessageInfo: {
           newsletterJid: "120363403739366547@newsletter",
           serverMessageId: '',
-          newsletterName: 'Shadow Garden Oficial'
+          newsletterName: '🎃 SHADOW GARDEN • HALLOWEEN 🦇'
         },
         forwardingScore: 9999999,
         isForwarded: true,

@@ -42,14 +42,14 @@ let handler = async (m, { conn, command, isAdmin, isGroupAdmins }) => {
   if (action === 'close') {
     await conn.groupSettingUpdate(chatId, 'announcement')
     await conn.sendMessage(chatId, {
-      text: '🌑⚔️ *El Shadow Garden ha sellado el grupo...*\n🕷️ Solo los administradores pueden hablar ahora.'
+      text: '🎃⚰️ *El Shadow Garden ha sellado el aquelarre en esta noche de brujas...*\n🕷️ Solo los administradores pueden invocar la voz ahora.'
     }, { quoted: businessHeader })
   }
 
   if (action === 'open') {
     await conn.groupSettingUpdate(chatId, 'not_announcement')
     await conn.sendMessage(chatId, {
-      text: '🌑✨ *El Shadow Garden ha liberado el grupo...*\n⚔️ Las voces vuelven a resonar en la oscuridad.'
+      text: '🎃✨ *El Shadow Garden ha liberado el aquelarre...*\n🦇 Las voces vuelven a resonar bajo la luna de Halloween.'
     }, { quoted: businessHeader })
   }
 }

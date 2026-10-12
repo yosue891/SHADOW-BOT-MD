@@ -8,10 +8,10 @@ const handler = async (m, { conn, isROwner, text}) => {
 
   for (const id of groups) {
     await delay(500);
-    await conn.sendMessage(id, { text: `🌌 MENSAJE AUTOMÁTICO 🌌\n\n${pesan}`}, { quoted: m}).catch(() => {});
+    await conn.sendMessage(id, { text: `🎃🦇 MENSAJE DEL AQUELARRE 🦇🎃\n\n${pesan}`}, { quoted: m}).catch(() => {});
 }
 
-  m.reply(`✅ Mensaje enviado a ${groups.length} grupo(s)`);
+  m.reply(`🎃 Mensaje enviado a ${groups.length} aquelarre(s) 🦇`);
 };
 
 handler.help = ['broadcastgroup', 'bcgc'];

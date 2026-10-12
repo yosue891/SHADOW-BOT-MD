@@ -104,7 +104,8 @@ let handler = async (m, { conn, usedPrefix, command }) => {
       ? customMsg.replace(/€user/g, '*' + userName + '*').replace(/€character/g, '*' + charName + '*')
       : '*' + charName + "* ha sido reclamado por *" + userName + '*';
 
-    await conn.reply(m.chat, "❀ " + claimText + " (" + ttl + 's)', m);
+    await m.react('🎃');
+    await conn.reply(m.chat, "🎃🦇 " + claimText + " (" + ttl + 's)', m);
   } catch (err) {
     await conn.reply(m.chat, "⚠︎ Se ha producido un problema.\n> Usa *" + usedPrefix + "report* para informarlo.\n\n" + err.message, m);
   }

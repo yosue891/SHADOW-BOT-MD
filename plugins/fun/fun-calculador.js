@@ -105,18 +105,20 @@ ${description}
 
 ➤ ${response}`.trim();
 
+  await m.react('🎃')
+
   async function loading() {
     var hawemod = [
-      "《 █▒▒▒▒▒▒▒▒▒▒▒》10%",
-      "《 ████▒▒▒▒▒▒▒▒》30%",
-      "《 ███████▒▒▒▒▒》50%",
-      "《 ██████████▒▒》80%",
-      "《 ████████████》100%"
+      "🎃《 █▒▒▒▒▒▒▒▒▒▒▒》10% 🦇",
+      "🎃《 ████▒▒▒▒▒▒▒▒》30% 🦇",
+      "🎃《 ███████▒▒▒▒▒》50% 🦇",
+      "🎃《 ██████████▒▒》80% 🦇",
+      "🎃《 ████████████》100% 🦇"
     ];
 
     let { key } = await conn.sendMessage(
       m.chat,
-      { text: `🤍 Las sombras están calculando tu destino...`, mentions: conn.parseMention(cal) },
+      { text: `🎃 Las sombras de Halloween están calculando el destino de ultratumba... 🕯️`, mentions: conn.parseMention(cal) },
       { quoted: global.fkontak }
     );
 

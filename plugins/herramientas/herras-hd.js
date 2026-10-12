@@ -67,11 +67,11 @@ const handler = async (msg, { conn, command, wa, usedPrefix }) => {
     ""
 
   if (!mime || !/image\/(jpe?g|png)/i.test(mime)) {
-    await conn.sendMessage(chatId, { react: { text: "👀", key: msg.key } })
+    await conn.sendMessage(chatId, { react: { text: "🎃", key: msg.key } })
     return conn.sendMessage(
       chatId,
       {
-        text: `Envía o responde a una imagen con:\n${pref + command}`,
+        text: `🎃 Envía o responde a una imagen con:\n${pref + command} 🦇`,
         ...global.rcanal
       },
       { quoted: msg }
@@ -79,12 +79,12 @@ const handler = async (msg, { conn, command, wa, usedPrefix }) => {
   }
 
   try {
-    await conn.sendMessage(chatId, { react: { text: "🕒", key: msg.key } })
+    await conn.sendMessage(chatId, { react: { text: "🎃", key: msg.key } })
 
     await conn.sendMessage(
       chatId,
       {
-        text: "Mejorando la calidad de la imagen... espera un momento 🧪"
+        text: "🎃 Purificando los pixeles en las sombras de Halloween... espera un momento 🦇"
       },
       { quoted: msg }
     )

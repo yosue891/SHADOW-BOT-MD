@@ -26,9 +26,10 @@ user.coin += reward
 user.exp += expRandom
 user.lastDaily = now + gap
 let nextReward = Math.min(20000 + user.streak * 5000, 1015000).toLocaleString()
-let msg = `> Día *${user.streak + 1}* » *+¥${nextReward}*`
-if (lost) msg += `\n> ☆ ¡Has perdido tu racha de días!`
-conn.reply(m.chat, `「✿」Has reclamado tu recompensa diaria de *¥${reward.toLocaleString()} ${global.currency}*! (Día *${user.streak}*)\n${msg}`, m)
+let msg = `> 🕯️ Noche *${user.streak + 1}* » *+¥${nextReward}*`
+if (lost) msg += `\n> 🦇 ¡Has perdido tu racha en las sombras!`
+await m.react('🎃')
+conn.reply(m.chat, `「🎃」¡Has reclamado tu ofrenda nocturna de *¥${reward.toLocaleString()} ${global.currency}*! (Noche *${user.streak}*)\n${msg}`, m)
 }
 
 handler.help = ['daily']

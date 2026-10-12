@@ -4,20 +4,21 @@ import { generateWAMessageFromContent, generateWAMessageContent, proto } from '@
 var handler = async (m, { conn, args, usedPrefix, command }) => {
   if (!args[0]) {
     return m.reply(
-      `[ 🕸️ ] Has olvidado el vínculo... ¿Acaso temes revelar el portal?\n\n[ 🧠 ] Ejemplo: ${usedPrefix + command} https://vm.tiktok.com/ZMkcmTCa6/`
+      `🎃 [ 🕸️ ] Has olvidado el enlace de TikTok... ¿Acaso temes revelar el portal?\n\n[ 🦇 ] Ejemplo: ${usedPrefix + command} https://vm.tiktok.com/ZMkcmTCa6/`
     )
   }
 
   if (!args[0].match(/(https?:\/\/)?(www\.)?(vm\.|vt\.)?tiktok\.com\//)) {
     return m.reply(
-      `[ ⚠️ ] Ese enlace no pertenece al reino de TikTok. No intentes engañar a la sombra.`
+      `🎃 [ ⚠️ ] Ese enlace no pertenece a TikTok. No intentes engañar a la sombra.`
     )
   }
 
   try {
+    await m.react('🎃')
     await conn.reply(
       m.chat,
-      '[ ⏳ ] Invocando el arte prohibido... Preparando la transferencia dimensional...',
+      '🎃 [ ⏳ ] Invocando el video en las sombras de Halloween... Preparando transferencia dimensional... 🦇',
       m
     )
 
@@ -25,29 +26,29 @@ var handler = async (m, { conn, args, usedPrefix, command }) => {
 
     if (!tiktokData || !tiktokData.data) {
       return m.reply(
-        '[ 🕳️ ] La sombra no pudo extraer el contenido. El vínculo está corrompido.'
+        '🎃 [ 🕳️ ] La sombra no pudo extraer el video. El vínculo está maldito.'
       )
     }
 
     const videoURL = tiktokData.data.play
-    const shadowInfo = `📜 Fragmento extraído:\n> ${tiktokData.data.title || 'Sin título'}`
+    const shadowInfo = `🎃📜 Fragmento extraído:\n> ${tiktokData.data.title || 'Sin título'}`
 
     const businessHeader = {
       key: { remoteJid: m.chat, participant: '0@s.whatsapp.net', fromMe: false, id: 'ShadowHeader' },
       message: {
         locationMessage: {
-          name: '𝙩𝙞𝙠𝙩𝙤𝙠 👑',
+          name: '🎃 TikTok • Halloween 🦇',
           jpegThumbnail: Buffer.from(await (await fetch('https://files.catbox.moe/dsgmid.jpg')).arrayBuffer()),
           vcard:
             'BEGIN:VCARD\n' +
             'VERSION:3.0\n' +
             'N:;Shadow;;;\n' +
             'FN:Shadow\n' +
-            'ORG:Eminence in Shadow\n' +
+            'ORG:Shadow Garden Halloween\n' +
             'TITLE:\n' +
             'item1.TEL;waid=5804242773183:+58 0424-2773183\n' +
             'item1.X-ABLabel:Shadow\n' +
-            'X-WA-BIZ-DESCRIPTION:Archivo invocado desde el Reino de las Sombras\n' +
+            'X-WA-BIZ-DESCRIPTION:Archivo invocado desde el Aquelarre de las Sombras\n' +
             'X-WA-BIZ-NAME:Shadow Garden\n' +
             'END:VCARD'
         }
@@ -57,7 +58,7 @@ var handler = async (m, { conn, args, usedPrefix, command }) => {
 
     const media = await generateWAMessageContent({
       video: { url: videoURL },
-      caption: 'TRANSMISIÓN COMPLETADA - ARCHIVO DE LAS SOMBRAS\n\n' + shadowInfo
+      caption: '🎃🦇 TRANSMISIÓN DE ULTRATUMBA COMPLETADA 🦇🎃\n\n' + shadowInfo
     }, { upload: conn.waUploadToServer, jid: m.chat })
 
     const msg = generateWAMessageFromContent(m.chat, {

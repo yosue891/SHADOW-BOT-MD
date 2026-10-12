@@ -87,8 +87,9 @@ const handler = async (m, { conn, usedPrefix, command }) => {
     charData.expiresAt = now + 60000;
 
     const claimedBy = charData.user ? (global.db.data.users[charData.user]?.name?.trim() || (await conn.getName(charData.user).catch(() => charData.user.split('@')[0]))) : 'desconocido';
-    const caption = "❀ Nombre » *" + charData.name + "*\n⚥ Género » *" + (char.gender || 'Desconocido') + "*\n✰ Valor » *" + charData.value.toLocaleString() + "*\n♡ Estado » *" + (charData.user ? "Reclamado por " + claimedBy : "Libre") + "*\n❖ Fuente » *" + serie + '*';
+    const caption = "🎃 Nombre » *" + charData.name + "*\n⚥ Género » *" + (char.gender || 'Desconocido') + "*\n🕯️ Valor » *" + charData.value.toLocaleString() + "*\n🦇 Estado » *" + (charData.user ? "Pactado por " + claimedBy : "Libre en el aquelarre") + "*\n🕸️ Fuente » *" + serie + '*';
 
+    await m.react('🎃');
     const sent = await conn.sendFile(m.chat, img, charData.name + ".jpg", caption, m);
     chatData.lastRolledId = id;
     chatData.lastRolledMsgId = sent.key?.id || null;

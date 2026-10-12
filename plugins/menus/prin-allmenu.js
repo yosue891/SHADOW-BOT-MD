@@ -58,27 +58,27 @@ let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
     let pais = phone.getRegionCode() || 'Dominio Desconocido'
 
     let tags = {
-      info: 'INFO DE LA SOMBRA 🎃',
-      main: 'ESTADO DEL CÓDIGO 🦇',
-      anime: 'ANIME DE PESADILLA 🕸️',
-      menu: 'MENÚS Y RITUALES 🕯️',
-      search: 'BÚSQUEDAS ESOTÉRICAS 🔮',
-      descargas: 'DESCARGAS DE LA CRIPTA ⚰️',
-      socket: 'CONEXIONES ESPECTRALES 🕷️',
-      rg: 'PERFIL DEL CONTRATISTA 📜',
-      fun: 'JUEGOS EMBRUJADOS 🎃',
-      rpg: 'ECONOMÍA DEL INFRAMUNDO 🪙',
-      gacha: 'INVOCACIÓN DE ESPÍRITUS 🍬',
-      game: 'JUEGOS ARCANOS 🃏',
-      grupos: 'CÍRCULOS Y AQUELARRES 🌘',
-      nable: 'SELLOS ON / OFF ⚙️',
-      ia: 'INTELIGENCIA ARCANA 🧠',
-      stalk: 'OJO DE LA SOMBRA 👁️',
-      maker: 'ALQUIMIA VISUAL 🎨',
-      tools: 'HERRAMIENTAS OSCURAS 🛠️',
-      sticker: 'SELLOS ARCANOS 🏷️',
-      owner: 'MAESTRO DE LA NOCHE 👑',
-      nsfw: 'ZONA RESTRINGIDA (+18) 🔞'
+      info: 'INFO DE LA SOMBRA',
+      main: 'ESTADO DEL CÓDIGO',
+      anime: 'ANIME DE PESADILLA',
+      menu: 'MENÚS Y RITUALES',
+      search: 'BÚSQUEDAS ESOTÉRICAS',
+      descargas: 'DESCARGAS DE LA CRIPTA',
+      socket: 'CONEXIONES ESPECTRALES',
+      rg: 'PERFIL DEL CONTRATISTA',
+      fun: 'JUEGOS EMBRUJADOS',
+      rpg: 'ECONOMÍA DEL INFRAMUNDO',
+      gacha: 'INVOCACIÓN DE ESPÍRITUS',
+      game: 'JUEGOS ARCANOS',
+      grupos: 'CÍRCULOS Y AQUELARRES',
+      nable: 'SELLOS ON / OFF',
+      ia: 'INTELIGENCIA ARCANA',
+      stalk: 'OJO DE LA SOMBRA',
+      maker: 'ALQUIMIA VISUAL',
+      tools: 'HERRAMIENTAS OSCURAS',
+      sticker: 'SELLOS ARCANOS',
+      owner: 'MAESTRO DE LA NOCHE',
+      nsfw: 'ZONA RESTRINGIDA (+18)'
     }
 
     let commands = Object.values(global.plugins)
@@ -92,31 +92,34 @@ let handler = async (m, { conn, usedPrefix, __dirname, participants }) => {
     for (let tag in tags) {
       let comandos = commands
         .filter(cmd => cmd.tags.includes(tag))
-        .map(cmd => cmd.help.map(e => `*│ 🦇*  ${usedPrefix}${e}`).join('\n'))
+        .map(cmd => cmd.help.map(e => `*│ 🕸️*  ${usedPrefix}${e}`).join('\n'))
         .join('\n')
       if (comandos) {
-        menuTexto += `\n*╭─━─━─⊱* 🎃 \`${tags[tag]}\` *🦇 ⊰─━─━─╮*
+        menuTexto += `\n*╭──* 🎃 \`${tags[tag]}\` *🦇*
 ${comandos}
-*╰─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─╯*\n`
+*╰─────────────╯*\n`
       }
     }
 
     let date = `${dia}, ${fechaTxt}, ${hora}`
     let infoUser = `
-╭─━─━─━─⊱ 🎃 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 🦇 ⊰─━─━─━─╮
-│ 🌑 *¡Bienvenido al Jardín de las Sombras, ${name}!*
-│ 🕸️ *« En la noche de Halloween, las sombras bailan bajo la luna »*
+🎃 *¡BIENVENIDO A SHADOW GARDEN!* 🦇
+_« En la noche de Halloween, las sombras bailan bajo la luna »_ 🕯️
+
+🕸️ *Contratista:* ${name}
+
+*╭── 🎃 ɪɴꜰᴏ ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ 🦇 ──╮*
 │
-│ ⚜︎ ───⊱ 🕯️ ɪɴꜰᴏ ᴅᴇ ʟᴀ ꜱᴏᴍʙʀᴀ 🎃 ⊰─── ⚜︎
-│ • 🦇 *Nombre clave:* ${conn.user?.name || 'Lord Shadow'}
-│ • 🕸️ *Jerarquía:* ${(conn.user.jid == global.conn.user.jid ? 'Núcleo Supremo' : 'Unidad Espectral')}
-│ • 🎃 *Hechizos:* ${totalCommands}
-│ • ⏳ *Resplandor:* ${uptime}
-│ • 🏰 *Dominio:* ${pais}
-│ • 👻 *Almas pactadas:* ${totalreg}
-│ • ⚰️ *Círculos oscuros:* ${groupsCount}
-│ • 🌘 *Hora de brujas:* ${date}
-╰─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─━─╯
+│ 🦇 *Líder:* ${conn.user?.name || 'Lord Shadow'}
+│ 🕸️ *Rango:* ${(conn.user.jid == global.conn.user.jid ? 'Núcleo Supremo' : 'Unidad Espectral')}
+│ 🎃 *Hechizos:* ${totalCommands}
+│ ⏳ *Actividad:* ${uptime}
+│ 🏰 *Dominio:* ${pais}
+│ 👻 *Almas:* ${totalreg}
+│ ⚰️ *Aquelarres:* ${groupsCount}
+│ 🌘 *Hora de brujas:* ${date}
+│
+*╰────────────────────╯*
 
 ${readMore}
 乂 🎃 𝐑𝐈𝐓𝐔𝐀𝐋𝐄𝐒 𝐘 𝐂𝐎𝐌𝐀𝐍𝐃𝐎𝐒 𝐃𝐄 𝐋𝐀 𝐒𝐎𝐌𝐁𝐑𝐀 🦇 乂\n`.trim()

@@ -160,23 +160,23 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     const query = textParam || fullText.replace(new RegExp(`^${usedPrefix || "\\."}${command}\\s*`, "i"), "").trim()
     if (!query) {
       return m.reply(
-        `🔎 *ᴘʟᴀʏ — SHADOW x OURIN*\n\n` +
-        `> Busca en YouTube y elige *MP3* (audio Shadow) o *MP4* (video Ourin).\n\n` +
+        `🎃🦇 *ᴘʟᴀʏ — SHADOW GARDEN • HALLOWEEN* 🦇🎃\n\n` +
+        `> Busca en YouTube desde la cripta y elige *MP3* (audio sombrío) o *MP4* (video de ultratumba).\n\n` +
         `*Ejemplo:*\n` +
-        `• ${usedPrefix}play komang\n` +
+        `• ${usedPrefix}play ghostbusters\n` +
         `• ${usedPrefix}play https://youtu.be/xxxx\n\n` +
-        `📌 _Audio usa_ \`api-gohan-v1.onrender.com\`\n` +
-        `🎬 _Video usa_ \`firefly.maiku.my.id\` (OurinNextGen)`
+        `🎃 _Audio nocturno_ \`api-gohan-v1.onrender.com\`\n` +
+        `🦇 _Video espectral_ \`firefly.maiku.my.id\``
       )
     }
 
-    await m.react("🔎")
+    await m.react("🎃")
 
     let searchQuery = query
     const search = await searchYouTube(searchQuery)
     if (!search?.videos?.length) {
       await m.react("❌")
-      return m.reply("❌ No se encontró resultado para: " + query)
+      return m.reply("❌ No se encontró ningún espíritu para: " + query)
     }
 
     const video = search.videos[0]
@@ -188,7 +188,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     const url = video.url
     const thumbnailUrl = video.thumbnail
 
-    let info = `🔎 *RESULTADO SHADOW x OURIN*\n\n`
+    let info = `🎃 *RESULTADO DE LA SOMBRA • HALLOWEEN* 🦇\n\n`
     info += `📌 *Título:* ${title}\n\n`
     info += `*DETALLES*\n`
     info += `👤 Canal: *${authorName}*\n`
@@ -201,9 +201,9 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       info += `*Descripción:*\n_${desc}${video.description.length > 140 ? "..." : ""}_\n\n`
     }
     info += `🔗 ${url}\n\n`
-    info += `_Elige un botón abajo:_\n`
-    info += `🎵 *MP3* → Audio (Shadow API)\n`
-    info += `🎬 *MP4* → Video (Ourin API)`
+    info += `_Elige tu formato sombrío:_\n`
+    info += `🎵 *MP3* → Audio espectral\n`
+    info += `🎬 *MP4* → Video de ultratumba`
 
     let jpegThumbnail
     try {
@@ -225,17 +225,17 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
         buttons: [
           {
             buttonId: `${prefix}play mp3 ${url}`,
-            buttonText: { displayText: "🎵 MP3" },
+            buttonText: { displayText: "🎵 MP3 🎃" },
             type: 1,
           },
           {
             buttonId: `${prefix}play mp4 ${url}`,
-            buttonText: { displayText: "🎬 MP4" },
+            buttonText: { displayText: "🎬 MP4 🦇" },
             type: 1,
           },
         ],
         contentText: info,
-        footerText: "🍅 Shadow x Ourin — Selecciona formato",
+        footerText: "🎃 SHADOW GARDEN • HALLOWEEN 🦇",
         headerType: 6,
         ...(jpegThumbnail
           ? {
@@ -263,10 +263,10 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
           {
             image: thumb,
             caption: info,
-            footer: "🍅 Shadow x Ourin — Selecciona formato",
+            footer: "🎃 SHADOW GARDEN • HALLOWEEN 🦇",
             buttons: [
-              { buttonId: `${prefix}play mp3 ${url}`, buttonText: { displayText: "🎵 MP3" }, type: 1 },
-              { buttonId: `${prefix}play mp4 ${url}`, buttonText: { displayText: "🎬 MP4" }, type: 1 },
+              { buttonId: `${prefix}play mp3 ${url}`, buttonText: { displayText: "🎵 MP3 🎃" }, type: 1 },
+              { buttonId: `${prefix}play mp4 ${url}`, buttonText: { displayText: "🎬 MP4 🦇" }, type: 1 },
             ],
             headerType: 4,
           },

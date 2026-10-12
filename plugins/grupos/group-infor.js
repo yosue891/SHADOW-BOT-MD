@@ -16,23 +16,23 @@ const handler = async (m, { conn, participants, groupMetadata }) => {
   const botprimary = rawPrimary.endsWith('@s.whatsapp.net') ? `@${rawPrimary.split('@')[0]}` : 'Aleatorio';
   const totalreg = Object.keys(global.db.data.users).length;
 
-  const text = `❀ Información del grupo ❀
-⌦ Nombre: *${groupMetadata.subject}*
-⌦ Creador: *${creador}*
-⌦ Miembros: *${participants.length}*
-⌦ Administradores: *${groupAdmins.length}*
-⌦ Registrados globales: *${totalreg.toLocaleString()}*
-⌦ Bot principal: *${botprimary}*
+  const text = `🎃🦇 Información del Aquelarre 🦇🎃
+⌦ Aquelarre: *${groupMetadata.subject}*
+⌦ Líder Supremo: *${creador}*
+⌦ Almas reunidas: *${participants.length}*
+⌦ Guardianes (Admins): *${groupAdmins.length}*
+⌦ Contratistas globales: *${totalreg.toLocaleString()}*
+⌦ Sombra principal: *${botprimary}*
 
-♡ Opciones activas:
-» *${botname}*: ${isBanned ? 'Desactivado ✗' : 'Activado ✓'}
-» Welcome: ${welcome ? 'Activado ✓' : 'Desactivado ✗'}
-» Alertas: ${detect ? 'Activado ✓' : 'Desactivado ✗'}
-» Anti-Link: ${antiLink ? 'Activado ✓' : 'Desactivado ✗'}
-» Solo Admins: ${modoadmin ? 'Activado ✓' : 'Desactivado ✗'}
-» NSFW: ${nsfw ? 'Activado ✓' : 'Desactivado ✗'}
+🕯️ Sellos y Opciones activas:
+» *${botname}*: ${isBanned ? 'En la cripta ✗' : 'Despierto ✓'}
+» Welcome: ${welcome ? 'Sellado ✓' : 'Roto ✗'}
+» Alertas: ${detect ? 'Sellado ✓' : 'Roto ✗'}
+» Anti-Link: ${antiLink ? 'Sellado ✓' : 'Roto ✗'}
+» Solo Admins: ${modoadmin ? 'Sellado ✓' : 'Roto ✗'}
+» NSFW: ${nsfw ? 'Sellado ✓' : 'Roto ✗'}
 
-♡ Mensajes configurados:
+🕸️ Pergaminos de Bienvenida:
 » Welcome: ${(sWelcome || 'Sin mensaje').replace(/{usuario}/g, `@${m.sender.split('@')[0]}`).replace(/{grupo}/g, `*${groupMetadata.subject}*`).replace(/{desc}/g, `*${groupMetadata.desc || 'Sin descripción'}*`)}
 » Bye: ${(sBye || 'Sin mensaje').replace(/{usuario}/g, `@${m.sender.split('@')[0]}`).replace(/{grupo}/g, `*${groupMetadata.subject}*`).replace(/{desc}/g, `*${groupMetadata.desc || 'Sin descripción'}*`)}`;
 

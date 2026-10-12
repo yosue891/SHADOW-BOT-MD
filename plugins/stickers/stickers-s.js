@@ -58,12 +58,12 @@ let handler = async (m, { conn, args }) => {
   if (opt === 'details') {
     try {
       const detailText =
-        '\u25AE\u25AE _Shadow Garden - Estilos de Stickers_\n\n' +
-        'Estos son todos los estilos disponibles para crear tu sticker personalizado:\n\n' +
-        Object.keys(styles).map(k => '\u2022 *s ' + k + '* \u2014 ' + styles[k]).join('\n')
+        '🎃🦇 _Shadow Garden • Sellos Arcanos de Halloween_\n\n' +
+        'Estos son los estilos oscuros disponibles para forjar tu sello personalizado:\n\n' +
+        Object.keys(styles).map(k => '🕯️ *s ' + k + '* \u2014 ' + styles[k]).join('\n')
       await conn.relayMessage(from, {
         interactiveMessage: {
-          header: { title: '\u2605 Shadow Garden \u2605' },
+          header: { title: '🎃 Shadow Garden • Halloween 🦇' },
           body: { text: detailText },
           nativeFlowMessage: {
             buttons: [{ name: 'inapp_signup', buttonParamsJson: '{}' }],
@@ -83,8 +83,8 @@ let handler = async (m, { conn, args }) => {
 
   if (!/image|video/.test(mime)) {
     const helpText =
-      'Hola ' + (m.pushName || 'usuario') + ', responde a una *imagen* o *video* para crear tu sticker\n\n' +
-      'Presiona el bot\u00f3n de *Ver detalles* para ver todas las formas de los stickers que est\u00e1n disponibles'
+      '🎃 Hola ' + (m.pushName || 'contratista') + ', responde a una *imagen* o *video* para forjar tu sello sombrío en Halloween 🦇\n\n' +
+      'Presiona el botón de *Ver detalles* para ver todas las formas disponibles en el aquelarre 🕯️'
 
     try {
       await conn.relayMessage(from, {

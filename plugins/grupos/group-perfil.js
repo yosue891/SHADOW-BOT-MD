@@ -26,43 +26,43 @@ var handler = async (m, { conn }) => {
   let { registered } = user
 
   const frasesShadow = [
-    'Las sombras vigilan en silencio, su poder nunca se apaga.',
-    'El reino oculto observa más allá de la luz.',
-    'Quien abraza sus sombras, encuentra la verdadera calma.',
-    'Las sombras no descansan, siempre están presentes.',
-    'El archivo oculto revela la fuerza del jardín sombrío.'
+    'Las sombras vigilan en silencio bajo la noche de brujas.',
+    'El aquelarre observa más allá de la luz.',
+    'Quien abraza sus sombras en Halloween, encuentra el verdadero poder.',
+    'Los espectros nunca descansan, siempre están presentes.',
+    'El grimorio prohibido revela la fuerza de Shadow Garden.'
   ]
   const fraseElegida = frasesShadow[Math.floor(Math.random() * frasesShadow.length)]
   
   let animacion = `
-〘 *Shadow Bot — Sistema en Carga* 〙
+🎃🦇 〘 *Shadow Bot — Invocación de Perfil* 〙 🦇🎃
 
-⚔️ Preparando archivos secretos...
-🌌 Sincronizando con el Reino Oculto...
-🕯 Activando protocolos de las sombras...
+🕯️ Abriendo el grimorio de ultratumba...
+🌌 Sincronizando con el Aquelarre de las Sombras...
+🕸️ Desatando los sellos de Halloween...
 
 ✦✦✦ 𝙲𝙰𝚁𝙶𝙰 𝙲𝙾𝙼𝙿𝙻𝙴𝚃𝙰 ✦✦✦
 
-*El archivo de las sombras ha sido abierto...*
+*El archivo sombrío ha sido revelado...* 🕯️
 `.trim()
 
   await conn.sendMessage(m.chat, { text: animacion, ...rcanal }, { quoted: m })
 
-  let str = `⚔️ 『 ＡＲＣＨＩＶＯ ＳＯＭＢＲＡ 』 ⚔️
+  let str = `🎃 『 ＡＲＣＨＩＶＯ ＳＯＭＢＲＩＯ • ＨＡＬＬＯＷＥＥＮ 』 🦇
 
-🕯 *Portador:* ${username}
+🕯️ *Contratista:* ${username}
 🆔 *Identificador:* @${who.replace(/@.+/, '')}
-📜 *Registrado:* ${registered ? '✅ Sí' : '❌ No'}
+📜 *Pacto Sellado:* ${registered ? '🎃 Sí (Pacto Activo)' : '❌ No'}
 
-✦ *Frase de las sombras:*
+✦ *Susurro de Ultratumba:*
 "${fraseElegida}"
 
 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-🌌 *Shadow-BOT-MD* — El jardín sombrío nunca duerme
+🎃 *Shadow-BOT-MD* — El aquelarre sombrío nunca duerme 🦇
 `
 
-  const wm = (typeof global !== 'undefined' && global.wm) ? global.wm : 'Shadow-BOT-MD ⚔️'
-  const bot = 'Shadow-BOT-MD ⚔️'
+  const wm = (typeof global !== 'undefined' && global.wm) ? global.wm : '🎃 SHADOW-BOT-MD • HALLOWEEN 🦇'
+  const bot = '🎃 Shadow-BOT-MD 🦇'
 
   let fkontak = {
     key: { participants: '0@s.whatsapp.net', remoteJid: 'status@broadcast', fromMe: false, id: 'Halo' },
@@ -80,8 +80,8 @@ var handler = async (m, { conn }) => {
     wm,
     pp, 
     [
-      ['👑 Creadores', '#owner'],
-      ['⚔️ Volver al Menú', '/menu']
+      ['👑 Creadores 🦇', '#owner'],
+      ['🎃 Menú de Halloween 🕯️', '/menu']
     ],
     null,
     [[bot, 'https://whatsapp.com/channel/0029VbArz9fAO7RGy2915k3O']],

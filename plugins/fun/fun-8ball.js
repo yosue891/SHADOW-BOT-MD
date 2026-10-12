@@ -1,20 +1,22 @@
 let handler = async (m, { args, text, usedPrefix, command }) => {
-  if (!text) return m.reply(`🌑❄️ *Sombras Festivas del Destino* ❄️🌑\n\nUsa el comando así:\n${usedPrefix}${command} ¿seré millonario?\n\nHaz tu pregunta y las sombras responderán con un sí o un no...`)
+  if (!text) return m.reply(`🎃🦇 *Oráculo de Ultratumba del Destino* 🦇🎃\n\nUsa el comando así:\n${usedPrefix}${command} ¿seré millonario?\n\nHaz tu pregunta y los espíritus de Halloween responderán...`)
+
+  await m.react('🎃')
 
   const pregunta = text.toLowerCase()
-  let respuesta = Math.random() < 0.5 ? '🎄✨ Sí, bajo el manto de las sombras...' : '🌑⛄ No, el destino se oculta en la nieve...'
+  let respuesta = Math.random() < 0.5 ? '🎃✨ Sí, los espíritus de las sombras lo confirman...' : '🌑🕸️ No, el destino se oculta en la noche de brujas...'
 
   if (pregunta.includes('gay') || pregunta.includes('homo') || pregunta.includes('bisexual')) {
-    respuesta = '🎁🌌 Sí, las estrellas confirman tu verdad...'
+    respuesta = '🦇🕯️ Sí, las brujas y estrellas confirman tu camino...'
   } else if (pregunta.includes('hetero') || pregunta.includes('heterosexual')) {
-    respuesta = '🕯️❄️ No, las sombras niegan ese camino...'
+    respuesta = '🕯️🎃 No, las sombras niegan ese camino...'
   }
 
   await m.reply(
 `🎭 *Pregunta ritual:* ${text}
-🎄🔮 *Respuesta de las Sombras:* ${respuesta}
+🎃🔮 *Respuesta del Oráculo:* ${respuesta}
 
-🌌✨ *El Jardín de las Sombras observa...*`
+🦇✨ *El aquelarre de Shadow Garden observa en silencio...*`
   )
 }
 

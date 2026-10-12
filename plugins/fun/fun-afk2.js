@@ -41,13 +41,15 @@ const handler = async (m, { conn, text }) => {
     }
   }
 
+  await m.react('🎃')
+
   await conn.sendMessage(
     m.chat,
     {
       text:
-        `🌌 *Discípulo de las Sombras*\n` +
-        `Has entrado en estado AFK.\n` +
-        `○ Motivo » *${text || 'sin especificar'}*`
+        `🎃 *Discípulo de las Sombras • Halloween* 🦇\n` +
+        `Has entrado en trance sombrío (AFK).\n` +
+        `○ Motivo » *${text || 'sin especificar'}* 🕯️`
     },
     { quoted: shadow_xyz }
   )
