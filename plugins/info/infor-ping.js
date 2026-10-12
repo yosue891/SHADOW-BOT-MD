@@ -50,7 +50,16 @@ let handler = async (m, { conn }) => {
 
   const userId = m.sender || ''
   const userNum = userId.split('@')[0] || 'Desconocido'
-  const userName = (await conn.getName(userId).catch(() => 'Usuario')) || 'Usuario'
+  let userName = m.pushName || ''
+  if (!userName) {
+    try {
+      const res = conn.getName ? conn.getName(userId) : ''
+      userName = (res instanceof Promise) ? await res : res
+    } catch {
+      userName = 'Usuario'
+    }
+  }
+  if (!userName || typeof userName !== 'string') userName = 'Usuario'
   const botname = global.botname || global.author || 'Shadow Bot'
   const uptimeText = formatUptime(process.uptime())
 
