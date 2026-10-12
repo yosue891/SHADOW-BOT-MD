@@ -147,8 +147,26 @@ export async function handler(chatUpdate) {
     let m = messages[0];
     if (!m) return;
     if (global.db.data == null) await global.loadDatabase();
-    const activeLang = global.db.data?.settings?.botLang || global.db.data?.settings?.[this.user?.jid]?.botLang;
-    if (activeLang && activeLang !== getBotLang()) setBotLang(activeLang);
+    if (typeof getBotLang === 'function' && typeof setBotLang === 'function') {
+        const rawBotJid = this.user?.jid || this.user?.id || '';
+        const cleanBotJid = String(rawBotJid).replace(/:\d+@/, '@');
+        const dbLang =
+            global.db.data?.settings?.[rawBotJid]?.botLang ||
+            global.db.data?.settings?.[cleanBotJid]?.botLang ||
+            global.db.data?.settings?.botLang;
+        const currentLang = getBotLang();
+        if (dbLang && dbLang !== currentLang) {
+            setBotLang(dbLang);
+        } else if (currentLang && currentLang !== 'es' && !dbLang) {
+            if (global.db.data?.settings) {
+                global.db.data.settings.botLang = currentLang;
+                if (rawBotJid) {
+                    if (!global.db.data.settings[rawBotJid]) global.db.data.settings[rawBotJid] = {};
+                    global.db.data.settings[rawBotJid].botLang = currentLang;
+                }
+            }
+        }
+    }
     m = smsg(this, m) || m;
     if (!m || !m.sender || !m.chat || m.chat === "status@broadcast" || m.chat.endsWith("@newsletter")) return;
 
