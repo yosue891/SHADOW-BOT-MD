@@ -1,4 +1,5 @@
 import { createCanvas, loadImage } from '@napi-rs/canvas'
+import { prepareWAMessageMedia, generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
 import axios from 'axios'
 import fs from 'fs'
 import path from 'path'
@@ -243,51 +244,142 @@ let handler = async (m, { conn, usedPrefix }) => {
 
     const footer = `© ${canvasDomain} · Pong Shadow`
 
-    // Enviar con formato producto interactivo tal como en el código de bienvenida
+    // JID válido de WhatsApp Business / Dueño del bot para que el cliente muestre la tarjeta de producto
+    const ownerJid = conn.user?.jid
+      ? (conn.user.jid.split('@')[0].split(':')[0] + '@s.whatsapp.net')
+      : (global.owner?.[0]?.[0] ? `${global.owner[0][0]}@s.whatsapp.net` : '584242773183@s.whatsapp.net')
+
+    const buttons = [
+      {
+        name: 'quick_reply',
+        buttonParamsJson: JSON.stringify({
+          display_text: '⚡ Ping de nuevo',
+          id: `${usedPrefix || '.'}ping`
+        })
+      },
+      {
+        name: 'quick_reply',
+        buttonParamsJson: JSON.stringify({
+          display_text: '📜 Menú Completo',
+          id: `${usedPrefix || '.'}menu`
+        })
+      }
+    ]
+
+    let sent = false
+
+    // Nivel 1: Envío mediante mensaje interactivo (InteractiveMessage) con cabecera de producto de catálogo
     try {
-      await conn.sendMessage(
-        m.chat,
-        {
-          product: {
-            productImage: { url: pingImgPath },
-            productId: 'ping-001',
+      let imageMsg = null
+      if (conn.waUploadToServer) {
+        try {
+          const media = await prepareWAMessageMedia(
+            { image: { url: pingImgPath } },
+            { upload: conn.waUploadToServer }
+          )
+          imageMsg = media?.imageMessage
+        } catch (eMedia) {
+          console.warn('[PING] Error subiendo imagen local para interactive, probando con buffer directo:', eMedia?.message)
+          const media = await prepareWAMessageMedia(
+            { image: imageBuffer },
+            { upload: conn.waUploadToServer }
+          )
+          imageMsg = media?.imageMessage
+        }
+      }
+
+      if (imageMsg && (conn.relayMessage || conn.sendMessage)) {
+        const interactiveMessage = proto.Message.InteractiveMessage.create({
+          body: proto.Message.InteractiveMessage.Body.create({ text: caption }),
+          footer: proto.Message.InteractiveMessage.Footer.create({ text: footer }),
+          header: proto.Message.InteractiveMessage.Header.create({
             title: '─ P O N G ─ ⚡',
-            currencyCode: 'USD',
-            priceAmount1000: '0',
-            retailerId: 1677,
-            productImageCount: 1
-          },
+            hasMediaAttachment: true,
+            productMessage: proto.Message.ProductMessage.create({
+              product: proto.Message.ProductMessage.ProductSnapshot.create({
+                productImage: imageMsg,
+                productId: 'ping-001',
+                title: '─ P O N G ─ ⚡',
+                description: 'Shadow Garden Interface',
+                currencyCode: 'USD',
+                priceAmount1000: '0',
+                retailerId: '1677',
+                url: 'https://github.com/yosue891/SHADOW-BOT-MD',
+                productImageCount: 1
+              }),
+              businessOwnerJid: ownerJid
+            })
+          }),
+          nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
+            buttons
+          }),
+          contextInfo: {
+            mentionedJid: [userId]
+          }
+        })
 
-          businessOwnerJid: '0@s.whatsapp.net',
-
-          caption,
-
-          footer,
-
-          interactiveButtons: [
-            {
-              name: 'quick_reply',
-              buttonParamsJson: JSON.stringify({
-                display_text: '⚡ Ping de nuevo',
-                id: `${usedPrefix || '.'}ping`
-              })
-            },
-            {
-              name: 'quick_reply',
-              buttonParamsJson: JSON.stringify({
-                display_text: '📜 Menú Completo',
-                id: `${usedPrefix || '.'}menu`
-              })
+        const userJid = conn.user?.jid || conn.user?.id || ownerJid
+        const msg = generateWAMessageFromContent(
+          m.chat,
+          {
+            viewOnceMessage: {
+              message: {
+                messageContextInfo: {
+                  deviceListMetadata: {},
+                  deviceListMetadataVersion: 2
+                },
+                interactiveMessage
+              }
             }
-          ],
+          },
+          {
+            userJid,
+            quoted: fkontak
+          }
+        )
 
-          mentions: [userId]
-        },
-        { quoted: fkontak }
-      )
-    } catch (errProduct) {
-      console.error('Error enviando product con archivo local, intentando URL directa:', errProduct?.message || errProduct)
-      // Fallback usando URL directa de la imagen como en el código de bienvenida
+        if (conn.relayMessage) {
+          await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
+          sent = true
+        }
+      }
+    } catch (errInteractive) {
+      console.error('[PING] Error en nivel 1 (interactive product message):', errInteractive?.message || errInteractive)
+    }
+
+    // Nivel 2: Envío directo de mensaje de producto mediante conn.sendMessage con archivo local
+    if (!sent) {
+      try {
+        await conn.sendMessage(
+          m.chat,
+          {
+            product: {
+              productImage: { url: pingImgPath },
+              productId: 'ping-001',
+              title: '─ P O N G ─ ⚡',
+              description: 'Shadow Garden Interface',
+              currencyCode: 'USD',
+              priceAmount1000: '0',
+              retailerId: '1677',
+              productImageCount: 1
+            },
+            businessOwnerJid: ownerJid,
+            body: caption,
+            caption,
+            footer,
+            interactiveButtons: buttons,
+            mentions: [userId]
+          },
+          { quoted: fkontak }
+        )
+        sent = true
+      } catch (errDirectProd) {
+        console.error('[PING] Error en nivel 2 (direct product local):', errDirectProd?.message || errDirectProd)
+      }
+    }
+
+    // Nivel 3: Envío directo de mensaje de producto con URL remota de respaldo
+    if (!sent) {
       try {
         await conn.sendMessage(
           m.chat,
@@ -296,52 +388,39 @@ let handler = async (m, { conn, usedPrefix }) => {
               productImage: { url: BG_URL },
               productId: 'ping-001',
               title: '─ P O N G ─ ⚡',
+              description: 'Shadow Garden Interface',
               currencyCode: 'USD',
               priceAmount1000: '0',
-              retailerId: 1677,
+              retailerId: '1677',
               productImageCount: 1
             },
-
-            businessOwnerJid: '0@s.whatsapp.net',
-
+            businessOwnerJid: ownerJid,
+            body: caption,
             caption,
-
             footer,
-
-            interactiveButtons: [
-              {
-                name: 'quick_reply',
-                buttonParamsJson: JSON.stringify({
-                  display_text: '⚡ Ping de nuevo',
-                  id: `${usedPrefix || '.'}ping`
-                })
-              },
-              {
-                name: 'quick_reply',
-                buttonParamsJson: JSON.stringify({
-                  display_text: '📜 Menú Completo',
-                  id: `${usedPrefix || '.'}menu`
-                })
-              }
-            ],
-
+            interactiveButtons: buttons,
             mentions: [userId]
           },
           { quoted: fkontak }
         )
-      } catch (errFallback) {
-        console.error('Error enviando product fallback, enviando imagen estándar:', errFallback?.message || errFallback)
-        await conn.sendMessage(
-          m.chat,
-          {
-            image: imageBuffer,
-            caption,
-            footer,
-            mentions: [userId]
-          },
-          { quoted: fkontak }
-        )
+        sent = true
+      } catch (errUrlProd) {
+        console.error('[PING] Error en nivel 3 (direct product URL):', errUrlProd?.message || errUrlProd)
       }
+    }
+
+    // Nivel 4: Respaldo final a imagen estándar con caption si ningún formato de producto es admitido
+    if (!sent) {
+      await conn.sendMessage(
+        m.chat,
+        {
+          image: imageBuffer,
+          caption,
+          footer,
+          mentions: [userId]
+        },
+        { quoted: fkontak }
+      )
     }
 
   } catch (e) {
