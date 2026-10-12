@@ -1,4 +1,5 @@
 import { smsg } from "../lib/simple.js";
+import { setBotLang, getBotLang } from "../lib/i18n.js";
 import { format } from "util";
 import { fileURLToPath } from "url";
 import path, { join } from "path";
@@ -146,6 +147,8 @@ export async function handler(chatUpdate) {
     let m = messages[0];
     if (!m) return;
     if (global.db.data == null) await global.loadDatabase();
+    const activeLang = global.db.data?.settings?.botLang || global.db.data?.settings?.[this.user?.jid]?.botLang;
+    if (activeLang && activeLang !== getBotLang()) setBotLang(activeLang);
     m = smsg(this, m) || m;
     if (!m || !m.sender || !m.chat || m.chat === "status@broadcast" || m.chat.endsWith("@newsletter")) return;
 
