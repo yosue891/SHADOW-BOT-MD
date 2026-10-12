@@ -1,5 +1,7 @@
 import { createCanvas, loadImage } from '@napi-rs/canvas'
 import axios from 'axios'
+import fs from 'fs'
+import path from 'path'
 import { unstyleFancyText } from '../../lib/i18n.js'
 
 const BG_URL = 'https://u.pone.rs/opkaarfr.jpg'
@@ -33,7 +35,7 @@ async function getBackgroundImage() {
   return fetchPromise
 }
 
-// Precargar la imagen en segundo plano al iniciar
+// Precargar la imagen de fondo en segundo plano
 getBackgroundImage().catch(() => {})
 
 function formatUptime(uptimeSeconds) {
@@ -47,14 +49,13 @@ function formatUptime(uptimeSeconds) {
 /**
  * Limpia y normaliza texto para renderizar en Canvas con fuentes DejaVu Sans
  * evitando absolutamente caracteres tofu (cuadros vacíos □).
+ * Convierte caracteres matemáticos/versalitas a ASCII y elimina símbolos no renderizables.
  */
 function cleanForCanvas(str, fallback = 'Shadow-BOT-MD') {
   if (!str || typeof str !== 'string') return fallback
   let s = unstyleFancyText(str)
-  // Remover rangos de emojis y símbolos exóticos que se convierten en □ en Linux
-  s = s.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{0E00}-\u{0E7F}\u{1780}-\u{17FF}\u{0F00}-\u{0FFF}\u{10D0}-\u{10FF}\u{2E80}-\u{2FD5}]/gu, '')
-  // Mantener solo caracteres alfanuméricos y puntuación común
-  s = s.replace(/[^\w\s.,!?:;()[\]#/@&_+-]/g, ' ')
+  s = s.replace(/[\u{10000}-\u{10FFFF}]/gu, '')
+  s = s.replace(/[^\x20-\x7EáéíóúüñÁÉÍÓÚÜÑ]/g, ' ')
   s = s.replace(/\s+/g, ' ').trim()
   return s || fallback
 }
@@ -85,7 +86,7 @@ let handler = async (m, { conn, usedPrefix }) => {
   const canvasUser = cleanForCanvas(rawUserName, 'Usuario').slice(0, 18)
   const canvasDomain = cleanForCanvas(rawBotName, 'Shadow-BOT-MD').slice(0, 20)
 
-  // Métricas de velocidad
+  // Métricas de velocidad solicitadas
   const pingValue = '1 ms'
   const statusLentitud = 'Ultra Rápido 🚀'
   const botStatus = 'ONLINE (Activo)'
@@ -102,16 +103,16 @@ let handler = async (m, { conn, usedPrefix }) => {
 
     // 2. Viñeteado suave: permite que la imagen del fondo se aprecie claramente en el centro
     const vignette = ctx.createLinearGradient(0, 0, 0, height)
-    vignette.addColorStop(0, 'rgba(0, 0, 0, 0.45)')
-    vignette.addColorStop(0.2, 'rgba(0, 0, 0, 0.12)')
-    vignette.addColorStop(0.5, 'rgba(0, 0, 0, 0.08)')
-    vignette.addColorStop(0.75, 'rgba(0, 0, 0, 0.38)')
-    vignette.addColorStop(1, 'rgba(0, 0, 0, 0.78)')
+    vignette.addColorStop(0, 'rgba(0, 0, 0, 0.40)')
+    vignette.addColorStop(0.2, 'rgba(0, 0, 0, 0.10)')
+    vignette.addColorStop(0.5, 'rgba(0, 0, 0, 0.05)')
+    vignette.addColorStop(0.75, 'rgba(0, 0, 0, 0.35)')
+    vignette.addColorStop(1, 'rgba(0, 0, 0, 0.75)')
     ctx.fillStyle = vignette
     ctx.fillRect(0, 0, width, height)
 
     // 3. Barra Superior HUD Translúcida (Glassmorphism de 75px de alto)
-    ctx.fillStyle = 'rgba(10, 6, 24, 0.55)'
+    ctx.fillStyle = 'rgba(10, 6, 24, 0.50)'
     ctx.strokeStyle = 'rgba(240, 192, 64, 0.75)'
     ctx.lineWidth = 2
     ctx.beginPath()
@@ -142,7 +143,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     ctx.fillText('ONLINE • ACTIVO', width - 200, 68)
 
     // 4. Tarjeta Flotante Izquierda: PONG & 1 ms
-    ctx.fillStyle = 'rgba(12, 6, 28, 0.60)'
+    ctx.fillStyle = 'rgba(12, 6, 28, 0.55)'
     ctx.strokeStyle = 'rgba(176, 96, 255, 0.70)'
     ctx.lineWidth = 2
     ctx.beginPath()
@@ -171,7 +172,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     ctx.fillText('ULTRA RAPIDO (OPTIMO)', 185, 278)
 
     // 5. Barra Inferior con Métricas del Sistema (Sleek Glass Dock)
-    ctx.fillStyle = 'rgba(10, 6, 24, 0.65)'
+    ctx.fillStyle = 'rgba(10, 6, 24, 0.60)'
     ctx.strokeStyle = 'rgba(240, 192, 64, 0.75)'
     ctx.lineWidth = 2
     ctx.beginPath()
@@ -179,7 +180,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     ctx.fill()
     ctx.stroke()
 
-    // Cuadrícula de datos del sistema
+    // Cuadrícula de datos del sistema (fuente DejaVu Sans garantizada sin tofu)
     const stats = [
       { label: 'ESTADO', val: 'ONLINE (Activo)', color: '#00e676', x: 60, y: height - 130 },
       { label: 'VELOCIDAD', val: '1 ms', color: '#ffd54f', x: 270, y: height - 130 },
@@ -200,7 +201,13 @@ let handler = async (m, { conn, usedPrefix }) => {
       ctx.fillText(st.val, st.x, st.y + 24)
     })
 
-    const image = await canvas.encode('jpeg')
+    const imageBuffer = await canvas.encode('jpeg')
+
+    // Guardar temporalmente para pasar como { url: ... } tal como en el código de bienvenida
+    const tmpDir = path.join(process.cwd(), 'tmp')
+    fs.mkdirSync(tmpDir, { recursive: true })
+    const pingImgPath = path.join(tmpDir, 'ping-canvas.jpg')
+    fs.writeFileSync(pingImgPath, imageBuffer)
 
     const fkontak = {
       key: {
@@ -227,13 +234,14 @@ let handler = async (m, { conn, usedPrefix }) => {
 > ⚡ *Estado:* ${botStatus}
 > 🏎️ *Rendimiento:* ${statusLentitud}
 > 🕯️ *Uptime:* ${uptimeText}
-> 👤 *Usuario:* ${rawUserName} (@${userNum})
-> 👑 *Dueños:* Yosue (Shadow) & Ado
+> 👤 *Usuario:* ${canvasUser} (@${userNum})
+> 👑 *Dominio:* ${canvasDomain}
+> 🗡️ *Dueños:* Yosue (Shadow) & Ado
 
 *જ Shadow Garden Interface 🧪 𖤓*
 `.trim()
 
-    const footer = `© ${rawBotName} · Pong Shadow`
+    const footer = `© ${canvasDomain} · Pong Shadow`
 
     // Enviar con formato producto interactivo tal como en el código de bienvenida
     try {
@@ -241,7 +249,7 @@ let handler = async (m, { conn, usedPrefix }) => {
         m.chat,
         {
           product: {
-            productImage: image,
+            productImage: { url: pingImgPath },
             productId: 'ping-001',
             title: '─ P O N G ─ ⚡',
             currencyCode: 'USD',
@@ -277,18 +285,63 @@ let handler = async (m, { conn, usedPrefix }) => {
         },
         { quoted: fkontak }
       )
-    } catch (productError) {
-      // Fallback a imagen estándar con caption si productMessage no es admitido en el cliente
-      await conn.sendMessage(
-        m.chat,
-        {
-          image,
-          caption,
-          footer,
-          mentions: [userId]
-        },
-        { quoted: fkontak }
-      )
+    } catch (errProduct) {
+      console.error('Error enviando product con archivo local, intentando URL directa:', errProduct?.message || errProduct)
+      // Fallback usando URL directa de la imagen como en el código de bienvenida
+      try {
+        await conn.sendMessage(
+          m.chat,
+          {
+            product: {
+              productImage: { url: BG_URL },
+              productId: 'ping-001',
+              title: '─ P O N G ─ ⚡',
+              currencyCode: 'USD',
+              priceAmount1000: '0',
+              retailerId: 1677,
+              productImageCount: 1
+            },
+
+            businessOwnerJid: '0@s.whatsapp.net',
+
+            caption,
+
+            footer,
+
+            interactiveButtons: [
+              {
+                name: 'quick_reply',
+                buttonParamsJson: JSON.stringify({
+                  display_text: '⚡ Ping de nuevo',
+                  id: `${usedPrefix || '.'}ping`
+                })
+              },
+              {
+                name: 'quick_reply',
+                buttonParamsJson: JSON.stringify({
+                  display_text: '📜 Menú Completo',
+                  id: `${usedPrefix || '.'}menu`
+                })
+              }
+            ],
+
+            mentions: [userId]
+          },
+          { quoted: fkontak }
+        )
+      } catch (errFallback) {
+        console.error('Error enviando product fallback, enviando imagen estándar:', errFallback?.message || errFallback)
+        await conn.sendMessage(
+          m.chat,
+          {
+            image: imageBuffer,
+            caption,
+            footer,
+            mentions: [userId]
+          },
+          { quoted: fkontak }
+        )
+      }
     }
 
   } catch (e) {
