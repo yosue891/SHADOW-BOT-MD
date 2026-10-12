@@ -45,28 +45,28 @@ function formatUptime(uptimeSeconds) {
 }
 
 /**
- * Limpia y normaliza texto para renderizar en Canvas sin caracteres "tofu" (cuadrados □).
- * Convierte fuentes matemáticas a ASCII y remueve emojis y marcas exóticas que no tienen glifo en Linux.
+ * Limpia y normaliza texto para renderizar en Canvas con fuentes DejaVu Sans
+ * evitando absolutamente caracteres tofu (cuadros vacíos □).
  */
-function cleanForCanvas(str, fallback = 'Shadow Bot') {
+function cleanForCanvas(str, fallback = 'Shadow-BOT-MD') {
   if (!str || typeof str !== 'string') return fallback
   let s = unstyleFancyText(str)
-  // Remover rangos de emojis y símbolos exóticos que se convierten en □
+  // Remover rangos de emojis y símbolos exóticos que se convierten en □ en Linux
   s = s.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{0E00}-\u{0E7F}\u{1780}-\u{17FF}\u{0F00}-\u{0FFF}\u{10D0}-\u{10FF}\u{2E80}-\u{2FD5}]/gu, '')
-  // Mantener solo caracteres alfanuméricos y signos de puntuación estándar
+  // Mantener solo caracteres alfanuméricos y puntuación común
   s = s.replace(/[^\w\s.,!?:;()[\]#/@&_+-]/g, ' ')
   s = s.replace(/\s+/g, ' ').trim()
   return s || fallback
 }
 
 let handler = async (m, { conn, usedPrefix }) => {
-  // Enviar reacción de rayo en segundo plano de inmediato
+  // Reacción instantánea de rayo en segundo plano
   conn.sendMessage(m.chat, { react: { text: '⚡', key: m.key } }).catch(() => {})
 
   const userId = m.sender || ''
   const userNum = userId.split('@')[0] || 'Desconocido'
 
-  // Obtener nombre seguro sin romper la ejecución
+  // Obtención segura del nombre de usuario
   let rawUserName = m.pushName || ''
   if (!rawUserName) {
     try {
@@ -81,11 +81,11 @@ let handler = async (m, { conn, usedPrefix }) => {
   const rawBotName = global.botname || global.author || 'Shadow-BOT-MD'
   const uptimeText = formatUptime(process.uptime())
 
-  // Nombres limpios para Canvas (sin cuadrados □)
-  const canvasUser = cleanForCanvas(rawUserName, 'Usuario').slice(0, 20)
-  const canvasDomain = cleanForCanvas(rawBotName, 'Shadow-BOT-MD').slice(0, 22)
+  // Nombres limpios garantizados sin cuadrados (tofu)
+  const canvasUser = cleanForCanvas(rawUserName, 'Usuario').slice(0, 18)
+  const canvasDomain = cleanForCanvas(rawBotName, 'Shadow-BOT-MD').slice(0, 20)
 
-  // Velocidad de 1 ms solicitada
+  // Métricas de velocidad
   const pingValue = '1 ms'
   const statusLentitud = 'Ultra Rápido 🚀'
   const botStatus = 'ONLINE (Activo)'
@@ -96,139 +96,109 @@ let handler = async (m, { conn, usedPrefix }) => {
     const canvas = createCanvas(width, height)
     const ctx = canvas.getContext('2d')
 
-    // 1. Imagen de fondo solicitada
+    // 1. Dibujar la imagen de fondo completa (URL https://u.pone.rs/opkaarfr.jpg)
     const bg = await getBackgroundImage()
     ctx.drawImage(bg, 0, 0, width, height)
 
-    // 2. Tinte translúcido suave: permite ver claramente la imagen de fondo
-    const grad = ctx.createLinearGradient(0, 0, 0, height)
-    grad.addColorStop(0, 'rgba(5, 2, 14, 0.42)')
-    grad.addColorStop(0.5, 'rgba(10, 4, 22, 0.32)')
-    grad.addColorStop(1, 'rgba(4, 2, 12, 0.58)')
-    ctx.fillStyle = grad
+    // 2. Viñeteado suave: permite que la imagen del fondo se aprecie claramente en el centro
+    const vignette = ctx.createLinearGradient(0, 0, 0, height)
+    vignette.addColorStop(0, 'rgba(0, 0, 0, 0.45)')
+    vignette.addColorStop(0.2, 'rgba(0, 0, 0, 0.12)')
+    vignette.addColorStop(0.5, 'rgba(0, 0, 0, 0.08)')
+    vignette.addColorStop(0.75, 'rgba(0, 0, 0, 0.38)')
+    vignette.addColorStop(1, 'rgba(0, 0, 0, 0.78)')
+    ctx.fillStyle = vignette
     ctx.fillRect(0, 0, width, height)
 
-    // 3. Marcos decorativos Halloween / Shadow
-    ctx.strokeStyle = 'rgba(240, 192, 64, 0.70)'
-    ctx.lineWidth = 3
-    ctx.strokeRect(22, 22, width - 44, height - 44)
-
-    ctx.strokeStyle = 'rgba(176, 96, 255, 0.55)'
-    ctx.lineWidth = 1.5
-    ctx.strokeRect(30, 30, width - 60, height - 60)
-
-    // 4. Encabezado limpio (sin emojis que generen □ en canvas)
-    ctx.fillStyle = '#f0c040'
-    ctx.font = 'bold 36px sans-serif'
-    ctx.fillText('PONG  •  SHADOW GARDEN', 60, 85)
-
-    ctx.fillStyle = '#b060ff'
-    ctx.font = 'bold 15px monospace'
-    ctx.fillText('SISTEMA DE RENDIMIENTO EN TIEMPO REAL', 65, 114)
-
-    // 5. Badge ONLINE con círculo nativo en la esquina superior derecha
-    ctx.fillStyle = 'rgba(8, 4, 20, 0.60)'
-    ctx.strokeStyle = '#00e676'
+    // 3. Barra Superior HUD Translúcida (Glassmorphism de 75px de alto)
+    ctx.fillStyle = 'rgba(10, 6, 24, 0.55)'
+    ctx.strokeStyle = 'rgba(240, 192, 64, 0.75)'
     ctx.lineWidth = 2
     ctx.beginPath()
-    ctx.roundRect(width - 250, 52, 190, 46, 14)
+    ctx.roundRect(30, 25, width - 60, 75, 16)
     ctx.fill()
     ctx.stroke()
 
-    ctx.fillStyle = '#00e676'
-    ctx.beginPath()
-    ctx.arc(width - 225, 75, 7, 0, Math.PI * 2)
-    ctx.fill()
-
-    ctx.font = 'bold 17px monospace'
-    ctx.fillText('ONLINE • ACTIVO', width - 208, 81)
-
-    // 6. Panel Izquierdo: PONG & 1 ms (Glassmorphism translúcido)
-    ctx.fillStyle = 'rgba(10, 5, 26, 0.48)'
-    ctx.strokeStyle = 'rgba(240, 192, 64, 0.60)'
-    ctx.lineWidth = 2
-    ctx.beginPath()
-    ctx.roundRect(60, 145, 470, 455, 20)
-    ctx.fill()
-    ctx.stroke()
-
-    ctx.fillStyle = '#ffffff'
-    ctx.font = '900 64px sans-serif'
-    ctx.fillText('PONG!', 95, 230)
-
+    // Título superior
     ctx.fillStyle = '#f0c040'
-    ctx.font = 'bold 18px monospace'
-    ctx.fillText('VELOCIDAD DEL BOT (LATENCIA)', 95, 270)
+    ctx.font = 'bold 30px "DejaVu Sans", sans-serif'
+    ctx.fillText('PONG  •  SHADOW GARDEN', 60, 74)
 
-    // Número gigante: 1 ms
-    ctx.fillStyle = '#ffd54f'
-    ctx.font = '900 96px sans-serif'
-    ctx.fillText('1', 95, 375)
-    ctx.font = 'bold 44px sans-serif'
-    ctx.fillStyle = '#b060ff'
-    ctx.fillText('ms', 170, 375)
-
-    // Barra de estado de lentitud / velocidad
+    // Indicador ONLINE a la derecha
     ctx.fillStyle = 'rgba(0, 230, 118, 0.22)'
     ctx.strokeStyle = '#00e676'
     ctx.lineWidth = 1.5
     ctx.beginPath()
-    ctx.roundRect(95, 410, 400, 48, 12)
+    ctx.roundRect(width - 240, 39, 180, 46, 12)
     ctx.fill()
     ctx.stroke()
 
     ctx.fillStyle = '#00e676'
-    ctx.font = 'bold 19px monospace'
-    ctx.fillText('ULTRA RAPIDO (OPTIMO)', 115, 441)
+    ctx.beginPath()
+    ctx.arc(width - 216, 62, 7, 0, Math.PI * 2)
+    ctx.fill()
 
-    ctx.fillStyle = '#ffffff'
-    ctx.font = 'bold 15px monospace'
-    ctx.fillText('LATENCIA MINIMA ALCANZADA', 95, 505)
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)'
-    ctx.fillText('Potencia: 100% | Respuesta Inmediata', 95, 535)
+    ctx.font = 'bold 16px "DejaVu Sans", monospace'
+    ctx.fillText('ONLINE • ACTIVO', width - 200, 68)
 
-    // 7. Panel Derecho: Estado del Bot y Métricas (Glassmorphism translúcido)
-    ctx.fillStyle = 'rgba(10, 5, 26, 0.48)'
-    ctx.strokeStyle = 'rgba(176, 96, 255, 0.60)'
+    // 4. Tarjeta Flotante Izquierda: PONG & 1 ms
+    ctx.fillStyle = 'rgba(12, 6, 28, 0.60)'
+    ctx.strokeStyle = 'rgba(176, 96, 255, 0.70)'
     ctx.lineWidth = 2
     ctx.beginPath()
-    ctx.roundRect(560, 145, 580, 455, 20)
+    ctx.roundRect(40, 125, 380, 195, 18)
     ctx.fill()
     ctx.stroke()
 
-    ctx.fillStyle = '#b060ff'
-    ctx.font = 'bold 22px sans-serif'
-    ctx.fillText('ESTADO DEL SISTEMA', 595, 195)
+    ctx.fillStyle = '#ffffff'
+    ctx.font = '900 48px "DejaVu Sans", sans-serif'
+    ctx.fillText('PONG!', 65, 182)
 
+    ctx.fillStyle = '#f0c040'
+    ctx.font = 'bold 16px "DejaVu Sans", monospace'
+    ctx.fillText('VELOCIDAD / LATENCIA', 65, 215)
+
+    // 1 ms
+    ctx.fillStyle = '#ffd54f'
+    ctx.font = '900 64px "DejaVu Sans", sans-serif'
+    ctx.fillText('1', 65, 285)
+    ctx.font = 'bold 34px "DejaVu Sans", sans-serif'
+    ctx.fillStyle = '#b060ff'
+    ctx.fillText('ms', 115, 285)
+
+    ctx.fillStyle = '#00e676'
+    ctx.font = 'bold 16px "DejaVu Sans", monospace'
+    ctx.fillText('ULTRA RAPIDO (OPTIMO)', 185, 278)
+
+    // 5. Barra Inferior con Métricas del Sistema (Sleek Glass Dock)
+    ctx.fillStyle = 'rgba(10, 6, 24, 0.65)'
+    ctx.strokeStyle = 'rgba(240, 192, 64, 0.75)'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.roundRect(30, height - 175, width - 60, 145, 18)
+    ctx.fill()
+    ctx.stroke()
+
+    // Cuadrícula de datos del sistema
     const stats = [
-      { label: 'ESTADO DEL BOT', val: 'Activo (Online)', color: '#00e676' },
-      { label: 'VELOCIDAD / PING', val: pingValue, color: '#ffd54f' },
-      { label: 'CALIFICACION', val: 'Ultra Rapido', color: '#00e676' },
-      { label: 'UPTIME (VIGILIA)', val: uptimeText, color: '#ffffff' },
-      { label: 'USUARIO', val: canvasUser, color: '#b060ff' },
-      { label: 'DOMINIO', val: canvasDomain, color: '#f0c040' }
+      { label: 'ESTADO', val: 'ONLINE (Activo)', color: '#00e676', x: 60, y: height - 130 },
+      { label: 'VELOCIDAD', val: '1 ms', color: '#ffd54f', x: 270, y: height - 130 },
+      { label: 'CALIFICACION', val: 'Ultra Rapido', color: '#00e676', x: 460, y: height - 130 },
+      { label: 'UPTIME (VIGILIA)', val: uptimeText, color: '#ffffff', x: 700, y: height - 130 },
+      { label: 'USUARIO', val: canvasUser, color: '#b060ff', x: 60, y: height - 60 },
+      { label: 'DOMINIO', val: canvasDomain, color: '#f0c040', x: 460, y: height - 60 },
+      { label: 'SISTEMA', val: 'Shadow Garden Linux', color: '#ffffff', x: 700, y: height - 60 }
     ]
 
-    stats.forEach((st, idx) => {
-      const y = 245 + (idx * 55)
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.12)'
-      ctx.beginPath()
-      ctx.roundRect(595, y - 28, 510, 44, 10)
-      ctx.fill()
-
-      ctx.fillStyle = 'rgba(240, 240, 240, 0.85)'
-      ctx.font = 'bold 14px monospace'
-      ctx.fillText(st.label, 615, y)
+    stats.forEach((st) => {
+      ctx.fillStyle = 'rgba(240, 240, 240, 0.78)'
+      ctx.font = 'bold 12px "DejaVu Sans", monospace'
+      ctx.fillText(st.label, st.x, st.y)
 
       ctx.fillStyle = st.color
-      ctx.font = 'bold 16px sans-serif'
-      ctx.fillText(st.val, 830, y)
+      ctx.font = 'bold 18px "DejaVu Sans", sans-serif'
+      ctx.fillText(st.val, st.x, st.y + 24)
     })
-
-    // 8. Pie de página decorativo
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.60)'
-    ctx.font = '13px monospace'
-    ctx.fillText('SHADOW GARDEN INTERFACE  |  VELOCIDAD MAXIMA EN TIEMPO REAL', 60, 638)
 
     const image = await canvas.encode('jpeg')
 
@@ -250,35 +220,42 @@ let handler = async (m, { conn, usedPrefix }) => {
     // Reacción de calabaza Halloween al finalizar
     conn.sendMessage(m.chat, { react: { text: '🎃', key: m.key } }).catch(() => {})
 
-    const caption =
-      `✨ 🎃 ¡𝐏𝐎𝐍𝐆 𝐇𝐀𝐋𝐋𝐎𝐖𝐄𝐄𝐍! 🦇 ✨\n\n` +
-      `> 🚀 𝐕𝐞𝐥𝐨𝐜𝐢𝐝𝐚𝐝: *${pingValue}*\n` +
-      `> ⚡ 𝐄𝐬𝐭𝐚𝐝𝐨: *${botStatus}*\n` +
-      `> 🏎️ 𝐑𝐞𝐧𝐝𝐢𝐦𝐢𝐞𝐧𝐭𝐨: *${statusLentitud}*\n` +
-      `> 🕯️ 𝐔𝐩𝐭𝐢𝐦𝐞: *${uptimeText}*\n` +
-      `> 👤 𝐔𝐬𝐮𝐚𝐫𝐢𝐨: *${rawUserName}* (@${userNum})\n` +
-      `> 👑 𝐃𝐮𝐞𝐧̃𝐨𝐬: *𝐘𝐨𝐬𝐮𝐞 (𝐒𝐡𝐚𝐝𝐨𝐰) & 𝐀𝐝𝐨*\n\n` +
-      `*જ 𝐒𝐡𝐚𝐝𝐨𝐰 𝐆𝐚𝐫𝐝𝐞𝐧 𝐈𝐧𝐭𝐞𝐫𝐟𝐚𝐜𝐞 🧪 𖤓*`
+    const caption = `
+✨ 🎃 *¡PONG HALLOWEEN!* 🦇 ✨
 
-    const footer = `© ${rawBotName} · Pong Shadow Halloween 🎃`
+> 🚀 *Velocidad:* ${pingValue}
+> ⚡ *Estado:* ${botStatus}
+> 🏎️ *Rendimiento:* ${statusLentitud}
+> 🕯️ *Uptime:* ${uptimeText}
+> 👤 *Usuario:* ${rawUserName} (@${userNum})
+> 👑 *Dueños:* Yosue (Shadow) & Ado
 
-    // Enviar formato Producto (Catálogo) solicitado
+*જ Shadow Garden Interface 🧪 𖤓*
+`.trim()
+
+    const footer = `© ${rawBotName} · Pong Shadow`
+
+    // Enviar con formato producto interactivo tal como en el código de bienvenida
     try {
       await conn.sendMessage(
         m.chat,
         {
           product: {
             productImage: image,
-            productId: 'shadow-ping-001',
-            title: `🎃 PONG • SHADOW GARDEN 🦇`,
+            productId: 'ping-001',
+            title: '─ P O N G ─ ⚡',
             currencyCode: 'USD',
             priceAmount1000: '0',
             retailerId: 1677,
             productImageCount: 1
           },
+
           businessOwnerJid: '0@s.whatsapp.net',
+
           caption,
+
           footer,
+
           interactiveButtons: [
             {
               name: 'quick_reply',
@@ -295,6 +272,7 @@ let handler = async (m, { conn, usedPrefix }) => {
               })
             }
           ],
+
           mentions: [userId]
         },
         { quoted: fkontak }
