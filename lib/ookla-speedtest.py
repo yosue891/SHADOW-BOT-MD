@@ -27,7 +27,7 @@ import socket
 import sys
 import threading
 import timeit
-import xml.parsers.expat
+import defusedxml.expat as expat
 
 try:
     import gzip
@@ -70,14 +70,14 @@ except ImportError:
         json = None
 
 try:
-    import xml.etree.ElementTree as ET
+    import defusedxml.ElementTree as ET
     try:
-        from xml.etree.ElementTree import _Element as ET_Element
+        ET_Element = getattr(ET, '_Element', ET.Element)
     except ImportError:
         pass
 except ImportError:
-    from xml.dom import minidom as DOM
-    from xml.parsers.expat import ExpatError
+    from defusedxml import minidom as DOM
+    from defusedxml.expat import ExpatError
     ET = None
 
 try:
@@ -494,7 +494,7 @@ if HTTPSConnection:
                             kwargs['server_hostname'] = self.host
                     self.sock = self._context.wrap_socket(self.sock, **kwargs)
                 except AttributeError:
-                    self.sock = ssl.wrap_socket(self.sock)
+                    self.sock = ssl.SSLContext(ssl.PROTOCOL_TLS).wrap_socket(self.sock)
                     try:
                         self.sock.server_hostname = self.host
                     except AttributeError:
@@ -1323,7 +1323,7 @@ class Speedtest(object):
                                 'Malformed speedtest.net server list: %s' % e
                             )
                         elements = root.getElementsByTagName('server')
-                except (SyntaxError, xml.parsers.expat.ExpatError):
+                except (SyntaxError, expat.ExpatError):
                     raise ServersRetrievalError()
 
                 for server in elements:
