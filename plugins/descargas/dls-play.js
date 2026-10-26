@@ -1,4 +1,3 @@
-
 import { searchYouTube } from "../../lib/youtube-search.js"
 import { downloadYouTube } from "../../lib/apiowo.js"
 import sharp from "sharp"
@@ -24,11 +23,25 @@ function isYouTubeUrl(url) {
 }
 
 async function sendAudioDownload(conn, m, url) {
-  const { download, title } = await downloadYouTube(url, "audio")
+  const res = await downloadYouTube(url, "audio")
+  const downloadUrl = res.download || res.download_url || res.url
+  const title = res.title || "audio"
+
+  let audioBuffer = null
+  try {
+    const r = await fetch(downloadUrl, { headers: { "User-Agent": "Mozilla/5.0" } })
+    if (r.ok) {
+      const arr = await r.arrayBuffer()
+      audioBuffer = Buffer.from(arr)
+    }
+  } catch (errBuf) {
+    console.warn("[PLAY AUDIO] No se pudo precargar buffer, usando URL directa:", errBuf?.message)
+  }
+
   await conn.sendMessage(
     m.chat,
     {
-      audio: { url: download },
+      audio: audioBuffer || { url: downloadUrl },
       mimetype: "audio/mpeg",
       fileName: `${title}.mp3`,
       ptt: false
@@ -39,11 +52,27 @@ async function sendAudioDownload(conn, m, url) {
 }
 
 async function sendVideoDownload(conn, m, url) {
-  const { download, title } = await downloadYouTube(url, "video")
+  const res = await downloadYouTube(url, "video")
+  const downloadUrl = res.download || res.download_url || res.url
+  const title = res.title || "video"
+
+  let videoBuffer = null
+  try {
+    const r = await fetch(downloadUrl, { headers: { "User-Agent": "Mozilla/5.0" } })
+    if (r.ok) {
+      const arr = await r.arrayBuffer()
+      if (arr.byteLength < 50 * 1024 * 1024) {
+        videoBuffer = Buffer.from(arr)
+      }
+    }
+  } catch (errBuf) {
+    console.warn("[PLAY VIDEO] No se pudo precargar buffer, usando URL directa:", errBuf?.message)
+  }
+
   await conn.sendMessage(
     m.chat,
     {
-      video: { url: download },
+      video: videoBuffer || { url: downloadUrl },
       mimetype: "video/mp4",
       fileName: `${title}.mp4`
     },
@@ -69,7 +98,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       const url = btnMatch[2]
       if (!isYouTubeUrl(url)) return m.reply("🚫 URL de YouTube no válida.")
 
-      await m.react(format === "mp3" ? "🎵" : "🎬")
+      try { await m.react(format === "mp3" ? "🎵" : "🎬") } catch {}
       const waitMsg = await conn.sendMessage(m.chat, { text: format === "mp3" ? "🎵 Descargando audio con APIOWO..." : "🎬 Descargando video con APIOWO..." }, { quoted: m })
 
       try {
@@ -84,11 +113,11 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
             await conn.sendMessage(m.chat, { text: `✅ *Video completado*\n\n🎬 *Título:* ${title}\n🔗 ${url}`, edit: waitMsg.key })
           } catch { await m.reply(`✅ *Video completado*\n\n🎬 *Título:* ${title}`) }
         }
-        await m.react("✅")
+        try { await m.react("✅") } catch {}
       } catch (e) {
         console.error(`[PLAY ${format}]`, e)
         await m.reply(`❌ Error al descargar ${format}: ${e.message}`)
-        await m.react("❌")
+        try { await m.react("❌") } catch {}
       }
       return
     }
@@ -105,13 +134,13 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       )
     }
 
-    await m.react("🎃")
+    try { await m.react("🎃") } catch {}
 
     let searchQuery = query
     const search = await searchYouTube(searchQuery)
     if (!search?.videos?.length) {
-      await m.react("❌")
-      return m.reply("❌ No se encontró ningún espíritu para: " + query)
+      try { await m.react("❌") } catch {}
+      return m.reply("❌ No se encontró ningún video para: " + query)
     }
 
     const video = search.videos[0]
@@ -224,30 +253,49 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     // 2. Fallback con imagen o texto plano si los botones interactivos no son admitidos
     if (!sent) {
       const captionText = info + `\n\n*Responde con:*\n• \`${prefix}play mp3 ${url}\` para audio 🎵\n• \`${prefix}play mp4 ${url}\` para video 🎬`
+      let sentMedia = false
+
       if (jpegThumbnail) {
-        await conn.sendMessage(
-          m.chat,
-          {
-            image: jpegThumbnail,
-            caption: captionText,
-            footer: "🎃 SHADOW GARDEN • HALLOWEEN 🦇"
-          },
-          { quoted: m }
-        )
-      } else {
-        await conn.sendMessage(
-          m.chat,
-          { text: captionText },
-          { quoted: m }
-        )
+        try {
+          await conn.sendMessage(
+            m.chat,
+            {
+              image: jpegThumbnail,
+              caption: captionText,
+              footer: "🎃 SHADOW GARDEN • HALLOWEEN 🦇"
+            },
+            { quoted: m }
+          )
+          sentMedia = true
+        } catch (errImg) {
+          console.warn("[PLAY] No se pudo enviar imagen de fallback, pasando a texto:", errImg?.message)
+        }
+      }
+
+      if (!sentMedia) {
+        try {
+          await conn.sendMessage(
+            m.chat,
+            { text: captionText },
+            { quoted: m }
+          )
+        } catch (errTxt) {
+          console.warn("[PLAY] Error enviando texto de fallback con sendMessage, usando reply:", errTxt?.message)
+          await m.reply(captionText)
+        }
       }
     }
 
-    await m.react("✅")
+    try { await m.react("✅") } catch {}
   } catch (e) {
-    console.error("[PLAY híbrido]", e)
-    await m.reply(`❌ Error en play: ${e.message}`)
-    await m.react("❌")
+    console.error("[PLAY error]", e)
+    const errDetail = e?.message || String(e)
+    try {
+      await m.reply(`❌ Error en play: ${errDetail}`)
+    } catch {
+      await conn.sendMessage(m.chat, { text: `❌ Error en play: ${errDetail}` })
+    }
+    try { await m.react("❌") } catch {}
   }
 }
 
