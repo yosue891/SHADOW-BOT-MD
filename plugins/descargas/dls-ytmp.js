@@ -1,4 +1,5 @@
 import { searchYouTube, firstYouTubeResult } from "../../lib/youtube-search.js"
+import { downloadYouTube } from "../../lib/apiowo.js"
 import fetch from "node-fetch"
 import { generateWAMessageContent, generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
 
@@ -101,52 +102,29 @@ const handler = async (m, { conn, text, command, usedPrefix }) => {
 
 const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
   try {
-    const cleanTitle = cleanName(title) + (type === "mp3" ? ".mp3" : ".mp4")
-    const msg = `🎶 *Shadow — Descarga en curso*\n\n✨ *Título:* ${title}\n🌌 Preparando tu ${type === "mp3" ? "audio..." : "video..."}`
+    const isAudio = type === "mp3" || type === "audio"
+    const cleanTitle = cleanName(title) + (isAudio ? ".mp3" : ".mp4")
+    const msg = `🎶 *Shadow — Descarga en curso (APIOWO)*\n\n✨ *Título:* ${title}\n🌌 Preparando tu ${isAudio ? "audio..." : "video..."}`
     
     let sent = await conn.sendMessage(m.chat, { text: msg }, { quoted: m })
 
-    if (type === "mp4") {
-      const apiUrl = `https://api.lempi.lat/dl/ytv?url=${encodeURIComponent(url)}&quality=360&apikey=lem715`
-      const response = await fetch(apiUrl)
-      const data = await response.json()
+    const result = await downloadYouTube(url, isAudio ? "audio" : "video")
+    const downloadUrl = result.download
+    const fileTitle = result.title || title
 
-      if (!data?.status) throw new Error(data?.message || "La API no devolvió un archivo válido.")
-
-      const downloadUrl = data?.datos?.url
-      if (!downloadUrl) throw new Error("La API no devolvió un archivo válido.")
-
-      const fileTitle = data?.titulo || title
-      const fileThumb = data?.miniatura || thumbnail
-
+    if (isAudio) {
+      await conn.sendMessage(m.chat, {
+        audio: { url: downloadUrl },
+        mimetype: "audio/mpeg",
+        fileName: cleanTitle
+      }, { quoted: m })
+    } else {
       await conn.sendMessage(m.chat, {
         video: { url: downloadUrl },
         mimetype: "video/mp4",
         fileName: cleanTitle
       }, { quoted: m })
-
-      await conn.sendMessage(m.chat, {
-        text: `🎶 *Shadow — Operación completada*\n\n✨ *Título:* ${fileTitle}\n🌌 Entregada completa uwu.`,
-        edit: sent.key
-      })
-      await m.react("✅")
-      return
     }
-
-    const apiUrl = `https://api-gohan-v1.onrender.com/download/ytaudio?url=${encodeURIComponent(url)}`
-    const response = await fetch(apiUrl)
-    const data = await response.json()
-
-    const downloadUrl = data?.result?.download_url
-    if (!downloadUrl) throw new Error("La API no devolvió un archivo válido.")
-
-    const fileTitle = data?.result?.title || title
-
-    await conn.sendMessage(m.chat, {
-      audio: { url: downloadUrl },
-      mimetype: "audio/mpeg",
-      fileName: cleanTitle
-    }, { quoted: m })
 
     await conn.sendMessage(m.chat, {
       text: `🎶 *Shadow — Operación completada*\n\n✨ *Título:* ${fileTitle}\n🌌 Entregada completa uwu.`,

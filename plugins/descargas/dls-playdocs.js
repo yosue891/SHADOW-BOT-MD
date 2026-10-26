@@ -1,4 +1,5 @@
 import { firstYouTubeResult } from "../../lib/youtube-search.js"
+import { downloadYouTube } from "../../lib/apiowo.js"
 import fetch from "node-fetch"
 
 const handler = async (m, { conn, text, command }) => {
@@ -80,28 +81,21 @@ const handler = async (m, { conn, text, command }) => {
 
 const downloadMedia = async (conn, m, url, type) => {
   try {
-    const msg = type === "mp3"
-      ? "🎵 Preparando audio en documento..."
-      : "🎬 Preparando video en documento..."
+    const isAudio = type === "mp3"
+    const msg = isAudio
+      ? "🎵 Preparando audio en documento (APIOWO)..."
+      : "🎬 Preparando video en documento (APIOWO)..."
 
     const sent = await conn.sendMessage(m.chat, { text: msg }, { quoted: m })
 
-    const apiUrl = type === "mp3"
-      ? `https://api-gohan-v1.onrender.com/download/ytaudio?url=${encodeURIComponent(url)}`
-      : `https://api-gohan-v1.onrender.com/download/ytvideo?url=${encodeURIComponent(url)}`
-
-    const r = await fetch(apiUrl)
-    const data = await r.json()
-
-    if (!data?.result?.download_url) return m.reply("🚫 No se pudo descargar el archivo.")
-
-    const fileUrl = data.result.download_url
-    const fileTitle = cleanName(data.result.title || "Shadow_File")
+    const result = await downloadYouTube(url, isAudio ? "audio" : "video")
+    const fileUrl = result.download
+    const fileTitle = cleanName(result.title || "Shadow_File")
 
     const audioThumb = await fetch("https://i.ibb.co/7twWLLSw/ecba6992f3b1.jpg")
     const mini = Buffer.from(await audioThumb.arrayBuffer())
 
-    if (type === "mp3") {
+    if (isAudio) {
       await conn.sendMessage(
         m.chat,
         {

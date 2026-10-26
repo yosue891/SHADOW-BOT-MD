@@ -1,13 +1,10 @@
 
 import { searchYouTube } from "../../lib/youtube-search.js"
+import { downloadYouTube } from "../../lib/apiowo.js"
 import axios from "axios"
 import fetch from "node-fetch"
 import sharp from "sharp"
 import { generateWAMessageFromContent } from "@whiskeysockets/baileys"
-
-const SHADOW_AUDIO_API = "https://api-gohan-v1.onrender.com/download/ytaudio?url="
-const OURIN_VIDEO_API = "https://firefly.maiku.my.id/api/ytdown"
-const FIREFLY_KEY = "OurinNextGen"
 
 function cleanName(name) {
   const cleaned = String(name || "audio").replace(/[^\w\s._-]/gi, "").trim()
@@ -28,67 +25,8 @@ function isYouTubeUrl(url) {
   return /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test(url)
 }
 
-
-async function getShadowAudio(url) {
-  const apiUrl = `${SHADOW_AUDIO_API}${encodeURIComponent(url)}`
-  const r = await fetch(apiUrl)
-  if (!r.ok) throw new Error(`HTTP ${r.status} al obtener audio (Shadow API)`)
-  const data = await r.json()
-  console.log("[PLAY Shadow AUDIO]", JSON.stringify(data, null, 2))
-  if (!data?.status || !data?.result?.download_url) {
-    throw new Error(data?.message || "Shadow API no devolvió audio válido")
-  }
-  return {
-    download: data.result.download_url,
-    title: cleanName(data.result.title || "audio")
-  }
-}
-
-async function getOurinVideo(url) {
-  const { data } = await axios.get(OURIN_VIDEO_API, {
-    params: { apikey: FIREFLY_KEY, url },
-    timeout: 60000,
-    headers: { "User-Agent": "Mozilla/5.0" }
-  })
-
-  if (data?.status && data?.data?.mediaItems) {
-    const mediaItems = data.data.mediaItems
-    const video =
-      mediaItems.find(m => m.type === "Video" && m.mediaQuality === "HD") ||
-      mediaItems.find(m => m.type === "Video" && m.mediaQuality === "SD") ||
-      mediaItems.find(m => m.type === "Video")
-
-    if (video?.mediaUrl) {
-      let attempts = 0
-      while (attempts < 12) {
-        const { data: fileData } = await axios.get(video.mediaUrl, { timeout: 15000 })
-        if (fileData?.status === "completed" && fileData?.fileUrl) {
-          return {
-            download: fileData.fileUrl,
-            title: cleanName(data?.data?.title || fileData?.title || "video")
-          }
-        }
-        await new Promise(res => setTimeout(res, 3000))
-        attempts++
-      }
-      throw new Error("Timeout esperando video (firefly)")
-    }
-  }
-
-  try {
-    const fallbackUrl = `https://api-gohan-v1.onrender.com/download/ytvideo?url=${encodeURIComponent(url)}`
-    const fr = await fetch(fallbackUrl)
-    const fdata = await fr.json()
-    if (fdata?.status && fdata?.result?.download_url) {
-      return { download: fdata.result.download_url, title: cleanName(fdata.result.title || "video") }
-    }
-  } catch {}
-
-  throw new Error("No se pudo obtener video con API de Ourin (firefly)")
-}
-
 async function sendAudioDownload(conn, m, url) {
-  const { download, title } = await getShadowAudio(url)
+  const { download, title } = await downloadYouTube(url, "audio")
   await conn.sendMessage(
     m.chat,
     {
@@ -103,7 +41,7 @@ async function sendAudioDownload(conn, m, url) {
 }
 
 async function sendVideoDownload(conn, m, url) {
-  const { download, title } = await getOurinVideo(url)
+  const { download, title } = await downloadYouTube(url, "video")
   await conn.sendMessage(
     m.chat,
     {
@@ -134,7 +72,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       if (!isYouTubeUrl(url)) return m.reply("🚫 URL de YouTube no válida.")
 
       await m.react(format === "mp3" ? "🎵" : "🎬")
-      const waitMsg = await conn.sendMessage(m.chat, { text: format === "mp3" ? "🎵 Descargando audio con API Shadow..." : "🎬 Descargando video con API Ourin..." }, { quoted: m })
+      const waitMsg = await conn.sendMessage(m.chat, { text: format === "mp3" ? "🎵 Descargando audio con APIOWO..." : "🎬 Descargando video con APIOWO..." }, { quoted: m })
 
       try {
         if (format === "mp3") {
@@ -165,8 +103,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
         `*Ejemplo:*\n` +
         `• ${usedPrefix}play ghostbusters\n` +
         `• ${usedPrefix}play https://youtu.be/xxxx\n\n` +
-        `🎃 _Audio nocturno_ \`api-gohan-v1.onrender.com\`\n` +
-        `🦇 _Video espectral_ \`firefly.maiku.my.id\``
+        `⚡ _Servidor de descarga:_ \`apiowo.vercel.app\` 🚀`
       )
     }
 

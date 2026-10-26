@@ -1,5 +1,6 @@
 import yts from "yt-search"
 import { firstYouTubeResult } from "../../lib/youtube-search.js"
+import { downloadYouTube } from "../../lib/apiowo.js"
 import fetch from "node-fetch"
 import fs from "fs"
 import path from "path"
@@ -157,21 +158,9 @@ const downloadMediaToChannel = async (conn, m, url, channelId) => {
       { quoted: m }
     )
 
-    const apiUrl = `https://api-gohan-v1.onrender.com/download/ytaudio?url=${encodeURIComponent(url)}`
-    const r = await fetch(apiUrl)
-
-    if (!r.ok) {
-      return m.reply(`[ 🩸 ] El nexo de la API ha fallado al canalizar la descarga.`)
-    }
-
-    const data = await r.json()
-
-    if (!data?.status || !data?.result?.download_url) {
-      return m.reply("[ 🕳️ ] La transferencia ha sido corrompida. El audio no existe.")
-    }
-
-    const fileUrl = data.result.download_url
-    const fileTitle = cleanName(data.result.title || "audio")
+    const dl = await downloadYouTube(url, "audio")
+    const fileUrl = dl.download
+    const fileTitle = cleanName(dl.title || "audio")
 
     const audioRes = await fetch(fileUrl)
     const audioArrayBuffer = await audioRes.arrayBuffer()
