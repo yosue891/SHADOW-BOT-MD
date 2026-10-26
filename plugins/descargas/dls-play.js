@@ -1,10 +1,8 @@
 
 import { searchYouTube } from "../../lib/youtube-search.js"
 import { downloadYouTube } from "../../lib/apiowo.js"
-import axios from "axios"
-import fetch from "node-fetch"
 import sharp from "sharp"
-import { generateWAMessageFromContent } from "@whiskeysockets/baileys"
+import { generateWAMessageFromContent, prepareWAMessageMedia, proto } from "@whiskeysockets/baileys"
 
 function cleanName(name) {
   const cleaned = String(name || "audio").replace(/[^\w\s._-]/gi, "").trim()
@@ -142,75 +140,106 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     info += `🎵 *MP3* → Audio espectral\n`
     info += `🎬 *MP4* → Video de ultratumba`
 
-    let jpegThumbnail
-    try {
-      if (thumbnailUrl) {
-        const thumbRes = await axios.get(thumbnailUrl, { responseType: "arraybuffer", timeout: 15000 })
-        jpegThumbnail = await sharp(Buffer.from(thumbRes.data)).resize(300, 170).jpeg().toBuffer()
-      }
-    } catch {
+    let jpegThumbnail = null
+    if (thumbnailUrl) {
       try {
-        const fb = await fetch("https://i.ibb.co/83pbxQN/5eecaebbc7c3.jpg")
-        jpegThumbnail = Buffer.from(await fb.arrayBuffer())
-      } catch { jpegThumbnail = undefined }
+        const thumbRes = await fetch(thumbnailUrl)
+        if (thumbRes.ok) {
+          const arr = await thumbRes.arrayBuffer()
+          jpegThumbnail = await sharp(Buffer.from(arr)).resize(300, 170).jpeg().toBuffer().catch(() => Buffer.from(arr))
+        }
+      } catch (errThumb) {
+        console.warn("[PLAY] Error obteniendo miniatura:", errThumb?.message)
+      }
+    }
+
+    let imageMessage = null
+    if (jpegThumbnail && conn.waUploadToServer) {
+      try {
+        const media = await prepareWAMessageMedia({ image: jpegThumbnail }, { upload: conn.waUploadToServer })
+        imageMessage = media?.imageMessage
+      } catch (errUpload) {
+        console.warn("[PLAY] No se pudo subir thumbnail para header interactivo:", errUpload?.message)
+      }
     }
 
     const prefix = usedPrefix || "."
+    let sent = false
 
-    const buttonsContent = {
-      buttonsMessage: {
-        buttons: [
-          {
-            buttonId: `${prefix}play mp3 ${url}`,
-            buttonText: { displayText: "🎵 MP3 🎃" },
-            type: 1,
-          },
-          {
-            buttonId: `${prefix}play mp4 ${url}`,
-            buttonText: { displayText: "🎬 MP4 🦇" },
-            type: 1,
-          },
-        ],
-        contentText: info,
-        footerText: "🎃 SHADOW GARDEN • HALLOWEEN 🦇",
-        headerType: 6,
-        ...(jpegThumbnail
-          ? {
-              locationMessage: {
-                jpegThumbnail,
-              },
-            }
-          : {}),
-      },
-    }
-
+    // 1. Intentar mensaje interactivo moderno (InteractiveMessage) con botones de respuesta rápida
     try {
+      const interactiveMessage = proto.Message.InteractiveMessage.create({
+        body: proto.Message.InteractiveMessage.Body.create({ text: info }),
+        footer: proto.Message.InteractiveMessage.Footer.create({ text: "🎃 SHADOW GARDEN • HALLOWEEN 🦇" }),
+        header: proto.Message.InteractiveMessage.Header.create({
+          title: "🎵 Selección de Formato",
+          hasMediaAttachment: !!imageMessage,
+          imageMessage: imageMessage || undefined
+        }),
+        nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
+          buttons: [
+            {
+              name: "quick_reply",
+              buttonParamsJson: JSON.stringify({
+                display_text: "🎵 MP3 (Audio) 🎃",
+                id: `${prefix}play mp3 ${url}`
+              })
+            },
+            {
+              name: "quick_reply",
+              buttonParamsJson: JSON.stringify({
+                display_text: "🎬 MP4 (Video) 🦇",
+                id: `${prefix}play mp4 ${url}`
+              })
+            }
+          ]
+        })
+      })
+
+      const userJid = conn.user?.jid || conn.user?.id || '0@s.whatsapp.net'
       const msg = generateWAMessageFromContent(
         m.chat,
-        { buttonsMessage: buttonsContent.buttonsMessage },
-        { userJid: conn.user.jid, quoted: m }
+        {
+          viewOnceMessage: {
+            message: {
+              messageContextInfo: {
+                deviceListMetadata: {},
+                deviceListMetadataVersion: 2
+              },
+              interactiveMessage
+            }
+          }
+        },
+        { userJid, quoted: m?.message ? m : undefined }
       )
-      await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
-    } catch (e) {
-      console.warn("[PLAY] buttonsMessage falló, fallback a image+buttons:", e.message)
-      try {
-        const thumb = jpegThumbnail || Buffer.from(await (await fetch("https://i.ibb.co/83pbxQN/5eecaebbc7c3.jpg")).arrayBuffer())
+
+      if (conn.relayMessage) {
+        await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
+        sent = true
+      }
+    } catch (errInteractive) {
+      console.warn("[PLAY] Falló interactiveMessage, intentando envío estándar:", errInteractive?.message)
+    }
+
+    // 2. Fallback con imagen o texto plano si los botones interactivos no son admitidos
+    if (!sent) {
+      const captionText = info + `\n\n*Responde con:*\n• \`${prefix}play mp3 ${url}\` para audio 🎵\n• \`${prefix}play mp4 ${url}\` para video 🎬`
+      if (jpegThumbnail) {
         await conn.sendMessage(
           m.chat,
           {
-            image: thumb,
-            caption: info,
-            footer: "🎃 SHADOW GARDEN • HALLOWEEN 🦇",
-            buttons: [
-              { buttonId: `${prefix}play mp3 ${url}`, buttonText: { displayText: "🎵 MP3 🎃" }, type: 1 },
-              { buttonId: `${prefix}play mp4 ${url}`, buttonText: { displayText: "🎬 MP4 🦇" }, type: 1 },
-            ],
-            headerType: 4,
+            image: jpegThumbnail,
+            caption: captionText,
+            footer: "🎃 SHADOW GARDEN • HALLOWEEN 🦇"
           },
           { quoted: m }
         )
-      } catch (e2) {
-        await conn.sendMessage(m.chat, { text: info + `\n\n*Responde con:*\n• \`${prefix}play mp3 ${url}\` para audio\n• \`${prefix}play mp4 ${url}\` para video` }, { quoted: m })
+      } else {
+        await conn.sendMessage(
+          m.chat,
+          { text: captionText },
+          { quoted: m }
+        )
       }
     }
 
