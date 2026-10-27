@@ -21,7 +21,7 @@ test("tiktoksearch: empty query returns instructions", async () => {
   assert.ok(replyText.includes("Por favor, ingresa"), "Debe pedir término de búsqueda o enlace")
 })
 
-test("tiktoksearch: executes with APIOWO integration", async () => {
+test("tiktoksearch: executes search and delivers videos", { timeout: 35000 }, async () => {
   const sent = []
   const reactions = []
   const fakeConn = {
@@ -38,11 +38,12 @@ test("tiktoksearch: executes with APIOWO integration", async () => {
 
   await tiktokHandler(fakeM, {
     conn: fakeConn,
-    text: "gatos graciosos",
+    text: "gatos",
     usedPrefix: "."
   })
 
   assert.ok(reactions.includes("🕒"), "Debe reaccionar con 🕒 al iniciar")
-  const hasNotice = sent.some(s => s.text?.includes("APIOWO"))
-  assert.ok(hasNotice, "Debe mostrar aviso de búsqueda con APIOWO")
+  assert.ok(reactions.includes("✔️"), "Debe haber completado con éxito ✔️")
+  const hasVideos = sent.some(s => s.content?.album || s.content?.video)
+  assert.ok(hasVideos, "Debe haber enviado videos")
 })

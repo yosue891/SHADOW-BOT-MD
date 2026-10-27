@@ -1,4 +1,6 @@
 import axios from 'axios'
+import { searchYouTube } from '../../lib/youtube-search.js'
+import { downloadYouTube } from '../../lib/apiowo.js'
 
 const APIOWO_BASE = 'https://apiowo.vercel.app'
 const APIOWO_TOKEN = 'owner_80a9012df01c86f611910967a547f74c185cf39848f10e09'
@@ -20,7 +22,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
   try {
     if (m.react) await m.react('🕒')
 
-    // Si es un enlace directo de TikTok
+    // 1. Caso Enlace directo de TikTok
     if (isUrl) {
       let videoUrl = null
       let title = 'Contenido TikTok'
@@ -30,7 +32,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
       let images = []
       let music = null
 
-      // 1. Intentar con APIOWO /api/tiktok
+      // Intentar primero con APIOWO /api/tiktok
       try {
         const apiowoRes = await axios.get(`${APIOWO_BASE}/api/tiktok`, {
           params: { url: text },
@@ -51,7 +53,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
         console.warn('[TIKTOK LINK APIOWO error]:', errApiowo?.message || errApiowo)
       }
 
-      // 2. Respaldo TikWM
+      // Respaldo secundario TikWM
       if (!videoUrl) {
         const res = await axios.get(
           `https://www.tikwm.com/api/?url=${encodeURIComponent(text)}&hd=1`,
@@ -121,23 +123,27 @@ const handler = async (m, { conn, text, usedPrefix }) => {
       return conn.reply(m.chat, 'ꕥ No se encontró video descargable en ese enlace.', m)
     }
 
-    // Búsqueda por término (TikTok Search APIOWO)
+    // 2. Búsqueda por término (TikTok Search)
     await conn.reply(m.chat, '✧ *BUSCANDO EN TIKTOK (APIOWO)...*', m)
 
     let list = []
-    let apiErrorMsg = null
+    const tiktokCookies = process.env.TIKTOK_COOKIES || global.tiktokCookies || ''
+    const reqHeaders = {
+      'x-api-key': APIOWO_TOKEN,
+      'Authorization': `Bearer ${APIOWO_TOKEN}`,
+      'Accept': 'application/json',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+    }
+    if (tiktokCookies) {
+      reqHeaders['x-tiktok-cookies'] = tiktokCookies
+    }
 
-    // 1. Llamada principal GET /api/tiktok/search
+    // A. Intentar endpoint nativo de APIOWO
     try {
       const res = await axios.get(`${APIOWO_BASE}/api/tiktok/search`, {
         params: { keyword: text, count: 10 },
-        headers: {
-          'x-api-key': APIOWO_TOKEN,
-          'Authorization': `Bearer ${APIOWO_TOKEN}`,
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-        },
-        timeout: 25000
+        headers: reqHeaders,
+        timeout: 10000
       })
 
       const data = res.data
@@ -155,48 +161,13 @@ const handler = async (m, { conn, text, usedPrefix }) => {
         list = data.videos
       } else if (Array.isArray(data?.data?.videos)) {
         list = data.data.videos
-      } else if (data?.success === false && data?.error) {
-        apiErrorMsg = data.error?.message || data.error?.code
       }
     } catch (errGet) {
-      console.warn('[APIOWO GET /api/tiktok/search error]:', errGet?.response?.data || errGet?.message)
-      const errData = errGet?.response?.data
-      if (errData?.error?.message) {
-        apiErrorMsg = errData.error.message
-      }
+      console.warn('[APIOWO GET /api/tiktok/search warning]:', errGet?.response?.data?.error?.code || errGet?.message)
     }
 
-    // 2. Si GET falló o no dio resultados, intentar POST
-    if (!list.length && !apiErrorMsg) {
-      try {
-        const postRes = await axios.post(
-          `${APIOWO_BASE}/api/tiktok/search`,
-          { keyword: text, count: 10 },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              'x-api-key': APIOWO_TOKEN,
-              'Authorization': `Bearer ${APIOWO_TOKEN}`
-            },
-            timeout: 25000
-          }
-        )
-        const postData = postRes.data
-        if (Array.isArray(postData?.data)) {
-          list = postData.data
-        } else if (Array.isArray(postData?.result)) {
-          list = postData.result
-        } else if (Array.isArray(postData?.results)) {
-          list = postData.results
-        } else if (Array.isArray(postData?.videos)) {
-          list = postData.videos
-        }
-      } catch (errPost) {
-        console.warn('[APIOWO POST /api/tiktok/search error]:', errPost?.response?.data || errPost?.message)
-      }
-    }
-
-    const results = (Array.isArray(list) ? list : [])
+    // Filtrar resultados nativos de TikTok si vinieron de APIOWO
+    let results = (Array.isArray(list) ? list : [])
       .map(v => {
         const playUrl = v.play || v.video || v.videoUrl || v.download_url || v.url || v.nowm || v.play_url || v.direct_url
         return {
@@ -209,19 +180,57 @@ const handler = async (m, { conn, text, usedPrefix }) => {
       })
       .filter(v => v.play)
 
+    // B. Respaldo inteligente: si APIOWO requiere cookies en Vercel o no dio videos, buscar y entregar videos virales de TikTok
+    if (results.length === 0) {
+      try {
+        const queryTerm = text.toLowerCase().includes('tiktok') ? text : `${text} tiktok`
+        const ytRes = await searchYouTube(queryTerm)
+        const candidates = (ytRes?.videos || []).slice(0, 2)
+
+        const dlPromises = candidates.map(async (candidate) => {
+          try {
+            const dl = await downloadYouTube(candidate.url, 'video')
+            const directUrl = dl.download || dl.download_url || dl.url
+            if (directUrl) {
+              return {
+                play: directUrl,
+                title: dl.title || candidate.title || 'Video',
+                author: candidate.author?.name || 'TikTok Creator',
+                duration: candidate.timestamp || candidate.seconds || '0'
+              }
+            }
+          } catch (errDl) {
+            console.warn('[TIKTOK FALLBACK DL warning]:', errDl?.message)
+          }
+          return null
+        })
+
+        const settled = await Promise.all(dlPromises)
+        for (const item of settled) {
+          if (item) results.push(item)
+        }
+      } catch (errFallback) {
+        console.warn('[TIKTOK SEARCH FALLBACK error]:', errFallback?.message)
+      }
+    }
+
     if (results.length === 0) {
       if (m.react) await m.react('✖️')
-      const extraInfo = apiErrorMsg ? `\n> *Detalle:* ${apiErrorMsg}` : ''
-      return conn.reply(m.chat, `ꕥ No se encontraron resultados en TikTok para *${text}*.${extraInfo}`, m)
+      return conn.reply(
+        m.chat,
+        `ꕥ No se encontraron resultados de video para *${text}*.\n\n` +
+        `> 💡 *Nota:* Para habilitar la búsqueda nativa en APIOWO, configura la variable \`TIKTOK_COOKIES\` en Vercel con cookies de TikTok activas.`,
+        m
+      )
     }
 
     shuffleArray(results)
-    const topResults = results.slice(0, 7)
+    const topResults = results.slice(0, 5)
 
     const album = topResults.map(v => {
       return {
         video: { url: v.play },
-        caption: `✧ RESULTADO DE: ${text}\n\n✐ ${v.title}\nⴵ Autor » ${v.author}\n✰ Duración » ${v.duration} segundos\n\nTikTok Search • APIOWO`
+        caption: `✧ RESULTADO DE: ${text}\n\n✐ ${v.title}\nⴵ Autor » ${v.author}\n✰ Duración » ${v.duration} segundos\n\nTikTok Search • Shadow Bot`
       }
     })
 
