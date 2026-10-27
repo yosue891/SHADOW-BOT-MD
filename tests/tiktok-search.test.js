@@ -44,6 +44,6 @@ test("tiktoksearch: executes search and delivers videos", { timeout: 35000 }, as
 
   assert.ok(reactions.includes("🕒"), "Debe reaccionar con 🕒 al iniciar")
   assert.ok(reactions.includes("✔️"), "Debe haber completado con éxito ✔️")
-  const hasVideos = sent.some(s => s.content?.album || s.content?.video)
-  assert.ok(hasVideos, "Debe haber enviado videos")
+  const videoMessages = sent.filter(s => s.content?.video)
+  assert.ok(videoMessages.length >= 3, `Debe haber enviado al menos 3 a 5 videos, envió: ${videoMessages.length}`)
 })

@@ -124,7 +124,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
     }
 
     // 2. Búsqueda por término (TikTok Search)
-    await conn.reply(m.chat, '✧ *BUSCANDO EN TIKTOK (APIOWO)...*', m)
+    await conn.reply(m.chat, `✧ *BUSCANDO 5 VIDEOS DE TIKTOK PARA:* *${text.toUpperCase()}* 🎬`, m)
 
     let list = []
     const tiktokCookies = process.env.TIKTOK_COOKIES || global.tiktokCookies || ''
@@ -180,13 +180,26 @@ const handler = async (m, { conn, text, usedPrefix }) => {
       })
       .filter(v => v.play)
 
-    // B. Respaldo inteligente: si APIOWO requiere cookies en Vercel o no dio videos, buscar y entregar videos virales de TikTok
-    if (results.length === 0) {
+    // B. Respaldo inteligente: si APIOWO requiere cookies en Vercel o devolvió menos de 5 videos
+    if (results.length < 5) {
       try {
-        const queryTerm = text.toLowerCase().includes('tiktok') ? text : `${text} tiktok`
-        const ytRes = await searchYouTube(queryTerm)
-        const candidates = (ytRes?.videos || []).slice(0, 2)
+        const [r1, r2] = await Promise.all([
+          searchYouTube(`${text} tiktok`),
+          searchYouTube(`${text} shorts`)
+        ])
 
+        const seenIds = new Set(results.map(r => r.play || r.id))
+        const candidates = []
+
+        for (const v of [...(r1?.videos || []), ...(r2?.videos || [])]) {
+          if (!seenIds.has(v.videoId)) {
+            seenIds.add(v.videoId)
+            candidates.push(v)
+          }
+          if (candidates.length >= 8) break
+        }
+
+        // Descargar concurrentemente hasta garantizar al menos 5 videos
         const dlPromises = candidates.map(async (candidate) => {
           try {
             const dl = await downloadYouTube(candidate.url, 'video')
@@ -194,7 +207,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
             if (directUrl) {
               return {
                 play: directUrl,
-                title: dl.title || candidate.title || 'Video',
+                title: dl.title || candidate.title || 'Video TikTok',
                 author: candidate.author?.name || 'TikTok Creator',
                 duration: candidate.timestamp || candidate.seconds || '0'
               }
@@ -208,6 +221,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
         const settled = await Promise.all(dlPromises)
         for (const item of settled) {
           if (item) results.push(item)
+          if (results.length >= 7) break
         }
       } catch (errFallback) {
         console.warn('[TIKTOK SEARCH FALLBACK error]:', errFallback?.message)
@@ -218,27 +232,52 @@ const handler = async (m, { conn, text, usedPrefix }) => {
       if (m.react) await m.react('✖️')
       return conn.reply(
         m.chat,
-        `ꕥ No se encontraron resultados de video para *${text}*.\n\n` +
-        `> 💡 *Nota:* Para habilitar la búsqueda nativa en APIOWO, configura la variable \`TIKTOK_COOKIES\` en Vercel con cookies de TikTok activas.`,
+        `ꕥ No se encontraron videos para *${text}*.\n\n` +
+        `> 💡 *Nota:* Intenta con otro término de búsqueda.`,
         m
       )
     }
 
+    // Tomar al menos 5 videos (o todos los disponibles si son entre 1 y 5)
     shuffleArray(results)
-    const topResults = results.slice(0, 5)
+    const countToSend = Math.min(results.length, 5)
+    const topResults = results.slice(0, countToSend)
 
-    const album = topResults.map(v => {
-      return {
-        video: { url: v.play },
-        caption: `✧ RESULTADO DE: ${text}\n\n✐ ${v.title}\nⴵ Autor » ${v.author}\n✰ Duración » ${v.duration} segundos\n\nTikTok Search • Shadow Bot`
+    // Preparar formato de envío
+    const medias = topResults.map(v => ({
+      type: 'video',
+      data: { url: v.play },
+      caption: `🎬 *TikTok:* ${v.title}\n👤 *Autor:* ${v.author}\n⏱️ *Duración:* ${v.duration}s\n\n🖤 *Shadow Garden • TikTok Search*`
+    }))
+
+    // Intentar primero con sendAdonix (álbum nativo de Baileys en simple.js)
+    let sentAsAlbum = false
+    if (typeof conn.sendAdonix === 'function' && medias.length >= 2) {
+      try {
+        await conn.sendAdonix(m.chat, medias, { quoted: m })
+        sentAsAlbum = true
+      } catch (errAlbum) {
+        console.warn('[TIKTOK sendAdonix album error, pasando a envío individual]:', errAlbum?.message)
       }
-    })
+    }
 
-    try {
-      await conn.sendMessage(m.chat, { album }, { quoted: m })
-    } catch {
-      for (const item of album) {
-        await conn.sendMessage(m.chat, item, { quoted: m })
+    // Si sendAdonix no está disponible o falló, enviar cada video individualmente
+    if (!sentAsAlbum) {
+      for (let i = 0; i < topResults.length; i++) {
+        const item = topResults[i]
+        const caption = `🎬 *Video [${i + 1}/${topResults.length}]:* ${item.title}\n👤 *Autor:* ${item.author}\n⏱️ *Duración:* ${item.duration}s\n\n🖤 *Shadow Garden • TikTok Search*`
+        try {
+          await conn.sendMessage(m.chat, {
+            video: { url: item.play },
+            caption,
+            mimetype: 'video/mp4'
+          }, { quoted: i === 0 ? m : undefined })
+          if (i < topResults.length - 1) {
+            await new Promise(r => setTimeout(r, 800))
+          }
+        } catch (errSendOne) {
+          console.warn(`[TIKTOK send video ${i + 1} error]:`, errSendOne?.message)
+        }
       }
     }
 
