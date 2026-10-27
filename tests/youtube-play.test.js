@@ -96,3 +96,39 @@ test("dls-play: handler processes audio download directly without buttons", asyn
   const hasAudio = messagesSent.some(m => m.content && m.content.audio)
   assert.ok(hasAudio, "Debe haber enviado el archivo de audio MP3 directamente")
 })
+
+test("dls-play: handler processes video download directly for play2 without buttons", async () => {
+  const messagesSent = []
+  const reactions = []
+
+  const fakeConn = {
+    user: { jid: "584242773183@s.whatsapp.net" },
+    sendMessage: async (jid, content, opts) => {
+      messagesSent.push({ jid, content, opts })
+      return { key: { id: "test-msg-id" } }
+    }
+  }
+
+  const fakeM = {
+    chat: "123456789@s.whatsapp.net",
+    sender: "584121234567@s.whatsapp.net",
+    key: { id: "msg-124", fromMe: false },
+    text: ".play2 ghostbusters",
+    react: async (r) => reactions.push(r),
+    reply: async (t) => messagesSent.push({ type: "reply", text: t })
+  }
+
+  await playHandler(fakeM, {
+    conn: fakeConn,
+    text: "ghostbusters",
+    usedPrefix: ".",
+    command: "play2"
+  })
+
+  assert.ok(reactions.includes("🎬"), "Debe haber reaccionado con 🎬")
+  assert.ok(reactions.includes("✅"), "Debe haber reaccionado con ✅ de éxito")
+
+  const hasVideo = messagesSent.some(m => m.content && m.content.video)
+  assert.ok(hasVideo, "Debe haber enviado el archivo de video MP4 directamente")
+})
+

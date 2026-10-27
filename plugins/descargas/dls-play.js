@@ -188,56 +188,63 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     const fileTitle = cleanName(dlRes.title || title)
 
     if (format === "video") {
-      let videoBuffer = null
       try {
+        await conn.sendMessage(
+          m.chat,
+          {
+            video: { url: downloadUrl },
+            mimetype: "video/mp4",
+            fileName: `${fileTitle}.mp4`
+          },
+          { quoted: m }
+        )
+      } catch (sendErr) {
+        console.warn("[PLAY VIDEO] Envío directo por URL falló, reintentando con buffer:", sendErr?.message)
         const r = await fetch(downloadUrl, {
           headers: { "User-Agent": "Mozilla/5.0" },
-          signal: AbortSignal.timeout(12000)
+          signal: AbortSignal.timeout(30000)
         })
-        if (r.ok) {
-          const arr = await r.arrayBuffer()
-          if (arr.byteLength < 50 * 1024 * 1024) {
-            videoBuffer = Buffer.from(arr)
-          }
-        }
-      } catch (errBuf) {
-        console.warn("[PLAY VIDEO] Precarga de buffer omitida, usando URL:", errBuf?.message)
+        const buf = Buffer.from(await r.arrayBuffer())
+        await conn.sendMessage(
+          m.chat,
+          {
+            video: buf,
+            mimetype: "video/mp4",
+            fileName: `${fileTitle}.mp4`
+          },
+          { quoted: m }
+        )
       }
-
-      await conn.sendMessage(
-        m.chat,
-        {
-          video: videoBuffer || { url: downloadUrl },
-          mimetype: "video/mp4",
-          fileName: `${fileTitle}.mp4`
-        },
-        { quoted: m }
-      )
     } else {
-      let audioBuffer = null
       try {
+        await conn.sendMessage(
+          m.chat,
+          {
+            audio: { url: downloadUrl },
+            mimetype: "audio/mpeg",
+            fileName: `${fileTitle}.mp3`,
+            ptt: false
+          },
+          { quoted: m }
+        )
+      } catch (sendErr) {
+        console.warn("[PLAY AUDIO] Envío directo por URL falló, reintentando con buffer:", sendErr?.message)
         const r = await fetch(downloadUrl, {
           headers: { "User-Agent": "Mozilla/5.0" },
-          signal: AbortSignal.timeout(10000)
+          signal: AbortSignal.timeout(20000)
         })
-        if (r.ok) {
-          const arr = await r.arrayBuffer()
-          audioBuffer = Buffer.from(arr)
-        }
-      } catch (errBuf) {
-        console.warn("[PLAY AUDIO] Precarga de buffer omitida, usando URL:", errBuf?.message)
+        const buf = Buffer.from(await r.arrayBuffer())
+        await conn.sendMessage(
+          m.chat,
+          {
+            audio: buf,
+            mimetype: "audio/mpeg",
+            fileName: `${fileTitle}.mp3`,
+            ptt: false
+          },
+          { quoted: m }
+        )
       }
-
-      await conn.sendMessage(
-        m.chat,
-        {
-          audio: audioBuffer || { url: downloadUrl },
-          mimetype: "audio/mpeg",
-          fileName: `${fileTitle}.mp3`,
-          ptt: false
-        },
-        { quoted: m }
-      )
     }
 
     try { await m.react("✅") } catch {}
