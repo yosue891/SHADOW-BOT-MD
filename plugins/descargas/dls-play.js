@@ -35,12 +35,14 @@ function parsePlayInput(text, fullText, command, usedPrefix) {
 
   let isVideo = command === "play2" || command === "playvideo"
 
-  const prefixMatch = raw.match(/^(mp3|audio|mp4|video)\s*(.*)$/i)
+  const prefixMatch = raw.match(/^(mp3|audio|mp4|video)\s+(.*)$/i)
   if (prefixMatch) {
     const type = prefixMatch[1].toLowerCase()
     if (type === "mp4" || type === "video") isVideo = true
     if (type === "mp3" || type === "audio") isVideo = false
     raw = (prefixMatch[2] || "").trim()
+  } else if (/^(mp3|audio|mp4|video)$/i.test(raw)) {
+    raw = ""
   }
 
   return {
@@ -62,7 +64,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
         `• *${usedPrefix}play* Ghostbusters _(descarga audio MP3)_\n` +
         `• *${usedPrefix}play2* Ghostbusters _(descarga video MP4)_\n` +
         `• *${usedPrefix}play* https://youtu.be/xxxx\n` +
-        `• *${usedPrefix}play mp4* https://youtu.be/xxxx\n\n` +
+        `• *${usedPrefix}play2* https://youtu.be/xxxx\n\n` +
         `⚡ _Descargas directas impulsadas por:_ \`apiowo.vercel.app\` 🚀`
       )
     }
@@ -70,24 +72,44 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     try { await m.react(format === "video" ? "🎬" : "🎵") } catch {}
 
     let video = null
+    let preloadedDl = null
     const isDirectLink = isYouTubeUrl(query)
 
     if (isDirectLink) {
       const videoId = extractVideoId(query)
-      const searchRes = await searchYouTube(query)
-      if (searchRes?.videos?.length) {
-        video = searchRes.videos[0]
-      } else {
+      try {
+        preloadedDl = await downloadYouTube(query, format)
         video = {
-          id: videoId || "video",
-          videoId: videoId || "video",
-          title: `YouTube ${format === "video" ? "Video" : "Audio"}`,
+          id: videoId || preloadedDl.videoId || "video",
+          videoId: videoId || preloadedDl.videoId || "video",
+          title: preloadedDl.title || `YouTube ${format === "video" ? "Video" : "Audio"}`,
           author: { name: "YouTube" },
           timestamp: "Desconocida",
           views: "0",
           ago: "",
           url: query,
-          thumbnail: videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : ""
+          thumbnail: preloadedDl.thumbnail || (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : "")
+        }
+      } catch (errDirect) {
+        console.warn("[PLAY DIRECT] Falló descarga directa inicial:", errDirect?.message)
+      }
+
+      if (!video) {
+        const searchRes = await searchYouTube(query)
+        if (searchRes?.videos?.length) {
+          video = searchRes.videos[0]
+        } else {
+          video = {
+            id: videoId || "video",
+            videoId: videoId || "video",
+            title: `YouTube ${format === "video" ? "Video" : "Audio"}`,
+            author: { name: "YouTube" },
+            timestamp: "Desconocida",
+            views: "0",
+            ago: "",
+            url: query,
+            thumbnail: videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : ""
+          }
         }
       }
     } else {
@@ -113,19 +135,19 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     const url = video.url
     const thumbnailUrl = video.thumbnail
 
-    let info = `🎃 *SHADOW GARDEN • ${format === "video" ? "VIDEO" : "AUDIO"}* 🦇\n\n`
+    let info = `🎃 *SHADOW GARDEN • ${format === "video" ? "VIDEO (MP4)" : "AUDIO (MP3)"}* 🦇\n\n`
     info += `📌 *Título:* ${title}\n`
     info += `👤 *Canal:* ${authorName}\n`
     info += `⏱️ *Duración:* ${duration}\n`
     info += `👀 *Vistas:* ${views}\n`
     if (ago) info += `📅 *Subido:* ${ago}\n`
     info += `🔗 *Enlace:* ${url}\n\n`
-    info += `⏳ _Descargando ${format === "video" ? "video (MP4)" : "audio (MP3)"} con APIOWO, espera un momento..._`
+    info += `⏳ _Enviando ${format === "video" ? "video" : "audio"} con APIOWO, por favor espera..._`
 
     let jpegThumbnail = null
     if (thumbnailUrl) {
       try {
-        const thumbRes = await fetch(thumbnailUrl)
+        const thumbRes = await fetch(thumbnailUrl, { signal: AbortSignal.timeout(6000) })
         if (thumbRes.ok) {
           const arr = await thumbRes.arrayBuffer()
           jpegThumbnail = await sharp(Buffer.from(arr)).resize(300, 170).jpeg().toBuffer().catch(() => Buffer.from(arr))
@@ -161,11 +183,11 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       }
     }
 
-    if (format === "video") {
-      const dlRes = await downloadYouTube(url, "video")
-      const downloadUrl = dlRes.download || dlRes.download_url || dlRes.url
-      const fileTitle = cleanName(dlRes.title || title)
+    const dlRes = preloadedDl || await downloadYouTube(url, format)
+    const downloadUrl = dlRes.download || dlRes.download_url || dlRes.url
+    const fileTitle = cleanName(dlRes.title || title)
 
+    if (format === "video") {
       let videoBuffer = null
       try {
         const r = await fetch(downloadUrl, {
@@ -192,10 +214,6 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
         { quoted: m }
       )
     } else {
-      const dlRes = await downloadYouTube(url, "audio")
-      const downloadUrl = dlRes.download || dlRes.download_url || dlRes.url
-      const fileTitle = cleanName(dlRes.title || title)
-
       let audioBuffer = null
       try {
         const r = await fetch(downloadUrl, {
