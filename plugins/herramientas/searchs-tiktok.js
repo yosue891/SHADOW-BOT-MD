@@ -200,7 +200,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
         }
 
         // Descargar concurrentemente hasta garantizar al menos 5 videos
-        const dlPromises = candidates.map(async (candidate) => {
+        const dlPromises = candidates.slice(0, 5).map(async (candidate) => {
           try {
             const dl = await downloadYouTube(candidate.url, 'video')
             const directUrl = dl.download || dl.download_url || dl.url
@@ -221,7 +221,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
         const settled = await Promise.all(dlPromises)
         for (const item of settled) {
           if (item) results.push(item)
-          if (results.length >= 7) break
+          if (results.length >= 5) break
         }
       } catch (errFallback) {
         console.warn('[TIKTOK SEARCH FALLBACK error]:', errFallback?.message)

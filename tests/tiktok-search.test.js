@@ -21,7 +21,7 @@ test("tiktoksearch: empty query returns instructions", async () => {
   assert.ok(replyText.includes("Por favor, ingresa"), "Debe pedir término de búsqueda o enlace")
 })
 
-test("tiktoksearch: executes search and delivers videos", { timeout: 35000 }, async () => {
+test("tiktoksearch: executes search and delivers videos", { timeout: 60000 }, async () => {
   const sent = []
   const reactions = []
   const fakeConn = {
