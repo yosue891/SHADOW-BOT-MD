@@ -28,8 +28,16 @@ function normalizeJid(jid, conn) {
 }
 
 function jidNumber(jid, conn) {
-    const normalized = normalizeJid(jid, conn);
-    if (!normalized || normalized.endsWith("@lid")) return "";
+    let normalized = normalizeJid(jid, conn);
+    if (!normalized) return "";
+    if (normalized.endsWith("@lid")) {
+        const mapped = global.__shadowLidCache?.get(normalized);
+        if (mapped && !mapped.endsWith("@lid")) {
+            normalized = normalizeJid(mapped, conn);
+        } else {
+            return "";
+        }
+    }
     return normalized.split("@")[0].replace(/\D/g, "");
 }
 
@@ -74,12 +82,18 @@ function messageIds(m) {
 }
 
 function sameIdentity(a, b, conn) {
+    if (!a || !b) return false;
     const na = normalizeJid(a, conn);
     const nb = normalizeJid(b, conn);
     if (!na || !nb) return false;
     if (na === nb) return true;
-    const aa = jidNumber(na, conn);
-    const bb = jidNumber(nb, conn);
+
+    const mappedA = na.endsWith("@lid") ? (global.__shadowLidCache?.get(na) || na) : na;
+    const mappedB = nb.endsWith("@lid") ? (global.__shadowLidCache?.get(nb) || nb) : nb;
+    if (mappedA === mappedB) return true;
+
+    const aa = jidNumber(mappedA, conn) || jidNumber(na, conn);
+    const bb = jidNumber(mappedB, conn) || jidNumber(nb, conn);
     return !!aa && !!bb && aa === bb;
 }
 
@@ -100,32 +114,40 @@ function normalizeParticipant(participant, conn) {
     };
 }
 
-async function getGroupMetadataCached(conn, jid) {
+async function getGroupMetadataCached(conn, jid, forceFresh = false) {
     if (!jid?.endsWith("@g.us")) return { participants: [] };
     let groupMetadataCache = groupCaches.get(conn);
     if (!groupMetadataCache) { groupMetadataCache = new Map(); groupCaches.set(conn, groupMetadataCache); }
     const now = Date.now();
     const cached = groupMetadataCache.get(jid);
-    if (cached && now - cached.ts < GROUP_METADATA_TTL) return cached.data;
+    if (!forceFresh && cached && now - cached.ts < GROUP_METADATA_TTL) return cached.data;
 
     const stored = conn?.chats?.[jid]?.metadata;
-    if (stored?.participants?.length) {
-        groupMetadataCache.set(jid, { ts: now, data: stored });
-        return stored;
+    let safeMetadata = null;
+    try {
+        const metadata = await conn.groupMetadata(jid);
+        if (metadata?.participants?.length) {
+            safeMetadata = metadata;
+        }
+    } catch {}
+
+    if (!safeMetadata) {
+        safeMetadata = cached?.data || stored || { id: jid, participants: [] };
     }
 
-    const metadata = await conn.groupMetadata(jid).catch(() => stored || { id: jid, participants: [] });
-    const safeMetadata = metadata || { id: jid, participants: [] };
     if (safeMetadata?.participants?.length) {
+        if (!conn.chats) conn.chats = {};
         if (!conn.chats[jid]) conn.chats[jid] = { id: jid };
         conn.chats[jid].metadata = safeMetadata;
+        groupMetadataCache.set(jid, { ts: now, data: safeMetadata });
     }
-    groupMetadataCache.set(jid, { ts: now, data: safeMetadata });
     return safeMetadata;
 }
 
 function isAdminParticipant(participant) {
-    return participant?.admin === "admin" || participant?.admin === "superadmin" || participant?.isAdmin === true || participant?.isSuperAdmin === true;
+    if (!participant) return false;
+    const admin = participant.admin;
+    return admin === "admin" || admin === "superadmin" || admin === "creator" || admin === true || participant.isAdmin === true || participant.isSuperAdmin === true;
 }
 
 export async function handler(chatUpdate) {
@@ -267,13 +289,30 @@ export async function handler(chatUpdate) {
     }
 
     const conn = this;
-    const groupMetadata = m.isGroup ? await getGroupMetadataCached(this, m.chat) : { participants: [] };
-    const participants = m.isGroup ? (groupMetadata.participants || []).map(p => normalizeParticipant(p, this)) : [];
+    let groupMetadata = m.isGroup ? await getGroupMetadataCached(this, m.chat) : { participants: [] };
+    let participants = m.isGroup ? (groupMetadata.participants || []).map(p => normalizeParticipant(p, this)) : [];
 
     const senderCandidates = messageIds(m);
-    const botCandidates = [this.user?.jid, this.user?.id, this.user?.lid, this.user?.phoneNumber, this.user?.pn].filter(Boolean);
-    const userGroup = m.isGroup ? findParticipant(participants, senderCandidates, this) : {};
-    const botGroup = m.isGroup ? findParticipant(participants, botCandidates, this) : {};
+    const botLid = this.user?.lid || this.authState?.creds?.me?.lid;
+    if (!this.user?.lid && botLid) {
+        if (!this.user) this.user = {};
+        this.user.lid = botLid;
+    }
+    const rawBotNum = (this.user?.jid || this.user?.id || this.authState?.creds?.me?.id || "").split("@")[0].split(":")[0].replace(/\D/g, "");
+    const botCandidates = [
+        this.user?.jid,
+        this.user?.id,
+        this.user?.lid,
+        this.authState?.creds?.me?.lid,
+        this.authState?.creds?.me?.id,
+        this.authState?.creds?.me?.jid,
+        this.user?.phoneNumber,
+        this.user?.pn,
+        rawBotNum ? `${rawBotNum}@s.whatsapp.net` : null,
+        rawBotNum ? `${rawBotNum}@c.us` : null
+    ].filter(Boolean);
+    let userGroup = m.isGroup ? findParticipant(participants, senderCandidates, this) : {};
+    let botGroup = m.isGroup ? findParticipant(participants, botCandidates, this) : {};
 
     const senderIdentity = [...senderCandidates, ...participantIds(userGroup)];
     const isROwner = matchesNumberList(senderIdentity, global.owner, this);
@@ -314,9 +353,9 @@ export async function handler(chatUpdate) {
 
     m.exp += Math.ceil(Math.random() * 10);
 
-    const isRAdmin = userGroup?.admin === "superadmin" || userGroup?.isSuperAdmin === true;
-    const isAdmin = isAdminParticipant(userGroup);
-    const isBotAdmin = isAdminParticipant(botGroup);
+    let isRAdmin = userGroup?.admin === "superadmin" || userGroup?.isSuperAdmin === true;
+    let isAdmin = isAdminParticipant(userGroup);
+    let isBotAdmin = isAdminParticipant(botGroup);
 
     // Modo administrador: bloquear cualquier interacción de miembros no autorizados
     // antes de ejecutar plugins, respuestas automáticas o comandos.
@@ -440,11 +479,40 @@ export async function handler(chatUpdate) {
             continue;
         }
 
+        if (plugin.admin && !isAdmin && m.isGroup) {
+            try {
+                const freshMeta = await getGroupMetadataCached(this, m.chat, true);
+                if (freshMeta?.participants?.length) {
+                    groupMetadata = freshMeta;
+                    participants = freshMeta.participants.map(p => normalizeParticipant(p, this));
+                    userGroup = findParticipant(participants, senderCandidates, this);
+                    if (isAdminParticipant(userGroup)) {
+                        isAdmin = true;
+                        isRAdmin = userGroup?.admin === "superadmin" || userGroup?.isSuperAdmin === true;
+                    }
+                }
+            } catch {}
+        }
+
         if (plugin.admin && !isAdmin) {
             await global.dfail("admin", m, this);
             continue;
         }
         
+        if (plugin.botAdmin && !isBotAdmin && m.isGroup) {
+            try {
+                const freshMeta = await getGroupMetadataCached(this, m.chat, true);
+                if (freshMeta?.participants?.length) {
+                    groupMetadata = freshMeta;
+                    participants = freshMeta.participants.map(p => normalizeParticipant(p, this));
+                    botGroup = findParticipant(participants, botCandidates, this);
+                    if (isAdminParticipant(botGroup)) {
+                        isBotAdmin = true;
+                    }
+                }
+            } catch {}
+        }
+
         if (plugin.botAdmin && !isBotAdmin) {
             await global.dfail("botAdmin", m, this);
             continue;
