@@ -11,19 +11,21 @@ const BACKGROUND = 'https://u.pone.rs/glqjtzaj.jpg'
 const LOCAL_BG = path.join(__dirname, '..', '..', 'lib', 'welcome-bg.jpg')
 const LOCAL_AVATAR = path.join(__dirname, '..', '..', 'lib', 'catalogo.jpg')
 
+const recentWelcomeEvents = global.__recentWelcomeEvents || (global.__recentWelcomeEvents = new Map())
+
 function extractUserId(rawUser, groupMetadata) {
   if (!rawUser) return null
   let id = ''
 
   if (typeof rawUser === 'object' && rawUser !== null) {
-    id = rawUser.phoneNumber || rawUser.id || rawUser.jid || rawUser.lid || ''
+    id = rawUser.phoneNumber || rawUser.phone_number || rawUser.pn || rawUser.id || rawUser.jid || rawUser.lid || ''
   } else if (typeof rawUser === 'string') {
     const trimmed = rawUser.trim()
     if (trimmed === '[object Object]') return null
     if (trimmed.startsWith('{')) {
       try {
         const parsed = JSON.parse(trimmed)
-        id = parsed.phoneNumber || parsed.id || parsed.jid || parsed.lid || trimmed
+        id = parsed.phoneNumber || parsed.phone_number || parsed.pn || parsed.id || parsed.jid || parsed.lid || trimmed
       } catch {
         id = trimmed
       }
@@ -41,8 +43,9 @@ function extractUserId(rawUser, groupMetadata) {
       const match = groupMetadata.participants.find((p) => p.lid === id || p.id === id)
       if (match && match.id && !match.id.endsWith('@lid')) {
         id = match.id
-      } else if (match && match.phoneNumber) {
-        id = `${match.phoneNumber.replace(/\D/g, '')}@s.whatsapp.net`
+      } else if (match && (match.phoneNumber || match.phone_number || match.pn)) {
+        const num = (match.phoneNumber || match.phone_number || match.pn).replace(/\D/g, '')
+        id = `${num}@s.whatsapp.net`
       }
     }
     const cachedReal = global.__shadowLidCache?.get(id)
@@ -214,26 +217,47 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
     } catch {}
   }
 
-  const rawUsers = Array.isArray(m.messageStubParameters)
+  let rawUsers = Array.isArray(m.messageStubParameters)
     ? m.messageStubParameters
     : (m.messageStubParameters ? [m.messageStubParameters] : [])
 
+  if (!rawUsers.length) {
+    const fallbackUser = m.participant || m.key?.participant || m.sender
+    if (fallbackUser && fallbackUser !== m.chat) {
+      rawUsers = [fallbackUser]
+    }
+  }
+
   if (!rawUsers.length) return !0
 
+  const rawStub = m.messageStubType
+  const stubNum = Number(rawStub)
+  const stubName = typeof rawStub === 'string' ? rawStub : (WAMessageStubType[rawStub] || '')
+
   const isAdd = (
-    m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_ADD ||
-    m.messageStubType == 27 ||
-    m.messageStubType == 31
+    stubNum === 27 ||
+    stubNum === 31 ||
+    stubNum === 71 ||
+    stubName === 'GROUP_PARTICIPANT_ADD' ||
+    stubName === 'GROUP_PARTICIPANT_INVITE' ||
+    stubName === 'GROUP_PARTICIPANT_ADD_REQUEST_JOIN'
   )
 
   const isRemove = (
-    m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_REMOVE ||
-    m.messageStubType == WAMessageStubType.GROUP_PARTICIPANT_LEAVE ||
-    m.messageStubType == 28 ||
-    m.messageStubType == 32
+    stubNum === 28 ||
+    stubNum === 32 ||
+    stubName === 'GROUP_PARTICIPANT_REMOVE' ||
+    stubName === 'GROUP_PARTICIPANT_LEAVE'
   )
 
   if (!isAdd && !isRemove) return !0
+
+  const now = Date.now()
+  if (recentWelcomeEvents.size > 200) {
+    for (const [key, timestamp] of recentWelcomeEvents.entries()) {
+      if (now - timestamp > 45000) recentWelcomeEvents.delete(key)
+    }
+  }
 
   for (const rawUser of rawUsers) {
     const userId = extractUserId(rawUser, groupMetadata)
@@ -245,7 +269,16 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
       continue
     }
 
-    console.log(`[WELCOME] Evento stub=${m.messageStubType} en ${m.chat} para ${userId}`)
+    const actionKey = isAdd ? 'add' : 'remove'
+    const dedupeKey = `${m.chat}:${userId}:${actionKey}`
+    const lastTimestamp = recentWelcomeEvents.get(dedupeKey)
+    if (lastTimestamp && (now - lastTimestamp) < 15000) {
+      console.log(`[WELCOME] Ignorando evento duplicado (${actionKey}) para ${userId} en ${m.chat}`)
+      continue
+    }
+    recentWelcomeEvents.set(dedupeKey, now)
+
+    console.log(`[WELCOME] Evento ${actionKey} stub=${m.messageStubType} en ${m.chat} para ${userId}`)
 
     const activeCanalId = global.channelRD?.id || global.idcanal || canalId
     const activeCanalName = global.channelRD?.name || global.botname || canalName

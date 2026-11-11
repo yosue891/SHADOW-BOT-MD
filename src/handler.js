@@ -359,7 +359,8 @@ export async function handler(chatUpdate) {
 
     // Modo administrador: bloquear cualquier interacción de miembros no autorizados
     // antes de ejecutar plugins, respuestas automáticas o comandos.
-    if (m.isGroup && chat.modoadmin && !isOwner && !isAdmin && !isMods && !isROwner) {
+    // Los eventos del sistema (stub messages como unirse o salir) nunca deben ser bloqueados.
+    if (m.isGroup && chat.modoadmin && !m.messageStubType && !isOwner && !isAdmin && !isMods && !isROwner) {
         return;
     }
 

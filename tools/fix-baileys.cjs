@@ -79,3 +79,46 @@ for (const target of candidates) {
     console.error('[fix-baileys] No se pudo parchear', target, err.message)
   }
 }
+
+const processMsgCandidates = [
+  path.join(process.cwd(), 'node_modules', '@whiskeysockets', 'baileys', 'lib', 'Utils', 'process-message.js'),
+  path.join(process.cwd(), 'node_modules', '@itsliaaa', 'baileys', 'lib', 'Utils', 'process-message.js'),
+  path.join(process.cwd(), 'node_modules', 'ourin', 'lib', 'Utils', 'process-message.js'),
+  path.join(process.cwd(), 'node_modules', 'ourin-baileys', 'lib', 'Utils', 'process-message.js')
+]
+
+for (const target of processMsgCandidates) {
+  if (!fs.existsSync(target)) continue
+  let src = fs.readFileSync(target, 'utf8')
+  let modified = false
+
+  const oldMap = 'message.messageStubParameters.map((a) => JSON.parse(a))'
+  const newMap = 'message.messageStubParameters.map((a) => { try { return typeof a === "string" && a.trim().startsWith("{") ? JSON.parse(a) : a; } catch { return a; } })'
+  if (src.includes(oldMap)) {
+    src = src.replaceAll(oldMap, newMap)
+    modified = true
+  }
+
+  const oldIncludes = 'const participantsIncludesMe = () => participants.find(jid => areJidsSameUser(meId, jid.phoneNumber));'
+  const newIncludes = 'const participantsIncludesMe = () => participants.find(jid => areJidsSameUser(meId, typeof jid === "object" ? (jid?.phoneNumber || jid?.id) : jid));'
+  if (src.includes(oldIncludes)) {
+    src = src.replace(oldIncludes, newIncludes)
+    modified = true
+  }
+
+  const oldSingle = 'const participant = JSON.parse(message.messageStubParameters?.[0]);'
+  const newSingle = 'let participant; try { participant = JSON.parse(message.messageStubParameters?.[0]); } catch { participant = message.messageStubParameters?.[0]; }'
+  if (src.includes(oldSingle)) {
+    src = src.replace(oldSingle, newSingle)
+    modified = true
+  }
+
+  if (modified) {
+    try {
+      fs.writeFileSync(target, src, 'utf8')
+      console.log('[fix-baileys] Parche process-message aplicado en:', target)
+    } catch (err) {
+      console.error('[fix-baileys] No se pudo parchear process-message', target, err.message)
+    }
+  }
+}
