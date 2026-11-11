@@ -5,8 +5,8 @@ import { renderWelcomeCard, renderGoodbyeCard } from '../../lib/welcome-card.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DEFAULT_BG = 'https://u.pone.rs/glqjtzaj.jpg'
-const LOCAL_BG = path.join(__dirname, '..', 'lib', 'welcome-bg.jpg')
-const LOCAL_AVATAR = path.join(__dirname, '..', 'lib', 'catalogo.jpg')
+const LOCAL_BG = path.join(__dirname, '..', '..', 'lib', 'welcome-bg.jpg')
+const LOCAL_AVATAR = path.join(__dirname, '..', '..', 'lib', 'catalogo.jpg')
 
 function parseArgs(text) {
   const args = {}

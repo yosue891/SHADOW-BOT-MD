@@ -659,13 +659,16 @@ try {
         isInit = true
     }
 if (conn.handler) conn.ev.off('messages.upsert', conn.handler)
+if (conn.participantsUpdate) conn.ev.off('group-participants.update', conn.participantsUpdate)
 if (conn.connectionUpdate) conn.ev.off('connection.update', conn.connectionUpdate)
 if (conn.credsUpdate) conn.ev.off('creds.update', conn.credsUpdate)
 const activeSocket = conn
 conn.handler = (update) => handler.handler.call(activeSocket, update).catch(error => console.error('Error procesando mensajes:', error))
+conn.participantsUpdate = (update) => handler.participantsUpdate?.call(activeSocket, update).catch(error => console.error('Error en participantsUpdate:', error))
 conn.connectionUpdate = connectionUpdate.bind(global.conn)
 conn.credsUpdate = saveCreds.bind(global.conn, true)
 conn.ev.on('messages.upsert', conn.handler)
+conn.ev.on('group-participants.update', conn.participantsUpdate)
 conn.ev.on('connection.update', conn.connectionUpdate)
 conn.ev.on('creds.update', conn.credsUpdate)
 isInit = false

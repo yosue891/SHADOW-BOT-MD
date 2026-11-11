@@ -8,10 +8,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const canalId = global.channelRD?.id || '120363403739366547@newsletter'
 const canalName = global.channelRD?.name || 'SHADOW-BOT'
 const BACKGROUND = 'https://u.pone.rs/glqjtzaj.jpg'
-const LOCAL_BG = path.join(__dirname, '..', 'lib', 'welcome-bg.jpg')
-const LOCAL_AVATAR = path.join(__dirname, '..', 'lib', 'catalogo.jpg')
+const LOCAL_BG = path.join(__dirname, '..', '..', 'lib', 'welcome-bg.jpg')
+const LOCAL_AVATAR = path.join(__dirname, '..', '..', 'lib', 'catalogo.jpg')
 
-function extractUserId(rawUser) {
+function extractUserId(rawUser, groupMetadata) {
   if (!rawUser) return null
   let id = ''
 
@@ -33,8 +33,18 @@ function extractUserId(rawUser) {
 
   if (!id || typeof id !== 'string') return null
 
+  // Si viene en formato LID, buscar si coincide con algún participante del grupo
+  if (id.endsWith('@lid') && groupMetadata?.participants) {
+    const match = groupMetadata.participants.find((p) => p.lid === id)
+    if (match && match.id && !match.id.endsWith('@lid')) {
+      id = match.id
+    } else if (match && match.phoneNumber) {
+      id = `${match.phoneNumber.replace(/\D/g, '')}@s.whatsapp.net`
+    }
+  }
+
   const cleanNum = id.split('@')[0].split(':')[0].replace(/[^0-9]/g, '')
-  if (cleanNum) {
+  if (cleanNum && !id.endsWith('@lid')) {
     return `${cleanNum}@s.whatsapp.net`
   }
   return id.includes('@') ? id : `${id}@s.whatsapp.net`
@@ -183,11 +193,17 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
   const chat = global.db?.data?.chats?.[m.chat]
   if (chat && chat.welcome === false) return !0
 
+  const botNum = (conn.user?.jid || conn.user?.id || '').split('@')[0].split(':')[0].replace(/\D/g, '')
   const primaryBot = chat?.primaryBot
   if (primaryBot) {
-    const botNum = (conn.user?.jid || conn.user?.id || '').split('@')[0].split(':')[0]
-    const primaryNum = primaryBot.split('@')[0].split(':')[0]
+    const primaryNum = primaryBot.split('@')[0].split(':')[0].replace(/\D/g, '')
     if (botNum && primaryNum && botNum !== primaryNum) return !1
+  }
+
+  if (!groupMetadata?.subject && m.isGroup) {
+    try {
+      groupMetadata = await conn.groupMetadata(m.chat).catch(() => ({}))
+    } catch {}
   }
 
   const rawUsers = Array.isArray(m.messageStubParameters)
@@ -212,8 +228,14 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
   if (!isAdd && !isRemove) return !0
 
   for (const rawUser of rawUsers) {
-    const userId = extractUserId(rawUser)
+    const userId = extractUserId(rawUser, groupMetadata)
     if (!userId) continue
+
+    const userNum = userId.split('@')[0].split(':')[0].replace(/\D/g, '')
+    if (botNum && userNum && botNum === userNum) {
+      console.log(`[WELCOME] Ignorando evento para el propio bot (${userId})`)
+      continue
+    }
 
     console.log(`[WELCOME] Evento stub=${m.messageStubType} en ${m.chat} para ${userId}`)
 

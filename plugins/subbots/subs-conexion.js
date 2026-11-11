@@ -553,13 +553,16 @@ export async function MichiJadiBot(options) {
       sock.ev.off('messages.upsert', sock.handler)
       sock.ev.off('connection.update', sock.connectionUpdate)
       sock.ev.off('creds.update', sock.credsUpdate)
+      if (sock.participantsUpdate) sock.ev.off('group-participants.update', sock.participantsUpdate)
     }
 
     const activeSocket = sock
     sock.handler = update => handlerModule.handler.call(activeSocket, update).catch(error => console.error('[SUB-BOT] Error procesando mensajes:', error))
+    sock.participantsUpdate = update => handlerModule.participantsUpdate?.call(activeSocket, update).catch(error => console.error('[SUB-BOT] Error en participantsUpdate:', error))
     sock.connectionUpdate = connectionUpdate.bind(sock)
     sock.credsUpdate = saveCreds.bind(sock, true)
     sock.ev.on('messages.upsert', sock.handler)
+    sock.ev.on('group-participants.update', sock.participantsUpdate)
     sock.ev.on('connection.update', sock.connectionUpdate)
     sock.ev.on('creds.update', sock.credsUpdate)
     isInit = false

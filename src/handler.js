@@ -132,9 +132,12 @@ export async function handler(chatUpdate) {
     this.msgqueque = this.msgqueque || [];
     this.uptime = this.uptime || Date.now();
     if (!chatUpdate || !this.user?.id) return;
-    if (chatUpdate.type === "append" && !chatUpdate.isSynthetic) return;
     const messages = Array.isArray(chatUpdate.messages) ? chatUpdate.messages.filter(Boolean) : [];
     if (!messages.length) return;
+
+    const hasStub = messages.some(msg => msg?.messageStubType || msg?.messageStubParameters);
+    if (chatUpdate.type === "append" && !chatUpdate.isSynthetic && !hasStub) return;
+
     // WhatsApp can deliver several messages in one upsert. Processing only the
     // last one silently drops commands sent in the same batch.
     if (messages.length > 1) {
@@ -143,7 +146,7 @@ export async function handler(chatUpdate) {
         }
         return;
     }
-    await this.pushMessage(chatUpdate.messages).catch(console.error);
+    await this.pushMessage?.(chatUpdate.messages)?.catch?.(console.error);
     let m = messages[0];
     if (!m) return;
     if (global.db.data == null) await global.loadDatabase();
@@ -258,7 +261,7 @@ export async function handler(chatUpdate) {
 
     if (typeof m.text !== "string") m.text = "";
 
-    const nuevoNombre = m.pushName || await this.getName(m.sender);
+    const nuevoNombre = m.pushName || (typeof this.getName === "function" ? await this.getName(m.sender).catch?.(() => "") : "");
     if (typeof nuevoNombre === "string" && nuevoNombre.trim() && nuevoNombre !== user.name) {
         user.name = nuevoNombre;
     }
@@ -561,4 +564,32 @@ global.dfail = (type, m, conn) => {
     }[type];
     if (msg) return conn.reply(m.chat, msg, m).then(() => m.react('🎃'));
 };
+
+export async function participantsUpdate({ id, participants, action, author }) {
+    if (!id || !Array.isArray(participants) || !participants.length) return;
+    if (action !== 'add' && action !== 'remove') return;
+
+    // 27 = GROUP_PARTICIPANT_ADD, 28 = GROUP_PARTICIPANT_REMOVE
+    const stubType = action === 'add' ? 27 : 28;
+
+    const fakeMessage = {
+        key: {
+            remoteJid: id,
+            fromMe: false,
+            id: `STUB-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            participant: author || participants[0]
+        },
+        messageStubType: stubType,
+        messageStubParameters: participants,
+        chat: id,
+        isGroup: true,
+        sender: author || participants[0] || id
+    };
+
+    await handler.call(this, {
+        type: 'notify',
+        isSynthetic: true,
+        messages: [fakeMessage]
+    });
+}
 
