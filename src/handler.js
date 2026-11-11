@@ -291,7 +291,11 @@ export async function handler(chatUpdate) {
 
     if (chat.primaryBot && !sameIdentity(chat.primaryBot, this.user.jid || this.user.id, this) && !isDelPrimaryCommand) {
         const primaryBotInGroup = participants.some(p => participantIds(p).some(id => sameIdentity(id, chat.primaryBot, this)));
-        const primaryBotConn = (global.conns || []).find(sock => sameIdentity(sock?.user?.jid || sock?.user?.id, chat.primaryBot, sock) && sock.ws?.socket?.readyState !== ws.CLOSED);
+        const allBotSockets = [global.conn, ...(Array.isArray(global.conns) ? global.conns : [])].filter(Boolean);
+        const primaryBotConn = allBotSockets.find(sock => {
+            const socketState = sock?.ws?.socket?.readyState ?? sock?.ws?.readyState;
+            return sameIdentity(sock?.user?.jid || sock?.user?.id, chat.primaryBot, sock) && socketState !== ws.CLOSED;
+        });
         if (primaryBotConn && primaryBotInGroup) return;
         chat.primaryBot = null;
     }
@@ -397,14 +401,14 @@ export async function handler(chatUpdate) {
         global.comando = command;
 
         if (chat.isBanned && !isMods && name !== "group-banchat.js") {
-            if (!chat.primaryBot || chat.primaryBot === this.user.jid) {
+            if (!chat.primaryBot || sameIdentity(chat.primaryBot, this.user?.jid || this.user?.id, this)) {
                 await this.reply(m.chat, `🎃🦇 *[ 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 • 𝐇𝐀𝐋𝐋𝐎𝐖𝐄𝐄𝐍 ]*\n> ☾ El bot *${settings.botname}* descansa en la cripta de este grupo.\n\n> ✦ Un *administrador* puede despertarlo con:\n> » *${usedPrefix}bot on* 🕯️`, m);
                 return;
             }
         }
 
         if (user.banned && !isMods && m.text) {
-            if (!chat.primaryBot || chat.primaryBot === this.user.jid) {
+            if (!chat.primaryBot || sameIdentity(chat.primaryBot, this.user?.jid || this.user?.id, this)) {
                 await this.reply(m.chat, `🎃⚰️ *[ 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 • 𝐇𝐀𝐋𝐋𝐎𝐖𝐄𝐄𝐍 ]*\n> ☾ Tu alma ha sido desterrada, no puedes usar rituales en este bot.\n\n> ● *Razón ›* ${user.bannedReason}\n\n> 🦇 Si tienes pruebas de que es una confusión, contacta a un líder de la noche.`, m);
                 return;
             }
