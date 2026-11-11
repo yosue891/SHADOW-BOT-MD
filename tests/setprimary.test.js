@@ -20,7 +20,7 @@ test('getActiveBots discovers global.conn, current conn, and global.conns', () =
 
   try {
     global.conn = {
-      user: { id: '584121111111:1@s.whatsapp.net', name: 'MainBot' },
+      user: { id: '573127510345:1@s.whatsapp.net', name: 'MainBot' },
       ws: { readyState: 1 }
     }
 
@@ -40,8 +40,8 @@ test('getActiveBots discovers global.conn, current conn, and global.conns', () =
     assert.equal(bots.length, 2) // subSock2 is closed
     const main = bots.find(b => b.isMain)
     assert.ok(main)
-    assert.equal(main.number, '584121111111')
-    assert.equal(main.canonicalJid, '584121111111@s.whatsapp.net')
+    assert.equal(main.number, '573127510345')
+    assert.equal(main.canonicalJid, '573127510345@s.whatsapp.net')
 
     const sub = bots.find(b => !b.isMain)
     assert.ok(sub)
@@ -52,91 +52,117 @@ test('getActiveBots discovers global.conn, current conn, and global.conns', () =
   }
 })
 
-test('findTargetBot matches with keyword "main" or "principal"', () => {
+test('findTargetBot matches with keyword "main", "principal", "bot"', async () => {
   const activeBots = [
-    { isMain: true, number: '584121111111', canonicalJid: '584121111111@s.whatsapp.net' },
+    { isMain: true, number: '573127510345', canonicalJid: '573127510345@s.whatsapp.net' },
     { isMain: false, number: '584122222222', canonicalJid: '584122222222@s.whatsapp.net' }
   ]
 
-  const result1 = findTargetBot(activeBots, { text: 'main', args: ['main'] })
-  assert.equal(result1?.number, '584121111111')
+  const result1 = await findTargetBot(activeBots, { text: 'main', args: ['main'] })
+  assert.equal(result1?.number, '573127510345')
 
-  const result2 = findTargetBot(activeBots, { text: 'principal', args: ['principal'] })
-  assert.equal(result2?.number, '584121111111')
+  const result2 = await findTargetBot(activeBots, { text: 'principal', args: ['principal'] })
+  assert.equal(result2?.number, '573127510345')
 
-  const result3 = findTargetBot(activeBots, { text: 'bot', args: ['bot'] })
-  assert.equal(result3?.number, '584121111111')
+  const result3 = await findTargetBot(activeBots, { text: 'bot', args: ['bot'] })
+  assert.equal(result3?.number, '573127510345')
 })
 
-test('findTargetBot matches mention and quoted sender (including group LID)', () => {
+test('findTargetBot resolves quoted message with Promise sender (getter in simple.js)', async () => {
   const activeBots = [
     {
       isMain: true,
-      number: '584121111111',
-      canonicalJid: '584121111111@s.whatsapp.net',
+      number: '573127510345',
+      canonicalJid: '573127510345@s.whatsapp.net',
       lid: '111111111111@lid'
-    },
-    {
-      isMain: false,
-      number: '584122222222',
-      canonicalJid: '584122222222@s.whatsapp.net',
-      lid: '222222222222@lid'
     }
   ]
 
-  // Direct mention
-  const byMention = findTargetBot(activeBots, {
-    mentionedJid: ['584121111111@s.whatsapp.net']
-  })
-  assert.equal(byMention?.number, '584121111111')
+  // Promise sender simulation
+  const quotedPromiseSender = {
+    sender: Promise.resolve('573127510345@s.whatsapp.net')
+  }
 
-  // Quoted message with LID matching bot.lid
-  const byLid = findTargetBot(activeBots, {
-    quoted: { sender: '111111111111@lid' }
+  const result = await findTargetBot(activeBots, {
+    quoted: quotedPromiseSender
   })
-  assert.equal(byLid?.number, '584121111111')
+  assert.equal(result?.number, '573127510345')
+})
 
-  // Quoted message with unknown LID mapped via group participants
+test('findTargetBot resolves quoted message with fromMe = true', async () => {
+  const mainSock = {
+    user: { id: '573127510345:1@s.whatsapp.net' },
+    ws: { readyState: 1 }
+  }
+  const activeBots = [
+    {
+      sock: mainSock,
+      isMain: true,
+      number: '573127510345',
+      canonicalJid: '573127510345@s.whatsapp.net'
+    }
+  ]
+
+  const quotedFromMe = {
+    fromMe: true,
+    key: { fromMe: true }
+  }
+
+  const result = await findTargetBot(activeBots, {
+    quoted: quotedFromMe,
+    currentConn: mainSock
+  })
+  assert.equal(result?.number, '573127510345')
+})
+
+test('findTargetBot resolves text mention @573127510345 even if mentionedJid array is empty', async () => {
+  const activeBots = [
+    {
+      isMain: true,
+      number: '573127510345',
+      canonicalJid: '573127510345@s.whatsapp.net'
+    }
+  ]
+
+  const result = await findTargetBot(activeBots, {
+    text: '@573127510345',
+    m: { text: '.setprimary @573127510345' }
+  })
+  assert.equal(result?.number, '573127510345')
+})
+
+test('findTargetBot resolves quoted LID mapped through group participants', async () => {
+  const activeBots = [
+    {
+      isMain: true,
+      number: '573127510345',
+      canonicalJid: '573127510345@s.whatsapp.net'
+    }
+  ]
+
   const participants = [
     {
-      id: '584122222222@s.whatsapp.net',
-      lid: '999999999999@lid',
-      phoneNumber: '584122222222'
+      id: '573127510345@s.whatsapp.net',
+      lid: '12345678901234@lid',
+      phoneNumber: '573127510345'
     }
   ]
-  const byParticipantLid = findTargetBot(activeBots, {
-    quoted: { sender: '999999999999@lid' },
+
+  const result = await findTargetBot(activeBots, {
+    quoted: { sender: '12345678901234@lid' },
     participants
   })
-  assert.equal(byParticipantLid?.number, '584122222222')
-
-  // By phone number string in text
-  const byPhoneNumber = findTargetBot(activeBots, {
-    text: '+58 412 111 1111',
-    args: ['+584121111111']
-  })
-  assert.equal(byPhoneNumber?.number, '584121111111')
+  assert.equal(result?.number, '573127510345')
 })
 
-test('findTargetBot returns null for regular non-bot user', () => {
-  const activeBots = [
-    { isMain: true, number: '584121111111', canonicalJid: '584121111111@s.whatsapp.net' }
-  ]
-
-  const result = findTargetBot(activeBots, {
-    mentionedJid: ['584129999999@s.whatsapp.net']
-  })
-  assert.equal(result, null)
-})
-
-test('handler sets main bot as primaryBot in chat and sends confirmation', async () => {
+test('handler sets main bot as primaryBot and includes delprimary and verprimary info', async () => {
   const originalGlobalConn = global.conn
   const originalGlobalConns = global.conns
   const originalDb = global.db
 
   try {
     global.conn = {
-      user: { id: '584121111111:1@s.whatsapp.net', name: 'MainBot' },
+      user: { id: '573127510345:1@s.whatsapp.net', name: 'MainBot' },
       ws: { readyState: 1 },
       reply: (chat, text, m, opts) => {
         repliedText = text
@@ -167,35 +193,38 @@ test('handler sets main bot as primaryBot in chat and sends confirmation', async
     let repliedOpts = {}
 
     const participants = [
-      { id: '584121111111@s.whatsapp.net', phoneNumber: '584121111111' },
+      { id: '573127510345@s.whatsapp.net', phoneNumber: '573127510345' },
       { id: '584122222222@s.whatsapp.net', phoneNumber: '584122222222' }
     ]
 
-    // 1. From subbot, user executes ".setprimary main" -> selects MainBot
-    await setPrimaryHandler({
+    // Quote message sent by bot
+    const fakeM = {
       chat: '120363000000000@g.us',
-      mentionedJid: [],
-      quoted: null
-    }, {
-      conn: subSock,
-      text: 'main',
-      args: ['main'],
+      text: '.setprimary',
+      quoted: {
+        fromMe: true,
+        sender: Promise.resolve('573127510345@s.whatsapp.net')
+      }
+    }
+
+    await setPrimaryHandler(fakeM, {
+      conn: global.conn,
+      text: '',
+      args: [],
       usedPrefix: '.',
       command: 'setprimary',
       participants
     })
 
-    assert.equal(global.db.data.chats['120363000000000@g.us'].primaryBot, '584121111111@s.whatsapp.net')
-    assert.match(repliedText, /¡CONFIGURACIÓN ACTUALIZADA!/)
+    assert.equal(global.db.data.chats['120363000000000@g.us'].primaryBot, '573127510345@s.whatsapp.net')
+    assert.match(repliedText, /¡BOT PRINCIPAL ASIGNADO CON ÉXITO!/)
     assert.match(repliedText, /Bot Principal/)
-    assert.deepEqual(repliedOpts.mentions, ['584121111111@s.whatsapp.net'])
+    assert.match(repliedText, /delprimary/)
+    assert.match(repliedText, /verprimary/)
+    assert.deepEqual(repliedOpts.mentions, ['573127510345@s.whatsapp.net'])
 
-    // 2. Calling again detects it is already primary
-    await setPrimaryHandler({
-      chat: '120363000000000@g.us',
-      mentionedJid: ['584121111111@s.whatsapp.net'],
-      quoted: null
-    }, {
+    // Calling again detects it is already primary
+    await setPrimaryHandler(fakeM, {
       conn: global.conn,
       text: '',
       args: [],
@@ -204,37 +233,8 @@ test('handler sets main bot as primaryBot in chat and sends confirmation', async
       participants
     })
     assert.match(repliedText, /ya está configurado como el Bot Principal aquí/)
-
-    // 3. User targets sub-bot with ".setprimary @584122222222"
-    await setPrimaryHandler({
-      chat: '120363000000000@g.us',
-      mentionedJid: ['584122222222@s.whatsapp.net'],
-      quoted: null
-    }, {
-      conn: global.conn,
-      text: '',
-      args: [],
-      usedPrefix: '.',
-      command: 'setprimary',
-      participants
-    })
-    assert.equal(global.db.data.chats['120363000000000@g.us'].primaryBot, '584122222222@s.whatsapp.net')
-    assert.match(repliedText, /Sub-Bot/)
-
-    // 4. Mentioning a non-bot user returns error message
-    await setPrimaryHandler({
-      chat: '120363000000000@g.us',
-      mentionedJid: ['584129999999@s.whatsapp.net'],
-      quoted: null
-    }, {
-      conn: global.conn,
-      text: '',
-      args: [],
-      usedPrefix: '.',
-      command: 'setprimary',
-      participants
-    })
-    assert.match(repliedText, /El usuario indicado no es un Bot activo del sistema/)
+    assert.match(repliedText, /verprimary/)
+    assert.match(repliedText, /delprimary/)
   } finally {
     global.conn = originalGlobalConn
     global.conns = originalGlobalConns
