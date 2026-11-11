@@ -16,13 +16,14 @@ function extractUserId(rawUser, groupMetadata) {
   let id = ''
 
   if (typeof rawUser === 'object' && rawUser !== null) {
-    id = rawUser.phoneNumber || rawUser.id || rawUser.jid || ''
+    id = rawUser.phoneNumber || rawUser.id || rawUser.jid || rawUser.lid || ''
   } else if (typeof rawUser === 'string') {
     const trimmed = rawUser.trim()
+    if (trimmed === '[object Object]') return null
     if (trimmed.startsWith('{')) {
       try {
         const parsed = JSON.parse(trimmed)
-        id = parsed.phoneNumber || parsed.id || parsed.jid || trimmed
+        id = parsed.phoneNumber || parsed.id || parsed.jid || parsed.lid || trimmed
       } catch {
         id = trimmed
       }
@@ -32,14 +33,21 @@ function extractUserId(rawUser, groupMetadata) {
   }
 
   if (!id || typeof id !== 'string') return null
+  if (id === '[object Object]') return null
 
-  // Si viene en formato LID, buscar si coincide con algún participante del grupo
-  if (id.endsWith('@lid') && groupMetadata?.participants) {
-    const match = groupMetadata.participants.find((p) => p.lid === id)
-    if (match && match.id && !match.id.endsWith('@lid')) {
-      id = match.id
-    } else if (match && match.phoneNumber) {
-      id = `${match.phoneNumber.replace(/\D/g, '')}@s.whatsapp.net`
+  // Si viene en formato LID, buscar si coincide con algún participante del grupo o en caché
+  if (id.endsWith('@lid')) {
+    if (groupMetadata?.participants) {
+      const match = groupMetadata.participants.find((p) => p.lid === id || p.id === id)
+      if (match && match.id && !match.id.endsWith('@lid')) {
+        id = match.id
+      } else if (match && match.phoneNumber) {
+        id = `${match.phoneNumber.replace(/\D/g, '')}@s.whatsapp.net`
+      }
+    }
+    const cachedReal = global.__shadowLidCache?.get(id)
+    if (cachedReal && !cachedReal.endsWith('@lid')) {
+      id = cachedReal
     }
   }
 
@@ -239,32 +247,127 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
 
     console.log(`[WELCOME] Evento stub=${m.messageStubType} en ${m.chat} para ${userId}`)
 
+    const activeCanalId = global.channelRD?.id || global.idcanal || canalId
+    const activeCanalName = global.channelRD?.name || global.botname || canalName
+
     const contextInfo = {
       mentionedJid: [userId],
       isForwarded: true,
-      forwardingScore: 0,
+      forwardingScore: 1,
       forwardedNewsletterMessageInfo: {
-        newsletterJid: canalId,
-        serverMessageId: null,
-        newsletterName: canalName
+        newsletterJid: activeCanalId,
+        serverMessageId: 100,
+        newsletterName: activeCanalName
+      }
+    }
+
+    const rawBotName = global.botname || global.author || 'Shadow-BOT-MD'
+    const ownerJid = conn.user?.jid
+      ? (conn.user.jid.split('@')[0].split(':')[0] + '@s.whatsapp.net')
+      : (global.owner?.[0]?.[0] ? `${global.owner[0][0]}@s.whatsapp.net` : '584242773183@s.whatsapp.net')
+
+    const thumb = fs.existsSync(LOCAL_AVATAR)
+      ? fs.readFileSync(LOCAL_AVATAR)
+      : (Buffer.isBuffer(global.catalogo) ? global.catalogo : null)
+
+    const fkontak = {
+      key: {
+        participants: '0@s.whatsapp.net',
+        remoteJid: 'status@broadcast',
+        fromMe: false,
+        id: 'ShadowGardenCatalog'
+      },
+      message: {
+        productMessage: {
+          product: {
+            productImage: thumb ? {
+              mimetype: 'image/jpeg',
+              jpegThumbnail: thumb
+            } : undefined,
+            title: isAdd ? '⚔️ BIENVENIDO A SHADOW GARDEN ⚔️' : '🥀 DESPEDIDA DE SHADOW GARDEN 🥀',
+            description: isAdd ? 'Recluta de la Orden de las Sombras' : 'Una sombra ha abandonado el aquelarre',
+            currencyCode: 'USD',
+            priceAmount1000: '0',
+            retailerId: 'ShadowGarden',
+            productImageCount: 1
+          },
+          businessOwnerJid: ownerJid
+        }
+      }
+    }
+
+    const sendWelcomeMessage = async ({ imageSource, caption, mentions, isAddAction }) => {
+      let sent = false
+      const mediaImg = Buffer.isBuffer(imageSource)
+        ? imageSource
+        : (imageSource?.url ? { url: imageSource.url } : (fs.existsSync(LOCAL_BG) ? fs.readFileSync(LOCAL_BG) : { url: BACKGROUND }))
+
+      // Nivel 1: Envío mediante mensaje de producto/catálogo (formato idéntico al catálogo de ping)
+      try {
+        await conn.sendMessage(
+          m.chat,
+          {
+            product: {
+              productImage: mediaImg,
+              productId: isAddAction ? 'welcome-001' : 'goodbye-001',
+              title: isAddAction ? '⚔️ BIENVENIDO A SHADOW GARDEN ⚔️' : '🥀 DESPEDIDA DE SHADOW GARDEN 🥀',
+              description: isAddAction ? 'Recluta de la Orden de las Sombras' : 'Una sombra ha abandonado el aquelarre',
+              currencyCode: 'USD',
+              priceAmount1000: '0',
+              retailerId: '1677',
+              url: 'https://github.com/yosue891/SHADOW-BOT-MD',
+              productImageCount: 1
+            },
+            businessOwnerJid: ownerJid,
+            body: caption,
+            caption,
+            mentions,
+            contextInfo
+          },
+          { quoted: fkontak }
+        )
+        sent = true
+      } catch (errProd) {
+        console.warn('[WELCOME] Falló formato producto catálogo, intentando imagen estándar:', errProd?.message || errProd)
+      }
+
+      // Nivel 2: Envío de imagen estándar con contextInfo de canal y quoted de catálogo
+      if (!sent) {
+        try {
+          await conn.sendMessage(
+            m.chat,
+            {
+              image: mediaImg,
+              caption,
+              mentions,
+              contextInfo
+            },
+            { quoted: fkontak }
+          )
+          sent = true
+        } catch (imgErr) {
+          console.warn('[WELCOME] Falló el envío de imagen, enviando texto:', imgErr?.message || imgErr)
+        }
+      }
+
+      // Nivel 3: Respaldo final a texto con contextInfo de canal y quoted de catálogo
+      if (!sent) {
+        await conn.sendMessage(
+          m.chat,
+          {
+            text: caption,
+            mentions,
+            contextInfo
+          },
+          { quoted: fkontak }
+        )
       }
     }
 
     if (isAdd) {
       try {
         const { imageSource, caption, mentions } = await generarBienvenida({ conn, userId, groupMetadata, chat })
-        const opts = { caption, mentions, contextInfo }
-        if (Buffer.isBuffer(imageSource)) {
-          opts.image = imageSource
-        } else if (imageSource?.url) {
-          opts.image = imageSource
-        }
-        try {
-          await conn.sendMessage(m.chat, opts, { quoted: null })
-        } catch (imgErr) {
-          console.warn('[WELCOME] Falló el envío de imagen, enviando solo texto:', imgErr.message)
-          await conn.sendMessage(m.chat, { text: caption, mentions, contextInfo }, { quoted: null })
-        }
+        await sendWelcomeMessage({ imageSource, caption, mentions, isAddAction: true })
         console.log('[WELCOME] Bienvenida enviada con éxito a', userId)
       } catch (err) {
         console.error('[WELCOME PLUGIN] Error enviando bienvenida:', err)
@@ -272,18 +375,7 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
     } else if (isRemove) {
       try {
         const { imageSource, caption, mentions } = await generarDespedida({ conn, userId, groupMetadata, chat })
-        const opts = { caption, mentions, contextInfo }
-        if (Buffer.isBuffer(imageSource)) {
-          opts.image = imageSource
-        } else if (imageSource?.url) {
-          opts.image = imageSource
-        }
-        try {
-          await conn.sendMessage(m.chat, opts, { quoted: null })
-        } catch (imgErr) {
-          console.warn('[WELCOME] Falló el envío de imagen, enviando solo texto:', imgErr.message)
-          await conn.sendMessage(m.chat, { text: caption, mentions, contextInfo }, { quoted: null })
-        }
+        await sendWelcomeMessage({ imageSource, caption, mentions, isAddAction: false })
         console.log('[WELCOME] Despedida enviada con éxito a', userId)
       } catch (err) {
         console.error('[WELCOME PLUGIN] Error enviando despedida:', err)

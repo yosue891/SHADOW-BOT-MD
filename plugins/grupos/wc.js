@@ -143,26 +143,87 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       }
     }
 
-    const canalId = global.channelRD?.id || '120363403739366547@newsletter'
-    const canalName = global.channelRD?.name || 'SHADOW-BOT'
+    const canalId = global.channelRD?.id || global.idcanal || '120363403739366547@newsletter'
+    const canalName = global.channelRD?.name || global.botname || 'SHADOW-BOT'
 
     const contextInfo = {
       mentionedJid: [targetJid],
       isForwarded: true,
-      forwardingScore: 0,
+      forwardingScore: 1,
       forwardedNewsletterMessageInfo: {
         newsletterJid: canalId,
-        serverMessageId: null,
+        serverMessageId: 100,
         newsletterName: canalName
       }
     }
 
-    await conn.sendMessage(m.chat, {
-      image: imageBuffer,
-      caption,
-      mentions: [targetJid],
-      contextInfo
-    }, { quoted: m })
+    const ownerJid = conn.user?.jid
+      ? (conn.user.jid.split('@')[0].split(':')[0] + '@s.whatsapp.net')
+      : (global.owner?.[0]?.[0] ? `${global.owner[0][0]}@s.whatsapp.net` : '584242773183@s.whatsapp.net')
+
+    const thumb = fs.existsSync(LOCAL_AVATAR)
+      ? fs.readFileSync(LOCAL_AVATAR)
+      : (Buffer.isBuffer(global.catalogo) ? global.catalogo : null)
+
+    const fkontak = {
+      key: {
+        participants: '0@s.whatsapp.net',
+        remoteJid: 'status@broadcast',
+        fromMe: false,
+        id: 'ShadowGardenCatalog'
+      },
+      message: {
+        productMessage: {
+          product: {
+            productImage: thumb ? {
+              mimetype: 'image/jpeg',
+              jpegThumbnail: thumb
+            } : undefined,
+            title: !isGoodbye ? '⚔️ BIENVENIDO A SHADOW GARDEN ⚔️' : '🥀 DESPEDIDA DE SHADOW GARDEN 🥀',
+            description: !isGoodbye ? 'Recluta de la Orden de las Sombras' : 'Una sombra ha abandonado el aquelarre',
+            currencyCode: 'USD',
+            priceAmount1000: '0',
+            retailerId: 'ShadowGarden',
+            productImageCount: 1
+          },
+          businessOwnerJid: ownerJid
+        }
+      }
+    }
+
+    let sent = false
+    try {
+      await conn.sendMessage(m.chat, {
+        product: {
+          productImage: imageBuffer,
+          productId: !isGoodbye ? 'welcome-001' : 'goodbye-001',
+          title: !isGoodbye ? '⚔️ BIENVENIDO A SHADOW GARDEN ⚔️' : '🥀 DESPEDIDA DE SHADOW GARDEN 🥀',
+          description: !isGoodbye ? 'Recluta de la Orden de las Sombras' : 'Una sombra ha abandonado el aquelarre',
+          currencyCode: 'USD',
+          priceAmount1000: '0',
+          retailerId: '1677',
+          url: 'https://github.com/yosue891/SHADOW-BOT-MD',
+          productImageCount: 1
+        },
+        businessOwnerJid: ownerJid,
+        body: caption,
+        caption,
+        mentions: [targetJid],
+        contextInfo
+      }, { quoted: fkontak })
+      sent = true
+    } catch (errProd) {
+      console.warn('[wc] Falló envío en formato producto catálogo:', errProd?.message || errProd)
+    }
+
+    if (!sent) {
+      await conn.sendMessage(m.chat, {
+        image: imageBuffer,
+        caption,
+        mentions: [targetJid],
+        contextInfo
+      }, { quoted: fkontak })
+    }
 
     await conn.sendMessage(m.chat, { react: { text: '✅', key: m.key } })
 

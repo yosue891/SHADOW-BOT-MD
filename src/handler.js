@@ -635,23 +635,38 @@ global.dfail = (type, m, conn) => {
 
 export async function participantsUpdate({ id, participants, action, author }) {
     if (!id || !Array.isArray(participants) || !participants.length) return;
-    if (action !== 'add' && action !== 'remove') return;
+    if (action !== 'add' && action !== 'remove' && action !== 'leave') return;
 
-    // 27 = GROUP_PARTICIPANT_ADD, 28 = GROUP_PARTICIPANT_REMOVE
-    const stubType = action === 'add' ? 27 : 28;
+    // 27 = GROUP_PARTICIPANT_ADD, 28 = GROUP_PARTICIPANT_REMOVE, 32 = GROUP_PARTICIPANT_LEAVE
+    const stubType = action === 'add' ? 27 : (action === 'leave' ? 32 : 28);
+
+    const normalizedParticipants = participants.map(p => {
+        if (!p) return '';
+        if (typeof p === 'object') {
+            return p.phoneNumber || p.id || p.jid || p.lid || '';
+        }
+        return String(p).trim();
+    }).filter(p => p && p !== '[object Object]');
+
+    if (!normalizedParticipants.length) return;
+
+    const firstJid = normalizedParticipants[0];
+    const cleanAuthor = typeof author === 'string' && author && author !== '[object Object]'
+        ? author
+        : (firstJid || id);
 
     const fakeMessage = {
         key: {
             remoteJid: id,
             fromMe: false,
             id: `STUB-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-            participant: author || participants[0]
+            participant: cleanAuthor
         },
         messageStubType: stubType,
-        messageStubParameters: participants,
+        messageStubParameters: normalizedParticipants,
         chat: id,
         isGroup: true,
-        sender: author || participants[0] || id
+        sender: cleanAuthor
     };
 
     await handler.call(this, {
