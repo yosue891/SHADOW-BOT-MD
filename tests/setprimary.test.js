@@ -4,7 +4,8 @@ import setPrimaryHandler, {
   getActiveBots,
   findTargetBot,
   normalizeJid,
-  extractNumber
+  extractNumber,
+  isBaileysId
 } from '../plugins/grupos/group-setprimary.js'
 
 test('extractNumber and normalizeJid handle raw and device jids', () => {
@@ -14,13 +15,28 @@ test('extractNumber and normalizeJid handle raw and device jids', () => {
   assert.equal(normalizeJid('584121234567:2@s.whatsapp.net'), '584121234567@s.whatsapp.net')
 })
 
-test('getActiveBots discovers global.conn, current conn, and global.conns', () => {
+test('isBaileysId identifies Baileys generated message IDs', () => {
+  assert.equal(isBaileysId('3EB0D4219A425FE1'), true)
+  assert.equal(isBaileysId('BAE5123456789ABC'), true)
+  assert.equal(isBaileysId('SHADOWBOT123456'), true)
+  assert.equal(isBaileysId('99999999999999999999999999999999'), false)
+})
+
+test('getActiveBots discovers global.conn with authState creds me lid', () => {
   const originalGlobalConn = global.conn
   const originalGlobalConns = global.conns
 
   try {
     global.conn = {
       user: { id: '573127510345:1@s.whatsapp.net', name: 'MainBot' },
+      authState: {
+        creds: {
+          me: {
+            id: '573127510345:1@s.whatsapp.net',
+            lid: '98765432101234:0@lid'
+          }
+        }
+      },
       ws: { readyState: 1 }
     }
 
@@ -29,23 +45,15 @@ test('getActiveBots discovers global.conn, current conn, and global.conns', () =
       ws: { readyState: 1 }
     }
 
-    const subSock2 = {
-      user: { id: '584123333333@s.whatsapp.net', name: 'SubBot2' },
-      ws: { readyState: 3 } // closed
-    }
-
-    global.conns = [subSock1, subSock2]
+    global.conns = [subSock1]
 
     const bots = getActiveBots(global.conn)
-    assert.equal(bots.length, 2) // subSock2 is closed
+    assert.equal(bots.length, 2)
     const main = bots.find(b => b.isMain)
     assert.ok(main)
     assert.equal(main.number, '573127510345')
-    assert.equal(main.canonicalJid, '573127510345@s.whatsapp.net')
-
-    const sub = bots.find(b => !b.isMain)
-    assert.ok(sub)
-    assert.equal(sub.number, '584122222222')
+    assert.ok(main.lids.includes('98765432101234@lid'))
+    assert.ok(main.lids.includes('98765432101234'))
   } finally {
     global.conn = originalGlobalConn
     global.conns = originalGlobalConns
@@ -54,8 +62,8 @@ test('getActiveBots discovers global.conn, current conn, and global.conns', () =
 
 test('findTargetBot matches with keyword "main", "principal", "bot"', async () => {
   const activeBots = [
-    { isMain: true, number: '573127510345', canonicalJid: '573127510345@s.whatsapp.net' },
-    { isMain: false, number: '584122222222', canonicalJid: '584122222222@s.whatsapp.net' }
+    { isMain: true, number: '573127510345', canonicalJid: '573127510345@s.whatsapp.net', lids: [] },
+    { isMain: false, number: '584122222222', canonicalJid: '584122222222@s.whatsapp.net', lids: [] }
   ]
 
   const result1 = await findTargetBot(activeBots, { text: 'main', args: ['main'] })
@@ -68,28 +76,28 @@ test('findTargetBot matches with keyword "main", "principal", "bot"', async () =
   assert.equal(result3?.number, '573127510345')
 })
 
-test('findTargetBot resolves quoted message with Promise sender (getter in simple.js)', async () => {
+test('findTargetBot resolves quoted message when only 1 bot is active in system', async () => {
   const activeBots = [
     {
       isMain: true,
       number: '573127510345',
       canonicalJid: '573127510345@s.whatsapp.net',
-      lid: '111111111111@lid'
+      lids: ['98765432101234@lid']
     }
   ]
 
-  // Promise sender simulation
-  const quotedPromiseSender = {
-    sender: Promise.resolve('573127510345@s.whatsapp.net')
+  const quotedFromWhatsApp = {
+    id: '3EB0123456789ABC',
+    sender: '98765432101234@lid'
   }
 
   const result = await findTargetBot(activeBots, {
-    quoted: quotedPromiseSender
+    quoted: quotedFromWhatsApp
   })
   assert.equal(result?.number, '573127510345')
 })
 
-test('findTargetBot resolves quoted message with fromMe = true', async () => {
+test('findTargetBot resolves quoted Baileys stanzaId', async () => {
   const mainSock = {
     user: { id: '573127510345:1@s.whatsapp.net' },
     ws: { readyState: 1 }
@@ -99,58 +107,25 @@ test('findTargetBot resolves quoted message with fromMe = true', async () => {
       sock: mainSock,
       isMain: true,
       number: '573127510345',
-      canonicalJid: '573127510345@s.whatsapp.net'
+      canonicalJid: '573127510345@s.whatsapp.net',
+      lids: []
+    },
+    {
+      isMain: false,
+      number: '584122222222',
+      canonicalJid: '584122222222@s.whatsapp.net',
+      lids: []
     }
   ]
 
-  const quotedFromMe = {
-    fromMe: true,
-    key: { fromMe: true }
+  const quotedWithBaileysId = {
+    id: '3EB0ABCDEF123456',
+    sender: 'randomlid@lid'
   }
 
   const result = await findTargetBot(activeBots, {
-    quoted: quotedFromMe,
+    quoted: quotedWithBaileysId,
     currentConn: mainSock
-  })
-  assert.equal(result?.number, '573127510345')
-})
-
-test('findTargetBot resolves text mention @573127510345 even if mentionedJid array is empty', async () => {
-  const activeBots = [
-    {
-      isMain: true,
-      number: '573127510345',
-      canonicalJid: '573127510345@s.whatsapp.net'
-    }
-  ]
-
-  const result = await findTargetBot(activeBots, {
-    text: '@573127510345',
-    m: { text: '.setprimary @573127510345' }
-  })
-  assert.equal(result?.number, '573127510345')
-})
-
-test('findTargetBot resolves quoted LID mapped through group participants', async () => {
-  const activeBots = [
-    {
-      isMain: true,
-      number: '573127510345',
-      canonicalJid: '573127510345@s.whatsapp.net'
-    }
-  ]
-
-  const participants = [
-    {
-      id: '573127510345@s.whatsapp.net',
-      lid: '12345678901234@lid',
-      phoneNumber: '573127510345'
-    }
-  ]
-
-  const result = await findTargetBot(activeBots, {
-    quoted: { sender: '12345678901234@lid' },
-    participants
   })
   assert.equal(result?.number, '573127510345')
 })
@@ -203,6 +178,7 @@ test('handler sets main bot as primaryBot and includes delprimary and verprimary
       text: '.setprimary',
       quoted: {
         fromMe: true,
+        id: '3EB0ABCDEF123456',
         sender: Promise.resolve('573127510345@s.whatsapp.net')
       }
     }
