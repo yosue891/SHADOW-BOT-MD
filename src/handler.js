@@ -94,7 +94,9 @@ function sameIdentity(a, b, conn) {
 
     const aa = jidNumber(mappedA, conn) || jidNumber(na, conn);
     const bb = jidNumber(mappedB, conn) || jidNumber(nb, conn);
-    return !!aa && !!bb && aa === bb;
+    if (aa && bb && aa === bb) return true;
+    if (aa && bb && aa.length >= 10 && bb.length >= 10 && aa.slice(-10) === bb.slice(-10)) return true;
+    return false;
 }
 
 function findParticipant(participants, candidates, conn) {
@@ -495,7 +497,7 @@ export async function handler(chatUpdate) {
             } catch {}
         }
 
-        if (plugin.admin && !isAdmin) {
+        if (plugin.admin && !isAdmin && !isOwner && !isROwner) {
             await global.dfail("admin", m, this);
             continue;
         }
