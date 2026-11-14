@@ -1,15 +1,60 @@
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const handler = (m) => {
-  return m;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const LOCAL_NAVIDAD_AUDIO = path.join(__dirname, '..', '..', 'lib', 'navidad.m4a');
+const REMOTE_NAVIDAD_AUDIO = 'https://u.pone.rs/ckiugqld.m4a';
+
+const handler = async (m, { conn }) => {
+    const audioSource = fs.existsSync(LOCAL_NAVIDAD_AUDIO)
+        ? fs.readFileSync(LOCAL_NAVIDAD_AUDIO)
+        : { url: REMOTE_NAVIDAD_AUDIO };
+
+    await conn.sendMessage(
+        m.chat,
+        {
+            audio: audioSource,
+            mimetype: 'audio/mp4',
+            fileName: 'feliz-navidad.m4a',
+            ptt: true,
+            ...(global.rcanal || {})
+        },
+        { quoted: m }
+    );
 };
 
 handler.all = async function(m) {
+    if (!m.text || typeof m.text !== 'string') return !0;
+    if (m.isBaileys || m.fromMe) return !0;
 
-    const chat = global.db.data.chats[m.chat];
-    if (chat.isBaneed) return;
+    const chat = global.db?.data?.chats?.[m.chat];
+    if (chat && (chat.isBanned || chat.isBaneed)) return !0;
 
-    const text = m.text.toLowerCase(); 
+    const trimmedText = m.text.trim();
+
+    // Mensaje automático sin prefijo: "feliz navidad" (envío de audio en ptt: true)
+    const regexNavidad = /^(?:¡|¿)?\s*feliz\s+navidad(?:\s+(?:a\s+todos|grupo|familia|gente))?[\s!?.¿¡🎄🎅🎁✨❄️]*$/i;
+    if (regexNavidad.test(trimmedText)) {
+        const audioSource = fs.existsSync(LOCAL_NAVIDAD_AUDIO)
+            ? fs.readFileSync(LOCAL_NAVIDAD_AUDIO)
+            : { url: REMOTE_NAVIDAD_AUDIO };
+
+        await this.sendMessage(
+            m.chat,
+            {
+                audio: audioSource,
+                mimetype: 'audio/mp4',
+                fileName: 'feliz-navidad.m4a',
+                ptt: true,
+                ...(global.rcanal || {})
+            },
+            { quoted: m }
+        );
+        return !0;
+    }
 
     const respuestas = {
         "bot": `🎃 ¡Has invocado al Shadow-Bot en la Noche de Brujas! 🦇\n\n👑 Soy Asta, guardián de las sombras y el aquelarre.\n✰ Usa *!menu* para descubrir los rituales ocultos de Halloween. 🕯️`,
@@ -56,7 +101,7 @@ handler.all = async function(m) {
 
     for (let key in respuestas) {
         const regex = new RegExp(`^${key}$`, "i");
-        if (regex.test(m.text)) {
+        if (regex.test(trimmedText)) {
             await this.reply(m.chat, respuestas[key], m, global.rcanal);
             return !0;
         }
@@ -64,5 +109,9 @@ handler.all = async function(m) {
 
     return !0;
 };
+
+handler.help = ['feliznavidad'];
+handler.tags = ['info'];
+handler.command = ['feliznavidad'];
 
 export default handler;
