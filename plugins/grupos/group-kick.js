@@ -1,14 +1,44 @@
 var handler = async (m, { conn, participants, usedPrefix, command, text }) => {
   const clean = str => String(str || '').split('@')[0].split(':')[0].replace(/\D/g, '')
+  const isLid = jid => typeof jid === 'string' && jid.trim().endsWith('@lid')
 
-  let mentionedJid = Array.isArray(m.mentionedJid) ? m.mentionedJid.filter(Boolean) : []
-  let user = mentionedJid.length
-    ? mentionedJid[0]
-    : m.quoted && (m.quoted.sender || m.quoted.participant)
-      ? (m.quoted.sender || m.quoted.participant)
-      : null
+  let rawUser = null
 
-  // Si no hay mención ni mensaje citado, buscar número en el texto o @número manual
+  // 1. Obtener de menciones (puede ser array o Promise)
+  let mentionedJid = m.mentionedJid
+  if (mentionedJid instanceof Promise) {
+    try { mentionedJid = await mentionedJid } catch {}
+  }
+  if (Array.isArray(mentionedJid) && mentionedJid.length) {
+    rawUser = mentionedJid[0]
+  }
+
+  // 2. Si no hay mención, obtener del mensaje citado (puede ser Promise, objeto o string)
+  if (!rawUser && m.quoted) {
+    try {
+      rawUser = m.quoted.sender || m.quoted.participant
+      if (rawUser instanceof Promise) {
+        rawUser = await rawUser
+      }
+    } catch {}
+  }
+
+  // Resolver si rawUser es una Promise pendiente
+  if (rawUser instanceof Promise) {
+    try {
+      rawUser = await rawUser
+    } catch {}
+  }
+
+  // Si rawUser es un objeto (como en Baileys v0.3.18 / itsliaaa)
+  if (rawUser && typeof rawUser === 'object') {
+    rawUser = rawUser.phoneNumber || rawUser.phone_number || rawUser.pn || rawUser.id || rawUser.jid || rawUser.lid || ''
+  }
+
+  // Normalizar a string seguro
+  let user = typeof rawUser === 'string' ? rawUser.trim() : (rawUser ? String(rawUser).trim() : '')
+
+  // 3. Si aún no hay usuario, buscar @número en el texto o número telefónico limpio
   if (!user && text) {
     const mentionMatch = text.match(/@(\d{7,16})/)
     if (mentionMatch) {
@@ -19,6 +49,11 @@ var handler = async (m, { conn, participants, usedPrefix, command, text }) => {
         user = `${cleanNum}@s.whatsapp.net`
       }
     }
+  }
+
+  // 4. Limpieza final de user
+  if (user === '[object Object]' || user === '[object Promise]') {
+    user = ''
   }
 
   if (!user) {
@@ -69,13 +104,13 @@ var handler = async (m, { conn, participants, usedPrefix, command, text }) => {
     })
 
     const displayNum = (targetParticipant?.phoneNumber ? clean(targetParticipant.phoneNumber) : '') ||
-      (!user.endsWith('@lid') ? userNum : '') ||
+      (!isLid(user) ? userNum : '') ||
       (targetParticipant?.id ? clean(targetParticipant.id) : '') ||
       userNum ||
       'usuario'
 
     const mentionJid = targetParticipant?.phoneNumber ||
-      (!user.endsWith('@lid') ? user : (targetParticipant?.id && !targetParticipant.id.endsWith('@lid') ? targetParticipant.id : `${displayNum}@s.whatsapp.net`))
+      (!isLid(user) ? user : (targetParticipant?.id && !isLid(targetParticipant.id) ? targetParticipant.id : `${displayNum}@s.whatsapp.net`))
 
     const botNum = clean(conn.user?.jid || conn.user?.id || conn.authState?.creds?.me?.id)
     if (botNum && (displayNum === botNum || userNum === botNum || (displayNum.length >= 10 && botNum.length >= 10 && displayNum.slice(-10) === botNum.slice(-10)))) {
@@ -120,7 +155,10 @@ var handler = async (m, { conn, participants, usedPrefix, command, text }) => {
       global.__shadowLidCache?.get(user)
     ].filter(Boolean)
 
-    const candidatesToKick = [...new Set(rawCandidates.map(j => String(j).split(':')[0].replace(/:\d+@/, '@')))]
+    const candidatesToKick = [...new Set(rawCandidates.map(j => {
+      if (typeof j !== 'string') return ''
+      return j.split(':')[0].replace(/:\d+@/, '@').trim()
+    }).filter(Boolean))]
 
     // 1. ENVIAR EL MENSAJE DE EXPULSIÓN ANTES DE QUE EL BOT ELIMINE AL USUARIO
     await conn.reply(
