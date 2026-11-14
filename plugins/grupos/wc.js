@@ -225,6 +225,23 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       }, { quoted: fkontak })
     }
 
+    try {
+      const audioUrl = isGoodbye ? 'https://u.pone.rs/yehaores.mp3' : 'https://u.pone.rs/cznldzjp.mp3'
+      await conn.sendMessage(
+        m.chat,
+        {
+          audio: { url: audioUrl },
+          mimetype: 'audio/mp4',
+          fileName: isGoodbye ? 'goodbye.mp3' : 'welcome.mp3',
+          ptt: true,
+          contextInfo
+        },
+        { quoted: fkontak }
+      )
+    } catch (eAudio) {
+      console.warn('[wc] Error enviando audio PTT:', eAudio?.message || eAudio)
+    }
+
     await conn.sendMessage(m.chat, { react: { text: '✅', key: m.key } })
 
   } catch (error) {

@@ -10,6 +10,8 @@ const canalName = global.channelRD?.name || 'SHADOW-BOT'
 const BACKGROUND = 'https://u.pone.rs/glqjtzaj.jpg'
 const LOCAL_BG = path.join(__dirname, '..', '..', 'lib', 'welcome-bg.jpg')
 const LOCAL_AVATAR = path.join(__dirname, '..', '..', 'lib', 'catalogo.jpg')
+const AUDIO_WELCOME = 'https://u.pone.rs/cznldzjp.mp3'
+const AUDIO_GOODBYE = 'https://u.pone.rs/yehaores.mp3'
 
 const recentWelcomeEvents = global.__recentWelcomeEvents || (global.__recentWelcomeEvents = new Map())
 
@@ -397,11 +399,32 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
       }
     }
 
+    const sendWelcomeAudio = async (isAddAction) => {
+      const audioUrl = isAddAction ? AUDIO_WELCOME : AUDIO_GOODBYE
+      try {
+        await conn.sendMessage(
+          m.chat,
+          {
+            audio: { url: audioUrl },
+            mimetype: 'audio/mp4',
+            fileName: isAddAction ? 'welcome.mp3' : 'goodbye.mp3',
+            ptt: true,
+            contextInfo
+          },
+          { quoted: fkontak }
+        )
+        console.log(`[WELCOME] Audio PTT (${isAddAction ? 'bienvenida' : 'despedida'}) enviado con éxito a ${m.chat}`)
+      } catch (errAudio) {
+        console.warn(`[WELCOME] Error enviando audio PTT de ${isAddAction ? 'bienvenida' : 'despedida'}:`, errAudio?.message || errAudio)
+      }
+    }
+
     if (isAdd) {
       try {
         const { imageSource, caption, mentions } = await generarBienvenida({ conn, userId, groupMetadata, chat })
         await sendWelcomeMessage({ imageSource, caption, mentions, isAddAction: true })
         console.log('[WELCOME] Bienvenida enviada con éxito a', userId)
+        await sendWelcomeAudio(true)
       } catch (err) {
         console.error('[WELCOME PLUGIN] Error enviando bienvenida:', err)
       }
@@ -410,6 +433,7 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
         const { imageSource, caption, mentions } = await generarDespedida({ conn, userId, groupMetadata, chat })
         await sendWelcomeMessage({ imageSource, caption, mentions, isAddAction: false })
         console.log('[WELCOME] Despedida enviada con éxito a', userId)
+        await sendWelcomeAudio(false)
       } catch (err) {
         console.error('[WELCOME PLUGIN] Error enviando despedida:', err)
       }
