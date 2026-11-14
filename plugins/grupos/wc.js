@@ -7,6 +7,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DEFAULT_BG = 'https://u.pone.rs/glqjtzaj.jpg'
 const LOCAL_BG = path.join(__dirname, '..', '..', 'lib', 'welcome-bg.jpg')
 const LOCAL_AVATAR = path.join(__dirname, '..', '..', 'lib', 'catalogo.jpg')
+const LOCAL_WELCOME_AUDIO = path.join(__dirname, '..', '..', 'lib', 'welcome.m4a')
+const LOCAL_GOODBYE_AUDIO = path.join(__dirname, '..', '..', 'lib', 'goodbye.m4a')
 
 function parseArgs(text) {
   const args = {}
@@ -226,13 +228,15 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     }
 
     try {
-      const audioUrl = isGoodbye ? 'https://u.pone.rs/yehaores.mp3' : 'https://u.pone.rs/cznldzjp.mp3'
+      const localAudio = isGoodbye ? LOCAL_GOODBYE_AUDIO : LOCAL_WELCOME_AUDIO
+      const remoteAudio = isGoodbye ? 'https://u.pone.rs/yehaores.mp3' : 'https://u.pone.rs/cznldzjp.mp3'
+      const audioSource = fs.existsSync(localAudio) ? fs.readFileSync(localAudio) : { url: remoteAudio }
       await conn.sendMessage(
         m.chat,
         {
-          audio: { url: audioUrl },
+          audio: audioSource,
           mimetype: 'audio/mp4',
-          fileName: isGoodbye ? 'goodbye.mp3' : 'welcome.mp3',
+          fileName: isGoodbye ? 'goodbye.m4a' : 'welcome.m4a',
           ptt: true,
           contextInfo
         },

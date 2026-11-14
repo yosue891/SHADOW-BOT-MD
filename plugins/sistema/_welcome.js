@@ -10,6 +10,8 @@ const canalName = global.channelRD?.name || 'SHADOW-BOT'
 const BACKGROUND = 'https://u.pone.rs/glqjtzaj.jpg'
 const LOCAL_BG = path.join(__dirname, '..', '..', 'lib', 'welcome-bg.jpg')
 const LOCAL_AVATAR = path.join(__dirname, '..', '..', 'lib', 'catalogo.jpg')
+const LOCAL_WELCOME_AUDIO = path.join(__dirname, '..', '..', 'lib', 'welcome.m4a')
+const LOCAL_GOODBYE_AUDIO = path.join(__dirname, '..', '..', 'lib', 'goodbye.m4a')
 const AUDIO_WELCOME = 'https://u.pone.rs/cznldzjp.mp3'
 const AUDIO_GOODBYE = 'https://u.pone.rs/yehaores.mp3'
 
@@ -400,14 +402,18 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
     }
 
     const sendWelcomeAudio = async (isAddAction) => {
-      const audioUrl = isAddAction ? AUDIO_WELCOME : AUDIO_GOODBYE
+      const localPath = isAddAction ? LOCAL_WELCOME_AUDIO : LOCAL_GOODBYE_AUDIO
+      const remoteUrl = isAddAction ? AUDIO_WELCOME : AUDIO_GOODBYE
+      const audioSource = fs.existsSync(localPath) ? fs.readFileSync(localPath) : { url: remoteUrl }
+      const fileName = isAddAction ? 'welcome.m4a' : 'goodbye.m4a'
+
       try {
         await conn.sendMessage(
           m.chat,
           {
-            audio: { url: audioUrl },
+            audio: audioSource,
             mimetype: 'audio/mp4',
-            fileName: isAddAction ? 'welcome.mp3' : 'goodbye.mp3',
+            fileName,
             ptt: true,
             contextInfo
           },
@@ -416,6 +422,19 @@ handler.before = async function (m, { conn, participants, groupMetadata }) {
         console.log(`[WELCOME] Audio PTT (${isAddAction ? 'bienvenida' : 'despedida'}) enviado con éxito a ${m.chat}`)
       } catch (errAudio) {
         console.warn(`[WELCOME] Error enviando audio PTT de ${isAddAction ? 'bienvenida' : 'despedida'}:`, errAudio?.message || errAudio)
+        try {
+          await conn.sendMessage(
+            m.chat,
+            {
+              audio: { url: remoteUrl },
+              mimetype: 'audio/mp4',
+              fileName,
+              ptt: true,
+              contextInfo
+            },
+            { quoted: fkontak }
+          )
+        } catch {}
       }
     }
 
