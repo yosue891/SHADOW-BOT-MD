@@ -29,7 +29,7 @@
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@hapi/boom": "^10.0.1",
     "@itsliaaa/baileys": "^0.3.18-final",
-    "@napi-rs/canvas": "^1.0.9",
+    "@napi-rs/canvas": "^1.1.1",
     "@vitalets/google-translate-api": "^8.0.0",
     "@whiskeysockets/baileys": "npm:@itsliaaa/baileys@^0.3.18-final",
     "acrcloud": "^1.4.0",
