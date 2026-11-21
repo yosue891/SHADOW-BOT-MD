@@ -288,8 +288,7 @@ const handler = async (m, { conn }) => {
             header: { hasMediaAttachment: false },
             carouselMessage: {
               cards,
-              messageVersion: 1,
-              carouselCardType: 1
+              messageVersion: 1
             }
           }
         }
@@ -308,7 +307,7 @@ const handler = async (m, { conn }) => {
     const additionalNodes = [
       {
         tag: 'biz',
-        attrs: { actual_actors: '2', host_storage: '2' },
+        attrs: {},
         content: [
           {
             tag: 'interactive',
