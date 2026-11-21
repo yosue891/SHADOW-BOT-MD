@@ -329,9 +329,9 @@ const handler = async (m, { conn }) => {
       additionalNodes
     });
 
-    await conn.sendMessage(m.chat, { 
+  /*  await conn.sendMessage(m.chat, { 
       text: "Estos son los creadores y desarrolladores más destacados en Shadow-BOT-MD si hay algún error o falla no olvides en reportarlo por alguno de nosotros (y nada de estar escribiendo a media noche por qué no te vamos a contestar)" 
-    }, { quoted: m });
+    }, { quoted: m });*/
 
   } catch (error) {
     console.error("[OWNER ERROR]", error);
