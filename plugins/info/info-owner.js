@@ -49,7 +49,7 @@ function drawCrown(ctx, x, y, width, height) {
 }
 
 async function composeCreatorCardImage(conn, creator) {
-  const fallbackImage = "https://files.catbox.moe/mwhyfm.jpg";
+  const fallbackImage = "https://cdn.dix.lat/me/ih8l_20261121-r2x1-9lja-a8c2.jpg";
   try {
     let bg;
     try {
