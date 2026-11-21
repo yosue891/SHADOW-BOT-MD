@@ -7,7 +7,7 @@ function drawCrown(ctx, x, y, width, height) {
   ctx.translate(x, y);
   ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
   ctx.shadowBlur = 10;
-  
+
   const grad = ctx.createLinearGradient(0, -height, 0, 0);
   grad.addColorStop(0, "#FFE082");
   grad.addColorStop(0.5, "#FFD54F");
@@ -29,7 +29,6 @@ function drawCrown(ctx, x, y, width, height) {
   ctx.fill();
   ctx.stroke();
 
-  // Jewels
   const jewelR = Math.max(3, Math.round(width * 0.04));
   ctx.fillStyle = "#E91E63";
   ctx.beginPath();
@@ -72,22 +71,18 @@ async function composeCreatorCardImage(conn, creator) {
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext("2d");
 
-    // Dibujar imagen de fondo del creador
     ctx.drawImage(bg, 0, 0, W, H);
 
-    // Gradiente sutil arriba para resaltar el avatar
     const topGrad = ctx.createLinearGradient(0, 0, 0, H * 0.45);
     topGrad.addColorStop(0, "rgba(0, 0, 0, 0.42)");
     topGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
     ctx.fillStyle = topGrad;
     ctx.fillRect(0, 0, W, H * 0.45);
 
-    // Dimensiones y centro del avatar (arriba en el centro)
     const r = Math.round(Math.min(W, H) * 0.18);
     const cx = Math.round(W / 2);
     const cy = Math.round(H * 0.28);
 
-    // Intentar obtener foto de perfil de WhatsApp con timeout estricto de 2.5s
     let ppImg = null;
     try {
       const userJid = `${creator.number}@s.whatsapp.net`;
@@ -100,7 +95,6 @@ async function composeCreatorCardImage(conn, creator) {
       }
     } catch {}
 
-    // Sombra del marco
     ctx.save();
     ctx.shadowColor = "rgba(0, 0, 0, 0.75)";
     ctx.shadowBlur = 18;
@@ -110,35 +104,29 @@ async function composeCreatorCardImage(conn, creator) {
     ctx.fill();
     ctx.restore();
 
-    // Borde circular dorado
     ctx.beginPath();
     ctx.arc(cx, cy, r + 2.5, 0, Math.PI * 2);
     ctx.fillStyle = "#FFA000";
     ctx.fill();
 
-    // Clip circular para el avatar
     ctx.save();
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.clip();
 
     if (ppImg) {
-      // Si tiene foto de perfil, dibujarla centrada
       ctx.drawImage(ppImg, cx - r, cy - r, r * 2, r * 2);
     } else {
-      // Si no tiene foto de perfil, dibujar el muñequito de WhatsApp clásico
       ctx.fillStyle = "#CFD8DC";
       ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
 
       ctx.fillStyle = "#90A4AE";
-      // Cabeza
       const headRadius = r * 0.38;
       const headY = cy - r * 0.22;
       ctx.beginPath();
       ctx.arc(cx, headY, headRadius, 0, Math.PI * 2);
       ctx.fill();
 
-      // Torso / hombros
       const torsoY = cy + r * 0.72;
       ctx.beginPath();
       ctx.ellipse(cx, torsoY, r * 0.82, r * 0.58, 0, 0, Math.PI * 2);
@@ -146,7 +134,6 @@ async function composeCreatorCardImage(conn, creator) {
     }
     ctx.restore();
 
-    // Dibujar corona dorada encima del avatar
     drawCrown(ctx, cx, cy - r + Math.round(r * 0.1), r * 1.0, r * 0.62);
 
     return canvas.toBuffer("image/jpeg", { quality: 0.92 });
@@ -350,7 +337,6 @@ const handler = async (m, { conn }) => {
   } catch (error) {
     console.error("[OWNER ERROR]", error);
 
-    // Respaldo de texto garantizado en caso de que el cliente o servidor de WhatsApp rechace carruseles
     let fallbackText = `🎃🦇 *[ SHADOW GARDEN • EQUIPO DE CREADORES ]* 🦇🎃\n\n`;
     for (const c of creators) {
       fallbackText += `👑 *${c.name}* — ${c.role}\n`;
