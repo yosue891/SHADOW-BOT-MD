@@ -117,18 +117,16 @@ async function convertirAudioParaSticker(bufferAudio) {
 
 		await execFileAsync(ffmpegBin, [
 			'-y',
-			'-i',
-			rutaEntrada,
-			'-c:a',
-			'libopus',
-			'-b:a',
-			'64k',
-			'-vbr',
-			'on',
-			'-compression_level',
-			'10',
-			'-application',
-			'voip',
+			'-i', rutaEntrada,
+			'-vn',
+			'-t', '15',
+			'-c:a', 'libopus',
+			'-b:a', '64k',
+			'-vbr', 'on',
+			'-ar', '48000',
+			'-ac', '1',
+			'-compression_level', '10',
+			'-application', 'voip',
 			rutaSalida
 		])
 
@@ -144,7 +142,8 @@ function modificarProto(protoRef) {
 
 	const camposRequeridos = [
 		{ name: 'accessibilityLabel', id: 33, type: 'string' },
-		{ name: 'sound', id: 34, type: 'bytes' }
+		{ name: 'sound', id: 34, type: 'bytes' },
+		{ name: 'audioMessage', id: 26, type: '.proto.Message.AudioMessage' }
 	]
 
 	for (const campo of camposRequeridos) {
@@ -167,6 +166,9 @@ function modificarProto(protoRef) {
 		if (typeof origEncode === 'function') {
 			sm.encode = function (m, w) {
 				const writer = origEncode.call(this, m, w)
+				if (m?.audioMessage != null && protoRef.Message.AudioMessage) {
+					protoRef.Message.AudioMessage.encode(m.audioMessage, writer.uint32(210).fork()).ldelim()
+				}
 				if (m?.sound != null) {
 					writer.uint32(274).bytes(m.sound)
 				}
@@ -181,6 +183,7 @@ function modificarProto(protoRef) {
 		if (typeof origFromObject === 'function') {
 			sm.fromObject = function (d, n) {
 				const res = origFromObject.call(this, d, n)
+				if (d?.audioMessage != null) res.audioMessage = d.audioMessage
 				if (d?.sound != null) res.sound = d.sound
 				if (d?.accessibilityLabel != null) res.accessibilityLabel = d.accessibilityLabel
 				return res
@@ -188,6 +191,31 @@ function modificarProto(protoRef) {
 		}
 
 		sm._audioStickerPatched = true
+	}
+
+	const msgProto = protoRef.Message
+	if (msgProto && !msgProto._audioStickerPatched) {
+		const origMsgEncode = msgProto.encode
+		if (typeof origMsgEncode === 'function') {
+			msgProto.encode = function (m, w) {
+				const writer = origMsgEncode.call(this, m, w)
+				if (m?.audioStickerMessage != null && protoRef.Message.FutureProofMessage) {
+					protoRef.Message.FutureProofMessage.encode(m.audioStickerMessage, writer.uint32(1074).fork()).ldelim()
+				}
+				return writer
+			}
+		}
+
+		const origMsgFromObject = msgProto.fromObject
+		if (typeof origMsgFromObject === 'function') {
+			msgProto.fromObject = function (d, n) {
+				const res = origMsgFromObject.call(this, d, n)
+				if (d?.audioStickerMessage != null) res.audioStickerMessage = d.audioStickerMessage
+				return res
+			}
+		}
+
+		msgProto._audioStickerPatched = true
 	}
 }
 
@@ -236,32 +264,34 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 		return m.reply('ℹ️ No tienes ninguna sesión de AudioSticker activa.')
 	}
 
-	const citado = m.quoted ? m.quoted : null
-	const infoCitado = citado ? citado.msg || citado : null
-	const mimeCitado = infoCitado?.mimetype || ''
+	const objetivo = m.quoted ? m.quoted : m
+	const infoObjetivo = objetivo ? objetivo.msg || objetivo : null
+	const mimeObjetivo = infoObjetivo?.mimetype || ''
 
-	const esStickerCitado =
-		citado?.mtype === 'stickerMessage' ||
-		mimeCitado.includes('webp') ||
-		Boolean(infoCitado?.isAnimated !== undefined && !mimeCitado.includes('audio'))
+	const esSticker =
+		objetivo?.mtype === 'stickerMessage' ||
+		mimeObjetivo.includes('webp') ||
+		Boolean(infoObjetivo?.isAnimated !== undefined && !mimeObjetivo.includes('audio'))
 
-	const esAudioCitado =
-		citado?.mtype === 'audioMessage' ||
-		mimeCitado.includes('audio') ||
-		mimeCitado.includes('ogg')
+	const esAudio =
+		objetivo?.mtype === 'audioMessage' ||
+		objetivo?.mtype === 'videoMessage' ||
+		mimeObjetivo.includes('audio') ||
+		mimeObjetivo.includes('ogg') ||
+		mimeObjetivo.includes('video')
 
 	let sesion = SESIONES.get(claveSesion)
 
-	if (!sesion && esStickerCitado && esAudioCitado) {
-		return m.reply('❌ No se puede detectar sticker y audio al mismo tiempo en el mensaje citado.')
+	if (!sesion && esSticker && esAudio) {
+		return m.reply('❌ No se puede detectar sticker y audio al mismo tiempo en el mensaje. Envía primero uno y luego el otro.')
 	}
 
 	if (!sesion) {
-		if (esStickerCitado) {
-			const bufferSticker = await resolverBufferSticker(citado, conn)
+		if (esSticker) {
+			const bufferSticker = await resolverBufferSticker(objetivo, conn)
 
 			if (!bufferSticker) {
-				return m.reply('❌ No se pudo descargar el sticker citado.')
+				return m.reply('❌ No se pudo descargar el sticker.')
 			}
 
 			SESIONES.set(claveSesion, {
@@ -278,11 +308,11 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 			)
 		}
 
-		if (esAudioCitado) {
-			const bufferAudio = await descargarBuffer(citado, conn)
+		if (esAudio) {
+			const bufferAudio = await descargarBuffer(objetivo, conn)
 
 			if (!bufferAudio) {
-				return m.reply('❌ No se pudo descargar el audio citado.')
+				return m.reply('❌ No se pudo descargar el audio.')
 			}
 
 			SESIONES.set(claveSesion, {
@@ -311,7 +341,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 	}
 
 	if (sesion.bufferSticker && !sesion.bufferAudio) {
-		if (!esAudioCitado) {
+		if (!esAudio) {
 			return m.reply(
 				'⚠️ Ya guardé tu sticker.\n\n' +
 				'👉 Ahora debes responder a un *Audio / Nota de voz* con:\n' +
@@ -320,15 +350,15 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 			)
 		}
 
-		const bufferAudio = await descargarBuffer(citado, conn)
+		const bufferAudio = await descargarBuffer(objetivo, conn)
 
 		if (!bufferAudio) {
-			return m.reply('❌ No se pudo descargar el audio citado.')
+			return m.reply('❌ No se pudo descargar el audio.')
 		}
 
 		sesion.bufferAudio = bufferAudio
 	} else if (sesion.bufferAudio && !sesion.bufferSticker) {
-		if (!esStickerCitado) {
+		if (!esSticker) {
 			return m.reply(
 				'⚠️ Ya guardé tu audio.\n\n' +
 				'👉 Ahora debes responder a un *Sticker* con:\n' +
@@ -337,10 +367,10 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 			)
 		}
 
-		const bufferSticker = await resolverBufferSticker(citado, conn)
+		const bufferSticker = await resolverBufferSticker(objetivo, conn)
 
 		if (!bufferSticker) {
-			return m.reply('❌ No se pudo descargar el sticker citado.')
+			return m.reply('❌ No se pudo descargar el sticker.')
 		}
 
 		sesion.bufferSticker = bufferSticker
@@ -353,30 +383,53 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 	try {
 		const audioConvertido = await convertirAudioParaSticker(sesion.bufferAudio)
 
-		const mediaSticker = await prepareWAMessageMedia(
-			{
-				sticker: sesion.bufferSticker
-			},
-			{
-				upload: conn.waUploadToServer
-			}
-		)
+		// 1. Subir a los servidores de WhatsApp tanto el sticker como el audio
+		const [mediaSticker, mediaAudio] = await Promise.all([
+			prepareWAMessageMedia(
+				{ sticker: sesion.bufferSticker },
+				{ upload: conn.waUploadToServer }
+			),
+			prepareWAMessageMedia(
+				{
+					audio: audioConvertido,
+					mimetype: 'audio/ogg; codecs=opus',
+					ptt: true
+				},
+				{ upload: conn.waUploadToServer }
+			)
+		])
 
-		if (!mediaSticker.stickerMessage) {
-			throw new Error('No se pudo preparar el mensaje del sticker.')
+		if (!mediaSticker?.stickerMessage) {
+			throw new Error('No se pudo preparar el mensaje del sticker en WhatsApp.')
 		}
 
+		// 2. Asociar el audioMessage y metadatos sonoros al stickerMessage
+		if (mediaAudio?.audioMessage) {
+			mediaSticker.stickerMessage.audioMessage = mediaAudio.audioMessage
+		}
 		mediaSticker.stickerMessage.sound = audioConvertido
+		mediaSticker.stickerMessage.accessibilityLabel = 'Audio Sticker'
 
+		// 3. Empaquetar con audioStickerMessage (FutureProofMessage campo 134) y stickerMessage (campo 26)
 		const mensajeFinal = proto.Message.fromObject({
-			stickerMessage: mediaSticker.stickerMessage
+			stickerMessage: mediaSticker.stickerMessage,
+			audioStickerMessage: {
+				message: {
+					stickerMessage: mediaSticker.stickerMessage
+				}
+			}
 		})
 
 		if (mensajeFinal?.stickerMessage) {
+			if (mediaAudio?.audioMessage) {
+				mensajeFinal.stickerMessage.audioMessage = mediaAudio.audioMessage
+			}
 			mensajeFinal.stickerMessage.sound = audioConvertido
+			mensajeFinal.stickerMessage.accessibilityLabel = 'Audio Sticker'
 		}
 
-		const mensajeGenerado = await conn.relayMessage(
+		// 4. Enviar el AudioSticker nativo mediante relayMessage
+		const sentSticker = await conn.relayMessage(
 			m.chat,
 			mensajeFinal,
 			{
@@ -384,7 +437,19 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 			}
 		)
 
-		return mensajeGenerado
+		// 5. Enviar el audio como nota de voz (PTT) vinculado al sticker para garantizar reproducción en cualquier versión de WhatsApp
+		await conn.sendMessage(
+			m.chat,
+			{
+				audio: audioConvertido,
+				mimetype: 'audio/ogg; codecs=opus',
+				ptt: true
+			},
+			{ quoted: m }
+		)
+
+		await m.react?.('🔊').catch(() => {})
+		return sentSticker
 	} catch (error) {
 		console.error('Error al enviar el AudioSticker:', error)
 		return m.reply(`❌ Ocurrió un error al crear el AudioSticker:\n${error.message}`)
