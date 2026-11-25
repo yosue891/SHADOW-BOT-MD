@@ -1,5 +1,4 @@
 import fs from 'fs'
-import { generateWAMessageFromContent, generateWAMessageContent, proto } from '@whiskeysockets/baileys'
 
 function extractTikTokUrl(text) {
   if (!text) return null
@@ -53,15 +52,16 @@ async function fromTikwm(url) {
   const json = await safeFetchJson(`https://www.tikwm.com/api/?url=${encodeURIComponent(url)}`, {}, 6000)
   if (json?.code === 0 && json?.data) {
     const d = json.data
+    const isPhotos = Array.isArray(d.images) && d.images.length > 0
     return {
       source: 'tikwm',
       title: d.title || 'TikTok Video',
       author: d.author?.nickname || d.author?.unique_id || 'TikTok User',
       authorId: d.author?.unique_id || '',
       cover: d.cover || null,
-      video: d.play || d.wmplay || d.hdplay || null,
-      music: d.music || null,
-      images: Array.isArray(d.images) && d.images.length > 0 ? d.images : null,
+      video: isPhotos ? null : (d.play || d.wmplay || d.hdplay || null),
+      music: d.music || (isPhotos ? d.play : null),
+      images: isPhotos ? d.images : null,
       duration: d.duration || 0
     }
   }
@@ -92,12 +92,12 @@ async function fromSsstik(url) {
     })
     const dlHtml = await postRes.text()
     const videoUrl = dlHtml.match(/href=\"([^\"]+)\"[^>]*class=\"[^\"]*without_watermark[^\"]*\"/)?.[1]
-      || dlHtml.match(/href=\"(https?:\/\/[^\"]*tik-cdn[^\"]*)\"/)?.[1]
-      || dlHtml.match(/<a[^>]+href=\"([^\"]+)\"[^>]*download/i)?.[1]
+      || dlHtml.match(/<a[^>]+class=\"[^\"]*without_watermark[^\"]*\"[^>]*href=\"([^\"]+)\"/)?.[1]
 
-    const slideUrls = [...dlHtml.matchAll(/<a[^>]+href=\"([^\"]+)\"[^>]*>/gi)]
-      .map(m => m[1])
-      .filter(u => u.includes('download') || u.includes('tikcdn'))
+    let slideUrls = []
+    if (!videoUrl) {
+      slideUrls = [...dlHtml.matchAll(/href=\"([^\"]+)\"[^>]*class=\"[^\"]*slide[^\"]*\"/gi)].map(m => m[1])
+    }
 
     const titleMatch = dlHtml.match(/<p class=\"maintext\">([^<]+)<\/p>/)
 
@@ -126,17 +126,47 @@ async function fromNyx(url) {
   )
   if (json?.status && json?.result) {
     const r = json.result
+    const isPhotos = Array.isArray(r.images) && r.images.length > 0
     return {
       source: 'nyx',
       title: r.title || 'TikTok Video',
       author: r.author || r.username || 'TikTok User',
       authorId: r.username || '',
       cover: r.cover || null,
-      video: r.downloadNoWatermark || r.download || r.video || r.play || null,
+      video: isPhotos ? null : (r.downloadNoWatermark || r.download || r.video || r.play || null),
       music: r.music || null,
-      images: Array.isArray(r.images) && r.images.length > 0 ? r.images : null,
+      images: isPhotos ? r.images : null,
       duration: r.duration || 0
     }
+  }
+  return null
+}
+
+async function downloadVideoBuffer(videoUrl) {
+  if (!videoUrl) return null
+  const headersList = [
+    {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      'Referer': 'https://www.tiktok.com/'
+    },
+    {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+    }
+  ]
+
+  for (const headers of headersList) {
+    try {
+      const res = await fetch(videoUrl, {
+        headers,
+        signal: AbortSignal.timeout(45000)
+      })
+      if (res.ok) {
+        const arr = await res.arrayBuffer()
+        if (arr.byteLength > 1000) {
+          return Buffer.from(arr)
+        }
+      }
+    } catch {}
   }
   return null
 }
@@ -199,12 +229,46 @@ var handler = async (m, { conn, args, usedPrefix, command }) => {
       shadowInfo += `\n👤 Autor: ${tiktokData.author}`
     }
 
-    // Caso 1: Publicación de diapositivas / fotos de TikTok
+    // PRIORIDAD 1: Si hay video, SIEMPRE enviar el archivo de video reproducible
+    if (tiktokData.video) {
+      const standardCaption = `🎃🦇 *TRANSMISIÓN DE ULTRATUMBA COMPLETADA* 🦇🎃\n\n${shadowInfo}\n\n⚔️ *Shadow Garden*`
+
+      const videoBuffer = await downloadVideoBuffer(tiktokData.video)
+
+      if (videoBuffer) {
+        await conn.sendMessage(
+          m.chat,
+          {
+            video: videoBuffer,
+            caption: standardCaption,
+            mimetype: 'video/mp4',
+            fileName: 'tiktok.mp4'
+          },
+          { quoted: m }
+        )
+      } else {
+        await conn.sendMessage(
+          m.chat,
+          {
+            video: { url: tiktokData.video },
+            caption: standardCaption,
+            mimetype: 'video/mp4',
+            fileName: 'tiktok.mp4'
+          },
+          { quoted: m }
+        )
+      }
+
+      if (m.react) await m.react('✔️')
+      return
+    }
+
+    // PRIORIDAD 2: Solo si es estrictamente un carrusel de fotos (sin video)
     if (tiktokData.images && tiktokData.images.length > 0) {
       const images = tiktokData.images.slice(0, 10)
       for (let i = 0; i < images.length; i++) {
         const caption = i === 0
-          ? `🎃🦇 TRANSMISIÓN DE IMÁGENES COMPLETADA 🦇🎃\n\n${shadowInfo}\n\n📸 Foto [${i + 1}/${images.length}]`
+          ? `🎃🦇 *TRANSMISIÓN DE IMÁGENES COMPLETADA* 🦇🎃\n\n${shadowInfo}\n\n📸 Foto [${i + 1}/${images.length}]`
           : `📸 Foto [${i + 1}/${images.length}]`
         await conn.sendMessage(m.chat, { image: { url: images[i] }, caption }, { quoted: m })
       }
@@ -219,145 +283,9 @@ var handler = async (m, { conn, args, usedPrefix, command }) => {
       return
     }
 
-    // Caso 2: Video de TikTok
-    const videoURL = tiktokData.video
-    let sent = false
+    if (m.react) await m.react('✖️')
+    return m.reply('🎃 [ 🕳️ ] No se encontró contenido multimedia para enviar.')
 
-    // Intento con mensaje interactivo de Halloween y botones
-    try {
-      let thumbBuffer = null
-      if (fs.existsSync('./imgs.jpg')) {
-        thumbBuffer = fs.readFileSync('./imgs.jpg')
-      } else if (fs.existsSync('./lib/catalogo.jpg')) {
-        thumbBuffer = fs.readFileSync('./lib/catalogo.jpg')
-      }
-
-      const businessHeader = {
-        key: { remoteJid: m.chat, participant: '0@s.whatsapp.net', fromMe: false, id: 'ShadowHeader' },
-        message: {
-          locationMessage: {
-            name: '🎃 TikTok • Halloween 🦇',
-            jpegThumbnail: thumbBuffer || Buffer.alloc(0),
-            vcard:
-              'BEGIN:VCARD\n' +
-              'VERSION:3.0\n' +
-              'N:;Shadow;;;\n' +
-              'FN:Shadow\n' +
-              'ORG:Shadow Garden Halloween\n' +
-              'TITLE:\n' +
-              'item1.TEL;waid=5804242773183:+58 0424-2773183\n' +
-              'item1.X-ABLabel:Shadow\n' +
-              'X-WA-BIZ-DESCRIPTION:Archivo invocado desde el Aquelarre de las Sombras\n' +
-              'X-WA-BIZ-NAME:Shadow Garden\n' +
-              'END:VCARD'
-          }
-        },
-        participant: '0@s.whatsapp.net'
-      }
-
-      const media = await generateWAMessageContent({
-        video: { url: videoURL },
-        caption: '🎃🦇 TRANSMISIÓN DE ULTRATUMBA COMPLETADA 🦇🎃\n\n' + shadowInfo
-      }, { upload: conn.waUploadToServer, jid: m.chat })
-
-      const msg = generateWAMessageFromContent(m.chat, {
-        viewOnceMessage: {
-          message: {
-            messageContextInfo: {
-              deviceListMetadata: {},
-              deviceListMetadataVersion: 2
-            },
-            interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-              body: { text: 'TRANSMISIÓN COMPLETADA - ARCHIVO DE LAS SOMBRAS\n\n' + shadowInfo },
-              footer: { text: '⚔️ Shadow Garden' },
-              header: {
-                hasMediaAttachment: true,
-                videoMessage: media.videoMessage
-              },
-              nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
-                messageParamsJson: '',
-                buttons: [
-                  {
-                    name: 'cta_copy',
-                    buttonParamsJson: JSON.stringify({
-                      display_text: 'Copiar',
-                      copy_code: '*I LOVE yosue Shadow-Bot uwu*'
-                    })
-                  },
-                  {
-                    name: 'cta_url',
-                    buttonParamsJson: JSON.stringify({
-                      display_text: 'Abrir TikTok',
-                      url: matchedUrl,
-                      merchant_url: matchedUrl
-                    })
-                  }
-                ]
-              }),
-              contextInfo: {
-                mentionedJid: [m.sender],
-                isForwarded: false
-              }
-            })
-          }
-        }
-      }, {
-        quoted: businessHeader,
-        userJid: conn.user?.jid || conn.user?.id,
-        upload: conn.waUploadToServer
-      })
-
-      const additionalNodes = [
-        {
-          tag: 'biz',
-          attrs: {},
-          content: [
-            {
-              tag: 'interactive',
-              attrs: { type: 'native_flow', v: '1' },
-              content: [
-                {
-                  tag: 'native_flow',
-                  attrs: { v: '9', name: 'mixed' },
-                  content: []
-                }
-              ]
-            }
-          ]
-        }
-      ]
-
-      await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id, additionalNodes })
-      sent = true
-    } catch (relayErr) {
-      console.warn('[TIKTOK RELAY WARNING, usando envío directo]:', relayErr?.message)
-    }
-
-    // Respaldo de envío directo si el mensaje interactivo falla
-    if (!sent) {
-      const standardCaption = `🎃🦇 TRANSMISIÓN DE ULTRATUMBA COMPLETADA 🦇🎃\n\n${shadowInfo}\n\n⚔️ *Shadow Garden*`
-      try {
-        await conn.sendMessage(m.chat, {
-          video: { url: videoURL },
-          caption: standardCaption,
-          mimetype: 'video/mp4'
-        }, { quoted: m })
-      } catch (errUrl) {
-        console.warn('[TIKTOK URL SEND ERROR, descargando buffer]:', errUrl?.message)
-        const bufRes = await fetch(videoURL, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-          signal: AbortSignal.timeout(60000)
-        })
-        const buffer = Buffer.from(await bufRes.arrayBuffer())
-        await conn.sendMessage(m.chat, {
-          video: buffer,
-          caption: standardCaption,
-          mimetype: 'video/mp4'
-        }, { quoted: m })
-      }
-    }
-
-    if (m.react) await m.react('✔️')
   } catch (error1) {
     console.error('[TIKTOK ERROR]:', error1)
     if (m.react) await m.react('✖️')
