@@ -1,6 +1,8 @@
 import { searchYouTube } from "../../lib/youtube-search.js"
 import { downloadYouTube } from "../../lib/apiowo.js"
-import sharp from "sharp"
+
+const ORBITX_API_URL = "https://api.orbitxspace.com/youtube-mp3"
+const ORBITX_API_KEY = "Miku_michigely"
 
 function cleanName(name) {
   const cleaned = String(name || "audio").replace(/[^\w\s._-]/gi, "").trim()
@@ -51,6 +53,41 @@ function parsePlayInput(text, fullText, command, usedPrefix) {
   }
 }
 
+async function downloadOrbitxMP3(url) {
+  try {
+    const res = await fetch(ORBITX_API_URL, {
+      method: "POST",
+      headers: {
+        "apikey": ORBITX_API_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        url,
+        format: "mp3"
+      }),
+      signal: AbortSignal.timeout(30000)
+    })
+    const json = await res.json()
+    if (json?.status && json?.result?.media) {
+      const videoId = extractVideoId(url)
+      const cover = json.result.cover || (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : "")
+      return {
+        download: json.result.media,
+        download_url: json.result.media,
+        url: json.result.media,
+        title: cleanName(json.result.title || "audio"),
+        thumbnail: cover,
+        videoId: videoId || "",
+        quality: json.result.quality || "Audio HQ",
+        mimetype: "audio/mpeg"
+      }
+    }
+  } catch (err) {
+    console.warn("[ORBITX PLAY ERROR]:", err?.message || err)
+  }
+  return null
+}
+
 const handler = async (m, { conn, text, usedPrefix, command }) => {
   try {
     const fullText = (m.text || "").trim()
@@ -65,7 +102,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
         `• *${usedPrefix}play2* Ghostbusters _(descarga video MP4)_\n` +
         `• *${usedPrefix}play* https://youtu.be/xxxx\n` +
         `• *${usedPrefix}play2* https://youtu.be/xxxx\n\n` +
-        `⚡ _Descargas directas impulsadas por:_ \`apiowo.vercel.app\` 🚀`
+        `⚡ _Descargas directas impulsadas por:_ \`api.orbitxspace.com\` 🚀`
       )
     }
 
@@ -77,8 +114,19 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 
     if (isDirectLink) {
       const videoId = extractVideoId(query)
-      try {
-        preloadedDl = await downloadYouTube(query, format)
+
+      if (format === "audio") {
+        preloadedDl = await downloadOrbitxMP3(query)
+      }
+      if (!preloadedDl) {
+        try {
+          preloadedDl = await downloadYouTube(query, format)
+        } catch (errDirect) {
+          console.warn("[PLAY DIRECT] Falló descarga directa inicial:", errDirect?.message)
+        }
+      }
+
+      if (preloadedDl) {
         video = {
           id: videoId || preloadedDl.videoId || "video",
           videoId: videoId || preloadedDl.videoId || "video",
@@ -90,8 +138,6 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
           url: query,
           thumbnail: preloadedDl.thumbnail || (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : "")
         }
-      } catch (errDirect) {
-        console.warn("[PLAY DIRECT] Falló descarga directa inicial:", errDirect?.message)
       }
 
       if (!video) {
@@ -142,15 +188,14 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     info += `👀 *Vistas:* ${views}\n`
     if (ago) info += `📅 *Subido:* ${ago}\n`
     info += `🔗 *Enlace:* ${url}\n\n`
-    info += `⏳ _Enviando ${format === "video" ? "video" : "audio"} con APIOWO, por favor espera..._`
+    info += `⏳ _Enviando ${format === "video" ? "video" : "audio"} con ORBITX SPACE, por favor espera..._`
 
     let jpegThumbnail = null
     if (thumbnailUrl) {
       try {
         const thumbRes = await fetch(thumbnailUrl, { signal: AbortSignal.timeout(6000) })
         if (thumbRes.ok) {
-          const arr = await thumbRes.arrayBuffer()
-          jpegThumbnail = await sharp(Buffer.from(arr)).resize(300, 170).jpeg().toBuffer().catch(() => Buffer.from(arr))
+          jpegThumbnail = Buffer.from(await thumbRes.arrayBuffer())
         }
       } catch (errThumb) {
         console.warn("[PLAY] Error obteniendo miniatura:", errThumb?.message)
@@ -183,8 +228,21 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       }
     }
 
-    const dlRes = preloadedDl || await downloadYouTube(url, format)
-    const downloadUrl = dlRes.download || dlRes.download_url || dlRes.url
+    let dlRes = preloadedDl
+    if (!dlRes) {
+      if (format === "audio") {
+        dlRes = await downloadOrbitxMP3(url)
+      }
+      if (!dlRes) {
+        dlRes = await downloadYouTube(url, format)
+      }
+    }
+
+    const downloadUrl = dlRes?.download || dlRes?.download_url || dlRes?.url
+    if (!downloadUrl) {
+      throw new Error("No se pudo obtener el enlace de descarga.")
+    }
+
     const fileTitle = cleanName(dlRes.title || title)
 
     if (format === "video") {
@@ -231,7 +289,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
         console.warn("[PLAY AUDIO] Envío directo por URL falló, reintentando con buffer:", sendErr?.message)
         const r = await fetch(downloadUrl, {
           headers: { "User-Agent": "Mozilla/5.0" },
-          signal: AbortSignal.timeout(20000)
+          signal: AbortSignal.timeout(30000)
         })
         const buf = Buffer.from(await r.arrayBuffer())
         await conn.sendMessage(

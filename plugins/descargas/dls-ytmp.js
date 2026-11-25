@@ -104,7 +104,7 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
   try {
     const isAudio = type === "mp3" || type === "audio"
     const cleanTitle = cleanName(title) + (isAudio ? ".mp3" : ".mp4")
-    const msg = `🎶 *Shadow — Descarga en curso (APIOWO)*\n\n✨ *Título:* ${title}\n🌌 Preparando tu ${isAudio ? "audio..." : "video..."}`
+    const msg = `🎶 *Shadow — Descarga en curso (ORBITX)*\n\n✨ *Título:* ${title}\n🌌 Preparando tu ${isAudio ? "audio..." : "video..."}`
     
     let sent = await conn.sendMessage(m.chat, { text: msg }, { quoted: m })
 
