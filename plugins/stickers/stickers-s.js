@@ -7,6 +7,27 @@ import { downloadContentFromMessage } from '@whiskeysockets/baileys'
 
 const execAsync = util.promisify(exec)
 
+let ffmpegPathCache = null
+async function obtenerRutaFfmpeg() {
+  if (ffmpegPathCache) return ffmpegPathCache
+  try {
+    await execAsync('ffmpeg -version')
+    ffmpegPathCache = 'ffmpeg'
+    return 'ffmpeg'
+  } catch {
+    try {
+      const installer = await import('@ffmpeg-installer/ffmpeg')
+      const ruta = installer?.default?.path || installer?.path
+      if (ruta) {
+        ffmpegPathCache = ruta
+        return ruta
+      }
+    } catch {}
+  }
+  ffmpegPathCache = 'ffmpeg'
+  return 'ffmpeg'
+}
+
 async function addExif(webpBuffer, packname, author) {
   const img = new webp.Image()
   const stickerPackId = crypto.randomBytes(32).toString('hex')
@@ -138,13 +159,14 @@ let handler = async (m, { conn, args }) => {
     return
   }
 
+  const targetFps = isVideo ? 10 : 15
   const baseContain =
-    'fps=15,' +
+    `fps=${targetFps},` +
     'scale=512:512:force_original_aspect_ratio=decrease,' +
     'pad=512:512:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
 
   const baseCoverCrop =
-    'fps=15,' +
+    `fps=${targetFps},` +
     'scale=512:512:force_original_aspect_ratio=increase,' +
     'crop=512:512'
 
@@ -161,17 +183,35 @@ let handler = async (m, { conn, args }) => {
     style === 'neon' ? (baseContain + ',edgedetect=low=0.08:high=0.2') :
     (baseCoverCrop + ',format=rgba,' + geqCircle)
 
+  const ffmpegBin = await obtenerRutaFfmpeg()
   const ffmpegCmd = isVideo
-    ? 'ffmpeg -y -i "' + input + '" -t 8 -an -vf "' + vf + '" -loop 0 -fps_mode passthrough "' + output + '"'
-    : 'ffmpeg -y -i "' + input + '" -an -vf "' + vf + '" -loop 0 -fps_mode passthrough "' + output + '"'
+    ? `"${ffmpegBin}" -y -i "${input}" -t 45 -an -vf "${vf}" -loop 0 -q:v 30 -lossless 0 -compression_level 4 -fps_mode passthrough "${output}"`
+    : `"${ffmpegBin}" -y -i "${input}" -an -vf "${vf}" -loop 0 -fps_mode passthrough "${output}"`
 
   try {
     await execAsync(ffmpegCmd)
+
+    if (isVideo && fs.existsSync(output)) {
+      const stats = await fs.promises.stat(output)
+      if (stats.size > 950 * 1024) {
+        const fallbackVf =
+          style === 'circle'
+            ? ('fps=8,scale=384:384:force_original_aspect_ratio=increase,crop=384:384,format=rgba,geq=lum=\'p(X,Y)\':a=\'if(lte(hypot(X-192,Y-192),192),255,0)\'')
+            : 'fps=8,scale=384:384:force_original_aspect_ratio=decrease,pad=384:384:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
+        const fallbackCmd = `"${ffmpegBin}" -y -i "${input}" -t 45 -an -vf "${fallbackVf}" -loop 0 -q:v 20 -lossless 0 -compression_level 4 -fps_mode passthrough "${output}"`
+        await execAsync(fallbackCmd).catch(() => {})
+      }
+    }
+
     let stickerBuffer = await fs.promises.readFile(output)
 
     const packName = global.packsticker || 'Shadow Bot'
     const author = global.dev || 'yosue'
-    stickerBuffer = await addExif(stickerBuffer, packName, author)
+    try {
+      stickerBuffer = await addExif(stickerBuffer, packName, author)
+    } catch (exifErr) {
+      console.error('Error aplicando exif al sticker:', exifErr)
+    }
 
     await conn.sendMessage(from, { sticker: stickerBuffer }, { quoted: m })
   } catch (e) {

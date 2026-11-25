@@ -193,12 +193,24 @@ async function convertirMediaParaSticker(bufferMedia, esVideo = false) {
 		await fs.writeFile(rutaEntrada, bufferMedia)
 		const ffmpegBin = await obtenerRutaFfmpeg()
 
-		const baseCrop = 'fps=15,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
+		const baseCrop = esVideo
+			? 'fps=10,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
+			: 'fps=15,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
 		const cmdArgs = esVideo
-			? ['-y', '-i', rutaEntrada, '-t', '8', '-an', '-vf', baseCrop, '-loop', '0', '-fps_mode', 'passthrough', rutaSalida]
+			? ['-y', '-i', rutaEntrada, '-t', '45', '-an', '-vf', baseCrop, '-loop', '0', '-q:v', '30', '-lossless', '0', '-compression_level', '4', '-fps_mode', 'passthrough', rutaSalida]
 			: ['-y', '-i', rutaEntrada, '-an', '-vf', baseCrop, '-loop', '0', '-fps_mode', 'passthrough', rutaSalida]
 
 		await execFileAsync(ffmpegBin, cmdArgs)
+
+		if (esVideo) {
+			const stats = await fs.stat(rutaSalida).catch(() => null)
+			if (stats && stats.size > 950 * 1024) {
+				const fallbackCrop = 'fps=8,scale=384:384:force_original_aspect_ratio=decrease,pad=384:384:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
+				const fallbackArgs = ['-y', '-i', rutaEntrada, '-t', '45', '-an', '-vf', fallbackCrop, '-loop', '0', '-q:v', '20', '-lossless', '0', '-compression_level', '4', '-fps_mode', 'passthrough', rutaSalida]
+				await execFileAsync(ffmpegBin, fallbackArgs).catch(() => {})
+			}
+		}
+
 		return await fs.readFile(rutaSalida)
 	} finally {
 		await fs.unlink(rutaEntrada).catch(() => {})
@@ -222,7 +234,7 @@ async function convertirAudioParaSticker(bufferAudio) {
 			'-y',
 			'-i', rutaEntrada,
 			'-vn',
-			'-t', '15',
+			'-t', '45',
 			'-c:a', 'libopus',
 			'-b:a', '64k',
 			'-vbr', 'on',
