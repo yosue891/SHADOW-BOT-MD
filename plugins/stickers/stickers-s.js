@@ -185,8 +185,8 @@ let handler = async (m, { conn, args }) => {
 
   const ffmpegBin = await obtenerRutaFfmpeg()
   const ffmpegCmd = isVideo
-    ? `"${ffmpegBin}" -y -i "${input}" -t 45 -an -vf "${vf}" -loop 0 -q:v 30 -lossless 0 -compression_level 4 -fps_mode passthrough "${output}"`
-    : `"${ffmpegBin}" -y -i "${input}" -an -vf "${vf}" -loop 0 -fps_mode passthrough "${output}"`
+    ? `"${ffmpegBin}" -y -i "${input}" -t 45 -an -vf "${vf}" -loop 0 -q:v 30 -lossless 0 -compression_level 4 -vsync 0 "${output}"`
+    : `"${ffmpegBin}" -y -i "${input}" -an -vf "${vf}" -loop 0 -vsync 0 "${output}"`
 
   try {
     await execAsync(ffmpegCmd)
@@ -198,7 +198,7 @@ let handler = async (m, { conn, args }) => {
           style === 'circle'
             ? ('fps=8,scale=384:384:force_original_aspect_ratio=increase,crop=384:384,format=rgba,geq=lum=\'p(X,Y)\':a=\'if(lte(hypot(X-192,Y-192),192),255,0)\'')
             : 'fps=8,scale=384:384:force_original_aspect_ratio=decrease,pad=384:384:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
-        const fallbackCmd = `"${ffmpegBin}" -y -i "${input}" -t 45 -an -vf "${fallbackVf}" -loop 0 -q:v 20 -lossless 0 -compression_level 4 -fps_mode passthrough "${output}"`
+        const fallbackCmd = `"${ffmpegBin}" -y -i "${input}" -t 45 -an -vf "${fallbackVf}" -loop 0 -q:v 20 -lossless 0 -compression_level 4 -vsync 0 "${output}"`
         await execAsync(fallbackCmd).catch(() => {})
       }
     }

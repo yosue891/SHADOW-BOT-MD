@@ -28,13 +28,28 @@ function limpiarSesionesExpiradas() {
 	}
 }
 
+let ffmpegPathCache = null
 async function obtenerRutaFfmpeg() {
-	if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH
+	if (ffmpegPathCache) return ffmpegPathCache
+	if (process.env.FFMPEG_PATH) {
+		ffmpegPathCache = process.env.FFMPEG_PATH
+		return process.env.FFMPEG_PATH
+	}
 	try {
-		const installer = await import('@ffmpeg-installer/ffmpeg')
-		const p = installer?.default?.path || installer?.path
-		if (p) return p
-	} catch {}
+		await execFileAsync('ffmpeg', ['-version'])
+		ffmpegPathCache = 'ffmpeg'
+		return 'ffmpeg'
+	} catch {
+		try {
+			const installer = await import('@ffmpeg-installer/ffmpeg')
+			const p = installer?.default?.path || installer?.path
+			if (p) {
+				ffmpegPathCache = p
+				return p
+			}
+		} catch {}
+	}
+	ffmpegPathCache = 'ffmpeg'
 	return 'ffmpeg'
 }
 
@@ -197,8 +212,8 @@ async function convertirMediaParaSticker(bufferMedia, esVideo = false) {
 			? 'fps=10,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
 			: 'fps=15,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
 		const cmdArgs = esVideo
-			? ['-y', '-i', rutaEntrada, '-t', '45', '-an', '-vf', baseCrop, '-loop', '0', '-q:v', '30', '-lossless', '0', '-compression_level', '4', '-fps_mode', 'passthrough', rutaSalida]
-			: ['-y', '-i', rutaEntrada, '-an', '-vf', baseCrop, '-loop', '0', '-fps_mode', 'passthrough', rutaSalida]
+			? ['-y', '-i', rutaEntrada, '-t', '45', '-an', '-vf', baseCrop, '-loop', '0', '-q:v', '30', '-lossless', '0', '-compression_level', '4', '-vsync', '0', rutaSalida]
+			: ['-y', '-i', rutaEntrada, '-an', '-vf', baseCrop, '-loop', '0', '-vsync', '0', rutaSalida]
 
 		await execFileAsync(ffmpegBin, cmdArgs)
 
@@ -206,7 +221,7 @@ async function convertirMediaParaSticker(bufferMedia, esVideo = false) {
 			const stats = await fs.stat(rutaSalida).catch(() => null)
 			if (stats && stats.size > 950 * 1024) {
 				const fallbackCrop = 'fps=8,scale=384:384:force_original_aspect_ratio=decrease,pad=384:384:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
-				const fallbackArgs = ['-y', '-i', rutaEntrada, '-t', '45', '-an', '-vf', fallbackCrop, '-loop', '0', '-q:v', '20', '-lossless', '0', '-compression_level', '4', '-fps_mode', 'passthrough', rutaSalida]
+				const fallbackArgs = ['-y', '-i', rutaEntrada, '-t', '45', '-an', '-vf', fallbackCrop, '-loop', '0', '-q:v', '20', '-lossless', '0', '-compression_level', '4', '-vsync', '0', rutaSalida]
 				await execFileAsync(ffmpegBin, fallbackArgs).catch(() => {})
 			}
 		}
@@ -380,6 +395,96 @@ async function resolverBufferSticker(item, conn) {
 	return descargado
 }
 
+async function tienePistaDeAudio(bufferMedia) {
+	const dirTmp = join(process.cwd(), './tmp')
+	await fs.mkdir(dirTmp, { recursive: true })
+	const ruta = join(dirTmp, `chk_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.mp4`)
+	try {
+		await fs.writeFile(ruta, bufferMedia)
+		const ffmpegBin = await obtenerRutaFfmpeg()
+		try {
+			await execFileAsync(ffmpegBin, ['-i', ruta])
+			return false
+		} catch (err) {
+			const errStr = (err?.stderr || '').toString()
+			return /Stream #.*Audio:/i.test(errStr)
+		}
+	} finally {
+		await fs.unlink(ruta).catch(() => {})
+	}
+}
+
+async function forjarYEnviarAudioSticker(conn, idChat, bufferSticker, bufferAudio, packName, authorName, quotedMsg) {
+	const audioConvertido = await convertirAudioParaSticker(bufferAudio)
+	const stickerConExif = await addExif(bufferSticker, packName, authorName)
+
+	const [mediaSticker, mediaAudio] = await Promise.all([
+		prepareWAMessageMedia(
+			{ sticker: stickerConExif },
+			{ upload: conn.waUploadToServer }
+		),
+		prepareWAMessageMedia(
+			{
+				audio: audioConvertido,
+				mimetype: 'audio/ogg; codecs=opus',
+				ptt: true
+			},
+			{ upload: conn.waUploadToServer }
+		)
+	])
+
+	if (!mediaSticker?.stickerMessage) {
+		throw new Error('No se pudo preparar el mensaje del sticker en WhatsApp.')
+	}
+
+	const descripcionSticker = `${packName} • ${authorName}`
+
+	if (mediaAudio?.audioMessage) {
+		mediaSticker.stickerMessage.audioMessage = mediaAudio.audioMessage
+	}
+	mediaSticker.stickerMessage.sound = audioConvertido
+	mediaSticker.stickerMessage.accessibilityLabel = descripcionSticker
+	mediaSticker.stickerMessage.emojis = '🔊'
+
+	const mensajeFinal = proto.Message.fromObject({
+		stickerMessage: mediaSticker.stickerMessage,
+		audioStickerMessage: {
+			message: {
+				stickerMessage: mediaSticker.stickerMessage
+			}
+		}
+	})
+
+	if (mensajeFinal?.stickerMessage) {
+		if (mediaAudio?.audioMessage) {
+			mensajeFinal.stickerMessage.audioMessage = mediaAudio.audioMessage
+		}
+		mensajeFinal.stickerMessage.sound = audioConvertido
+		mensajeFinal.stickerMessage.accessibilityLabel = descripcionSticker
+		mensajeFinal.stickerMessage.emojis = '🔊'
+	}
+
+	const sentSticker = await conn.relayMessage(
+		idChat,
+		mensajeFinal,
+		{
+			messageId: conn.generateMessageTag?.() || undefined
+		}
+	)
+
+	await conn.sendMessage(
+		idChat,
+		{
+			audio: audioConvertido,
+			mimetype: 'audio/ogg; codecs=opus',
+			ptt: true
+		},
+		{ quoted: quotedMsg }
+	)
+
+	return sentSticker
+}
+
 const handler = async (m, { conn, args, usedPrefix, command }) => {
 	limpiarSesionesExpiradas()
 	await asegurarModificado()
@@ -405,6 +510,14 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 	const infoObjetivo = objetivo ? objetivo.msg || objetivo : null
 	const mimeObjetivo = infoObjetivo?.mimetype || ''
 
+	const esVideo =
+		objetivo?.mtype === 'videoMessage' ||
+		/video/.test(mimeObjetivo)
+
+	const esAudio =
+		objetivo?.mtype === 'audioMessage' ||
+		/audio|ogg/.test(mimeObjetivo)
+
 	const esStickerOImagen =
 		objetivo?.mtype === 'stickerMessage' ||
 		objetivo?.mtype === 'imageMessage' ||
@@ -412,21 +525,30 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 		mimeObjetivo.includes('image') ||
 		Boolean(infoObjetivo?.isAnimated !== undefined && !mimeObjetivo.includes('audio'))
 
-	const esAudioOVideo =
-		objetivo?.mtype === 'audioMessage' ||
-		objetivo?.mtype === 'videoMessage' ||
-		mimeObjetivo.includes('audio') ||
-		mimeObjetivo.includes('ogg') ||
-		mimeObjetivo.includes('video')
-
 	let sesion = SESIONES.get(claveSesion)
 
-	if (!sesion && esStickerOImagen && esAudioOVideo && !mimeObjetivo.includes('webp')) {
-		// Mensaje ambiguo con ambos tipos en uno solo
+	// Caso especial: Video con audio directo (Método rápido de 1 solo paso sin sesión previa)
+	if (!sesion && esVideo) {
+		const videoBuffer = await descargarBuffer(objetivo, conn)
+		if (videoBuffer) {
+			const tieneAudio = await tienePistaDeAudio(videoBuffer)
+			if (tieneAudio) {
+				await m.reply('⏳ *Forjando tu Sello Arcano con audio directamente desde el video...*')
+				try {
+					const bufferSticker = await convertirMediaParaSticker(videoBuffer, true)
+					await forjarYEnviarAudioSticker(conn, idChat, bufferSticker, videoBuffer, packName, authorName, m)
+					await m.react?.('🔊').catch(() => {})
+					return
+				} catch (error) {
+					console.error('Error al procesar video en stickeraudio:', error)
+					return m.reply(`❌ Ocurrió un error al procesar el video:\n${error.message}`)
+				}
+			}
+		}
 	}
 
 	if (!sesion) {
-		if (esStickerOImagen) {
+		if (esStickerOImagen || esVideo) {
 			const bufferSticker = await resolverBufferSticker(objetivo, conn)
 
 			if (!bufferSticker) {
@@ -440,7 +562,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 			})
 
 			return m.reply(
-				'🎃🦇 *[ SHADOW GARDEN • SELLOS CON AUDIO ]* 🦇🎃\n\n' +
+				'🎃🦇 *[ SHADOW GARDEN • STICKER CON AUDIO ]* 🦇🎃\n\n' +
 				'✅ *Paso 1 completado:* Guardé tu *Sticker* con el sello de *' + packName + '*.\n\n' +
 				'👉 Ahora responde al *Audio / Nota de voz* usando el comando:\n' +
 				`*${usedPrefix + command}*\n\n` +
@@ -448,7 +570,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 			)
 		}
 
-		if (esAudioOVideo) {
+		if (esAudio) {
 			const bufferAudio = await descargarBuffer(objetivo, conn)
 
 			if (!bufferAudio) {
@@ -462,7 +584,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 			})
 
 			return m.reply(
-				'🎃🦇 *[ SHADOW GARDEN • SELLOS CON AUDIO ]* 🦇🎃\n\n' +
+				'🎃🦇 *[ SHADOW GARDEN • STICKER CON AUDIO ]* 🦇🎃\n\n' +
 				'✅ *Paso 1 completado:* Guardé tu *Audio*.\n\n' +
 				'👉 Ahora responde al *Sticker* o imagen usando el comando:\n' +
 				`*${usedPrefix + command}*\n\n` +
@@ -471,18 +593,21 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 		}
 
 		return m.reply(
-			'🎃🦇 *[ SHADOW GARDEN • SELLOS CON AUDIO ]* 🦇🎃\n\n' +
+			'🎃🦇 *[ SHADOW GARDEN • STICKER CON AUDIO ]* 🦇🎃\n\n' +
 			'Forja sellos sombríos con audio integrado de WhatsApp.\n\n' +
 			'*¿Cómo usarlo?*\n' +
-			`1️⃣ Responde a un *Sticker* (o imagen) con *${usedPrefix + command}*\n` +
-			`2️⃣ Luego responde al *Audio / Nota de voz* con *${usedPrefix + command}*\n\n` +
-			'_También funciona al revés (primero el audio y luego el sticker)._\n\n' +
-			`Para cancelar: *${usedPrefix + command} cancelar*`
+			'📹 *1. Modo directo (1 paso):*\n' +
+			`• Responde a un *Video* con *${usedPrefix + command}* para convertirlo en sticker con su propio audio al instante.\n\n` +
+			'🎴 *2. Modo combinado (2 pasos):*\n' +
+			`• 1️⃣ Responde a un *Sticker* (o imagen) con *${usedPrefix + command}*\n` +
+			`• 2️⃣ Luego responde al *Audio / Nota de voz* con *${usedPrefix + command}*\n` +
+			'_(También funciona al revés: primero audio y luego sticker)_\n\n' +
+			`• Para cancelar: *${usedPrefix + command} cancelar*`
 		)
 	}
 
 	if (sesion.bufferSticker && !sesion.bufferAudio) {
-		if (!esAudioOVideo) {
+		if (!esAudio && !esVideo) {
 			return m.reply(
 				'⚠️ Ya guardé tu sticker.\n\n' +
 				'👉 Ahora debes responder a un *Audio / Nota de voz* con:\n' +
@@ -499,7 +624,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
 		sesion.bufferAudio = bufferAudio
 	} else if (sesion.bufferAudio && !sesion.bufferSticker) {
-		if (!esStickerOImagen) {
+		if (!esStickerOImagen && !esVideo) {
 			return m.reply(
 				'⚠️ Ya guardé tu audio.\n\n' +
 				'👉 Ahora debes responder a un *Sticker* o imagen con:\n' +
@@ -522,95 +647,21 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 	await m.reply('⏳ *Forjando tu Sello Arcano con audio...*')
 
 	try {
-		const audioConvertido = await convertirAudioParaSticker(sesion.bufferAudio)
-
-		// Aplicar la descripción EXIF exacta de los stickers generados con el comando .s
-		const stickerConExif = await addExif(sesion.bufferSticker, packName, authorName)
-
-		// 1. Subir a los servidores de WhatsApp tanto el sticker (con EXIF de .s) como el audio
-		const [mediaSticker, mediaAudio] = await Promise.all([
-			prepareWAMessageMedia(
-				{ sticker: stickerConExif },
-				{ upload: conn.waUploadToServer }
-			),
-			prepareWAMessageMedia(
-				{
-					audio: audioConvertido,
-					mimetype: 'audio/ogg; codecs=opus',
-					ptt: true
-				},
-				{ upload: conn.waUploadToServer }
-			)
-		])
-
-		if (!mediaSticker?.stickerMessage) {
-			throw new Error('No se pudo preparar el mensaje del sticker en WhatsApp.')
-		}
-
-		const descripcionSticker = `${packName} • ${authorName}`
-
-		// 2. Asociar el audioMessage y la descripción del sticker (como en el comando .s)
-		if (mediaAudio?.audioMessage) {
-			mediaSticker.stickerMessage.audioMessage = mediaAudio.audioMessage
-		}
-		mediaSticker.stickerMessage.sound = audioConvertido
-		mediaSticker.stickerMessage.accessibilityLabel = descripcionSticker
-		mediaSticker.stickerMessage.emojis = '🔊'
-
-		// 3. Empaquetar con audioStickerMessage (FutureProofMessage campo 134) y stickerMessage (campo 26)
-		const mensajeFinal = proto.Message.fromObject({
-			stickerMessage: mediaSticker.stickerMessage,
-			audioStickerMessage: {
-				message: {
-					stickerMessage: mediaSticker.stickerMessage
-				}
-			}
-		})
-
-		if (mensajeFinal?.stickerMessage) {
-			if (mediaAudio?.audioMessage) {
-				mensajeFinal.stickerMessage.audioMessage = mediaAudio.audioMessage
-			}
-			mensajeFinal.stickerMessage.sound = audioConvertido
-			mensajeFinal.stickerMessage.accessibilityLabel = descripcionSticker
-			mensajeFinal.stickerMessage.emojis = '🔊'
-		}
-
-		// 4. Enviar el AudioSticker nativo mediante relayMessage
-		const sentSticker = await conn.relayMessage(
-			m.chat,
-			mensajeFinal,
-			{
-				messageId: conn.generateMessageTag?.() || undefined
-			}
-		)
-
-		// 5. Enviar el audio como nota de voz (PTT) vinculado al sticker para garantizar reproducción en cualquier versión de WhatsApp
-		await conn.sendMessage(
-			m.chat,
-			{
-				audio: audioConvertido,
-				mimetype: 'audio/ogg; codecs=opus',
-				ptt: true
-			},
-			{ quoted: m }
-		)
-
+		await forjarYEnviarAudioSticker(conn, idChat, sesion.bufferSticker, sesion.bufferAudio, packName, authorName, m)
 		await m.react?.('🔊').catch(() => {})
-		return sentSticker
 	} catch (error) {
 		console.error('Error al enviar el AudioSticker:', error)
 		return m.reply(`❌ Ocurrió un error al crear el AudioSticker:\n${error.message}`)
 	}
 }
 
-handler.help = ['prueba1', 'audiosticker']
+handler.help = ['stickeraudio', 'audiosticker']
 handler.tags = ['sticker']
 handler.command = [
-	'prueba1',
+	'stickeraudio',
 	'audiosticker',
 	'stikeraudio',
-	'stickeraudio',
+	'prueba1',
 	'figurinhasom',
 	'saudio'
 ]
