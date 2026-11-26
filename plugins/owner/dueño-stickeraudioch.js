@@ -423,18 +423,30 @@ async function convertirAudioParaSticker(bufferAudio) {
 async function resolverBufferSticker(item, conn) {
 	if (!item) return null
 	const directBuf = toBuffer(item)
-	if (directBuf) return directBuf
+	if (directBuf && directBuf.length > 10) {
+		const isRiff = directBuf.slice(0, 4).toString() === 'RIFF' && directBuf.slice(8, 12).toString() === 'WEBP'
+		if (isRiff) return directBuf
+	}
 
 	let descargado = null
 	if (typeof item?.download === 'function') {
-		descargado = await item.download().catch(() => null)
+		try {
+			descargado = await item.download()
+		} catch {}
+	}
+	if (!descargado && typeof conn?.downloadMediaMessage === 'function') {
+		try {
+			descargado = await conn.downloadMediaMessage(item)
+		} catch {}
 	}
 	if (!descargado) {
-		descargado = await descargarBuffer(item, conn)
+		try {
+			descargado = await descargarBuffer(item, conn)
+		} catch {}
 	}
 
 	const buf = toBuffer(descargado)
-	if (!buf) return null
+	if (!buf || buf.length === 0) return null
 
 	const info = item?.msg || item
 	const mime = info?.mimetype || ''
@@ -442,10 +454,13 @@ async function resolverBufferSticker(item, conn) {
 	const esImagen = /image/.test(mime) || item?.mtype === 'imageMessage'
 
 	if (esImagen || esVideo || !mime.includes('webp')) {
-		try {
-			return await convertirMediaParaSticker(buf, esVideo)
-		} catch {
-			return buf
+		const isRiffWebp = buf.slice(0, 4).toString() === 'RIFF' && buf.slice(8, 12).toString() === 'WEBP'
+		if (!isRiffWebp) {
+			try {
+				return await convertirMediaParaSticker(buf, esVideo)
+			} catch {
+				return buf
+			}
 		}
 	}
 
@@ -466,11 +481,9 @@ async function obtenerAudioYSticker(m, conn) {
 		{}
 
 	// 1. Obtener buffer del sticker
-	if (q.mtype === 'stickerMessage' || q.isSticker || rawQuotedMsg?.stickerMessage || q.msg?.mimetype?.includes('webp')) {
-		bufferSticker = await resolverBufferSticker(q, conn)
-	}
+	bufferSticker = await resolverBufferSticker(q, conn)
 
-	// 2. Extraer audio desde todas las posibles fuentes:
+	// 2. Extraer audio si existe:
 	// A) Campo sound directo (Uint8Array, Buffer o serializado como { type: 'Buffer', data: [...] })
 	const posiblesSound = [
 		q.sound,
@@ -512,14 +525,12 @@ async function obtenerAudioYSticker(m, conn) {
 						bufferAudio = b
 						break
 					}
-				} catch (e) {
-					console.error('Error al descargar audioMessage embebido:', e)
-				}
+				} catch {}
 			}
 		}
 	}
 
-	// C) Cargar mensaje original completo desde conn.chats o conn.loadMessage
+	// C) Mensaje original en cache (conn.loadMessage o m.getQuotedObj)
 	if (!bufferAudio && q.id) {
 		try {
 			const fullMsg =
@@ -531,9 +542,7 @@ async function obtenerAudioYSticker(m, conn) {
 			if (origMsg) {
 				const sm = origMsg.stickerMessage || origMsg.audioStickerMessage?.message?.stickerMessage
 				if (sm) {
-					if (!bufferSticker) {
-						bufferSticker = await resolverBufferSticker(sm, conn)
-					}
+					if (!bufferSticker) bufferSticker = await resolverBufferSticker(sm, conn)
 					const b = toBuffer(sm.sound)
 					if (b && b.length > 0) {
 						bufferAudio = b
@@ -547,12 +556,10 @@ async function obtenerAudioYSticker(m, conn) {
 					}
 				}
 			}
-		} catch (e) {
-			console.error('Error al buscar en mensaje original cacheado:', e)
-		}
+		} catch {}
 	}
 
-	// D) Si el sticker fue enviado en el chat acompañado de una nota de voz (como en .stickeraudio)
+	// D) Nota de voz adyacente en el chat (por si se generó con .stickeraudio)
 	if (!bufferAudio && q.id) {
 		try {
 			const msgsObj = conn?.chats?.[m.chat]?.messages
@@ -577,36 +584,29 @@ async function obtenerAudioYSticker(m, conn) {
 					}
 				}
 			}
-		} catch (e) {
-			console.error('Error al buscar audio adyacente:', e)
-		}
-	}
-
-	// E) Si el usuario respondió directamente a la nota de audio del sticker
-	if (!bufferSticker && (q.mtype === 'audioMessage' || q.isAudio || rawQuotedMsg?.audioMessage)) {
-		try {
-			bufferAudio = await descargarBuffer(q, conn)
-			const msgsObj = conn?.chats?.[m.chat]?.messages
-			if (msgsObj) {
-				const msgsList = Object.values(msgsObj)
-				const targetIdx = msgsList.findIndex(v => v?.key?.id === q.id)
-				if (targetIdx !== -1) {
-					for (const offset of [-1, 1, -2, 2]) {
-						const nearby = msgsList[targetIdx + offset]
-						const nearbySticker = nearby?.message?.stickerMessage
-						if (nearbySticker) {
-							bufferSticker = await resolverBufferSticker(nearbySticker, conn)
-							if (bufferSticker) break
-						}
-					}
-				}
-			}
-		} catch (e) {
-			console.error('Error al resolver sticker desde audio citado:', e)
-		}
+		} catch {}
 	}
 
 	return { bufferSticker, bufferAudio }
+}
+
+async function tienePistaDeAudio(bufferMedia) {
+	const dirTmp = join(process.cwd(), './tmp')
+	await fs.mkdir(dirTmp, { recursive: true })
+	const ruta = join(dirTmp, `chk_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.mp4`)
+	try {
+		await fs.writeFile(ruta, bufferMedia)
+		const ffmpegBin = await obtenerRutaFfmpeg()
+		try {
+			await execFileAsync(ffmpegBin, ['-i', ruta])
+			return false
+		} catch (err) {
+			const errStr = (err?.stderr || '').toString()
+			return /Stream #.*Audio:/i.test(errStr)
+		}
+	} finally {
+		await fs.unlink(ruta).catch(() => {})
+	}
 }
 
 async function resolverJidCanal(input, conn) {
@@ -701,7 +701,7 @@ async function forjarYEnviarAudioStickerCanal(conn, canalDestino, bufferSticker,
 		await conn.sendMessage(canalDestino, { sticker: stickerConExif })
 	}
 
-	// Enviar también la pista de audio al canal para asegurar reproducción en todos los dispositivos
+	// Enviar también la pista de audio al canal para asegurar reproducción en todos los clientes
 	try {
 		await conn.sendMessage(canalDestino, {
 			audio: audioConvertido,
@@ -735,26 +735,23 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
 	if (!objetivo) {
 		return m.reply(
-			`🎃🦇 *[ STICKER CON AUDIO AL CANAL ]* 🦇🎃\n\n` +
-			`👉 *Debes responder a un sticker con audio usando:*\n` +
+			`🎃🦇 *[ STICKER AL CANAL ]* 🦇🎃\n\n` +
+			`👉 *Responde a cualquier sticker (con o sin audio) usando:*\n` +
 			`> *${usedPrefix + command}*\n\n` +
 			`📢 *Destino:* ${canalNombre}\n` +
 			`🆔 *ID:* \`${canalPorDefecto}\``
 		)
 	}
 
+	await m.react('⏳')
+
+	// Caso A: Responder a un video (con o sin audio)
 	const q = objetivo
 	const infoObjetivo = q.msg || q
 	const mimeObjetivo = infoObjetivo?.mimetype || ''
+	const esVideo = q.mtype === 'videoMessage' || q.isVideo || /video/.test(mimeObjetivo)
 
-	const esVideo =
-		q.mtype === 'videoMessage' ||
-		q.isVideo ||
-		/video/.test(mimeObjetivo)
-
-	// Caso A: Responder a un video con audio (conversión y envío directo en 1 paso)
 	if (esVideo) {
-		await m.react('⏳')
 		try {
 			const videoBuffer = await descargarBuffer(q, conn)
 			if (!videoBuffer) {
@@ -762,22 +759,33 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 				return m.reply('❌ No se pudo descargar el video citado.')
 			}
 
+			const tieneAudio = await tienePistaDeAudio(videoBuffer)
 			const bufferSticker = await convertirMediaParaSticker(videoBuffer, true)
-			await forjarYEnviarAudioStickerCanal(
-				conn,
-				canalDestino,
-				bufferSticker,
-				videoBuffer,
-				packName,
-				authorName
-			)
 
-			await m.react('✅')
-			return m.reply(
-				`✅ *¡Sticker con audio enviado exitosamente al canal oficial!*\n\n` +
-				`📢 *Canal:* ${canalNombre}\n` +
-				`🆔 *ID:* \`${canalDestino}\``
-			)
+			if (tieneAudio) {
+				await forjarYEnviarAudioStickerCanal(
+					conn,
+					canalDestino,
+					bufferSticker,
+					videoBuffer,
+					packName,
+					authorName
+				)
+				await m.react('✅')
+				return m.reply(
+					`✅ *¡Sticker animado con audio enviado al canal oficial!*\n\n` +
+					`📢 *Canal:* ${canalNombre}\n` +
+					`🆔 *ID:* \`${canalDestino}\``
+				)
+			} else {
+				await conn.sendMessage(canalDestino, { sticker: bufferSticker })
+				await m.react('✅')
+				return m.reply(
+					`✅ *¡Sticker animado enviado al canal oficial!*\n\n` +
+					`📢 *Canal:* ${canalNombre}\n` +
+					`🆔 *ID:* \`${canalDestino}\``
+				)
+			}
 		} catch (error) {
 			console.error('Error al procesar video para canal:', error)
 			await m.react('❌')
@@ -785,50 +793,52 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 		}
 	}
 
-	// Caso B: Responder a un sticker con audio
-	await m.react('⏳')
+	// Caso B: Responder a cualquier tipo de sticker (con audio o normal) o imagen
 	const { bufferSticker, bufferAudio } = await obtenerAudioYSticker(m, conn)
 
 	if (!bufferSticker) {
 		await m.react('❌')
 		return m.reply(
-			`⚠️ *Debes responder a un sticker con audio.*\n\n` +
-			`Usa: *${usedPrefix + command}* citando el sticker deseado.`
-		)
-	}
-
-	if (!bufferAudio || bufferAudio.length === 0) {
-		await m.react('❌')
-		return m.reply(
-			`❌ *Este sticker no tiene audio integrado.*\n\n` +
-			`Asegúrate de responder a un sticker con sonido (por ejemplo, generado con *${usedPrefix}stickeraudio* o con audio de WhatsApp).`
+			`⚠️ *No se pudo procesar el sticker citado.*\n\n` +
+			`Asegúrate de responder a un sticker usando *${usedPrefix + command}*.`
 		)
 	}
 
 	try {
-		await forjarYEnviarAudioStickerCanal(
-			conn,
-			canalDestino,
-			bufferSticker,
-			bufferAudio,
-			packName,
-			authorName
-		)
-
-		await m.react('✅')
-		return m.reply(
-			`✅ *¡Sticker con audio enviado exitosamente al canal oficial!*\n\n` +
-			`📢 *Canal:* ${canalNombre}\n` +
-			`🆔 *ID:* \`${canalDestino}\``
-		)
+		if (bufferAudio && bufferAudio.length > 0) {
+			// Sticker con audio integrado detectado
+			await forjarYEnviarAudioStickerCanal(
+				conn,
+				canalDestino,
+				bufferSticker,
+				bufferAudio,
+				packName,
+				authorName
+			)
+			await m.react('✅')
+			return m.reply(
+				`✅ *¡Sticker con audio enviado exitosamente al canal oficial!*\n\n` +
+				`📢 *Canal:* ${canalNombre}\n` +
+				`🆔 *ID:* \`${canalDestino}\``
+			)
+		} else {
+			// Sticker estándar (estático, animado o sin audio detectable)
+			await conn.sendMessage(canalDestino, { sticker: bufferSticker })
+			await m.react('✅')
+			return m.reply(
+				`✅ *¡Sticker enviado exitosamente al canal oficial!*\n\n` +
+				`📢 *Canal:* ${canalNombre}\n` +
+				`🆔 *ID:* \`${canalDestino}\``
+			)
+		}
 	} catch (error) {
-		console.error('Error al transferir sticker con audio al canal:', error)
+		console.error('Error al enviar sticker al canal:', error)
 		await m.react('❌')
 		return m.reply(`❌ Ocurrió un error al enviar al canal:\n> ${error.message}`)
 	}
 }
 
-handler.help = ['sach', 'stickeraudioch', 'saudiocanal']
+handler.help = ['sach', 'stickeraudioch', 'saudiocanal', 'stickerch']
 handler.tags = ['owner']
 handler.command = [
 	'sach',
@@ -837,6 +847,9 @@ handler.command = [
 	'stickeraudiocanal',
 	'schanel',
 	'schannel',
+	'stickerch',
+	'stickercanal',
+	'sch',
 	'saudioch'
 ]
 handler.owner = true
