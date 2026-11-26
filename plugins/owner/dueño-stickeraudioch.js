@@ -13,21 +13,6 @@ import crypto from 'crypto'
 
 const execFileAsync = promisify(execFile)
 
-if (!global.channelAudioStickerSessions) {
-	global.channelAudioStickerSessions = new Map()
-}
-
-const SESIONES = global.channelAudioStickerSessions
-
-function limpiarSesionesExpiradas() {
-	const ahora = Date.now()
-	for (const [clave, sesion] of SESIONES.entries()) {
-		if (ahora - sesion.creadoEn > 2 * 60 * 1000) {
-			SESIONES.delete(clave)
-		}
-	}
-}
-
 let ffmpegPathCache = null
 async function obtenerRutaFfmpeg() {
 	if (ffmpegPathCache) return ffmpegPathCache
@@ -52,6 +37,141 @@ async function obtenerRutaFfmpeg() {
 	ffmpegPathCache = 'ffmpeg'
 	return 'ffmpeg'
 }
+
+function extractProtobufField(buffer, targetField) {
+	if (!Buffer.isBuffer(buffer)) buffer = Buffer.from(buffer)
+	let offset = 0
+	while (offset < buffer.length) {
+		let tag = 0
+		let shift = 0
+		while (offset < buffer.length) {
+			const byte = buffer[offset++]
+			tag |= (byte & 0x7f) << shift
+			if (!(byte & 0x80)) break
+			shift += 7
+		}
+		const fieldNum = tag >>> 3
+		const wireType = tag & 7
+
+		if (wireType === 0) {
+			while (offset < buffer.length && (buffer[offset++] & 0x80)) {}
+		} else if (wireType === 2) {
+			let len = 0
+			let lenShift = 0
+			while (offset < buffer.length) {
+				const byte = buffer[offset++]
+				len |= (byte & 0x7f) << lenShift
+				if (!(byte & 0x80)) break
+				lenShift += 7
+			}
+			if (fieldNum === targetField) {
+				return buffer.slice(offset, offset + len)
+			}
+			offset += len
+		} else if (wireType === 1) {
+			offset += 8
+		} else if (wireType === 5) {
+			offset += 4
+		} else {
+			break
+		}
+	}
+	return null
+}
+
+function modificarProto(protoRef) {
+	if (!protoRef?.Message?.StickerMessage) return
+
+	const sm = protoRef.Message.StickerMessage
+	if (sm && !sm._audioStickerPatched) {
+		const origEncode = sm.encode
+		if (typeof origEncode === 'function') {
+			sm.encode = function (m, w) {
+				const writer = origEncode.call(this, m, w)
+				if (m?.audioMessage != null && protoRef.Message.AudioMessage) {
+					protoRef.Message.AudioMessage.encode(m.audioMessage, writer.uint32(210).fork()).ldelim()
+				}
+				if (m?.sound != null) {
+					writer.uint32(274).bytes(m.sound)
+				}
+				if (m?.accessibilityLabel != null) {
+					writer.uint32(266).string(m.accessibilityLabel)
+				}
+				return writer
+			}
+		}
+
+		const origDecode = sm.decode
+		if (typeof origDecode === 'function') {
+			sm.decode = function (r, l, e, n) {
+				let rawBuf = null
+				if (Buffer.isBuffer(r) || r instanceof Uint8Array) {
+					rawBuf = Buffer.from(r)
+				} else if (r?.buf && (Buffer.isBuffer(r.buf) || r.buf instanceof Uint8Array)) {
+					rawBuf = Buffer.from(r.buf)
+				}
+				const msg = origDecode.call(this, r, l, e, n)
+				if (rawBuf && !msg.sound) {
+					const sound = extractProtobufField(rawBuf, 34)
+					if (sound && sound.length > 0) msg.sound = sound
+				}
+				return msg
+			}
+		}
+
+		const origFromObject = sm.fromObject
+		if (typeof origFromObject === 'function') {
+			sm.fromObject = function (d, n) {
+				const res = origFromObject.call(this, d, n)
+				if (d?.audioMessage != null) res.audioMessage = d.audioMessage
+				if (d?.sound != null) res.sound = d.sound
+				if (d?.accessibilityLabel != null) res.accessibilityLabel = d.accessibilityLabel
+				return res
+			}
+		}
+
+		sm._audioStickerPatched = true
+	}
+
+	const msgProto = protoRef.Message
+	if (msgProto && !msgProto._audioStickerPatched) {
+		const origMsgEncode = msgProto.encode
+		if (typeof origMsgEncode === 'function') {
+			msgProto.encode = function (m, w) {
+				const writer = origMsgEncode.call(this, m, w)
+				if (m?.audioStickerMessage != null && protoRef.Message.FutureProofMessage) {
+					protoRef.Message.FutureProofMessage.encode(m.audioStickerMessage, writer.uint32(1074).fork()).ldelim()
+				}
+				return writer
+			}
+		}
+
+		const origMsgFromObject = msgProto.fromObject
+		if (typeof origMsgFromObject === 'function') {
+			msgProto.fromObject = function (d, n) {
+				const res = origMsgFromObject.call(this, d, n)
+				if (d?.audioStickerMessage != null) res.audioStickerMessage = d.audioStickerMessage
+				return res
+			}
+		}
+
+		msgProto._audioStickerPatched = true
+	}
+}
+
+async function asegurarModificado() {
+	modificarProto(proto)
+	for (const paquete of ['kage-baileys', '@whiskeysockets/baileys', 'baileys']) {
+		try {
+			const modulo = await import(paquete)
+			if (modulo?.proto) modificarProto(modulo.proto)
+			if (modulo?.default?.proto) modificarProto(modulo.default.proto)
+		} catch {}
+	}
+}
+
+// Parchear protoc de inmediato al importar
+asegurarModificado().catch(() => {})
 
 async function addExif(webpBuffer, packname, author) {
 	const packName = packname || global.packsticker || global.wm || 'Shadow Bot'
@@ -134,7 +254,6 @@ async function addExif(webpBuffer, packname, author) {
 
 async function descargarBuffer(mensaje, conn) {
 	if (!mensaje) return null
-
 	if (Buffer.isBuffer(mensaje)) return mensaje
 	if (mensaje?.buffer && Buffer.isBuffer(mensaje.buffer)) return mensaje.buffer
 
@@ -224,6 +343,8 @@ async function convertirMediaParaSticker(bufferMedia, esVideo = false) {
 		}
 
 		return await fs.readFile(rutaSalida)
+	} catch {
+		return bufferMedia
 	} finally {
 		await fs.unlink(rutaEntrada).catch(() => {})
 		await fs.unlink(rutaSalida).catch(() => {})
@@ -258,101 +379,11 @@ async function convertirAudioParaSticker(bufferAudio) {
 		])
 
 		return await fs.readFile(rutaSalida)
+	} catch {
+		return bufferAudio
 	} finally {
 		await fs.unlink(rutaEntrada).catch(() => {})
 		await fs.unlink(rutaSalida).catch(() => {})
-	}
-}
-
-function modificarProto(protoRef) {
-	if (!protoRef?.Message?.StickerMessage) return
-
-	const camposRequeridos = [
-		{ name: 'accessibilityLabel', id: 33, type: 'string' },
-		{ name: 'sound', id: 34, type: 'bytes' },
-		{ name: 'audioMessage', id: 26, type: '.proto.Message.AudioMessage' }
-	]
-
-	for (const campo of camposRequeridos) {
-		const yaExiste = protoRef.Message.StickerMessage.fields?.[campo.name]
-		if (!yaExiste) {
-			protoRef.Message.StickerMessage.fields = {
-				...protoRef.Message.StickerMessage.fields,
-				[campo.name]: {
-					type: campo.type,
-					id: campo.id
-				}
-			}
-		}
-	}
-
-	const sm = protoRef.Message.StickerMessage
-	if (sm && !sm._audioStickerPatched) {
-		const origEncode = sm.encode
-		if (typeof origEncode === 'function') {
-			sm.encode = function (m, w) {
-				const writer = origEncode.call(this, m, w)
-				if (m?.audioMessage != null && protoRef.Message.AudioMessage) {
-					protoRef.Message.AudioMessage.encode(m.audioMessage, writer.uint32(210).fork()).ldelim()
-				}
-				if (m?.sound != null) {
-					writer.uint32(274).bytes(m.sound)
-				}
-				if (m?.accessibilityLabel != null) {
-					writer.uint32(266).string(m.accessibilityLabel)
-				}
-				return writer
-			}
-		}
-
-		const origFromObject = sm.fromObject
-		if (typeof origFromObject === 'function') {
-			sm.fromObject = function (d, n) {
-				const res = origFromObject.call(this, d, n)
-				if (d?.audioMessage != null) res.audioMessage = d.audioMessage
-				if (d?.sound != null) res.sound = d.sound
-				if (d?.accessibilityLabel != null) res.accessibilityLabel = d.accessibilityLabel
-				return res
-			}
-		}
-
-		sm._audioStickerPatched = true
-	}
-
-	const msgProto = protoRef.Message
-	if (msgProto && !msgProto._audioStickerPatched) {
-		const origMsgEncode = msgProto.encode
-		if (typeof origMsgEncode === 'function') {
-			msgProto.encode = function (m, w) {
-				const writer = origMsgEncode.call(this, m, w)
-				if (m?.audioStickerMessage != null && protoRef.Message.FutureProofMessage) {
-					protoRef.Message.FutureProofMessage.encode(m.audioStickerMessage, writer.uint32(1074).fork()).ldelim()
-				}
-				return writer
-			}
-		}
-
-		const origMsgFromObject = msgProto.fromObject
-		if (typeof origMsgFromObject === 'function') {
-			msgProto.fromObject = function (d, n) {
-				const res = origMsgFromObject.call(this, d, n)
-				if (d?.audioStickerMessage != null) res.audioStickerMessage = d.audioStickerMessage
-				return res
-			}
-		}
-
-		msgProto._audioStickerPatched = true
-	}
-}
-
-async function asegurarModificado() {
-	modificarProto(proto)
-	for (const paquete of ['kage-baileys', '@whiskeysockets/baileys', 'baileys']) {
-		try {
-			const modulo = await import(paquete)
-			if (modulo?.proto) modificarProto(modulo.proto)
-			if (modulo?.default?.proto) modificarProto(modulo.default.proto)
-		} catch {}
 	}
 }
 
@@ -385,6 +416,46 @@ async function resolverBufferSticker(item, conn) {
 	}
 
 	return descargado
+}
+
+async function extraerAudioDeSticker(quoted, conn) {
+	if (!quoted) return null
+
+	const msgInfo = quoted.msg || quoted
+	const messageContent = quoted.message || {}
+
+	// 1. Directamente en sound (Buffer o Uint8Array decodificado en StickerMessage)
+	if (msgInfo?.sound && (Buffer.isBuffer(msgInfo.sound) || msgInfo.sound instanceof Uint8Array)) {
+		return Buffer.from(msgInfo.sound)
+	}
+
+	const sm = messageContent?.stickerMessage || messageContent?.audioStickerMessage?.message?.stickerMessage
+	if (sm?.sound && (Buffer.isBuffer(sm.sound) || sm.sound instanceof Uint8Array)) {
+		return Buffer.from(sm.sound)
+	}
+
+	// 2. En audioMessage adjunto dentro del stickerMessage
+	const audioMsg = msgInfo?.audioMessage || sm?.audioMessage
+	if (audioMsg) {
+		try {
+			const stream = await downloadContentFromMessage(audioMsg, 'audio')
+			const chunks = []
+			for await (const chunk of stream) chunks.push(chunk)
+			const buf = Buffer.concat(chunks)
+			if (buf.length > 0) return buf
+		} catch (e) {
+			console.error('Error al descargar audioMessage del sticker:', e)
+		}
+	}
+
+	// 3. Extracción manual por si el buffer binario sin decodificar contiene el tag 34 (sound)
+	const rawCandidate = msgInfo?._raw || quoted?._raw || quoted?.rawMessage
+	if (rawCandidate) {
+		const extracted = extractProtobufField(rawCandidate, 34)
+		if (extracted && extracted.length > 0) return extracted
+	}
+
+	return null
 }
 
 async function tienePistaDeAudio(bufferMedia) {
@@ -512,27 +583,13 @@ async function forjarYEnviarAudioStickerCanal(conn, canalDestino, bufferSticker,
 	return true
 }
 
-let handler = async (m, { conn, args, text, usedPrefix, command }) => {
-	limpiarSesionesExpiradas()
+let handler = async (m, { conn, text, usedPrefix, command }) => {
 	await asegurarModificado()
-
-	const remitente = m.sender
-	const idChat = m.chat
-	const claveSesion = `${idChat}_${remitente}`
-	const subComando = (args[0] || '').toLowerCase()
 
 	const canalPorDefecto = global.idcanal || global.channelRD?.id || '120363403739366547@newsletter'
 	const canalNombre = global.channelRD?.name || global.botname || '🎃 SHADOW GARDEN • HALLOWEEN 🦇'
 
-	if (subComando === 'cancelar' || subComando === 'cancel') {
-		if (SESIONES.has(claveSesion)) {
-			SESIONES.delete(claveSesion)
-			return m.reply('🎃❌ _Sesión de sticker con audio al canal cancelada._')
-		}
-		return m.reply('ℹ️ No tienes ninguna sesión activa de sticker con audio.')
-	}
-
-	// Resolver canal destino si el usuario especificó uno por argumento
+	// Resolver canal destino si el usuario especificó uno por texto
 	let canalDestino = canalPorDefecto
 	if (text && (/@newsletter$/i.test(text.trim()) || text.includes('whatsapp.com/channel/'))) {
 		const resJid = await resolverJidCanal(text, conn)
@@ -542,191 +599,117 @@ let handler = async (m, { conn, args, text, usedPrefix, command }) => {
 	const packName = global.packsticker || global.wm || 'Shadow Bot'
 	const authorName = global.dev || 'yosue'
 
-	const objetivo = m.quoted ? m.quoted : m
-	const infoObjetivo = objetivo ? (objetivo.msg || objetivo) : null
+	const objetivo = m.quoted ? m.quoted : null
+
+	if (!objetivo) {
+		return m.reply(
+			`🎃🦇 *[ STICKER CON AUDIO AL CANAL ]* 🦇🎃\n\n` +
+			`👉 *Debes responder a un sticker con audio usando:*\n` +
+			`> *${usedPrefix + command}*\n\n` +
+			`📢 *Destino:* ${canalNombre}\n` +
+			`🆔 *ID:* \`${canalPorDefecto}\``
+		)
+	}
+
+	const infoObjetivo = objetivo.msg || objetivo
 	const mimeObjetivo = infoObjetivo?.mimetype || ''
 
+	const esSticker =
+		objetivo.mtype === 'stickerMessage' ||
+		mimeObjetivo.includes('webp') ||
+		Boolean(infoObjetivo?.isAnimated !== undefined && !mimeObjetivo.includes('audio') && !mimeObjetivo.includes('video'))
+
 	const esVideo =
-		objetivo?.mtype === 'videoMessage' ||
+		objetivo.mtype === 'videoMessage' ||
 		/video/.test(mimeObjetivo)
 
-	const esAudio =
-		objetivo?.mtype === 'audioMessage' ||
-		/audio|ogg/.test(mimeObjetivo)
-
-	const esStickerOImagen =
-		objetivo?.mtype === 'stickerMessage' ||
-		objetivo?.mtype === 'imageMessage' ||
-		mimeObjetivo.includes('webp') ||
-		mimeObjetivo.includes('image') ||
-		Boolean(infoObjetivo?.isAnimated !== undefined && !mimeObjetivo.includes('audio'))
-
-	// Caso especial: Sticker que ya trae audio integrado (ej. de .stickeraudio)
-	if (infoObjetivo?.sound || (infoObjetivo?.audioMessage && esStickerOImagen)) {
-		await m.react('⏳')
-		await m.reply('⏳ *Extrayendo y enviando tu Sticker con audio directamente al canal oficial...*')
-		try {
-			const bufferSticker = await resolverBufferSticker(objetivo, conn)
-			const bufferAudio = infoObjetivo.sound ? Buffer.from(infoObjetivo.sound) : await descargarBuffer(infoObjetivo.audioMessage, conn)
-			if (bufferSticker && bufferAudio) {
-				await forjarYEnviarAudioStickerCanal(conn, canalDestino, bufferSticker, bufferAudio, packName, authorName)
-				await m.react('✅')
-				return m.reply(`✅ *¡Sticker con audio publicado con éxito en el canal oficial!*\n\n📢 *Canal:* ${canalNombre}\n🆔 *ID:* \`${canalDestino}\``)
-			}
-		} catch (err) {
-			console.error(err)
-			await m.react('❌')
-			return m.reply(`❌ Error al transferir al canal:\n> ${err.message}`)
-		}
-	}
-
-	let sesion = SESIONES.get(claveSesion)
-
-	// Caso especial: Video con audio directo (Modo rápido de 1 solo paso)
-	if (!sesion && esVideo) {
-		const videoBuffer = await descargarBuffer(objetivo, conn)
-		if (videoBuffer) {
-			const tieneAudio = await tienePistaDeAudio(videoBuffer)
-			if (tieneAudio) {
-				await m.react('⏳')
-				await m.reply('⏳ *Forjando Sticker con audio desde el video y enviando al canal oficial...*')
-				try {
-					const bufferSticker = await convertirMediaParaSticker(videoBuffer, true)
-					await forjarYEnviarAudioStickerCanal(conn, canalDestino, bufferSticker, videoBuffer, packName, authorName)
-					await m.react('✅')
-					return m.reply(`✅ *¡Sticker con audio publicado con éxito en el canal oficial!*\n\n📢 *Canal:* ${canalNombre}\n🆔 *ID:* \`${canalDestino}\``)
-				} catch (error) {
-					console.error('Error al procesar video en stickeraudioch:', error)
-					await m.react('❌')
-					return m.reply(`❌ Ocurrió un error al enviar al canal:\n> ${error.message}`)
-				}
-			}
-		}
-	}
-
-	// Inicio de sesión paso 1 (si no había sesión activa)
-	if (!sesion) {
-		if (esStickerOImagen || esVideo) {
-			const bufferSticker = await resolverBufferSticker(objetivo, conn)
-			if (!bufferSticker) {
-				return m.reply('❌ No se pudo descargar ni procesar el sticker/imagen.')
-			}
-
-			SESIONES.set(claveSesion, {
-				bufferSticker,
-				bufferAudio: null,
-				canalDestino,
-				creadoEn: Date.now()
-			})
-
-			return m.reply(
-				'🎃🦇 *[ STICKER CON AUDIO AL CANAL ]* 🦇🎃\n\n' +
-				'✅ *Paso 1 completado:* Guardé tu *Sticker*.\n\n' +
-				'👉 Ahora responde al *Audio / Nota de voz* usando:\n' +
-				`*${usedPrefix + command}*\n\n` +
-				`📢 *Destino:* ${canalNombre}\n` +
-				`_Tienes 2 minutos. Usa *${usedPrefix + command} cancelar* para anular._`
-			)
-		}
-
-		if (esAudio) {
-			const bufferAudio = await descargarBuffer(objetivo, conn)
-			if (!bufferAudio) {
-				return m.reply('❌ No se pudo descargar el audio.')
-			}
-
-			SESIONES.set(claveSesion, {
-				bufferSticker: null,
-				bufferAudio,
-				canalDestino,
-				creadoEn: Date.now()
-			})
-
-			return m.reply(
-				'🎃🦇 *[ STICKER CON AUDIO AL CANAL ]* 🦇🎃\n\n' +
-				'✅ *Paso 1 completado:* Guardé tu *Audio*.\n\n' +
-				'👉 Ahora responde al *Sticker o Imagen* usando:\n' +
-				`*${usedPrefix + command}*\n\n` +
-				`📢 *Destino:* ${canalNombre}\n` +
-				`_Tienes 2 minutos. Usa *${usedPrefix + command} cancelar* para anular._`
-			)
-		}
-
-		// Menú de instrucciones si se envía sin citar multimedia
+	if (!esSticker && !esVideo) {
 		return m.reply(
-			'🎃🦇 *[ SHADOW GARDEN • STICKER CON AUDIO AL CANAL ]* 🦇🎃\n\n' +
-			'Publica sellos arcanos (stickers con sonido) en el canal oficial.\n\n' +
-			`📢 *Canal oficial:* ${canalNombre}\n` +
-			`🆔 *ID:* \`${canalPorDefecto}\`\n\n` +
-			'*¿Cómo usarlo?*\n' +
-			'📹 *1. Modo directo (1 paso):*\n' +
-			`• Responde a un *Video* con *${usedPrefix + command}* para convertirlo en sticker animado con su audio y enviarlo al canal.\n\n` +
-			'🎴 *2. Modo combinado (2 pasos):*\n' +
-			`• 1️⃣ Responde a un *Sticker* (o imagen) con *${usedPrefix + command}*\n` +
-			`• 2️⃣ Luego responde al *Audio / Nota de voz* con *${usedPrefix + command}*\n` +
-			'_(También funciona en orden inverso: audio y luego sticker)_\n\n' +
-			'🔊 *3. Modo sticker con sonido existente:*\n' +
-			`• Si ya tienes un sticker con audio, solo respóndelo con *${usedPrefix + command}*.\n\n` +
-			`• Para anular: *${usedPrefix + command} cancelar*`
+			`⚠️ *Tipo de mensaje no válido.*\n\n` +
+			`👉 Por favor, responde directamente a un *sticker con audio* (o video con audio) usando:\n` +
+			`> *${usedPrefix + command}*`
 		)
 	}
-
-	// Paso 2: Completar la sesión existente
-	if (sesion.bufferSticker && !sesion.bufferAudio) {
-		if (!esAudio && !esVideo) {
-			return m.reply(
-				'⚠️ Ya guardé tu sticker.\n\n' +
-				'👉 Ahora debes responder a un *Audio / Nota de voz* con:\n' +
-				`*${usedPrefix + command}*\n\n` +
-				`_O escribe *${usedPrefix + command} cancelar* para anular._`
-			)
-		}
-
-		const bufferAudio = await descargarBuffer(objetivo, conn)
-		if (!bufferAudio) {
-			return m.reply('❌ No se pudo descargar el audio.')
-		}
-		sesion.bufferAudio = bufferAudio
-	} else if (sesion.bufferAudio && !sesion.bufferSticker) {
-		if (!esStickerOImagen && !esVideo) {
-			return m.reply(
-				'⚠️ Ya guardé tu audio.\n\n' +
-				'👉 Ahora debes responder a un *Sticker* o imagen con:\n' +
-				`*${usedPrefix + command}*\n\n` +
-				`_O escribe *${usedPrefix + command} cancelar* para anular._`
-			)
-		}
-
-		const bufferSticker = await resolverBufferSticker(objetivo, conn)
-		if (!bufferSticker) {
-			return m.reply('❌ No se pudo descargar el sticker.')
-		}
-		sesion.bufferSticker = bufferSticker
-	}
-
-	const destinoFinal = sesion.canalDestino || canalDestino
-	const bufferStickerFinal = sesion.bufferSticker
-	const bufferAudioFinal = sesion.bufferAudio
-	SESIONES.delete(claveSesion)
 
 	await m.react('⏳')
-	await m.reply('⏳ *Forjando Sello Arcano con audio y transfiriendo al canal oficial...*')
 
-	try {
-		await forjarYEnviarAudioStickerCanal(
-			conn,
-			destinoFinal,
-			bufferStickerFinal,
-			bufferAudioFinal,
-			packName,
-			authorName
-		)
-		await m.react('✅')
-		return m.reply(`✅ *¡Sticker con audio publicado con éxito en el canal oficial!*\n\n📢 *Canal:* ${canalNombre}\n🆔 *ID:* \`${destinoFinal}\``)
-	} catch (error) {
-		console.error('Error al enviar el AudioSticker al canal:', error)
-		await m.react('❌')
-		return m.reply(`❌ Ocurrió un error al enviar el sticker con audio al canal:\n> ${error.message}`)
+	// Caso A: Respondiendo a un sticker con audio integrado
+	if (esSticker) {
+		const bufferAudio = await extraerAudioDeSticker(objetivo, conn)
+
+		if (!bufferAudio || bufferAudio.length === 0) {
+			await m.react('❌')
+			return m.reply(
+				`❌ *Este sticker no tiene audio integrado.*\n\n` +
+				`Asegúrate de responder a un sticker con sonido (por ejemplo, generado con *${usedPrefix}stickeraudio* o con audio de WhatsApp).`
+			)
+		}
+
+		try {
+			const bufferSticker = await resolverBufferSticker(objetivo, conn)
+			if (!bufferSticker) {
+				await m.react('❌')
+				return m.reply('❌ No se pudo descargar el sticker citado.')
+			}
+
+			await forjarYEnviarAudioStickerCanal(
+				conn,
+				canalDestino,
+				bufferSticker,
+				bufferAudio,
+				packName,
+				authorName
+			)
+
+			await m.react('✅')
+			return m.reply(
+				`✅ *¡Sticker con audio enviado exitosamente al canal oficial!*\n\n` +
+				`📢 *Canal:* ${canalNombre}\n` +
+				`🆔 *ID:* \`${canalDestino}\``
+			)
+		} catch (error) {
+			console.error('Error al transferir sticker con audio al canal:', error)
+			await m.react('❌')
+			return m.reply(`❌ Ocurrió un error al enviar al canal:\n> ${error.message}`)
+		}
+	}
+
+	// Caso B: Respondiendo a un video con audio (conversión y envío directo en 1 paso)
+	if (esVideo) {
+		try {
+			const videoBuffer = await descargarBuffer(objetivo, conn)
+			if (!videoBuffer) {
+				await m.react('❌')
+				return m.reply('❌ No se pudo descargar el video citado.')
+			}
+
+			const tieneAudio = await tienePistaDeAudio(videoBuffer)
+			if (!tieneAudio) {
+				await m.react('❌')
+				return m.reply('❌ El video no tiene pista de audio.')
+			}
+
+			const bufferSticker = await convertirMediaParaSticker(videoBuffer, true)
+			await forjarYEnviarAudioStickerCanal(
+				conn,
+				canalDestino,
+				bufferSticker,
+				videoBuffer,
+				packName,
+				authorName
+			)
+
+			await m.react('✅')
+			return m.reply(
+				`✅ *¡Sticker con audio enviado exitosamente al canal oficial!*\n\n` +
+				`📢 *Canal:* ${canalNombre}\n` +
+				`🆔 *ID:* \`${canalDestino}\``
+			)
+		} catch (error) {
+			console.error('Error al procesar video para canal:', error)
+			await m.react('❌')
+			return m.reply(`❌ Ocurrió un error al enviar al canal:\n> ${error.message}`)
+		}
 	}
 }
 
