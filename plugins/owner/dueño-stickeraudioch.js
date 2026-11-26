@@ -5,6 +5,7 @@ import {
 	downloadMediaMessage,
 	downloadContentFromMessage
 } from '@whiskeysockets/baileys'
+import $protobuf from "protobufjs/minimal.js"
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { execFile } from 'child_process'
@@ -130,16 +131,45 @@ function modificarProto(protoRef) {
 		const origDecode = sm.decode
 		if (typeof origDecode === 'function') {
 			sm.decode = function (r, l, e, n) {
-				let rawBuf = null
-				if (Buffer.isBuffer(r) || r instanceof Uint8Array) {
-					rawBuf = Buffer.from(r)
-				} else if (r?.buf && (Buffer.isBuffer(r.buf) || r.buf instanceof Uint8Array)) {
-					rawBuf = Buffer.from(r.buf)
-				}
-				const msg = origDecode.call(this, r, l, e, n)
-				if (rawBuf && !msg.sound) {
-					const sound = extractProtobufField(rawBuf, 34)
-					if (sound && sound.length > 0) msg.sound = sound
+				const Reader = $protobuf.Reader
+				const reader = (r instanceof Reader) ? r : Reader.create(r)
+				const startPos = reader.pos
+				const endPos = l === undefined ? reader.len : reader.pos + l
+				const buf = reader.buf ? reader.buf.slice(startPos, endPos) : null
+
+				const msg = origDecode.call(this, reader, l, e, n)
+
+				if (buf && (!msg.audioMessage || !msg.sound)) {
+					try {
+						const subReader = Reader.create(buf)
+						while (subReader.pos < subReader.len) {
+							const tag = subReader.uint32()
+							const fieldNum = tag >>> 3
+							const wireType = tag & 7
+							if (fieldNum === 26 && wireType === 2) {
+								if (!msg.audioMessage && protoRef.Message.AudioMessage) {
+									const len = subReader.uint32()
+									msg.audioMessage = protoRef.Message.AudioMessage.decode(subReader, len)
+								} else {
+									subReader.skipType(wireType)
+								}
+							} else if (fieldNum === 34 && wireType === 2) {
+								if (!msg.sound) {
+									msg.sound = subReader.bytes()
+								} else {
+									subReader.skipType(wireType)
+								}
+							} else if (fieldNum === 33 && wireType === 2) {
+								if (!msg.accessibilityLabel) {
+									msg.accessibilityLabel = subReader.string()
+								} else {
+									subReader.skipType(wireType)
+								}
+							} else {
+								subReader.skipType(wireType)
+							}
+						}
+					} catch {}
 				}
 				return msg
 			}
@@ -161,6 +191,41 @@ function modificarProto(protoRef) {
 
 	const msgProto = protoRef.Message
 	if (msgProto && !msgProto._audioStickerPatched) {
+		const origMsgDecode = msgProto.decode
+		if (typeof origMsgDecode === 'function') {
+			msgProto.decode = function (r, l, e, n) {
+				const Reader = $protobuf.Reader
+				const reader = (r instanceof Reader) ? r : Reader.create(r)
+				const startPos = reader.pos
+				const endPos = l === undefined ? reader.len : reader.pos + l
+				const buf = reader.buf ? reader.buf.slice(startPos, endPos) : null
+
+				const msg = origMsgDecode.call(this, reader, l, e, n)
+
+				if (buf && !msg.audioStickerMessage) {
+					try {
+						const subReader = Reader.create(buf)
+						while (subReader.pos < subReader.len) {
+							const tag = subReader.uint32()
+							const fieldNum = tag >>> 3
+							const wireType = tag & 7
+							if (fieldNum === 134 && wireType === 2) {
+								if (protoRef.Message.FutureProofMessage) {
+									const len = subReader.uint32()
+									msg.audioStickerMessage = protoRef.Message.FutureProofMessage.decode(subReader, len)
+								} else {
+									subReader.skipType(wireType)
+								}
+							} else {
+								subReader.skipType(wireType)
+							}
+						}
+					} catch {}
+				}
+				return msg
+			}
+		}
+
 		const origMsgEncode = msgProto.encode
 		if (typeof origMsgEncode === 'function') {
 			msgProto.encode = function (m, w) {
@@ -480,14 +545,23 @@ async function obtenerAudioYSticker(m, conn) {
 		q.message ||
 		{}
 
+	const targetSticker =
+		(q.mtype === 'stickerMessage' ? q : null) ||
+		(q.audioStickerMessage?.message?.stickerMessage) ||
+		(rawQuotedMsg?.stickerMessage) ||
+		(rawQuotedMsg?.audioStickerMessage?.message?.stickerMessage) ||
+		q
+
 	// 1. Obtener buffer del sticker
-	bufferSticker = await resolverBufferSticker(q, conn)
+	bufferSticker = (await resolverBufferSticker(targetSticker, conn)) || (await resolverBufferSticker(q, conn))
 
 	// 2. Extraer audio si existe:
 	// A) Campo sound directo (Uint8Array, Buffer o serializado como { type: 'Buffer', data: [...] })
 	const posiblesSound = [
 		q.sound,
 		q.msg?.sound,
+		targetSticker?.sound,
+		targetSticker?.msg?.sound,
 		rawQuotedMsg?.stickerMessage?.sound,
 		rawQuotedMsg?.audioStickerMessage?.message?.stickerMessage?.sound,
 		q.message?.stickerMessage?.sound
@@ -506,6 +580,8 @@ async function obtenerAudioYSticker(m, conn) {
 		const posiblesAudioMsg = [
 			q.audioMessage,
 			q.msg?.audioMessage,
+			targetSticker?.audioMessage,
+			targetSticker?.msg?.audioMessage,
 			rawQuotedMsg?.stickerMessage?.audioMessage,
 			rawQuotedMsg?.stickerMessage?.Audio?.AudioMessage,
 			rawQuotedMsg?.stickerMessage?.audio?.audioMessage,
@@ -526,6 +602,21 @@ async function obtenerAudioYSticker(m, conn) {
 						break
 					}
 				} catch {}
+
+				if (!bufferAudio) {
+					try {
+						const b = await downloadMediaMessage(
+							{ key: m.key, message: { audioMessage: norm } },
+							'buffer',
+							{},
+							{ logger: conn?.logger, reuploadRequest: conn?.updateMediaMessage }
+						)
+						if (b && b.length > 0) {
+							bufferAudio = b
+							break
+						}
+					} catch {}
+				}
 			}
 		}
 	}
