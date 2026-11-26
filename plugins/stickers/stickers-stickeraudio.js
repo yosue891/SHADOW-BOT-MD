@@ -661,7 +661,6 @@ handler.command = [
 	'stickeraudio',
 	'audiosticker',
 	'stikeraudio',
-	'prueba1',
 	'figurinhasom',
 	'saudio'
 ]
