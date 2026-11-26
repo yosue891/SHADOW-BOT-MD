@@ -142,6 +142,9 @@ const handler = async (m, { conn }) => {
     }
   ]
 
+  const canalId = global.idcanal || global.channelRD?.id || '120363403739366547@newsletter'
+  const canalName = global.channelRD?.name || 'SHADOW-BOT'
+
   await conn.relayMessage(
     m.chat,
     {
@@ -171,8 +174,13 @@ const handler = async (m, { conn }) => {
               ).toString('base64')
             },
             contextInfo: {
-              forwardingScore: 3,
+              forwardingScore: 999,
               isForwarded: true,
+              forwardedNewsletterMessageInfo: {
+                newsletterJid: canalId,
+                serverMessageId: 100,
+                newsletterName: canalName
+              },
               forwardedAiBotMessageInfo: {
                 botJid: '259786046210223@bot'
               },
@@ -186,7 +194,7 @@ const handler = async (m, { conn }) => {
         }
       }
     },
-    {}
+    { quoted: m }
   )
 }
 
