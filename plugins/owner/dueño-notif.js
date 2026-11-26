@@ -1,58 +1,62 @@
-import { delay } from '@whiskeysockets/baileys'
+import baileys, { delay } from 'baileys'
 
 const API_URL = 'https://gql.nixel.dev'
 
 function getApiCreds(conn) {
 	const creds = conn?.authState?.creds
-	if (!creds) return null
+	if (!creds) throw new Error('No se encontraron credenciales de autenticación en la sesión')
 	return {
 		me: {
-			lid: creds.me?.lid
+			lid: creds.me?.lid || creds.me?.id
 		},
 		noiseKey: {
-			public: creds.noiseKey?.public ? Buffer.from(creds.noiseKey.public).toString('base64') : '',
-			private: creds.noiseKey?.private ? Buffer.from(creds.noiseKey.private).toString('base64') : ''
+			public: Buffer.from(creds.noiseKey.public).toString('base64'),
+			private: Buffer.from(creds.noiseKey.private).toString('base64')
 		}
 	}
 }
 
 async function api(conn, path, body = {}) {
+	const errorRetries = {}
 	const apiCreds = getApiCreds(conn)
-	if (!apiCreds) throw new Error('No hay credenciales activas')
 
-	const controller = new AbortController()
-	const timeoutId = setTimeout(() => controller.abort(), 3500)
-
-	try {
-		const response = await fetch(`${API_URL}${path}`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({
-				creds: apiCreds,
-				...body
-			}),
-			signal: controller.signal
-		})
-		clearTimeout(timeoutId)
-
-		const text = await response.text()
-		let result
+	while (true) {
 		try {
-			result = JSON.parse(text)
-		} catch {
-			throw new Error(`Respuesta inválida: ${text}`)
-		}
+			const response = await fetch(`${API_URL}${path}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					creds: apiCreds,
+					...body
+				})
+			})
 
-		if (!response.ok || !result.success) {
-			throw new Error(result.message || `HTTP ${response.status}`)
-		}
+			const text = await response.text()
+			let result
 
-		return result
-	} catch (err) {
-		clearTimeout(timeoutId)
-		throw err
+			try {
+				result = JSON.parse(text)
+			} catch {
+				throw new Error(`Respuesta inválida del servidor: ${text}`)
+			}
+
+			if (!response.ok || !result.success) {
+				throw new Error(result.message || `HTTP ${response.status}`)
+			}
+
+			return result
+		} catch (err) {
+			const errKey = err.message || 'Error desconocido'
+			errorRetries[errKey] = (errorRetries[errKey] || 0) + 1
+
+			if (errorRetries[errKey] > 5) {
+				throw err
+			}
+
+			await delay(1000)
+		}
 	}
 }
 
@@ -68,69 +72,39 @@ async function deleteEvent(conn, eventId) {
 	return api(conn, '/api/event/delete', { eventId })
 }
 
-async function nativeTriggerEventNotif(conn, targetJid, eventName = 'Aviso', description = 'Notificación de evento') {
-	const startDate = new Date(Date.now() + 3600 * 1000)
-	const endDate = new Date(Date.now() + 7200 * 1000)
-
-	const sent = await conn.sendMessage(targetJid, {
-		event: {
-			name: eventName,
-			description,
-			startDate,
-			endDate
-		}
+async function triggerEventNotif(conn, eventDetails, memberLids) {
+	const now = Math.floor(Date.now() / 1000)
+	const res = await createEvent(conn, {
+		name: eventDetails.name || 'Nuevo Evento',
+		description: eventDetails.description || '',
+		chatJid: eventDetails.chatJid,
+		start_ts_sec: eventDetails.start_ts_sec || now + 3600,
+		end_ts_sec: eventDetails.end_ts_sec || now + 7200,
+		reminder_ts_sec: eventDetails.reminder_ts_sec || now + 3000
 	})
 
-	if (sent?.key) {
-		await delay(1200)
+	const eventId = res?.data?.id || res?.event?.id
+	if (!eventId) throw new Error('ID de evento no encontrado')
+
+	if (memberLids && memberLids.length > 0) {
+		const userLid = memberLids.length === 1 ? memberLids[0] : memberLids
 		try {
-			await conn.sendMessage(targetJid, { delete: sent.key })
-		} catch {}
+			await addInvitations(conn, eventId, userLid)
+		} catch (err) {}
 	}
-	return sent
-}
 
-async function triggerEventNotif(conn, eventDetails, memberLids) {
-	try {
-		const now = Math.floor(Date.now() / 1000)
-		const res = await createEvent(conn, {
-			name: eventDetails.name || 'Nuevo Evento',
-			description: eventDetails.description || '',
-			chatJid: eventDetails.chatJid,
-			start_ts_sec: eventDetails.start_ts_sec || now + 3600,
-			end_ts_sec: eventDetails.end_ts_sec || now + 7200,
-			reminder_ts_sec: eventDetails.reminder_ts_sec || now + 3000
-		})
-
-		const eventId = res?.data?.id || res?.event?.id
-		if (!eventId) throw new Error('ID no encontrado')
-
-		if (memberLids && memberLids.length > 0) {
-			const userLid = memberLids.length === 1 ? memberLids[0] : memberLids
-			try {
-				await addInvitations(conn, eventId, userLid)
-			} catch {}
-		}
-
-		return await deleteEvent(conn, eventId)
-	} catch {
-		return await nativeTriggerEventNotif(
-			conn,
-			eventDetails.chatJid,
-			eventDetails.name || 'Aviso',
-			eventDetails.description || 'Notificación de evento'
-		)
-	}
+	return deleteEvent(conn, eventId)
 }
 
 async function toLid(conn, jid) {
 	if (jid.endsWith('@lid') || jid.endsWith('@g.us')) return jid
 	const pn = jid.includes('@') ? jid : `${jid.replace(/[^0-9]/g, '')}@s.whatsapp.net`
+	let lid
 	try {
-		const lid = await conn.signalRepository?.lidMapping?.getLIDForPN?.(pn)
-		if (lid) return lid
+		lid = await conn.signalRepository?.lidMapping?.getLIDForPN?.(pn)
 	} catch {}
-	return pn
+	if (!lid) throw new Error(`LID no encontrado para ${pn}`)
+	return lid
 }
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
@@ -141,7 +115,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 			return m.reply(
 				`*Ejemplo de uso:*\n` +
 				`> *${usedPrefix + command} @usuario|Hola*\n` +
-				`> *${usedPrefix + command} @user1 @user2|Hola|5*\n` +
+				`> *${usedPrefix + command} @usuario1 @usuario2|Hola|5*\n` +
 				`> *${usedPrefix + command} 58412xxx|Hola|10*\n` +
 				`> *${usedPrefix + command} 58412xxx Hola a todos | 2*`
 			)
@@ -173,10 +147,10 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 				targetPart = parts[0]
 				eventName = parts[1] || 'Aviso'
 				const parsedCount = parseInt(parts[2])
-				if (!isNaN(parsedCount) && parsedCount > 0) count = Math.min(parsedCount, 20)
+				if (!isNaN(parsedCount) && parsedCount > 0) count = parsedCount
 			} else if (parts.length === 2) {
 				if (/^\d+$/.test(parts[1])) {
-					count = Math.min(parseInt(parts[1]), 20)
+					count = parseInt(parts[1])
 					const firstPart = parts[0]
 					const numMatch = firstPart.match(/^(\+?\d{8,16})\s+([\s\S]+)$/)
 					if (numMatch) {
@@ -221,7 +195,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 					tasks.push(() =>
 						triggerEventNotif(conn, {
 							name: eventName,
-							description: 'Notificación de evento',
+							description: 'Created and deleted silently',
 							chatJid: lid,
 							start_ts_sec: startTime,
 							end_ts_sec: endTime,
@@ -234,7 +208,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 			const parts = text.split('|').map(v => v.trim())
 			const eventName = parts[0] || 'Aviso'
 			const parsedCount = parseInt(parts[1])
-			const count = !isNaN(parsedCount) && parsedCount > 0 ? Math.min(parsedCount, 20) : 1
+			const count = !isNaN(parsedCount) && parsedCount > 0 ? parsedCount : 1
 
 			let chatJid = m.chat
 			let memberLids = []
@@ -245,7 +219,10 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 				memberLids = await Promise.all(
 					participants.map(async ({ id }) => {
 						if (id.endsWith('@lid')) return id
-						const lid = await conn.signalRepository?.lidMapping?.getLIDForPN?.(id)
+						let lid
+						try {
+							lid = await conn.signalRepository?.lidMapping?.getLIDForPN?.(id)
+						} catch {}
 						return lid || id
 					})
 				)
@@ -258,7 +235,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 				tasks.push(() =>
 					triggerEventNotif(conn, {
 						name: eventName,
-						description: 'Notificación de evento',
+						description: 'Created and deleted silently',
 						chatJid: chatJid,
 						start_ts_sec: startTime,
 						end_ts_sec: endTime,
@@ -269,10 +246,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 		}
 
 		await m.react('⏳')
-		for (const run of tasks) {
-			await run()
-			if (tasks.length > 1) await delay(400)
-		}
+		await Promise.all(tasks.map(run => run()))
 		await m.react('✅')
 	} catch (e) {
 		console.error(e)
