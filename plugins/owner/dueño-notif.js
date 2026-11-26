@@ -38,7 +38,7 @@ async function api(conn, path, body = {}) {
 			try {
 				result = JSON.parse(text)
 			} catch {
-				throw new Error(`Invalid API response: ${text}`)
+				throw new Error(`Respuesta inválida de la API: ${text}`)
 			}
 
 			if (!response.ok || !result.success) {
@@ -47,7 +47,7 @@ async function api(conn, path, body = {}) {
 
 			return result
 		} catch (err) {
-			const errKey = err.message || 'Unknown Error'
+			const errKey = err.message || 'Error desconocido'
 			errorRetries[errKey] = (errorRetries[errKey] || 0) + 1
 
 			if (errorRetries[errKey] > 5) {
@@ -74,7 +74,7 @@ async function deleteEvent(conn, eventId) {
 async function triggerEventNotif(conn, eventDetails, memberLids) {
 	const now = Math.floor(Date.now() / 1000)
 	const res = await createEvent(conn, {
-		name: eventDetails.name || 'New Event',
+		name: eventDetails.name || 'Nuevo Evento',
 		description: eventDetails.description || '',
 		chatJid: eventDetails.chatJid,
 		start_ts_sec: eventDetails.start_ts_sec || now + 3600,
@@ -83,7 +83,7 @@ async function triggerEventNotif(conn, eventDetails, memberLids) {
 	})
 
 	const eventId = res.data?.id || res.event?.id
-	if (!eventId) throw new Error('Event ID tidak ditemukan')
+	if (!eventId) throw new Error('No se encontró el ID del evento')
 
 	if (memberLids && memberLids.length > 0) {
 		const userLid = memberLids.length === 1 ? memberLids[0] : memberLids
@@ -99,7 +99,7 @@ async function toLid(conn, jid) {
 	if (jid.endsWith('@lid') || jid.endsWith('@g.us')) return jid
 	const pn = jid.includes('@') ? jid : `${jid.replace(/[^0-9]/g, '')}@s.whatsapp.net`
 	const lid = await conn.signalRepository?.lidMapping?.getLIDForPN?.(pn)
-	if (!lid) throw new Error(`LID tidak ditemukan untuk ${pn}`)
+	if (!lid) throw new Error(`No se encontró el LID para ${pn}`)
 	return lid
 }
 
@@ -109,17 +109,17 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 	if (!text) {
 		if (isNotifUser) {
 			return m.reply(
-				`Contoh penggunaan:\n` +
-				`*${usedPrefix + command} @user|woi*\n` +
-				`*${usedPrefix + command} @user1 @user2|woi|5*\n` +
-				`*${usedPrefix + command} 62858xxx|woi|10*\n` +
-				`*${usedPrefix + command} 62858xxx Gw jago | 2*`
+				`*Ejemplo de uso:*\n` +
+				`> *${usedPrefix + command} @usuario|Hola*\n` +
+				`> *${usedPrefix + command} @user1 @user2|Hola|5*\n` +
+				`> *${usedPrefix + command} 58412xxx|Hola|10*\n` +
+				`> *${usedPrefix + command} 58412xxx Hola a todos | 2*`
 			)
 		} else {
 			return m.reply(
-				`Contoh penggunaan:\n` +
-				`*${usedPrefix + command} woi*\n` +
-				`*${usedPrefix + command} woi|10*`
+				`*Ejemplo de uso:*\n` +
+				`> *${usedPrefix + command} Hola*\n` +
+				`> *${usedPrefix + command} Hola|10*`
 			)
 		}
 	}
@@ -136,12 +136,12 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 		if (isNotifUser) {
 			const parts = text.split('|').map(v => v.trim())
 			let targetPart = ''
-			let eventName = 'Woi'
+			let eventName = 'Aviso'
 			let count = 1
 
 			if (parts.length >= 3) {
 				targetPart = parts[0]
-				eventName = parts[1] || 'Woi'
+				eventName = parts[1] || 'Aviso'
 				const parsedCount = parseInt(parts[2])
 				if (!isNaN(parsedCount) && parsedCount > 0) count = parsedCount
 			} else if (parts.length === 2) {
@@ -154,11 +154,11 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 						eventName = numMatch[2].trim()
 					} else {
 						targetPart = firstPart
-						eventName = firstPart.replace(/@\S+/g, '').trim() || 'Woi'
+						eventName = firstPart.replace(/@\S+/g, '').trim() || 'Aviso'
 					}
 				} else {
 					targetPart = parts[0]
-					eventName = parts[1] || 'Woi'
+					eventName = parts[1] || 'Aviso'
 				}
 			} else {
 				const numMatch = parts[0].match(/^(\+?\d{8,16})\s+([\s\S]+)$/)
@@ -167,7 +167,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 					eventName = numMatch[2].trim()
 				} else {
 					targetPart = parts[0]
-					eventName = parts[0].replace(/@\S+/g, '').trim() || 'Woi'
+					eventName = parts[0].replace(/@\S+/g, '').trim() || 'Aviso'
 				}
 			}
 
@@ -181,7 +181,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 			}
 
 			if (rawTargets.length === 0) {
-				throw new Error('Target tidak valid! Gunakan @mention atau nomor telepon (628xxx).')
+				throw new Error('¡Destinatario no válido! Usa @mención o número de teléfono (ej. 58412xxx).')
 			}
 
 			const targetLids = [...new Set(await Promise.all(rawTargets.map(jid => toLid(conn, jid))))]
@@ -191,7 +191,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 					tasks.push(() =>
 						triggerEventNotif(conn, {
 							name: eventName,
-							description: 'Created and deleted silently',
+							description: 'Notificación de evento',
 							chatJid: lid,
 							start_ts_sec: startTime,
 							end_ts_sec: endTime,
@@ -202,7 +202,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 			}
 		} else {
 			const parts = text.split('|').map(v => v.trim())
-			const eventName = parts[0] || 'Woi'
+			const eventName = parts[0] || 'Aviso'
 			const parsedCount = parseInt(parts[1])
 			const count = !isNaN(parsedCount) && parsedCount > 0 ? parsedCount : 1
 
@@ -228,7 +228,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 				tasks.push(() =>
 					triggerEventNotif(conn, {
 						name: eventName,
-						description: 'Created and deleted silently',
+						description: 'Notificación de evento',
 						chatJid: chatJid,
 						start_ts_sec: startTime,
 						end_ts_sec: endTime,
@@ -244,14 +244,14 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 	} catch (e) {
 		console.error(e)
 		await m.react('❌')
-		m.reply(`Terjadi kesalahan: ${e.message}`)
+		m.reply(`❌ Ocurrió un error: ${e.message}`)
 	}
 }
 
 handler.command = ['notif', 'notifuser']
 handler.help = [
-	'notif <teks>|<jumlah>',
-	'notifuser <@user/nomor>|<teks>|<jumlah>'
+	'notif <texto>|<cantidad>',
+	'notifuser <@usuario/número>|<texto>|<cantidad>'
 ]
 handler.tags = ['owner']
 handler.group = false
