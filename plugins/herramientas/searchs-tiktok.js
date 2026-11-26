@@ -179,16 +179,18 @@ const handler = async (m, { conn, text, usedPrefix }) => {
       )
 
       const data = orbitxRes.data
-      if (Array.isArray(data)) {
-        list = data
-      } else if (Array.isArray(data?.result)) {
+      if (data?.status && Array.isArray(data?.result)) {
         list = data.result
+      } else if (data?.status && Array.isArray(data?.data)) {
+        list = data.data
+      } else if (Array.isArray(data)) {
+        list = data
       } else if (Array.isArray(data?.results)) {
         list = data.results
-      } else if (Array.isArray(data?.data)) {
-        list = data.data
       } else if (Array.isArray(data?.videos)) {
         list = data.videos
+      } else if (data?.status === false) {
+        console.warn('[ORBITX TIKTOK SEARCH aviso de servidor]:', data.message || data)
       }
     } catch (errOrbitx) {
       console.warn('[ORBITX TIKTOK SEARCH warning]:', errOrbitx?.response?.data || errOrbitx?.message)
@@ -283,7 +285,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
         }
 
         // Descargar concurrentemente hasta garantizar al menos 3 videos
-        const dlPromises = candidates.slice(0, 3).map(async (candidate) => {
+        const dlPromises = candidates.slice(0, 5).map(async (candidate) => {
           try {
             const dl = await downloadYouTube(candidate.url, 'video')
             const directUrl = dl.download || dl.download_url || dl.url
