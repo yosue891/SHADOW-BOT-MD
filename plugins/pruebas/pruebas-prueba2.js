@@ -1,206 +1,35 @@
-import { generateWAMessageFromContent } from '@whiskeysockets/baileys'
+import { AIRich } from '../../src/lib/ourin-builder.js'
 
 const handler = async (m, { conn }) => {
-  const IMG = 'https://upload.lntrl.dev/f/beypeyg.jpg'
-  const RESPONSE_ID = 'popio steps'
-
-  const stepEntries = [
-    {
-      __typename: 'GenAIStepThoughtEntry',
-      header: 'title'
-    },
-    {
-      __typename: 'GenAIStepThoughtEntry',
-      header: 'title',
-      body: 'deskripsi'
-    },
-    {
-      __typename: 'GenAIStepThoughtEntry',
-      header: 'title',
-      body: 'title + deskripsi + url',
-      sources: [
-        {
-          __typename: 'GenAIStepWebLinkSource',
-          url: 'https://en.wikipedia.org/wiki/Coffee',
-          title: 'Coffee — Wikipedia',
-          favicon_url: 'https://en.wikipedia.org/static/images/icons/wikipedia.png'
-        },
-        {
-          __typename: 'GenAIStepWebLinkSource',
-          url: 'https://github.com',
-          title: 'GitHub',
-          favicon_url: 'https://github.githubassets.com/favicons/favicon.png'
-        }
-      ]
-    },
-    {
-      __typename: 'GenAIStepThoughtEntry',
-      header: 'title',
-      artifacts: [
-        {
-          __typename: 'GenAIImagePrimitive',
-          asset_query_status: 'FETCHED',
-          preview_image: {
-            url: IMG,
-            mime_type: 'image/jpeg',
-            width: 800,
-            height: 450
-          },
-          full_image: {
-            url: IMG,
-            mime_type: 'image/jpeg',
-            width: 1600,
-            height: 900
-          },
-          source: {
-            source_type: 'IMAGE_GEN',
-            source_display_name: 'beypeyg.jpg'
-          }
-        }
-      ]
-    },
-    {
-      __typename: 'GenAIStepThoughtEntry',
-      header: 'title',
-      body: 'title + deskripsi + image',
-      artifacts: [
-        {
-          __typename: 'GenAIImagePrimitive',
-          asset_query_status: 'FETCHED',
-          preview_image: {
-            url: IMG,
-            mime_type: 'image/jpeg',
-            width: 800,
-            height: 450
-          },
-          full_image: {
-            url: IMG,
-            mime_type: 'image/jpeg',
-            width: 1600,
-            height: 900
-          },
-          source: {
-            source_type: 'IMAGE_GEN',
-            source_display_name: 'beypeyg.jpg'
-          }
-        }
-      ]
-    },
-    {
-      __typename: 'GenAIStepThoughtEntry',
-      header: 'title',
-      body: 'title + deskripsi + image + url',
-      sources: [
-        {
-          __typename: 'GenAIStepWebLinkSource',
-          url: 'https://www.healthline.com/nutrition/coffee-benefits',
-          title: 'Coffee: Health Benefits, Nutrition, and Risks — Healthline',
-          favicon_url: 'https://www.healthline.com/favicon.ico'
-        }
-      ],
-      artifacts: [
-        {
-          __typename: 'GenAIImagePrimitive',
-          asset_query_status: 'FETCHED',
-          preview_image: {
-            url: IMG,
-            mime_type: 'image/jpeg',
-            width: 800,
-            height: 450
-          },
-          full_image: {
-            url: IMG,
-            mime_type: 'image/jpeg',
-            width: 1600,
-            height: 900
-          },
-          source: {
-            source_type: 'IMAGE_GEN',
-            source_display_name: 'beypeyg.jpg'
-          }
-        }
-      ]
-    }
-  ]
-
-  const embeddedScreens = [
-    {
-      __typename: 'FOAUnifiedResponseEmbeddedScreen',
-      title: 'Thoughts',
-      content: [
-        {
-          __typename: 'FOAEmbeddedScreenContentTabbed',
-          tabs: [
-            {
-              __typename: 'FOAUnifiedResponseTab',
-              id: 'steps',
-              tab_header: 'Steps',
-              sections: [],
-              step_entries: stepEntries
-            }
-          ]
-        }
-      ]
-    }
-  ]
-
   const canalId = global.idcanal || global.channelRD?.id || '120363403739366547@newsletter'
   const canalName = global.channelRD?.name || 'SHADOW-BOT'
 
-  const payload = {
-    botForwardedMessage: {
-      message: {
-        richResponseMessage: {
-          messageType: 1,
-          unifiedResponse: {
-            data: Buffer.from(
-              JSON.stringify({
-                __typename: 'GenAIUnifiedResponse',
-                response_id: RESPONSE_ID,
-                sections: [
-                  {
-                    __typename: 'GenAIUnifiedResponseSection',
-                    view_model: {
-                      __typename: 'GenAISingleLayoutViewModel',
-                      primitive: {
-                        __typename: 'GenAIMetadataTextPrimitive',
-                        text: 'full step'
-                      }
-                    }
-                  }
-                ],
-                embedded_screens: embeddedScreens
-              })
-            ).toString('base64')
-          },
-          contextInfo: {
-            forwardingScore: 1,
-            isForwarded: true,
-            forwardedNewsletterMessageInfo: {
-              newsletterJid: canalId,
-              serverMessageId: 100,
-              newsletterName: canalName
-            },
-            forwardedAiBotMessageInfo: {
-              botJid: '0@bot'
-            },
-            forwardOrigin: 4
-          }
-        }
+  const rich = new AIRich(conn)
+    .setContextInfo({
+      forwardedNewsletterMessageInfo: {
+        newsletterJid: canalId,
+        serverMessageId: 100,
+        newsletterName: canalName
       }
-    }
-  }
-
-  try {
-    const userJid = conn.user?.id || conn.authState?.creds?.me?.id
-    const msg = generateWAMessageFromContent(m.chat, payload, {
-      userJid,
-      quoted: m
     })
-    await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
-  } catch {
-    await conn.relayMessage(m.chat, payload, { quoted: m })
-  }
+    .addText(
+      `💭 *Meta AI — Thoughts & Steps*\n\n` +
+      `*Paso 1:* Análisis del tema y definición de objetivos.\n` +
+      `*Paso 2:* Consulta de fuentes y documentación oficial.\n` +
+      `*Paso 3:* Síntesis y estructuración de la respuesta.\n\n` +
+      `🔗 *Fuentes consultadas:*\n` +
+      `> • *Coffee — Wikipedia:* https://en.wikipedia.org/wiki/Coffee\n` +
+      `> • *GitHub:* https://github.com\n` +
+      `> • *Healthline Nutrition:* https://www.healthline.com/nutrition/coffee-benefits`
+    )
+    .addTip('full step • popio steps')
+    .addSuggest([
+      '¿Qué beneficios tiene el café?',
+      'Ver fuentes en GitHub',
+      'Más información'
+    ])
+
+  await rich.send(m.chat, { quoted: m, includesUnifiedResponse: false })
 }
 
 handler.command = ['prueba2']
