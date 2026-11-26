@@ -1,3 +1,5 @@
+import { generateWAMessageFromContent } from '@whiskeysockets/baileys'
+
 const handler = async (m, { conn }) => {
   const IMG = 'https://upload.lntrl.dev/f/beypeyg.jpg'
   const RESPONSE_ID = 'popio steps'
@@ -145,57 +147,60 @@ const handler = async (m, { conn }) => {
   const canalId = global.idcanal || global.channelRD?.id || '120363403739366547@newsletter'
   const canalName = global.channelRD?.name || 'SHADOW-BOT'
 
-  await conn.relayMessage(
-    m.chat,
-    {
-      botForwardedMessage: {
-        message: {
-          richResponseMessage: {
-            messageType: 1,
-            unifiedResponse: {
-              data: Buffer.from(
-                JSON.stringify({
-                  __typename: 'GenAIUnifiedResponse',
-                  response_id: RESPONSE_ID,
-                  sections: [
-                    {
-                      __typename: 'GenAIUnifiedResponseSection',
-                      view_model: {
-                        __typename: 'GenAISingleLayoutViewModel',
-                        primitive: {
-                          __typename: 'GenAIMetadataTextPrimitive',
-                          text: 'full step'
-                        }
+  const payload = {
+    botForwardedMessage: {
+      message: {
+        richResponseMessage: {
+          messageType: 1,
+          unifiedResponse: {
+            data: Buffer.from(
+              JSON.stringify({
+                __typename: 'GenAIUnifiedResponse',
+                response_id: RESPONSE_ID,
+                sections: [
+                  {
+                    __typename: 'GenAIUnifiedResponseSection',
+                    view_model: {
+                      __typename: 'GenAISingleLayoutViewModel',
+                      primitive: {
+                        __typename: 'GenAIMetadataTextPrimitive',
+                        text: 'full step'
                       }
                     }
-                  ],
-                  embedded_screens: embeddedScreens
-                })
-              ).toString('base64')
+                  }
+                ],
+                embedded_screens: embeddedScreens
+              })
+            ).toString('base64')
+          },
+          contextInfo: {
+            forwardingScore: 1,
+            isForwarded: true,
+            forwardedNewsletterMessageInfo: {
+              newsletterJid: canalId,
+              serverMessageId: 100,
+              newsletterName: canalName
             },
-            contextInfo: {
-              forwardingScore: 999,
-              isForwarded: true,
-              forwardedNewsletterMessageInfo: {
-                newsletterJid: canalId,
-                serverMessageId: 100,
-                newsletterName: canalName
-              },
-              forwardedAiBotMessageInfo: {
-                botJid: '259786046210223@bot'
-              },
-              forwardOrigin: 4,
-              botMessageSharingInfo: {
-                botEntryPointOrigin: 1,
-                forwardScore: 4
-              }
-            }
+            forwardedAiBotMessageInfo: {
+              botJid: '0@bot'
+            },
+            forwardOrigin: 4
           }
         }
       }
-    },
-    { quoted: m }
-  )
+    }
+  }
+
+  try {
+    const userJid = conn.user?.id || conn.authState?.creds?.me?.id
+    const msg = generateWAMessageFromContent(m.chat, payload, {
+      userJid,
+      quoted: m
+    })
+    await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
+  } catch {
+    await conn.relayMessage(m.chat, payload, { quoted: m })
+  }
 }
 
 handler.command = ['prueba2']
