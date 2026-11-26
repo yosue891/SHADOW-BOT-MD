@@ -2,7 +2,9 @@ import axios from 'axios'
 import { searchYouTube } from '../../lib/youtube-search.js'
 import { downloadYouTube } from '../../lib/apiowo.js'
 
-const ORBITX_SEARCH_URL = 'https://api.orbitxspace.com/search/tiktok'
+const ALYACORE_SEARCH_URL = 'https://api.alyacore.xyz/search/tiktok'
+const ALYACORE_API_KEY = 'Miku_michi'
+
 const ORBITX_TIKTOK_URL = 'https://api.orbitxspace.com/tiktok'
 const ORBITX_API_KEY = 'Miku_michigely'
 
@@ -159,88 +161,44 @@ const handler = async (m, { conn, text, usedPrefix }) => {
       return conn.reply(m.chat, 'ꕥ No se encontró video descargable en ese enlace.', m)
     }
 
-    // 2. Búsqueda por término (TikTok Search)
-    await conn.reply(m.chat, `✧ *BUSCANDO 3 VIDEOS DE TIKTOK PARA:* *${text.toUpperCase()}* 🎬`, m)
+    // 2. Búsqueda por término (TikTok Search) - 5 Videos
+    await conn.reply(m.chat, `✧ *BUSCANDO 5 VIDEOS DE TIKTOK PARA:* *${text.toUpperCase()}* 🎬`, m)
 
     let list = []
 
-    // A. Proveedor Principal: OrbitX Space API
+    // A. Proveedor Principal: Alyacore API (https://api.alyacore.xyz/search/tiktok?query=...&key=Miku_michi)
     try {
-      const orbitxRes = await axios.post(
-        ORBITX_SEARCH_URL,
-        { q: text, limit: 3 },
-        {
-          headers: {
-            'apikey': ORBITX_API_KEY,
-            'Content-Type': 'application/json'
-          },
-          timeout: 25000
-        }
-      )
+      const alyaRes = await axios.get(ALYACORE_SEARCH_URL, {
+        params: {
+          query: text,
+          key: ALYACORE_API_KEY
+        },
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json'
+        },
+        timeout: 25000
+      })
 
-      const data = orbitxRes.data
-      if (data?.status && Array.isArray(data?.result)) {
-        list = data.result
-      } else if (data?.status && Array.isArray(data?.data)) {
-        list = data.data
-      } else if (Array.isArray(data)) {
-        list = data
-      } else if (Array.isArray(data?.results)) {
-        list = data.results
-      } else if (Array.isArray(data?.videos)) {
-        list = data.videos
-      } else if (data?.status === false) {
-        console.warn('[ORBITX TIKTOK SEARCH aviso de servidor]:', data.message || data)
+      const aData = alyaRes.data
+      if (aData?.status && Array.isArray(aData?.data) && aData.data.length > 0) {
+        list = aData.data
+      } else if (Array.isArray(aData?.data)) {
+        list = aData.data
+      } else if (Array.isArray(aData)) {
+        list = aData
+      } else if (aData?.status === false) {
+        console.warn('[ALYACORE TIKTOK SEARCH aviso]:', aData.message || aData)
       }
-    } catch (errOrbitx) {
-      console.warn('[ORBITX TIKTOK SEARCH warning]:', errOrbitx?.response?.data || errOrbitx?.message)
-    }
-
-    // Si OrbitX no devolvió videos (o reportó error en su servidor), intentar con APIOWO
-    if (!list.length) {
-      try {
-        const reqHeaders = {
-          'x-api-key': APIOWO_TOKEN,
-          'Authorization': `Bearer ${APIOWO_TOKEN}`,
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-        }
-        const tiktokCookies = process.env.TIKTOK_COOKIES || global.tiktokCookies || ''
-        if (tiktokCookies) {
-          reqHeaders['x-tiktok-cookies'] = tiktokCookies
-        }
-
-        const res = await axios.get(`${APIOWO_BASE}/api/tiktok/search`, {
-          params: { keyword: text, count: 5 },
-          headers: reqHeaders,
-          timeout: 10000
-        })
-
-        const data = res.data
-        if (Array.isArray(data)) {
-          list = data
-        } else if (Array.isArray(data?.data)) {
-          list = data.data
-        } else if (Array.isArray(data?.result)) {
-          list = data.result
-        } else if (Array.isArray(data?.result?.results)) {
-          list = data.result.results
-        } else if (Array.isArray(data?.results)) {
-          list = data.results
-        } else if (Array.isArray(data?.videos)) {
-          list = data.videos
-        } else if (Array.isArray(data?.data?.videos)) {
-          list = data.data.videos
-        }
-      } catch (errApiowo) {
-        console.warn('[APIOWO TIKTOK SEARCH fallback warning]:', errApiowo?.response?.data?.error?.code || errApiowo?.message)
-      }
+    } catch (errAlya) {
+      console.warn('[ALYACORE TIKTOK SEARCH warning]:', errAlya?.response?.data || errAlya?.message)
     }
 
     // Filtrar y normalizar resultados de TikTok
     let results = (Array.isArray(list) ? list : [])
       .map(v => {
         const playUrl =
+          v.dl ||
           v.media?.video ||
           v.play ||
           v.video ||
@@ -255,25 +213,25 @@ const handler = async (m, { conn, text, usedPrefix }) => {
           play: playUrl,
           title: v.title || v.desc || v.description || 'Video TikTok',
           author:
-            v.author?.name ||
-            v.author?.username ||
             v.author?.nickname ||
             v.author?.unique_id ||
+            v.author?.name ||
+            v.author?.username ||
             (typeof v.author === 'string' ? v.author : 'Desconocido'),
           duration: v.duration ?? 'No disponible'
         }
       })
       .filter(v => v.play)
 
-    // B. Respaldo de contingencia: Si no devolvió suficientes videos, completar con búsqueda de Shorts/TikTok
-    if (results.length < 3) {
+    // B. Respaldo de contingencia: Si no devolvió al menos 5 videos, completar con búsqueda
+    if (results.length < 5) {
       try {
         const [r1, r2] = await Promise.all([
           searchYouTube(`${text} tiktok`),
           searchYouTube(`${text} shorts`)
         ])
 
-        const seenIds = new Set(results.map(r => r.play || r.id))
+        const seenIds = new Set(results.map(r => r.play || r.id || r.url))
         const candidates = []
 
         for (const v of [...(r1?.videos || []), ...(r2?.videos || [])]) {
@@ -281,11 +239,11 @@ const handler = async (m, { conn, text, usedPrefix }) => {
             seenIds.add(v.videoId)
             candidates.push(v)
           }
-          if (candidates.length >= 6) break
+          if (candidates.length >= 8) break
         }
 
-        // Descargar concurrentemente hasta garantizar al menos 3 videos
-        const dlPromises = candidates.slice(0, 5).map(async (candidate) => {
+        // Descargar concurrentemente hasta garantizar 5 videos
+        const dlPromises = candidates.slice(0, 7).map(async (candidate) => {
           try {
             const dl = await downloadYouTube(candidate.url, 'video')
             const directUrl = dl.download || dl.download_url || dl.url
@@ -306,7 +264,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
         const settled = await Promise.all(dlPromises)
         for (const item of settled) {
           if (item) results.push(item)
-          if (results.length >= 3) break
+          if (results.length >= 5) break
         }
       } catch (errFallback) {
         console.warn('[TIKTOK SEARCH FALLBACK error]:', errFallback?.message)
@@ -323,9 +281,8 @@ const handler = async (m, { conn, text, usedPrefix }) => {
       )
     }
 
-    // Tomar hasta 3 videos
-    shuffleArray(results)
-    const countToSend = Math.min(results.length, 3)
+    // Tomar hasta 5 videos
+    const countToSend = Math.min(results.length, 5)
     const topResults = results.slice(0, countToSend)
 
     // Preparar formato de envío
@@ -384,3 +341,4 @@ handler.group = true
 handler.coin = 23
 
 export default handler
+
