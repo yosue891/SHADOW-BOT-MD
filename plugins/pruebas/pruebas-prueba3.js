@@ -230,7 +230,7 @@ async function sendAsRichCode(sock, m, pluginInfo, codeText) {
     )
     .addCode("javascript", codeText)
     .addText("\nCopia el código de arriba o usa el archivo si el mensaje no carga completo.")
-    .send(m.chat, { quoted: m });
+    .send(m.chat, { quoted: m, includesUnifiedResponse: false });
 }
 
 const handler = async (m, { conn, args, text, usedPrefix }) => {

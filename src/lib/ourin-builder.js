@@ -1147,7 +1147,7 @@ class AIRich extends BaseBuilder {
         return this;
     }
 
-    build({ forwarded = true, includesUnifiedResponse = true, includesSubmessages = true, quoted, quotedParticipant, ...options } = {}) {
+    build({ forwarded = true, includesUnifiedResponse = true, includesSubmessages = true, quoted, quotedParticipant, includeBotMetadata = false, ...options } = {}) {
         const forward = forwarded
             ? {
                 forwardingScore: 1,
@@ -1160,9 +1160,9 @@ class AIRich extends BaseBuilder {
         const qObj = quoted
             ? {
                 stanzaId: quoted?.key?.id || quoted?.id,
-                participant: quotedParticipant || quoted?.key?.participant || quoted?.key?.remoteJid,
+                participant: quotedParticipant || quoted?.key?.participant || quoted?.sender || quoted?.key?.remoteJid,
                 quotedType: 0,
-                quotedMessage: typeof quoted === 'object' && quoted !== null ? (quoted.message ?? quoted) : undefined,
+                quotedMessage: quoted?.message || quoted?.vM?.message || (typeof quoted === 'object' && quoted !== null && !quoted.key && !quoted.reply ? quoted : undefined),
             }
             : {};
 
@@ -1176,39 +1176,58 @@ class AIRich extends BaseBuilder {
             ]
             : [...this._sections];
 
-        return {
-            messageContextInfo: {
+        const richResponseMessage = {
+            messageType: 1,
+            submessages: includesSubmessages ? this._submessages : [],
+            contextInfo: {
+                ...forward,
+                ...qObj,
+                ...this._contextInfo,
+            },
+        };
+
+        if (includesUnifiedResponse && sections.length > 0) {
+            richResponseMessage.unifiedResponse = {
+                data: Buffer.from(JSON.stringify({ response_id: crypto.randomUUID(), sections })).toString('base64'),
+            };
+        }
+
+        const out = {
+            ...this._extraPayload,
+            botForwardedMessage: {
+                message: {
+                    richResponseMessage,
+                },
+            },
+        };
+
+        if (includeBotMetadata && (this._title || this._richResponseSources?.length)) {
+            out.messageContextInfo = {
                 deviceListMetadata: {},
                 deviceListMetadataVersion: 2,
                 botMetadata: {
                     messageDisclaimerText: this._title,
                     richResponseSourcesMetadata: { sources: this._richResponseSources },
                 },
-            },
-            ...this._extraPayload,
-            botForwardedMessage: {
-                message: {
-                    richResponseMessage: {
-                        messageType: 1,
-                        submessages: includesSubmessages ? this._submessages : [],
-                        unifiedResponse: {
-                            data: includesUnifiedResponse ? Buffer.from(JSON.stringify({ response_id: crypto.randomUUID(), sections })).toString('base64') : '',
-                        },
-                        contextInfo: {
-                            ...forward,
-                            ...qObj,
-                            ...this._contextInfo,
-                        },
-                    },
-                },
-            },
-        };
+            };
+        }
+
+        return out;
     }
 
-    async send(jid, { forwarded, includesUnifiedResponse, includesSubmessages, ...options } = {}) {
-        const msg = this.build({ forwarded, includesUnifiedResponse, ...options });
+    async send(jid, { forwarded, includesUnifiedResponse, includesSubmessages, quoted, quotedParticipant, includeBotMetadata, ...options } = {}) {
+        const msg = this.build({ forwarded, includesUnifiedResponse, includesSubmessages, quoted, quotedParticipant, includeBotMetadata, ...options });
 
-        return await this.#client.relayMessage(jid, msg, { ...options });
+        try {
+            const userJid = this.#client?.user?.id || this.#client?.authState?.creds?.me?.id;
+            const waMsg = generateWAMessageFromContent(jid, msg, {
+                userJid,
+                ...options,
+            });
+            return await this.#client.relayMessage(jid, waMsg.message, { messageId: waMsg.key.id, ...options });
+        } catch {
+            return await this.#client.relayMessage(jid, msg, { ...options });
+        }
     }
 
     static tokenizer(code, lang = 'javascript') {
