@@ -2,6 +2,10 @@ import axios from 'axios'
 import { searchYouTube } from '../../lib/youtube-search.js'
 import { downloadYouTube } from '../../lib/apiowo.js'
 
+const ORBITX_SEARCH_URL = 'https://api.orbitxspace.com/search/tiktok'
+const ORBITX_TIKTOK_URL = 'https://api.orbitxspace.com/tiktok'
+const ORBITX_API_KEY = 'Miku_michigely'
+
 const APIOWO_BASE = 'https://apiowo.vercel.app'
 const APIOWO_TOKEN = 'owner_80a9012df01c86f611910967a547f74c185cf39848f10e09'
 
@@ -32,42 +36,74 @@ const handler = async (m, { conn, text, usedPrefix }) => {
       let images = []
       let music = null
 
-      // Intentar primero con APIOWO /api/tiktok
+      // Intentar primero con API OrbitX Space /tiktok
       try {
-        const apiowoRes = await axios.get(`${APIOWO_BASE}/api/tiktok`, {
-          params: { url: text },
-          headers: {
-            'x-api-key': APIOWO_TOKEN,
-            'Authorization': `Bearer ${APIOWO_TOKEN}`
-          },
-          timeout: 20000
-        })
-        const aData = apiowoRes.data
-        if (aData?.success && (aData?.url || aData?.download_url || aData?.video)) {
-          videoUrl = aData.url || aData.download_url || aData.video
-          title = aData.title || title
-          author = aData.author?.nickname || aData.author?.unique_id || author
-          duration = aData.duration ?? duration
+        const orbitxRes = await axios.post(
+          ORBITX_TIKTOK_URL,
+          { url: text },
+          {
+            headers: {
+              'apikey': ORBITX_API_KEY,
+              'Content-Type': 'application/json'
+            },
+            timeout: 25000
+          }
+        )
+        const oData = orbitxRes.data
+        if (oData?.status && oData?.result) {
+          const resObj = oData.result
+          videoUrl = resObj.media?.video || resObj.video || resObj.play
+          music = resObj.media?.audio || resObj.audio || null
+          images = resObj.media?.images || resObj.images || []
+          title = resObj.title || title
+          author = resObj.author?.name || resObj.author?.username || author
         }
-      } catch (errApiowo) {
-        console.warn('[TIKTOK LINK APIOWO error]:', errApiowo?.message || errApiowo)
+      } catch (errOrbitxLink) {
+        console.warn('[ORBITX TIKTOK LINK warning]:', errOrbitxLink?.response?.data || errOrbitxLink?.message)
       }
 
-      // Respaldo secundario TikWM
-      if (!videoUrl) {
-        const res = await axios.get(
-          `https://www.tikwm.com/api/?url=${encodeURIComponent(text)}&hd=1`,
-          { timeout: 20000 }
-        )
-        const data = res.data?.data
-        if (data?.play || data?.images) {
-          videoUrl = data.play
-          title = data.title || title
-          author = data.author?.nickname || data.author?.unique_id || author
-          duration = data.duration ?? duration
-          createdAt = data.created_at ?? createdAt
-          images = data.images || []
-          music = data.music || null
+      // Respaldo secundario APIOWO /api/tiktok
+      if (!videoUrl && (!images || !images.length)) {
+        try {
+          const apiowoRes = await axios.get(`${APIOWO_BASE}/api/tiktok`, {
+            params: { url: text },
+            headers: {
+              'x-api-key': APIOWO_TOKEN,
+              'Authorization': `Bearer ${APIOWO_TOKEN}`
+            },
+            timeout: 20000
+          })
+          const aData = apiowoRes.data
+          if (aData?.success && (aData?.url || aData?.download_url || aData?.video)) {
+            videoUrl = aData.url || aData.download_url || aData.video
+            title = aData.title || title
+            author = aData.author?.nickname || aData.author?.unique_id || author
+            duration = aData.duration ?? duration
+          }
+        } catch (errApiowo) {
+          console.warn('[TIKTOK LINK APIOWO error]:', errApiowo?.message || errApiowo)
+        }
+      }
+
+      // Respaldo terciario TikWM
+      if (!videoUrl && (!images || !images.length)) {
+        try {
+          const res = await axios.get(
+            `https://www.tikwm.com/api/?url=${encodeURIComponent(text)}&hd=1`,
+            { timeout: 20000 }
+          )
+          const data = res.data?.data
+          if (data?.play || data?.images) {
+            videoUrl = data.play
+            title = data.title || title
+            author = data.author?.nickname || data.author?.unique_id || author
+            duration = data.duration ?? duration
+            createdAt = data.created_at ?? createdAt
+            images = data.images || []
+            music = data.music || null
+          }
+        } catch (errTikwm) {
+          console.warn('[TIKTOK LINK TIKWM warning]:', errTikwm?.message)
         }
       }
 
@@ -124,64 +160,111 @@ const handler = async (m, { conn, text, usedPrefix }) => {
     }
 
     // 2. Búsqueda por término (TikTok Search)
-    await conn.reply(m.chat, `✧ *BUSCANDO 5 VIDEOS DE TIKTOK PARA:* *${text.toUpperCase()}* 🎬`, m)
+    await conn.reply(m.chat, `✧ *BUSCANDO 3 VIDEOS DE TIKTOK PARA:* *${text.toUpperCase()}* 🎬`, m)
 
     let list = []
-    const tiktokCookies = process.env.TIKTOK_COOKIES || global.tiktokCookies || ''
-    const reqHeaders = {
-      'x-api-key': APIOWO_TOKEN,
-      'Authorization': `Bearer ${APIOWO_TOKEN}`,
-      'Accept': 'application/json',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-    }
-    if (tiktokCookies) {
-      reqHeaders['x-tiktok-cookies'] = tiktokCookies
-    }
 
-    // A. Intentar endpoint nativo de APIOWO
+    // A. Proveedor Principal: OrbitX Space API
     try {
-      const res = await axios.get(`${APIOWO_BASE}/api/tiktok/search`, {
-        params: { keyword: text, count: 10 },
-        headers: reqHeaders,
-        timeout: 10000
-      })
+      const orbitxRes = await axios.post(
+        ORBITX_SEARCH_URL,
+        { q: text, limit: 3 },
+        {
+          headers: {
+            'apikey': ORBITX_API_KEY,
+            'Content-Type': 'application/json'
+          },
+          timeout: 25000
+        }
+      )
 
-      const data = res.data
+      const data = orbitxRes.data
       if (Array.isArray(data)) {
         list = data
-      } else if (Array.isArray(data?.data)) {
-        list = data.data
       } else if (Array.isArray(data?.result)) {
         list = data.result
-      } else if (Array.isArray(data?.result?.results)) {
-        list = data.result.results
       } else if (Array.isArray(data?.results)) {
         list = data.results
+      } else if (Array.isArray(data?.data)) {
+        list = data.data
       } else if (Array.isArray(data?.videos)) {
         list = data.videos
-      } else if (Array.isArray(data?.data?.videos)) {
-        list = data.data.videos
       }
-    } catch (errGet) {
-      console.warn('[APIOWO GET /api/tiktok/search warning]:', errGet?.response?.data?.error?.code || errGet?.message)
+    } catch (errOrbitx) {
+      console.warn('[ORBITX TIKTOK SEARCH warning]:', errOrbitx?.response?.data || errOrbitx?.message)
     }
 
-    // Filtrar resultados nativos de TikTok si vinieron de APIOWO
+    // Si OrbitX no devolvió videos (o reportó error en su servidor), intentar con APIOWO
+    if (!list.length) {
+      try {
+        const reqHeaders = {
+          'x-api-key': APIOWO_TOKEN,
+          'Authorization': `Bearer ${APIOWO_TOKEN}`,
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+        }
+        const tiktokCookies = process.env.TIKTOK_COOKIES || global.tiktokCookies || ''
+        if (tiktokCookies) {
+          reqHeaders['x-tiktok-cookies'] = tiktokCookies
+        }
+
+        const res = await axios.get(`${APIOWO_BASE}/api/tiktok/search`, {
+          params: { keyword: text, count: 5 },
+          headers: reqHeaders,
+          timeout: 10000
+        })
+
+        const data = res.data
+        if (Array.isArray(data)) {
+          list = data
+        } else if (Array.isArray(data?.data)) {
+          list = data.data
+        } else if (Array.isArray(data?.result)) {
+          list = data.result
+        } else if (Array.isArray(data?.result?.results)) {
+          list = data.result.results
+        } else if (Array.isArray(data?.results)) {
+          list = data.results
+        } else if (Array.isArray(data?.videos)) {
+          list = data.videos
+        } else if (Array.isArray(data?.data?.videos)) {
+          list = data.data.videos
+        }
+      } catch (errApiowo) {
+        console.warn('[APIOWO TIKTOK SEARCH fallback warning]:', errApiowo?.response?.data?.error?.code || errApiowo?.message)
+      }
+    }
+
+    // Filtrar y normalizar resultados de TikTok
     let results = (Array.isArray(list) ? list : [])
       .map(v => {
-        const playUrl = v.play || v.video || v.videoUrl || v.download_url || v.url || v.nowm || v.play_url || v.direct_url
+        const playUrl =
+          v.media?.video ||
+          v.play ||
+          v.video ||
+          v.videoUrl ||
+          v.download_url ||
+          v.url ||
+          v.nowm ||
+          v.play_url ||
+          v.direct_url
         return {
           ...v,
           play: playUrl,
           title: v.title || v.desc || v.description || 'Video TikTok',
-          author: v.author?.name || v.author?.nickname || v.author?.unique_id || v.author?.username || (typeof v.author === 'string' ? v.author : 'Desconocido'),
+          author:
+            v.author?.name ||
+            v.author?.username ||
+            v.author?.nickname ||
+            v.author?.unique_id ||
+            (typeof v.author === 'string' ? v.author : 'Desconocido'),
           duration: v.duration ?? 'No disponible'
         }
       })
       .filter(v => v.play)
 
-    // B. Respaldo inteligente: si APIOWO requiere cookies en Vercel o devolvió menos de 5 videos
-    if (results.length < 5) {
+    // B. Respaldo de contingencia: Si no devolvió suficientes videos, completar con búsqueda de Shorts/TikTok
+    if (results.length < 3) {
       try {
         const [r1, r2] = await Promise.all([
           searchYouTube(`${text} tiktok`),
@@ -196,11 +279,11 @@ const handler = async (m, { conn, text, usedPrefix }) => {
             seenIds.add(v.videoId)
             candidates.push(v)
           }
-          if (candidates.length >= 8) break
+          if (candidates.length >= 6) break
         }
 
-        // Descargar concurrentemente hasta garantizar al menos 5 videos
-        const dlPromises = candidates.slice(0, 5).map(async (candidate) => {
+        // Descargar concurrentemente hasta garantizar al menos 3 videos
+        const dlPromises = candidates.slice(0, 3).map(async (candidate) => {
           try {
             const dl = await downloadYouTube(candidate.url, 'video')
             const directUrl = dl.download || dl.download_url || dl.url
@@ -221,7 +304,7 @@ const handler = async (m, { conn, text, usedPrefix }) => {
         const settled = await Promise.all(dlPromises)
         for (const item of settled) {
           if (item) results.push(item)
-          if (results.length >= 5) break
+          if (results.length >= 3) break
         }
       } catch (errFallback) {
         console.warn('[TIKTOK SEARCH FALLBACK error]:', errFallback?.message)
@@ -238,9 +321,9 @@ const handler = async (m, { conn, text, usedPrefix }) => {
       )
     }
 
-    // Tomar al menos 5 videos (o todos los disponibles si son entre 1 y 5)
+    // Tomar hasta 3 videos
     shuffleArray(results)
-    const countToSend = Math.min(results.length, 5)
+    const countToSend = Math.min(results.length, 3)
     const topResults = results.slice(0, countToSend)
 
     // Preparar formato de envío
@@ -292,9 +375,9 @@ const handler = async (m, { conn, text, usedPrefix }) => {
   }
 }
 
-handler.help = ['tiktoks <texto|link>', 'tiktoksearch <texto|link>']
+handler.help = ['tiktoksearch <texto|link>', 'ttsearch <texto|link>', 'tiktoks <texto|link>']
 handler.tags = ['search']
-handler.command = ['tiktoks', 'tiktoksearch', 'ttss']
+handler.command = ['tiktoks', 'tiktoksearch', 'ttsearch', 'ttss']
 handler.group = true
 handler.coin = 23
 
