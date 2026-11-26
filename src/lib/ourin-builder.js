@@ -31,7 +31,7 @@
 
 const VERSION = '4.5';
 
-import { generateWAMessageFromContent, prepareWAMessageMedia } from 'ourin';
+import { generateWAMessageFromContent, prepareWAMessageMedia } from '@whiskeysockets/baileys';
 import crypto from 'crypto';
 import sharp from 'sharp';
 
