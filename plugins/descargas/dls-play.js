@@ -1,6 +1,9 @@
 import { searchYouTube } from "../../lib/youtube-search.js"
 import { downloadYouTube } from "../../lib/apiowo.js"
 
+const ALYACORE_PLAY_URL = "https://api.alyacore.xyz/dl/youtubeplayv2"
+const ALYACORE_API_KEY = "Miku_michi"
+
 const ORBITX_API_URL = "https://api.orbitxspace.com/youtube-mp3"
 const ORBITX_API_KEY = "Miku_michigely"
 
@@ -53,6 +56,39 @@ function parsePlayInput(text, fullText, command, usedPrefix) {
   }
 }
 
+async function downloadAlyaPlayV2(query, type = "mp4", quality = "auto") {
+  try {
+    const url = `${ALYACORE_PLAY_URL}?query=${encodeURIComponent(query)}&type=${type}&quality=${quality}&key=${ALYACORE_API_KEY}`
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json"
+      },
+      signal: AbortSignal.timeout(35000)
+    })
+    const json = await res.json()
+    if (json?.status && json?.data?.dl) {
+      const d = json.data
+      return {
+        download: d.dl,
+        download_url: d.dl,
+        url: d.dl,
+        title: cleanName(d.title || "video"),
+        author: d.author || "YouTube",
+        duration: d.duration || "0:00",
+        thumbnail: d.thumbnail || "",
+        videoId: d.videoId || "",
+        quality: d.quality || "720P",
+        size: d.size || 0,
+        mimetype: "video/mp4"
+      }
+    }
+  } catch (err) {
+    console.warn("[ALYACORE PLAY2 ERROR]:", err?.message || err)
+  }
+  return null
+}
+
 async function downloadOrbitxMP3(url) {
   try {
     const res = await fetch(ORBITX_API_URL, {
@@ -102,7 +138,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
         `• *${usedPrefix}play2* Ghostbusters _(descarga video MP4)_\n` +
         `• *${usedPrefix}play* https://youtu.be/xxxx\n` +
         `• *${usedPrefix}play2* https://youtu.be/xxxx\n\n` +
-        `⚡ _Descargas directas impulsadas por:_ \`api.orbitxspace.com\` 🚀`
+        `⚡ _Descargas de video play2 impulsadas por:_ \`api.alyacore.xyz\` 🚀`
       )
     }
 
@@ -112,10 +148,28 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     let preloadedDl = null
     const isDirectLink = isYouTubeUrl(query)
 
+    // Si es play2 (video), intentar primero con API Alyacore youtubeplayv2
+    if (format === "video") {
+      preloadedDl = await downloadAlyaPlayV2(query, "mp4", "auto")
+      if (preloadedDl) {
+        video = {
+          id: preloadedDl.videoId || extractVideoId(query) || "video",
+          videoId: preloadedDl.videoId || extractVideoId(query) || "video",
+          title: preloadedDl.title || "YouTube Video",
+          author: { name: preloadedDl.author || "YouTube" },
+          timestamp: preloadedDl.duration || "Desconocida",
+          views: "0",
+          ago: "",
+          url: isDirectLink ? query : (preloadedDl.videoId ? `https://youtu.be/${preloadedDl.videoId}` : query),
+          thumbnail: preloadedDl.thumbnail || (extractVideoId(query) ? `https://i.ytimg.com/vi/${extractVideoId(query)}/hqdefault.jpg` : "")
+        }
+      }
+    }
+
     if (isDirectLink) {
       const videoId = extractVideoId(query)
 
-      if (format === "audio") {
+      if (format === "audio" && !preloadedDl) {
         preloadedDl = await downloadOrbitxMP3(query)
       }
       if (!preloadedDl) {
@@ -126,7 +180,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
         }
       }
 
-      if (preloadedDl) {
+      if (preloadedDl && !video) {
         video = {
           id: videoId || preloadedDl.videoId || "video",
           videoId: videoId || preloadedDl.videoId || "video",
@@ -158,7 +212,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
           }
         }
       }
-    } else {
+    } else if (!video) {
       const searchRes = await searchYouTube(query)
       if (searchRes?.videos?.length) {
         video = searchRes.videos[0]
@@ -188,7 +242,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     info += `👀 *Vistas:* ${views}\n`
     if (ago) info += `📅 *Subido:* ${ago}\n`
     info += `🔗 *Enlace:* ${url}\n\n`
-    info += `⏳ _Enviando ${format === "video" ? "video" : "audio"} con ORBITX SPACE, por favor espera..._`
+    info += `⏳ _Enviando ${format === "video" ? "video con ALYACORE" : "audio con ORBITX SPACE"}, por favor espera..._`
 
     let jpegThumbnail = null
     if (thumbnailUrl) {
@@ -230,7 +284,9 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 
     let dlRes = preloadedDl
     if (!dlRes) {
-      if (format === "audio") {
+      if (format === "video") {
+        dlRes = await downloadAlyaPlayV2(url, "mp4", "auto")
+      } else {
         dlRes = await downloadOrbitxMP3(url)
       }
       if (!dlRes) {
@@ -324,3 +380,4 @@ handler.command = ["play", "play2", "playaudio", "playvideo", "ytaudio"]
 handler.register = false
 
 export default handler
+
