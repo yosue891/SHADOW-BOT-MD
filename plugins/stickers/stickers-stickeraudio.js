@@ -4,7 +4,6 @@ import {
 	downloadMediaMessage,
 	downloadContentFromMessage
 } from '@whiskeysockets/baileys'
-import $protobuf from "protobufjs/minimal.js"
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { execFile } from 'child_process'
@@ -310,53 +309,6 @@ function modificarProto(protoRef) {
 			}
 		}
 
-		const origDecode = sm.decode
-		if (typeof origDecode === 'function') {
-			sm.decode = function (r, l, e, n) {
-				const Reader = $protobuf.Reader
-				const reader = (r instanceof Reader) ? r : Reader.create(r)
-				const startPos = reader.pos
-				const endPos = l === undefined ? reader.len : reader.pos + l
-				const buf = reader.buf ? reader.buf.slice(startPos, endPos) : null
-
-				const msg = origDecode.call(this, reader, l, e, n)
-
-				if (buf && (!msg.audioMessage || !msg.sound)) {
-					try {
-						const subReader = Reader.create(buf)
-						while (subReader.pos < subReader.len) {
-							const tag = subReader.uint32()
-							const fieldNum = tag >>> 3
-							const wireType = tag & 7
-							if (fieldNum === 26 && wireType === 2) {
-								if (!msg.audioMessage && protoRef.Message.AudioMessage) {
-									const len = subReader.uint32()
-									msg.audioMessage = protoRef.Message.AudioMessage.decode(subReader, len)
-								} else {
-									subReader.skipType(wireType)
-								}
-							} else if (fieldNum === 34 && wireType === 2) {
-								if (!msg.sound) {
-									msg.sound = subReader.bytes()
-								} else {
-									subReader.skipType(wireType)
-								}
-							} else if (fieldNum === 33 && wireType === 2) {
-								if (!msg.accessibilityLabel) {
-									msg.accessibilityLabel = subReader.string()
-								} else {
-									subReader.skipType(wireType)
-								}
-							} else {
-								subReader.skipType(wireType)
-							}
-						}
-					} catch {}
-				}
-				return msg
-			}
-		}
-
 		const origFromObject = sm.fromObject
 		if (typeof origFromObject === 'function') {
 			sm.fromObject = function (d, n) {
@@ -373,41 +325,6 @@ function modificarProto(protoRef) {
 
 	const msgProto = protoRef.Message
 	if (msgProto && !msgProto._audioStickerPatched) {
-		const origMsgDecode = msgProto.decode
-		if (typeof origMsgDecode === 'function') {
-			msgProto.decode = function (r, l, e, n) {
-				const Reader = $protobuf.Reader
-				const reader = (r instanceof Reader) ? r : Reader.create(r)
-				const startPos = reader.pos
-				const endPos = l === undefined ? reader.len : reader.pos + l
-				const buf = reader.buf ? reader.buf.slice(startPos, endPos) : null
-
-				const msg = origMsgDecode.call(this, reader, l, e, n)
-
-				if (buf && !msg.audioStickerMessage) {
-					try {
-						const subReader = Reader.create(buf)
-						while (subReader.pos < subReader.len) {
-							const tag = subReader.uint32()
-							const fieldNum = tag >>> 3
-							const wireType = tag & 7
-							if (fieldNum === 134 && wireType === 2) {
-								if (protoRef.Message.FutureProofMessage) {
-									const len = subReader.uint32()
-									msg.audioStickerMessage = protoRef.Message.FutureProofMessage.decode(subReader, len)
-								} else {
-									subReader.skipType(wireType)
-								}
-							} else {
-								subReader.skipType(wireType)
-							}
-						}
-					} catch {}
-				}
-				return msg
-			}
-		}
-
 		const origMsgEncode = msgProto.encode
 		if (typeof origMsgEncode === 'function') {
 			msgProto.encode = function (m, w) {
