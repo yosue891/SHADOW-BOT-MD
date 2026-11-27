@@ -2,14 +2,16 @@ import { exec } from 'child_process'
 import fs from 'fs'
 import util from 'util'
 import crypto from 'crypto'
-import webp from 'node-webpmux'
-import { downloadContentFromMessage } from '@whiskeysockets/baileys'
 
 const execAsync = util.promisify(exec)
 
 let ffmpegPathCache = null
 async function obtenerRutaFfmpeg() {
   if (ffmpegPathCache) return ffmpegPathCache
+  if (process.env.FFMPEG_PATH) {
+    ffmpegPathCache = process.env.FFMPEG_PATH
+    return process.env.FFMPEG_PATH
+  }
   try {
     await execAsync('ffmpeg -version')
     ffmpegPathCache = 'ffmpeg'
@@ -28,31 +30,97 @@ async function obtenerRutaFfmpeg() {
   return 'ffmpeg'
 }
 
-async function addExif(webpBuffer, packname, author) {
-  const img = new webp.Image()
-  const stickerPackId = crypto.randomBytes(32).toString('hex')
-  const json = {
-    'sticker-pack-id': stickerPackId,
-    'sticker-pack-name': packname,
-    'sticker-pack-publisher': author,
-    'emojis': ['\u{1F916}']
+let webpModule = null
+async function getWebp() {
+  if (webpModule) return webpModule
+  try {
+    webpModule = await import('node-webpmux').then(m => m.default || m).catch(() => null)
+    return webpModule
+  } catch {
+    return null
   }
-  const exifAttr = Buffer.from([
-    0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00,
-    0x01, 0x00, 0x41, 0x57, 0x07, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x16, 0x00, 0x00, 0x00
-  ])
-  const jsonBuffer = Buffer.from(JSON.stringify(json), 'utf8')
-  const exif = Buffer.concat([exifAttr, jsonBuffer])
-  exif.writeUIntLE(jsonBuffer.length, 14, 4)
-  await img.load(webpBuffer)
-  img.exif = exif
-  return await img.save(null)
+}
+
+async function addExif(webpBuffer, packname, author) {
+  try {
+    const webp = await getWebp()
+    if (webp) {
+      const img = new webp.Image()
+      const stickerPackId = crypto.randomBytes(32).toString('hex')
+      const json = {
+        'sticker-pack-id': stickerPackId,
+        'sticker-pack-name': packname,
+        'sticker-pack-publisher': author,
+        'emojis': ['\u{1F916}']
+      }
+      const exifAttr = Buffer.from([
+        0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x41, 0x57, 0x07, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x16, 0x00, 0x00, 0x00
+      ])
+      const jsonBuffer = Buffer.from(JSON.stringify(json), 'utf8')
+      const exif = Buffer.concat([exifAttr, jsonBuffer])
+      exif.writeUIntLE(jsonBuffer.length, 14, 4)
+      await img.load(webpBuffer)
+      img.exif = exif
+      return await img.save(null)
+    }
+  } catch {}
+
+  try {
+    const stickerPackId = crypto.randomBytes(32).toString('hex')
+    const json = {
+      'sticker-pack-id': stickerPackId,
+      'sticker-pack-name': packname,
+      'sticker-pack-publisher': author,
+      'emojis': ['\u{1F916}']
+    }
+    const exifAttr = Buffer.from([
+      0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00,
+      0x01, 0x00, 0x41, 0x57, 0x07, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x16, 0x00, 0x00, 0x00
+    ])
+    const jsonBuffer = Buffer.from(JSON.stringify(json), 'utf8')
+    const exif = Buffer.concat([exifAttr, jsonBuffer])
+    exif.writeUIntLE(jsonBuffer.length, 14, 4)
+
+    const exifIndex = webpBuffer.indexOf(Buffer.from('EXIF'))
+    if (exifIndex !== -1) {
+      const oldExifSize = webpBuffer.readUInt32LE(exifIndex + 4)
+      const padding = oldExifSize % 2 === 1 ? 1 : 0
+      const before = webpBuffer.slice(0, exifIndex - 4)
+      const after = webpBuffer.slice(exifIndex + 8 + oldExifSize + padding)
+      const exifChunkId = Buffer.from('EXIF')
+      const exifSize = Buffer.alloc(4)
+      exifSize.writeUInt32LE(exif.length)
+      const pad = exif.length % 2 === 1 ? Buffer.from([0x00]) : Buffer.alloc(0)
+      const newChunk = Buffer.concat([exifChunkId, exifSize, exif, pad])
+      const total = Buffer.concat([before, newChunk, after])
+      total.writeUInt32LE(total.length - 8, 4)
+      return total
+    }
+
+    const riffHeader = webpBuffer.slice(0, 4)
+    const webpSignature = webpBuffer.slice(8, 12)
+    const webpData = webpBuffer.slice(12)
+    const exifChunkId = Buffer.from('EXIF')
+    const exifSize = Buffer.alloc(4)
+    exifSize.writeUInt32LE(exif.length)
+    const pad = exif.length % 2 === 1 ? Buffer.from([0x00]) : Buffer.alloc(0)
+    const exifChunk = Buffer.concat([exifChunkId, exifSize, exif, pad])
+    const newWebpData = Buffer.concat([webpData, exifChunk])
+    const newFileSize = Buffer.alloc(4)
+    newFileSize.writeUInt32LE(4 + newWebpData.length)
+    return Buffer.concat([riffHeader, newFileSize, webpSignature, newWebpData])
+  } catch {
+    return webpBuffer
+  }
 }
 
 const styles = {
-  circle: 'Circulo (recorte redondo)',
+  normal: 'Normal (ajuste proporcional completo)',
   crop: 'Recorte centrado 512x512',
+  circle: 'Círculo (recorte redondo)',
   bw: 'Blanco y negro',
   invert: 'Invertir colores',
   blur: 'Desenfoque',
@@ -70,7 +138,8 @@ let handler = async (m, { conn, args }) => {
   const from = m.chat
   if (!from) return
 
-  const opt = (args[0] || '').toLowerCase()
+  const rawOpt = (args[0] || '').toLowerCase().trim()
+  const opt = rawOpt.replace(/^--?/, '')
 
   if (opt === 'list') {
     return conn.sendMessage(from, { text: listText }, { quoted: m })
@@ -152,8 +221,14 @@ let handler = async (m, { conn, args }) => {
   await fs.promises.mkdir('./tmp', { recursive: true })
   await fs.promises.writeFile(input, buffer)
 
-  const style = opt || 'circle'
-  if (style && style !== '' && !styles[style]) {
+  let style = 'normal'
+  if (['circle', 'circulo', 'círculo', 'r', 'redondo'].includes(opt)) {
+    style = 'circle'
+  } else if (['crop', 'c', 'recorte', 'cuadrado'].includes(opt)) {
+    style = 'crop'
+  } else if (styles[opt]) {
+    style = opt
+  } else if (opt && opt !== 'normal' && opt !== 'default' && opt !== 'full') {
     await conn.sendMessage(from, { text: listText }, { quoted: m })
     if (fs.existsSync(input)) await fs.promises.unlink(input)
     return
@@ -163,6 +238,7 @@ let handler = async (m, { conn, args }) => {
   const baseContain =
     `fps=${targetFps},` +
     'scale=512:512:force_original_aspect_ratio=decrease,' +
+    'format=rgba,' +
     'pad=512:512:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
 
   const baseCoverCrop =
@@ -173,6 +249,7 @@ let handler = async (m, { conn, args }) => {
   const geqCircle = "geq=lum='p(X,Y)':a='if(lte(hypot(X-256,Y-256),256),255,0)'"
 
   const vf =
+    style === 'normal' ? baseContain :
     style === 'circle' ? (baseCoverCrop + ',format=rgba,' + geqCircle) :
     style === 'crop' ? baseCoverCrop :
     style === 'bw' ? (baseContain + ',hue=s=0') :
@@ -181,7 +258,7 @@ let handler = async (m, { conn, args }) => {
     style === 'pixel' ? (baseContain + ',scale=128:128:flags=neighbor,scale=512:512:flags=neighbor') :
     style === 'sepia' ? (baseContain + ',colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131') :
     style === 'neon' ? (baseContain + ',edgedetect=low=0.08:high=0.2') :
-    (baseCoverCrop + ',format=rgba,' + geqCircle)
+    baseContain
 
   const ffmpegBin = await obtenerRutaFfmpeg()
   const ffmpegCmd = isVideo
@@ -197,7 +274,9 @@ let handler = async (m, { conn, args }) => {
         const fallbackVf =
           style === 'circle'
             ? ('fps=8,scale=384:384:force_original_aspect_ratio=increase,crop=384:384,format=rgba,geq=lum=\'p(X,Y)\':a=\'if(lte(hypot(X-192,Y-192),192),255,0)\'')
-            : 'fps=8,scale=384:384:force_original_aspect_ratio=decrease,pad=384:384:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
+            : style === 'crop'
+            ? 'fps=8,scale=384:384:force_original_aspect_ratio=increase,crop=384:384'
+            : 'fps=8,scale=384:384:force_original_aspect_ratio=decrease,format=rgba,pad=384:384:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
         const fallbackCmd = `"${ffmpegBin}" -y -i "${input}" -t 45 -an -vf "${fallbackVf}" -loop 0 -q:v 20 -lossless 0 -compression_level 4 -vsync 0 "${output}"`
         await execAsync(fallbackCmd).catch(() => {})
       }
@@ -205,7 +284,7 @@ let handler = async (m, { conn, args }) => {
 
     let stickerBuffer = await fs.promises.readFile(output)
 
-    const packName = global.packsticker || 'Shadow Bot'
+    const packName = global.packsticker || global.wm || 'Shadow Bot'
     const author = global.dev || 'yosue'
     try {
       stickerBuffer = await addExif(stickerBuffer, packName, author)
