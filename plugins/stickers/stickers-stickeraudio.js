@@ -170,18 +170,25 @@ async function descargarBuffer(mensaje, conn) {
 		mensaje.message?.imageMessage ||
 		mensaje.message?.videoMessage ||
 		mensaje.message?.audioMessage ||
-		mensaje.message?.stickerMessage
+		mensaje.message?.stickerMessage ||
+		mensaje.message?.ptvMessage ||
+		mensaje.message?.documentMessage ||
+		(mensaje.mediaMessage ? Object.values(mensaje.mediaMessage)[0] : null) ||
+		(mensaje.url || mensaje.directPath ? mensaje : null)
 
 	const tipo =
 		mensaje.mtype ||
-		(info?.mimetype ? info.mimetype.split('/')[0] : null)
+		mensaje.mediaType ||
+		(info?.mimetype ? info.mimetype.split('/')[0] : null) ||
+		'video'
 
 	if (!tipo || !info) return null
 
 	try {
+		const tipoLimpio = tipo.replace('Message', '').toLowerCase()
 		const stream = await downloadContentFromMessage(
 			info,
-			tipo.replace('Message', '')
+			tipoLimpio === 'ptv' ? 'video' : tipoLimpio
 		)
 
 		const partes = []
@@ -194,6 +201,32 @@ async function descargarBuffer(mensaje, conn) {
 	} catch {}
 
 	return null
+}
+
+async function obtenerDuracionMedia(bufferMedia) {
+	const dirTmp = join(process.cwd(), './tmp')
+	await fs.mkdir(dirTmp, { recursive: true })
+	const ruta = join(dirTmp, `dur_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.tmp`)
+	try {
+		await fs.writeFile(ruta, bufferMedia)
+		const ffmpegBin = await obtenerRutaFfmpeg()
+		try {
+			await execFileAsync(ffmpegBin, ['-i', ruta])
+			return 2
+		} catch (err) {
+			const errStr = (err?.stderr || err?.stdout || err?.message || '').toString()
+			const match = errStr.match(/Duration:\s*(\d+):(\d+):(\d+\.?\d*)/)
+			if (match) {
+				const horas = parseFloat(match[1]) || 0
+				const minutos = parseFloat(match[2]) || 0
+				const segundos = parseFloat(match[3]) || 0
+				return horas * 3600 + minutos * 60 + segundos
+			}
+			return 2
+		}
+	} finally {
+		await fs.unlink(ruta).catch(() => {})
+	}
 }
 
 async function convertirMediaParaSticker(bufferMedia, esVideo = false) {
@@ -209,20 +242,27 @@ async function convertirMediaParaSticker(bufferMedia, esVideo = false) {
 		const ffmpegBin = await obtenerRutaFfmpeg()
 
 		const baseCrop = esVideo
-			? 'fps=10,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
-			: 'fps=15,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
+			? 'fps=10,scale=512:512:force_original_aspect_ratio=decrease,format=rgba,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
+			: 'fps=15,scale=512:512:force_original_aspect_ratio=decrease,format=rgba,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
 		const cmdArgs = esVideo
-			? ['-y', '-i', rutaEntrada, '-t', '45', '-an', '-vf', baseCrop, '-loop', '0', '-q:v', '30', '-lossless', '0', '-compression_level', '4', '-vsync', '0', rutaSalida]
+			? ['-y', '-i', rutaEntrada, '-t', '7', '-an', '-vf', baseCrop, '-loop', '0', '-q:v', '30', '-lossless', '0', '-compression_level', '4', '-vsync', '0', rutaSalida]
 			: ['-y', '-i', rutaEntrada, '-an', '-vf', baseCrop, '-loop', '0', '-vsync', '0', rutaSalida]
 
 		await execFileAsync(ffmpegBin, cmdArgs)
 
 		if (esVideo) {
-			const stats = await fs.stat(rutaSalida).catch(() => null)
+			let stats = await fs.stat(rutaSalida).catch(() => null)
 			if (stats && stats.size > 950 * 1024) {
-				const fallbackCrop = 'fps=8,scale=384:384:force_original_aspect_ratio=decrease,pad=384:384:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
-				const fallbackArgs = ['-y', '-i', rutaEntrada, '-t', '45', '-an', '-vf', fallbackCrop, '-loop', '0', '-q:v', '20', '-lossless', '0', '-compression_level', '4', '-vsync', '0', rutaSalida]
-				await execFileAsync(ffmpegBin, fallbackArgs).catch(() => {})
+				const fallbackCrop1 = 'fps=8,scale=384:384:force_original_aspect_ratio=decrease,format=rgba,pad=384:384:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
+				const fallbackArgs1 = ['-y', '-i', rutaEntrada, '-t', '7', '-an', '-vf', fallbackCrop1, '-loop', '0', '-q:v', '20', '-lossless', '0', '-compression_level', '4', '-vsync', '0', rutaSalida]
+				await execFileAsync(ffmpegBin, fallbackArgs1).catch(() => {})
+
+				stats = await fs.stat(rutaSalida).catch(() => null)
+				if (stats && stats.size > 950 * 1024) {
+					const fallbackCrop2 = 'fps=6,scale=288:288:force_original_aspect_ratio=decrease,format=rgba,pad=288:288:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
+					const fallbackArgs2 = ['-y', '-i', rutaEntrada, '-t', '6', '-an', '-vf', fallbackCrop2, '-loop', '0', '-q:v', '15', '-lossless', '0', '-compression_level', '4', '-vsync', '0', rutaSalida]
+					await execFileAsync(ffmpegBin, fallbackArgs2).catch(() => {})
+				}
 			}
 		}
 
@@ -233,7 +273,7 @@ async function convertirMediaParaSticker(bufferMedia, esVideo = false) {
 	}
 }
 
-async function convertirAudioParaSticker(bufferAudio) {
+async function convertirAudioParaSticker(bufferAudio, duracionSugerida = 2) {
 	const dirTmp = join(process.cwd(), './tmp')
 	await fs.mkdir(dirTmp, { recursive: true })
 
@@ -245,20 +285,45 @@ async function convertirAudioParaSticker(bufferAudio) {
 		await fs.writeFile(rutaEntrada, bufferAudio)
 		const ffmpegBin = await obtenerRutaFfmpeg()
 
-		await execFileAsync(ffmpegBin, [
-			'-y',
-			'-i', rutaEntrada,
-			'-vn',
-			'-t', '45',
-			'-c:a', 'libopus',
-			'-b:a', '64k',
-			'-vbr', 'on',
-			'-ar', '48000',
-			'-ac', '1',
-			'-compression_level', '10',
-			'-application', 'voip',
-			rutaSalida
-		])
+		try {
+			await execFileAsync(ffmpegBin, [
+				'-y',
+				'-i', rutaEntrada,
+				'-vn',
+				'-t', '45',
+				'-c:a', 'libopus',
+				'-b:a', '64k',
+				'-vbr', 'on',
+				'-ar', '48000',
+				'-ac', '1',
+				'-compression_level', '10',
+				'-application', 'voip',
+				rutaSalida
+			])
+			const stats = await fs.stat(rutaSalida).catch(() => null)
+			if (stats && stats.size > 200) {
+				return await fs.readFile(rutaSalida)
+			}
+		} catch {
+			// Si falla la extracción directa (video sin pista de audio, GIF o pista no reconocida),
+			// se genera una pista de audio silenciosa con la duración adecuada para que WhatsApp reconozca el AudioSticker
+			const dur = Math.min(Math.max(Number(duracionSugerida) || 2, 1), 7)
+			await execFileAsync(ffmpegBin, [
+				'-y',
+				'-f', 'lavfi',
+				'-i', 'anullsrc=channel_layout=mono:sample_rate=48000',
+				'-t', String(dur),
+				'-c:a', 'libopus',
+				'-b:a', '64k',
+				'-vbr', 'on',
+				'-ar', '48000',
+				'-ac', '1',
+				'-compression_level', '10',
+				'-application', 'voip',
+				rutaSalida
+			])
+			return await fs.readFile(rutaSalida)
+		}
 
 		return await fs.readFile(rutaSalida)
 	} finally {
@@ -370,8 +435,14 @@ async function resolverBufferSticker(item, conn) {
 
 	const info = item?.msg || item
 	const mime = info?.mimetype || ''
-	const esVideo = /video/.test(mime) || item?.mtype === 'videoMessage'
-	const esImagen = /image/.test(mime) || item?.mtype === 'imageMessage'
+	const esVideo =
+		item?.mtype === 'videoMessage' ||
+		item?.mtype === 'ptvMessage' ||
+		/video/.test(mime) ||
+		(info?.seconds !== undefined && !mime.includes('audio') && !/audio/.test(item?.mtype || ''))
+	const esImagen =
+		item?.mtype === 'imageMessage' ||
+		/image/.test(mime)
 
 	let descargado = null
 	if (typeof item?.download === 'function') {
@@ -398,7 +469,7 @@ async function resolverBufferSticker(item, conn) {
 async function tienePistaDeAudio(bufferMedia) {
 	const dirTmp = join(process.cwd(), './tmp')
 	await fs.mkdir(dirTmp, { recursive: true })
-	const ruta = join(dirTmp, `chk_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.mp4`)
+	const ruta = join(dirTmp, `chk_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.tmp`)
 	try {
 		await fs.writeFile(ruta, bufferMedia)
 		const ffmpegBin = await obtenerRutaFfmpeg()
@@ -406,16 +477,16 @@ async function tienePistaDeAudio(bufferMedia) {
 			await execFileAsync(ffmpegBin, ['-i', ruta])
 			return false
 		} catch (err) {
-			const errStr = (err?.stderr || '').toString()
-			return /Stream #.*Audio:/i.test(errStr)
+			const errStr = (err?.stderr || err?.stdout || err?.message || '').toString()
+			return /Stream #.*Audio:/i.test(errStr) || /Audio:\s*[a-zA-Z0-9_-]+/i.test(errStr)
 		}
 	} finally {
 		await fs.unlink(ruta).catch(() => {})
 	}
 }
 
-async function forjarYEnviarAudioSticker(conn, idChat, bufferSticker, bufferAudio, packName, authorName, quotedMsg) {
-	const audioConvertido = await convertirAudioParaSticker(bufferAudio)
+async function forjarYEnviarAudioSticker(conn, idChat, bufferSticker, bufferAudio, packName, authorName, quotedMsg, duracionSugerida = 2) {
+	const audioConvertido = await convertirAudioParaSticker(bufferAudio, duracionSugerida)
 	const stickerConExif = await addExif(bufferSticker, packName, authorName)
 
 	const [mediaSticker, mediaAudio] = await Promise.all([
@@ -512,7 +583,9 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
 	const esVideo =
 		objetivo?.mtype === 'videoMessage' ||
-		/video/.test(mimeObjetivo)
+		objetivo?.mtype === 'ptvMessage' ||
+		/video/.test(mimeObjetivo) ||
+		(infoObjetivo?.seconds !== undefined && !mimeObjetivo.includes('audio') && !/audio/.test(objetivo?.mtype || ''))
 
 	const esAudio =
 		objetivo?.mtype === 'audioMessage' ||
@@ -527,22 +600,23 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
 	let sesion = SESIONES.get(claveSesion)
 
-	// Caso especial: Video con audio directo (Método rápido de 1 solo paso sin sesión previa)
+	// Caso especial: Video (Método rápido de 1 solo paso sin sesión previa)
+	// Funciona para videos largos o de poca duración (2s, 4s, etc.), con audio o sin audio (fallback silencioso)
 	if (!sesion && esVideo) {
 		const videoBuffer = await descargarBuffer(objetivo, conn)
 		if (videoBuffer) {
-			const tieneAudio = await tienePistaDeAudio(videoBuffer)
-			if (tieneAudio) {
-				await m.reply('⏳ *Forjando tu Sello Arcano con audio directamente desde el video...*')
-				try {
-					const bufferSticker = await convertirMediaParaSticker(videoBuffer, true)
-					await forjarYEnviarAudioSticker(conn, idChat, bufferSticker, videoBuffer, packName, authorName, m)
-					await m.react?.('🔊').catch(() => {})
-					return
-				} catch (error) {
-					console.error('Error al procesar video en stickeraudio:', error)
-					return m.reply(`❌ Ocurrió un error al procesar el video:\n${error.message}`)
-				}
+			await m.reply('⏳ *Forjando tu Sello Arcano con audio directamente desde el video...*')
+			try {
+				const duracion = (infoObjetivo?.seconds && Number(infoObjetivo.seconds) > 0)
+					? Number(infoObjetivo.seconds)
+					: await obtenerDuracionMedia(videoBuffer)
+				const bufferSticker = await convertirMediaParaSticker(videoBuffer, true)
+				await forjarYEnviarAudioSticker(conn, idChat, bufferSticker, videoBuffer, packName, authorName, m, duracion)
+				await m.react?.('🔊').catch(() => {})
+				return
+			} catch (error) {
+				console.error('Error al procesar video en stickeraudio:', error)
+				return m.reply(`❌ Ocurrió un error al procesar el video:\n${error.message}`)
 			}
 		}
 	}
@@ -597,7 +671,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 			'Forja sellos sombríos con audio integrado de WhatsApp.\n\n' +
 			'*¿Cómo usarlo?*\n' +
 			'📹 *1. Modo directo (1 paso):*\n' +
-			`• Responde a un *Video* con *${usedPrefix + command}* para convertirlo en sticker con su propio audio al instante.\n\n` +
+			`• Responde a un *Video* con *${usedPrefix + command}* para convertirlo en sticker con audio al instante (incluso videos cortos de 2s o 4s).\n\n` +
 			'🎴 *2. Modo combinado (2 pasos):*\n' +
 			`• 1️⃣ Responde a un *Sticker* (o imagen) con *${usedPrefix + command}*\n` +
 			`• 2️⃣ Luego responde al *Audio / Nota de voz* con *${usedPrefix + command}*\n` +

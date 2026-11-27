@@ -1,0 +1,218 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { promises as fs } from 'fs'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
+
+const execAsync = promisify(execFile)
+
+test('stickeraudio: handles short videos of 2s, 4s, PTV, and 2-step sessions', async () => {
+	const handlerModule = await import('../plugins/stickers/stickers-stickeraudio.js')
+	const handler = handlerModule.default
+
+	const installer = await import('@ffmpeg-installer/ffmpeg')
+	const ffmpeg = installer?.default?.path || installer?.path || 'ffmpeg'
+
+	// Generate 2s video with audio
+	const v2aPath = '/tmp/test_sa_2s_a.mp4'
+	await execAsync(ffmpeg, [
+		'-y', '-f', 'lavfi', '-i', 'testsrc=d=2:s=320x240:r=30',
+		'-f', 'lavfi', '-i', 'sine=d=2',
+		'-c:v', 'libx264', '-c:a', 'aac', '-shortest', v2aPath
+	])
+	const v2aBuf = await fs.readFile(v2aPath)
+
+	// Generate 2s video without audio (silent / GIF)
+	const v2naPath = '/tmp/test_sa_2s_na.mp4'
+	await execAsync(ffmpeg, [
+		'-y', '-f', 'lavfi', '-i', 'testsrc=d=2:s=320x240:r=30',
+		'-c:v', 'libx264', v2naPath
+	])
+	const v2naBuf = await fs.readFile(v2naPath)
+
+	// Generate 4s video with audio
+	const v4aPath = '/tmp/test_sa_4s_a.mp4'
+	await execAsync(ffmpeg, [
+		'-y', '-f', 'lavfi', '-i', 'testsrc=d=4:s=320x240:r=30',
+		'-f', 'lavfi', '-i', 'sine=d=4',
+		'-c:v', 'libx264', '-c:a', 'aac', '-shortest', v4aPath
+	])
+	const v4aBuf = await fs.readFile(v4aPath)
+
+	// Mock WhatsApp connection
+	const sentMessages = []
+	const relayedMessages = []
+	const mockConn = {
+		decodeJid: (x) => x,
+		generateMessageTag: () => 'tag_' + Math.random().toString(36).slice(2),
+		waUploadToServer: async (streamOrPath, opts) => ({
+			mediaUrl: 'https://example.com/mock_media',
+			directPath: '/v/mock_media',
+			mediaKey: Buffer.alloc(32),
+			fileEncSha256: Buffer.alloc(32),
+			fileSha256: Buffer.alloc(32),
+			fileLength: 1000
+		}),
+		relayMessage: async (jid, message, options) => {
+			relayedMessages.push({ jid, message, options })
+			return { key: { id: 'relayed_1', remoteJid: jid } }
+		},
+		sendMessage: async (jid, content, options) => {
+			sentMessages.push({ jid, content, options })
+			return { key: { id: 'sent_1', remoteJid: jid } }
+		}
+	}
+
+	// Test 1: 2s video with audio directly
+	let reacted = false
+	const m2a = {
+		chat: '12345@s.whatsapp.net',
+		sender: '12345@s.whatsapp.net',
+		mtype: 'videoMessage',
+		msg: {
+			mimetype: 'video/mp4',
+			seconds: 2
+		},
+		download: async () => v2aBuf,
+		reply: async (t) => {},
+		react: async (r) => { reacted = true }
+	}
+
+	await handler(m2a, {
+		conn: mockConn,
+		args: [],
+		usedPrefix: '.',
+		command: 'stickeraudio'
+	})
+
+	assert.equal(relayedMessages.length, 1, 'Debe haber enviado 1 sticker mediante relayMessage')
+	assert.ok(relayedMessages[0].message?.stickerMessage, 'El mensaje relevado debe contener stickerMessage')
+	assert.ok(relayedMessages[0].message?.stickerMessage?.audioMessage, 'El stickerMessage debe tener audioMessage')
+	assert.ok(relayedMessages[0].message?.stickerMessage?.sound, 'El stickerMessage debe tener sound')
+	assert.equal(sentMessages.length, 1, 'Debe haber enviado 1 audio complementario')
+	assert.ok(sentMessages[0].content?.audio, 'El contenido debe ser un audio')
+	assert.equal(reacted, true, 'Debe haber reaccionado con 🔊')
+
+	// Test 2: 2s video WITHOUT audio directly (silent clip / GIF)
+	relayedMessages.length = 0
+	sentMessages.length = 0
+	reacted = false
+
+	const m2na = {
+		chat: '12345@s.whatsapp.net',
+		sender: '12345@s.whatsapp.net',
+		mtype: 'videoMessage',
+		msg: {
+			mimetype: 'video/mp4',
+			seconds: 2
+		},
+		download: async () => v2naBuf,
+		reply: async (t) => {},
+		react: async (r) => { reacted = true }
+	}
+
+	await handler(m2na, {
+		conn: mockConn,
+		args: [],
+		usedPrefix: '.',
+		command: 'stickeraudio'
+	})
+
+	assert.equal(relayedMessages.length, 1, 'Debe haber enviado 1 sticker para video sin audio')
+	assert.ok(relayedMessages[0].message?.stickerMessage, 'El mensaje relevado debe contener stickerMessage')
+	assert.ok(relayedMessages[0].message?.stickerMessage?.audioMessage, 'El stickerMessage debe tener audioMessage de respaldo silencioso')
+	assert.ok(relayedMessages[0].message?.stickerMessage?.sound, 'El stickerMessage debe tener sound')
+	assert.equal(sentMessages.length, 1, 'Debe haber enviado el audio')
+	assert.equal(reacted, true, 'Debe haber reaccionado con 🔊')
+
+	// Test 3: 4s video with audio directly
+	relayedMessages.length = 0
+	sentMessages.length = 0
+	reacted = false
+
+	const m4a = {
+		chat: '12345@s.whatsapp.net',
+		sender: '12345@s.whatsapp.net',
+		mtype: 'videoMessage',
+		msg: {
+			mimetype: 'video/mp4',
+			seconds: 4
+		},
+		download: async () => v4aBuf,
+		reply: async (t) => {},
+		react: async (r) => { reacted = true }
+	}
+
+	await handler(m4a, {
+		conn: mockConn,
+		args: [],
+		usedPrefix: '.',
+		command: 'stickeraudio'
+	})
+
+	assert.equal(relayedMessages.length, 1, 'Debe haber enviado 1 sticker para video de 4s')
+	assert.ok(relayedMessages[0].message?.stickerMessage?.audioMessage, 'El stickerMessage debe tener audioMessage para 4s')
+	assert.equal(reacted, true, 'Debe haber reaccionado con 🔊')
+
+	// Test 4: PTV (video note) message
+	relayedMessages.length = 0
+	sentMessages.length = 0
+	reacted = false
+
+	const mPtv = {
+		chat: '12345@s.whatsapp.net',
+		sender: '12345@s.whatsapp.net',
+		mtype: 'ptvMessage',
+		msg: {
+			mimetype: 'video/mp4',
+			seconds: 2
+		},
+		download: async () => v2aBuf,
+		reply: async (t) => {},
+		react: async (r) => { reacted = true }
+	}
+
+	await handler(mPtv, {
+		conn: mockConn,
+		args: [],
+		usedPrefix: '.',
+		command: 'stickeraudio'
+	})
+
+	assert.equal(relayedMessages.length, 1, 'Debe procesar notas de video PTV correctamente')
+	assert.equal(reacted, true, 'Debe haber reaccionado con 🔊')
+
+	// Test 5: Quoted video message
+	relayedMessages.length = 0
+	sentMessages.length = 0
+	reacted = false
+
+	const mQuoted = {
+		chat: '12345@s.whatsapp.net',
+		sender: '12345@s.whatsapp.net',
+		quoted: {
+			mtype: 'videoMessage',
+			mimetype: 'video/mp4',
+			seconds: 2,
+			download: async () => v2aBuf
+		},
+		download: async () => null,
+		reply: async (t) => {},
+		react: async (r) => { reacted = true }
+	}
+
+	await handler(mQuoted, {
+		conn: mockConn,
+		args: [],
+		usedPrefix: '.',
+		command: 'stickeraudio'
+	})
+
+	assert.equal(relayedMessages.length, 1, 'Debe procesar videos citados correctamente')
+	assert.equal(reacted, true, 'Debe haber reaccionado con 🔊')
+
+	// Clean up
+	await fs.unlink(v2aPath).catch(() => {})
+	await fs.unlink(v2naPath).catch(() => {})
+	await fs.unlink(v4aPath).catch(() => {})
+})
