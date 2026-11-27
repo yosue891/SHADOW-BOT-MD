@@ -1,7 +1,11 @@
 export async function before(m, { conn }) {
   const chat = global.db.data.chats[m.chat] || {}
   const primaryBot = chat.primaryBot
-  if (primaryBot && conn.user.jid !== primaryBot) throw !1
+  if (primaryBot) {
+    const primaryNum = primaryBot.split('@')[0].split(':')[0].replace(/\D/g, '')
+    const botNum = (conn.user?.jid || conn.user?.id || '').split('@')[0].split(':')[0].replace(/\D/g, '')
+    if (primaryNum && botNum && primaryNum !== botNum) throw !1
+  }
 
   global.db.data.users[m.sender] = global.db.data.users[m.sender] || {}
   const user = global.db.data.users[m.sender]

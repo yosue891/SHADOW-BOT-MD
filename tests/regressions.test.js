@@ -44,7 +44,7 @@ test('concurrent database reads share a single read and leave no polling timers'
   await b; assert.equal(reads,1); assert.equal(db.data.users.saved,true);
 });
 function handlerHarness(plugins={}) {
-  let src=fs.readFileSync('src/handler.js','utf8').replace(/^import .*;\n/gm,'').replace(/const printModule = .*;\n/,'const printModule = null;\n').replace('export async function handler','async function handler');
+  let src=fs.readFileSync('src/handler.js','utf8').replace(/^import .*;\n/gm,'').replace(/const printModule = .*;\n/,'const printModule = null;\n').replaceAll('export async function', 'async function');
   src=src.split('let file = global.__filename')[0];
   const db={data:{users:{},chats:{},settings:{}}};
   const ctx=vm.createContext({global:{db,plugins,prefix:/^[!.]/,owner:[],mods:[],prems:[]},opts:{restrict:true,noprint:true},smsg:(_c,m)=>m,console,path,join:path.join,fileURLToPath,fs,ws:{CLOSED:3},setTimeout,URL});

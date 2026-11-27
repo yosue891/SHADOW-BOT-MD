@@ -1,13 +1,24 @@
 const handler = async (m, { conn, usedPrefix }) => {
   const chat = global.db.data.chats[m.chat]
 
-  if (!chat.primaryBot) {
+  if (!chat || !chat.primaryBot) {
+    if (global.conn && conn !== global.conn) {
+      const socket = global.conn.ws?.socket || global.conn.ws
+      const state = socket?.readyState
+      if (state !== 2 && state !== 3) return
+    }
     return conn.reply(
       m.chat,
       `⚠︎ *No hay ningún Bot primario configurado en este grupo.*\n> Todos los bots activos ya están respondiendo normalmente.\n\n` +
       `➜ Para asignar uno usa: *${usedPrefix || '.'}setprimary main*`,
       m
     )
+  }
+
+  if (global.conn && conn !== global.conn) {
+    const socket = global.conn.ws?.socket || global.conn.ws
+    const state = socket?.readyState
+    if (state !== 2 && state !== 3) return
   }
 
   try {

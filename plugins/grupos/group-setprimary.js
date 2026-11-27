@@ -16,7 +16,6 @@ const isSocketActive = (sock) => {
   if (!sock) return false
   const socket = sock.ws?.socket || sock.ws
   const readyState = socket?.readyState
-  // 0 = CONNECTING, 1 = OPEN, 2 = CLOSING, 3 = CLOSED
   return readyState !== 2 && readyState !== 3
 }
 
@@ -45,20 +44,28 @@ const getActiveBots = (currentConn) => {
 
     const canonicalJid = `${number}@s.whatsapp.net`
 
-    // Extraer todos los LIDs posibles asociados a esta conexión
     const lids = new Set()
     const lidCandidates = [
       sock.user?.lid,
+      sock.user?.id?.endsWith?.('@lid') ? sock.user.id : null,
       sock.authState?.creds?.me?.lid,
+      sock.authState?.creds?.me?.id?.endsWith?.('@lid') ? sock.authState.creds.me.id : null,
       sock.authState?.creds?.account?.lid,
       sock.creds?.me?.lid
     ]
+    const lidCache = global.__shadowLidCache || (global.__shadowLidCache = new Map())
     for (const rawL of lidCandidates) {
       if (rawL && typeof rawL === 'string') {
         const cleanLid = normalizeJid(rawL, sock)
-        if (cleanLid) lids.add(cleanLid)
+        if (cleanLid && cleanLid.endsWith('@lid')) {
+          lids.add(cleanLid)
+          lidCache.set(cleanLid, canonicalJid)
+        }
         const lidNum = extractNumber(cleanLid)
-        if (lidNum) lids.add(lidNum)
+        if (lidNum) {
+          lids.add(lidNum)
+          lidCache.set(`${lidNum}@lid`, canonicalJid)
+        }
       }
     }
 
@@ -81,16 +88,13 @@ const getActiveBots = (currentConn) => {
     }
   }
 
-  // 1. Bot principal global
   if (global.conn) registerBot(global.conn, true)
 
-  // 2. Socket actual que atiende el comando
   if (currentConn) {
     const isCurrentMain = global.conn ? currentConn === global.conn : true
     registerBot(currentConn, isCurrentMain)
   }
 
-  // 3. Sub-bots en global.conns
   if (Array.isArray(global.conns)) {
     for (const sub of global.conns) {
       registerBot(sub, false)
@@ -131,12 +135,15 @@ const findTargetBot = async (activeBots, { text, args, m, quoted, currentConn, p
   const hasQuoted = Boolean(quoted || rawContext?.quotedMessage || stanzaId)
 
   if (hasQuoted) {
-    // Si solo hay 1 bot activo en el sistema (el principal), y el usuario citó un mensaje:
     if (activeBots.length === 1) {
       return activeBots[0]
     }
 
-    // Await quoted.sender si retorna Promise
+    if (stanzaId) {
+      const botWithChatMsg = activeBots.find(b => b.sock?.chats?.[m?.chat]?.messages?.[stanzaId])
+      if (botWithChatMsg) return botWithChatMsg
+    }
+
     let qSender = quoted?.sender
     if (qSender && typeof qSender.then === 'function') {
       try {
@@ -144,12 +151,13 @@ const findTargetBot = async (activeBots, { text, args, m, quoted, currentConn, p
       } catch {}
     }
 
-    const quotedCandidates = new Set()
-
     if (quoted?.fromMe === true || quoted?.key?.fromMe === true) {
-      quotedCandidates.add('__FROM_ME__')
+      const curNum = extractNumber(currentConn?.user?.jid || currentConn?.user?.id)
+      const curBot = activeBots.find((b) => b.sock === currentConn || (curNum && b.number === curNum))
+      if (curBot) return curBot
     }
 
+    const quotedCandidates = new Set()
     const checkList = [
       qSender,
       rawContext?.participant,
@@ -171,17 +179,7 @@ const findTargetBot = async (activeBots, { text, args, m, quoted, currentConn, p
       }
     }
 
-    // A. Comparar candidatos del citado contra los bots activos
     for (const cand of quotedCandidates) {
-      if (cand === '__FROM_ME__') {
-        const curNum = extractNumber(currentConn?.user?.jid || currentConn?.user?.id)
-        return (
-          activeBots.find((b) => b.sock === currentConn || (curNum && b.number === curNum)) ||
-          activeBots.find((b) => b.isMain) ||
-          activeBots[0]
-        )
-      }
-
       const candNum = extractNumber(cand)
 
       for (const bot of activeBots) {
@@ -190,7 +188,15 @@ const findTargetBot = async (activeBots, { text, args, m, quoted, currentConn, p
         if (bot.lids.includes(cand) || (candNum && bot.lids.includes(candNum))) return bot
       }
 
-      // B. Si el candidato es un LID, buscar en los participantes del grupo
+      if (cand.endsWith('@lid')) {
+        const mapped = global.__shadowLidCache?.get?.(cand)
+        if (mapped) {
+          const mapNum = extractNumber(mapped)
+          const found = activeBots.find((b) => b.canonicalJid === mapped || b.jid === mapped || (mapNum && b.number === mapNum))
+          if (found) return found
+        }
+      }
+
       if (Array.isArray(participants) && participants.length > 0) {
         const matchedP = participants.find((p) => {
           const pIds = [p.id, p.jid, p.lid, p.phoneNumber, p.pn, p.phone].filter(Boolean).map((id) => normalizeJid(id, currentConn))
@@ -209,14 +215,12 @@ const findTargetBot = async (activeBots, { text, args, m, quoted, currentConn, p
       }
     }
 
-    // C. Si el stanzaId tiene formato de mensaje generado por Baileys
     if (stanzaId && isBaileysId(stanzaId)) {
-      const curNum = extractNumber(currentConn?.user?.jid || currentConn?.user?.id)
-      return (
-        activeBots.find((b) => b.sock === currentConn || (curNum && b.number === curNum)) ||
-        activeBots.find((b) => b.isMain) ||
-        activeBots[0]
-      )
+      const mainBot = activeBots.find((b) => b.isMain)
+      if (mainBot && mainBot.sock !== currentConn) {
+        return mainBot
+      }
+      return mainBot || activeBots[0]
     }
   }
 
@@ -239,12 +243,13 @@ const findTargetBot = async (activeBots, { text, args, m, quoted, currentConn, p
     }
   }
 
-  // 6. Si no hubo mención, citado ni texto, por defecto seleccionar el bot que atiende el comando
+  // 6. Si no hubo mención, citado ni texto, por defecto seleccionar el bot principal o el que atiende el comando
   if (!cleanText && !hasQuoted && rawMentions.length === 0) {
+    const mainBot = activeBots.find((b) => b.isMain)
+    if (mainBot) return mainBot
     const curNum = extractNumber(currentConn?.user?.jid || currentConn?.user?.id)
     return (
       activeBots.find((b) => b.sock === currentConn || (curNum && b.number === curNum)) ||
-      activeBots.find((b) => b.isMain) ||
       activeBots[0]
     )
   }
@@ -262,7 +267,6 @@ const handler = async (m, { conn, text, args, usedPrefix, command, participants 
     return conn.reply(m.chat, `⚠︎ *No se detectaron bots activos conectados en este momento.*`, m)
   }
 
-  // Asegurar que participants esté poblado si es un grupo
   if ((!Array.isArray(participants) || participants.length === 0) && m.isGroup) {
     try {
       const meta = await conn.groupMetadata(m.chat).catch(() => null)
@@ -295,7 +299,10 @@ const handler = async (m, { conn, text, args, usedPrefix, command, participants 
     )
   }
 
-  // Validar si el bot pertenece al grupo actual (si la lista de participantes está disponible)
+  if (targetBot?.sock && targetBot.sock !== conn && isSocketActive(targetBot.sock)) {
+    return
+  }
+
   if (Array.isArray(participants) && participants.length > 0) {
     const isInGroup = participants.some((p) => {
       const pIds = [p.id, p.jid, p.lid, p.phoneNumber, p.pn, p.phone]
@@ -320,7 +327,11 @@ const handler = async (m, { conn, text, args, usedPrefix, command, participants 
   }
 
   const currentPrimaryNumber = extractNumber(chat.primaryBot)
-  if (chat.primaryBot && (chat.primaryBot === targetBot.canonicalJid || currentPrimaryNumber === targetBot.number)) {
+  const isAlreadyPrimary = Boolean(chat.primaryBot && (chat.primaryBot === targetBot.canonicalJid || currentPrimaryNumber === targetBot.number))
+
+  chat.primaryBot = targetBot.canonicalJid
+
+  if (isAlreadyPrimary) {
     return conn.reply(
       m.chat,
       `➜ @${targetBot.number} *ya está configurado como el Bot Principal aquí.*\n\n` +
@@ -333,7 +344,6 @@ const handler = async (m, { conn, text, args, usedPrefix, command, participants 
   }
 
   try {
-    chat.primaryBot = targetBot.canonicalJid
     const rolTexto = targetBot.isMain ? 'Bot Principal (Núcleo Supremo)' : 'Sub-Bot (Clon de Sombra)'
 
     const respuesta =
@@ -359,5 +369,5 @@ handler.command = ['setprimary']
 handler.group = true
 handler.admin = true
 
-export { getActiveBots, findTargetBot, normalizeJid, extractNumber, isBaileysId }
+export { getActiveBots, findTargetBot, normalizeJid, extractNumber, isBaileysId, isSocketActive }
 export default handler

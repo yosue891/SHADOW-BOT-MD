@@ -109,11 +109,91 @@ function normalizeParticipant(participant, conn) {
     if (!participant) return participant;
     const id = participant.id || participant.jid || participant.phoneNumber || participant.lid || "";
     const phoneNumber = participant.phoneNumber || (!normalizeJid(id, conn).endsWith("@lid") ? id : undefined);
+    if (participant.lid && phoneNumber) {
+        const cleanLid = normalizeJid(participant.lid, conn);
+        const cleanPn = normalizeJid(phoneNumber, conn);
+        if (cleanLid && cleanPn && cleanLid.endsWith("@lid") && !cleanPn.endsWith("@lid")) {
+            const lidCache = global.__shadowLidCache || (global.__shadowLidCache = new Map());
+            lidCache.set(cleanLid, cleanPn);
+        }
+    }
     return {
         ...participant,
         jid: participant.jid || phoneNumber || participant.id || participant.lid,
         phoneNumber
     };
+}
+
+function extractDigits(jid) {
+    if (!jid) return "";
+    const base = String(jid).split("@")[0].split(":")[0];
+    return base.replace(/\D/g, "");
+}
+
+function syncBotLidCache() {
+    const lidCache = global.__shadowLidCache || (global.__shadowLidCache = new Map());
+    const allSockets = [global.conn, ...(Array.isArray(global.conns) ? global.conns : [])].filter(Boolean);
+    for (const sock of allSockets) {
+        const rawId = sock.user?.id || sock.user?.jid || sock.authState?.creds?.me?.id || '';
+        const num = extractDigits(rawId);
+        if (!num) continue;
+        const canonicalJid = `${num}@s.whatsapp.net`;
+        const lidCandidates = [
+            sock.user?.lid,
+            sock.user?.id?.endsWith?.('@lid') ? sock.user.id : null,
+            sock.authState?.creds?.me?.lid,
+            sock.authState?.creds?.me?.id?.endsWith?.('@lid') ? sock.authState.creds.me.id : null,
+            sock.creds?.me?.lid
+        ];
+        for (const rawL of lidCandidates) {
+            if (rawL && typeof rawL === 'string') {
+                const cleanL = rawL.trim().replace(/:\d+@/, '@').toLowerCase();
+                if (cleanL.endsWith('@lid')) {
+                    lidCache.set(cleanL, canonicalJid);
+                    const lNum = extractDigits(cleanL);
+                    if (lNum) lidCache.set(`${lNum}@lid`, canonicalJid);
+                }
+            }
+        }
+    }
+}
+
+function isSocketActive(sock) {
+    if (!sock) return false;
+    const socket = sock.ws?.socket || sock.ws;
+    const readyState = socket?.readyState;
+    return readyState !== 2 && readyState !== 3;
+}
+
+function isCurrentBotPrimary(primaryBotJid, conn) {
+    if (!primaryBotJid || !conn) return false;
+    const primaryNum = extractDigits(primaryBotJid);
+    if (!primaryNum) return false;
+
+    const candidates = [
+        conn.user?.jid,
+        conn.user?.id,
+        conn.user?.lid,
+        conn.authState?.creds?.me?.jid,
+        conn.authState?.creds?.me?.id,
+        conn.authState?.creds?.me?.lid,
+        conn.user?.phoneNumber
+    ].filter(Boolean);
+
+    for (const cand of candidates) {
+        if (sameIdentity(cand, primaryBotJid, conn)) return true;
+        const candNum = extractDigits(cand);
+        if (candNum && (candNum === primaryNum || candNum.endsWith(primaryNum) || primaryNum.endsWith(candNum))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function findPrimaryBotSocket(primaryBotJid) {
+    if (!primaryBotJid) return null;
+    const allSockets = [global.conn, ...(Array.isArray(global.conns) ? global.conns : [])].filter(Boolean);
+    return allSockets.find(sock => isSocketActive(sock) && isCurrentBotPrimary(primaryBotJid, sock)) || null;
 }
 
 async function getGroupMetadataCached(conn, jid, forceFresh = false) {
@@ -153,6 +233,7 @@ function isAdminParticipant(participant) {
 }
 
 export async function handler(chatUpdate) {
+    syncBotLidCache();
     this.msgqueque = this.msgqueque || [];
     this.uptime = this.uptime || Date.now();
     if (!chatUpdate || !this.user?.id) return;
@@ -332,16 +413,19 @@ export async function handler(chatUpdate) {
         ? new RegExp(`${prefixRegex.source}delprimary\\b`, prefixRegex.flags)
         : /^delprimary\b/i;
     const isDelPrimaryCommand = typeof m.text === "string" && delPrimaryRegex.test(m.text);
+    const setPrimaryRegex = prefixRegex instanceof RegExp
+        ? new RegExp(`${prefixRegex.source}setprimary\\b`, prefixRegex.flags)
+        : /^setprimary\b/i;
+    const isSetPrimaryCommand = typeof m.text === "string" && setPrimaryRegex.test(m.text);
 
-    if (chat.primaryBot && !sameIdentity(chat.primaryBot, this.user.jid || this.user.id, this) && !isDelPrimaryCommand) {
-        const primaryBotInGroup = participants.some(p => participantIds(p).some(id => sameIdentity(id, chat.primaryBot, this)));
-        const allBotSockets = [global.conn, ...(Array.isArray(global.conns) ? global.conns : [])].filter(Boolean);
-        const primaryBotConn = allBotSockets.find(sock => {
-            const socketState = sock?.ws?.socket?.readyState ?? sock?.ws?.readyState;
-            return sameIdentity(sock?.user?.jid || sock?.user?.id, chat.primaryBot, sock) && socketState !== ws.CLOSED;
-        });
-        if (primaryBotConn && primaryBotInGroup) return;
-        chat.primaryBot = null;
+    if (chat.primaryBot && !isCurrentBotPrimary(chat.primaryBot, this)) {
+        const primaryConn = findPrimaryBotSocket(chat.primaryBot);
+        if (primaryConn) {
+            return;
+        }
+        if (!isDelPrimaryCommand && !isSetPrimaryCommand) {
+            return;
+        }
     }
 
     if (m.text && !(isMods || isPrems)) {
@@ -446,14 +530,14 @@ export async function handler(chatUpdate) {
         global.comando = command;
 
         if (chat.isBanned && !isMods && name !== "group-banchat.js") {
-            if (!chat.primaryBot || sameIdentity(chat.primaryBot, this.user?.jid || this.user?.id, this)) {
+            if (!chat.primaryBot || isCurrentBotPrimary(chat.primaryBot, this)) {
                 await this.reply(m.chat, `🎃🦇 *[ 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 • 𝐇𝐀𝐋𝐋𝐎𝐖𝐄𝐄𝐍 ]*\n> ☾ El bot *${settings.botname}* descansa en la cripta de este grupo.\n\n> ✦ Un *administrador* puede despertarlo con:\n> » *${usedPrefix}bot on* 🕯️`, m);
                 return;
             }
         }
 
         if (user.banned && !isMods && m.text) {
-            if (!chat.primaryBot || sameIdentity(chat.primaryBot, this.user?.jid || this.user?.id, this)) {
+            if (!chat.primaryBot || isCurrentBotPrimary(chat.primaryBot, this)) {
                 await this.reply(m.chat, `🎃⚰️ *[ 𝐒𝐇𝐀𝐃𝐎𝐖 𝐆𝐀𝐑𝐃𝐄𝐍 • 𝐇𝐀𝐋𝐋𝐎𝐖𝐄𝐄𝐍 ]*\n> ☾ Tu alma ha sido desterrada, no puedes usar rituales en este bot.\n\n> ● *Razón ›* ${user.bannedReason}\n\n> 🦇 Si tienes pruebas de que es una confusión, contacta a un líder de la noche.`, m);
                 return;
             }

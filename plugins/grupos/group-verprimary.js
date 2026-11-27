@@ -1,6 +1,11 @@
 let handler = async (m, { conn }) => {
   let chat = global.db.data.chats[m.chat]
   if (!chat || !chat.primaryBot) {
+    if (global.conn && conn !== global.conn) {
+      const socket = global.conn.ws?.socket || global.conn.ws
+      const state = socket?.readyState
+      if (state !== 2 && state !== 3) return
+    }
     return m.reply('ℹ️ *No hay ningún bot principal establecido en este grupo.*\n> Todos los bots activos responderán a los comandos.')
   }
 
