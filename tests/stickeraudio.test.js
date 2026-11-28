@@ -210,8 +210,105 @@ test('stickeraudio: handles short videos of 2s, 4s, PTV, styles/angles (normal, 
 	assert.equal(relayedMessages.length, 1, 'Debe procesar notas de video PTV correctamente')
 	assert.equal(reacted, true, 'Debe haber reaccionado con 🔊')
 
+	// Test 7: Video of up to 60s (valid duration)
+	relayedMessages.length = 0
+	sentMessages.length = 0
+	reacted = false
+	let replyText = ''
+
+	const m60 = {
+		chat: '12345@s.whatsapp.net',
+		sender: '12345@s.whatsapp.net',
+		mtype: 'videoMessage',
+		msg: {
+			mimetype: 'video/mp4',
+			seconds: 60
+		},
+		download: async () => v4aBuf,
+		reply: async (t) => { replyText = t },
+		react: async (r) => { reacted = true }
+	}
+
+	await handler(m60, {
+		conn: mockConn,
+		args: [],
+		usedPrefix: '.',
+		command: 'stickeraudio'
+	})
+
+	assert.equal(relayedMessages.length, 1, 'Debe procesar videos de hasta 60s correctamente')
+	assert.ok(relayedMessages[0].message?.stickerMessage?.audioMessage, 'El sticker debe tener audioMessage')
+	assert.equal(reacted, true, 'Debe haber reaccionado con 🔊')
+
+	// Test 8: Video exceeding 60s (e.g. 65s) is rejected with limit warning
+	relayedMessages.length = 0
+	sentMessages.length = 0
+	reacted = false
+	replyText = ''
+
+	const mOver60 = {
+		chat: '12345@s.whatsapp.net',
+		sender: '12345@s.whatsapp.net',
+		mtype: 'videoMessage',
+		msg: {
+			mimetype: 'video/mp4',
+			seconds: 65
+		},
+		download: async () => v4aBuf,
+		reply: async (t) => { replyText = t },
+		react: async (r) => { reacted = true }
+	}
+
+	await handler(mOver60, {
+		conn: mockConn,
+		args: [],
+		usedPrefix: '.',
+		command: 'stickeraudio'
+	})
+
+	assert.equal(relayedMessages.length, 0, 'No debe forjar sticker si el video supera 60s')
+	assert.ok(replyText.includes('supera el límite de 60 segundos'), 'Debe advertir que supera el límite de 60 segundos')
+	assert.ok(replyText.includes('65 segundos'), 'Debe mencionar la duración del video')
+	assert.equal(reacted, false, 'No debe haber reaccionado con 🔊')
+
+	// Test 9: Video exceeding 60s without metadata (buffer duration > 60s)
+	const vOverPath = '/tmp/test_sa_over60s.mp4'
+	await execAsync(ffmpeg, [
+		'-y', '-f', 'lavfi', '-i', 'testsrc=d=62:s=160x120:r=1',
+		'-c:v', 'libx264', vOverPath
+	])
+	const vOverBuf = await fs.readFile(vOverPath)
+
+	relayedMessages.length = 0
+	sentMessages.length = 0
+	reacted = false
+	replyText = ''
+
+	const mOverBuffer = {
+		chat: '12345@s.whatsapp.net',
+		sender: '12345@s.whatsapp.net',
+		mtype: 'videoMessage',
+		msg: {
+			mimetype: 'video/mp4'
+		},
+		download: async () => vOverBuf,
+		reply: async (t) => { replyText = t },
+		react: async (r) => { reacted = true }
+	}
+
+	await handler(mOverBuffer, {
+		conn: mockConn,
+		args: [],
+		usedPrefix: '.',
+		command: 'stickeraudio'
+	})
+
+	assert.equal(relayedMessages.length, 0, 'No debe forjar sticker si la duración detectada supera 60s')
+	assert.ok(replyText.includes('supera el límite de 60 segundos'), 'Debe advertir que supera el límite de 60 segundos tras analizar el archivo')
+
 	// Clean up
 	await fs.unlink(v2aPath).catch(() => {})
 	await fs.unlink(v2naPath).catch(() => {})
 	await fs.unlink(v4aPath).catch(() => {})
+	await fs.unlink(vOverPath).catch(() => {})
 })

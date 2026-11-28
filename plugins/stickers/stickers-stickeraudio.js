@@ -79,6 +79,15 @@ function parseStyle(rawOpt) {
 	return 'normal'
 }
 
+function calcularFpsOptimo(duracionSegundos, esVideo = false) {
+	if (!esVideo) return 15
+	const dur = Math.max(Number(duracionSegundos) || 0, 1)
+	if (dur <= 6) return 10
+	if (dur <= 15) return 8
+	if (dur <= 30) return 6
+	return 5
+}
+
 function construirFiltroSticker(esVideo, style = 'normal', escala = 512, customFps = null) {
 	const fps = customFps || (esVideo ? (escala === 512 ? 10 : (escala === 384 ? 8 : 6)) : 15)
 	const radius = Math.floor(escala / 2)
@@ -300,7 +309,7 @@ async function obtenerDuracionMedia(bufferMedia) {
 	}
 }
 
-async function convertirMediaParaSticker(bufferMedia, esVideo = false, style = 'normal') {
+async function convertirMediaParaSticker(bufferMedia, esVideo = false, style = 'normal', duracionSegundos = null) {
 	const dirTmp = join(process.cwd(), './tmp')
 	await fs.mkdir(dirTmp, { recursive: true })
 
@@ -312,9 +321,20 @@ async function convertirMediaParaSticker(bufferMedia, esVideo = false, style = '
 		await fs.writeFile(rutaEntrada, bufferMedia)
 		const ffmpegBin = await obtenerRutaFfmpeg()
 
-		const vf = construirFiltroSticker(esVideo, style, 512)
+		let tiempoLimite = 60
+		let fpsBase = esVideo ? 10 : 15
+
+		if (esVideo) {
+			const durReal = (Number(duracionSegundos) > 0)
+				? Number(duracionSegundos)
+				: await obtenerDuracionMedia(bufferMedia)
+			tiempoLimite = Math.min(Math.max(Number(durReal) || 60, 1), 60)
+			fpsBase = calcularFpsOptimo(tiempoLimite, true)
+		}
+
+		const vf = construirFiltroSticker(esVideo, style, 512, fpsBase)
 		const cmdArgs = esVideo
-			? ['-y', '-i', rutaEntrada, '-t', '7', '-an', '-vf', vf, '-loop', '0', '-q:v', '30', '-lossless', '0', '-compression_level', '4', '-vsync', '0', rutaSalida]
+			? ['-y', '-i', rutaEntrada, '-t', String(tiempoLimite), '-an', '-vf', vf, '-loop', '0', '-q:v', '30', '-lossless', '0', '-compression_level', '4', '-vsync', '0', rutaSalida]
 			: ['-y', '-i', rutaEntrada, '-an', '-vf', vf, '-loop', '0', '-vsync', '0', rutaSalida]
 
 		await execFileAsync(ffmpegBin, cmdArgs)
@@ -322,15 +342,24 @@ async function convertirMediaParaSticker(bufferMedia, esVideo = false, style = '
 		if (esVideo) {
 			let stats = await fs.stat(rutaSalida).catch(() => null)
 			if (stats && stats.size > 950 * 1024) {
-				const fallbackVf1 = construirFiltroSticker(true, style, 384, 8)
-				const fallbackArgs1 = ['-y', '-i', rutaEntrada, '-t', '7', '-an', '-vf', fallbackVf1, '-loop', '0', '-q:v', '20', '-lossless', '0', '-compression_level', '4', '-vsync', '0', rutaSalida]
+				const fpsF1 = Math.max(3, fpsBase - 2)
+				const fallbackVf1 = construirFiltroSticker(true, style, 384, fpsF1)
+				const fallbackArgs1 = ['-y', '-i', rutaEntrada, '-t', String(tiempoLimite), '-an', '-vf', fallbackVf1, '-loop', '0', '-q:v', '20', '-lossless', '0', '-compression_level', '4', '-vsync', '0', rutaSalida]
 				await execFileAsync(ffmpegBin, fallbackArgs1).catch(() => {})
 
 				stats = await fs.stat(rutaSalida).catch(() => null)
 				if (stats && stats.size > 950 * 1024) {
-					const fallbackVf2 = construirFiltroSticker(true, style, 288, 6)
-					const fallbackArgs2 = ['-y', '-i', rutaEntrada, '-t', '6', '-an', '-vf', fallbackVf2, '-loop', '0', '-q:v', '15', '-lossless', '0', '-compression_level', '4', '-vsync', '0', rutaSalida]
+					const fpsF2 = Math.max(2, fpsBase - 3)
+					const fallbackVf2 = construirFiltroSticker(true, style, 288, fpsF2)
+					const fallbackArgs2 = ['-y', '-i', rutaEntrada, '-t', String(tiempoLimite), '-an', '-vf', fallbackVf2, '-loop', '0', '-q:v', '15', '-lossless', '0', '-compression_level', '4', '-vsync', '0', rutaSalida]
 					await execFileAsync(ffmpegBin, fallbackArgs2).catch(() => {})
+
+					stats = await fs.stat(rutaSalida).catch(() => null)
+					if (stats && stats.size > 950 * 1024) {
+						const fallbackVf3 = construirFiltroSticker(true, style, 240, 2)
+						const fallbackArgs3 = ['-y', '-i', rutaEntrada, '-t', String(tiempoLimite), '-an', '-vf', fallbackVf3, '-loop', '0', '-q:v', '10', '-lossless', '0', '-compression_level', '4', '-vsync', '0', rutaSalida]
+						await execFileAsync(ffmpegBin, fallbackArgs3).catch(() => {})
+					}
 				}
 			}
 		}
@@ -342,13 +371,14 @@ async function convertirMediaParaSticker(bufferMedia, esVideo = false, style = '
 	}
 }
 
-async function convertirAudioParaSticker(bufferAudio, duracionSugerida = 2) {
+async function convertirAudioParaSticker(bufferAudio, duracionSugerida = 60) {
 	const dirTmp = join(process.cwd(), './tmp')
 	await fs.mkdir(dirTmp, { recursive: true })
 
 	const nombreBase = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
 	const rutaEntrada = join(dirTmp, `${nombreBase}_in.tmp`)
 	const rutaSalida = join(dirTmp, `${nombreBase}_out.opus`)
+	const tiempoLimite = Math.min(Math.max(Number(duracionSugerida) || 60, 1), 60)
 
 	try {
 		await fs.writeFile(rutaEntrada, bufferAudio)
@@ -359,7 +389,7 @@ async function convertirAudioParaSticker(bufferAudio, duracionSugerida = 2) {
 				'-y',
 				'-i', rutaEntrada,
 				'-vn',
-				'-t', '45',
+				'-t', String(tiempoLimite),
 				'-c:a', 'libopus',
 				'-b:a', '64k',
 				'-vbr', 'on',
@@ -376,12 +406,11 @@ async function convertirAudioParaSticker(bufferAudio, duracionSugerida = 2) {
 		} catch {
 			// Si falla la extracción directa (video sin pista de audio, GIF o pista no reconocida),
 			// se genera una pista de audio silenciosa con la duración adecuada para que WhatsApp reconozca el AudioSticker
-			const dur = Math.min(Math.max(Number(duracionSugerida) || 2, 1), 7)
 			await execFileAsync(ffmpegBin, [
 				'-y',
 				'-f', 'lavfi',
 				'-i', 'anullsrc=channel_layout=mono:sample_rate=48000',
-				'-t', String(dur),
+				'-t', String(tiempoLimite),
 				'-c:a', 'libopus',
 				'-b:a', '64k',
 				'-vbr', 'on',
@@ -496,7 +525,7 @@ async function asegurarModificado() {
 	}
 }
 
-async function resolverBufferSticker(item, conn, style = 'normal') {
+async function resolverBufferSticker(item, conn, style = 'normal', duracionSegundos = null) {
 	if (!item) return null
 
 	if (Buffer.isBuffer(item)) return item
@@ -526,7 +555,7 @@ async function resolverBufferSticker(item, conn, style = 'normal') {
 	// Si es imagen o video, o si se especificó un estilo diferente a normal, convertir
 	if (esImagen || esVideo || style !== 'normal' || !mime.includes('webp')) {
 		try {
-			return await convertirMediaParaSticker(descargado, esVideo, style)
+			return await convertirMediaParaSticker(descargado, esVideo, style, duracionSegundos)
 		} catch {
 			return descargado
 		}
@@ -535,7 +564,7 @@ async function resolverBufferSticker(item, conn, style = 'normal') {
 	return descargado
 }
 
-async function forjarYEnviarAudioSticker(conn, idChat, bufferSticker, bufferAudio, packName, authorName, quotedMsg, duracionSugerida = 2) {
+async function forjarYEnviarAudioSticker(conn, idChat, bufferSticker, bufferAudio, packName, authorName, quotedMsg, duracionSugerida = 60) {
 	const audioConvertido = await convertirAudioParaSticker(bufferAudio, duracionSugerida)
 	const stickerConExif = await addExif(bufferSticker, packName, authorName)
 
@@ -662,18 +691,37 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 	let sesion = SESIONES.get(claveSesion)
 
 	// Caso especial: Video (Método rápido de 1 solo paso sin sesión previa)
-	// Funciona para videos largos o de poca duración (2s, 4s, etc.), con audio o sin audio (fallback silencioso)
+	// Funciona para videos largos o de poca duración (2s, 4s, etc., hasta 60s), con audio o sin audio (fallback silencioso)
 	// y aplica los tamaños y ángulos exactos del comando .s (normal, circle, crop, etc.)
 	if (!sesion && esVideo) {
+		const duracionEstimada = Number(infoObjetivo?.seconds) || 0
+		if (duracionEstimada > 60) {
+			return m.reply(
+				'⚠️ *El video supera el límite de 60 segundos.*\n\n' +
+				`⏱️ Tu video dura *${Math.round(duracionEstimada)} segundos*.\n` +
+				'👉 Por favor envía o recorta tu video a un máximo de *60 segundos* para crear el sticker con audio.'
+			)
+		}
+
 		const videoBuffer = await descargarBuffer(objetivo, conn)
 		if (videoBuffer) {
+			const duracion = (infoObjetivo?.seconds && Number(infoObjetivo.seconds) > 0)
+				? Number(infoObjetivo.seconds)
+				: await obtenerDuracionMedia(videoBuffer)
+
+			if (duracion > 60.5) {
+				return m.reply(
+					'⚠️ *El video supera el límite de 60 segundos.*\n\n' +
+					`⏱️ Tu video dura *${Math.round(duracion)} segundos*.\n` +
+					'👉 Por favor envía o recorta tu video a un máximo de *60 segundos* para crear el sticker con audio.'
+				)
+			}
+
 			await m.reply('⏳ *Forjando tu Sello Arcano con audio directamente desde el video...*')
 			try {
-				const duracion = (infoObjetivo?.seconds && Number(infoObjetivo.seconds) > 0)
-					? Number(infoObjetivo.seconds)
-					: await obtenerDuracionMedia(videoBuffer)
-				const bufferSticker = await convertirMediaParaSticker(videoBuffer, true, style)
-				await forjarYEnviarAudioSticker(conn, idChat, bufferSticker, videoBuffer, packName, authorName, m, duracion)
+				const duracionFinal = Math.min(Math.max(duracion, 1), 60)
+				const bufferSticker = await convertirMediaParaSticker(videoBuffer, true, style, duracionFinal)
+				await forjarYEnviarAudioSticker(conn, idChat, bufferSticker, videoBuffer, packName, authorName, m, duracionFinal)
 				await m.react?.('🔊').catch(() => {})
 				return
 			} catch (error) {
@@ -685,6 +733,17 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
 	if (!sesion) {
 		if (esStickerOImagen || esVideo) {
+			if (esVideo) {
+				const duracionEstimada = Number(infoObjetivo?.seconds) || 0
+				if (duracionEstimada > 60) {
+					return m.reply(
+						'⚠️ *El video supera el límite de 60 segundos.*\n\n' +
+						`⏱️ Tu video dura *${Math.round(duracionEstimada)} segundos*.\n` +
+						'👉 Por favor envía o recorta tu video a un máximo de *60 segundos* para crear el sticker con audio.'
+					)
+				}
+			}
+
 			const bufferSticker = await resolverBufferSticker(objetivo, conn, style)
 
 			if (!bufferSticker) {
@@ -735,9 +794,9 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 			'Forja sellos sombríos con audio integrado de WhatsApp manteniendo proporciones, tamaños y ángulos de *.s*.\n\n' +
 			'*¿Cómo usarlo?*\n' +
 			'📹 *1. Modo directo (1 paso):*\n' +
-			`• Responde a un *Video* con *${usedPrefix + command} [estilo]* para convertirlo en sticker con audio al instante (incluso videos cortos de 2s o 4s).\n\n` +
+			`• Responde a un *Video* (máximo 60 segundos) con *${usedPrefix + command} [estilo]* para convertirlo en sticker con audio al instante (incluso videos cortos de 2s o clips de hasta 60s).\n\n` +
 			'🎴 *2. Modo combinado (2 pasos):*\n' +
-			`• 1️⃣ Responde a un *Sticker* (o imagen) con *${usedPrefix + command} [estilo]*\n` +
+			`• 1️⃣ Responde a un *Sticker* (o imagen/video de hasta 60s) con *${usedPrefix + command} [estilo]*\n` +
 			`• 2️⃣ Luego responde al *Audio / Nota de voz* con *${usedPrefix + command}*\n` +
 			'_(También funciona al revés: primero audio y luego sticker)_\n\n' +
 			'📐 *Estilos y ángulos disponibles:*\n' +
@@ -777,6 +836,17 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 			)
 		}
 
+		if (esVideo) {
+			const duracionEstimada = Number(infoObjetivo?.seconds) || 0
+			if (duracionEstimada > 60) {
+				return m.reply(
+					'⚠️ *El video supera el límite de 60 segundos.*\n\n' +
+					`⏱️ Tu video dura *${Math.round(duracionEstimada)} segundos*.\n` +
+					'👉 Por favor envía o recorta tu video a un máximo de *60 segundos* para crear el sticker con audio.'
+				)
+			}
+		}
+
 		const estiloFinal = style !== 'normal' ? style : (sesion.style || 'normal')
 		const bufferSticker = await resolverBufferSticker(objetivo, conn, estiloFinal)
 
@@ -792,7 +862,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 	await m.reply('⏳ *Forjando tu Sello Arcano con audio...*')
 
 	try {
-		await forjarYEnviarAudioSticker(conn, idChat, sesion.bufferSticker, sesion.bufferAudio, packName, authorName, m)
+		await forjarYEnviarAudioSticker(conn, idChat, sesion.bufferSticker, sesion.bufferAudio, packName, authorName, m, 60)
 		await m.react?.('🔊').catch(() => {})
 	} catch (error) {
 		console.error('Error al enviar el AudioSticker:', error)
