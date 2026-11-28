@@ -53,6 +53,77 @@ async function obtenerRutaFfmpeg() {
 	return 'ffmpeg'
 }
 
+const styles = {
+	normal: 'Normal (ajuste proporcional completo 512x512)',
+	crop: 'Recorte centrado 512x512',
+	circle: 'Círculo (recorte redondo)',
+	bw: 'Blanco y negro',
+	invert: 'Invertir colores',
+	blur: 'Desenfoque',
+	pixel: 'Pixelado',
+	sepia: 'Sepia',
+	neon: 'Bordes tipo neon'
+}
+
+function parseStyle(rawOpt) {
+	const opt = (rawOpt || '').toLowerCase().trim().replace(/^--?/, '')
+	if (['circle', 'circulo', 'círculo', 'r', 'redondo'].includes(opt)) {
+		return 'circle'
+	}
+	if (['crop', 'c', 'recorte', 'cuadrado'].includes(opt)) {
+		return 'crop'
+	}
+	if (styles[opt]) {
+		return opt
+	}
+	return 'normal'
+}
+
+function construirFiltroSticker(esVideo, style = 'normal', escala = 512, customFps = null) {
+	const fps = customFps || (esVideo ? (escala === 512 ? 10 : (escala === 384 ? 8 : 6)) : 15)
+	const radius = Math.floor(escala / 2)
+
+	const baseContain =
+		`fps=${fps},` +
+		`scale=${escala}:${escala}:force_original_aspect_ratio=decrease,` +
+		'format=rgba,' +
+		`pad=${escala}:${escala}:(ow-iw)/2:(oh-ih)/2:color=white@0.0`
+
+	const baseCoverCrop =
+		`fps=${fps},` +
+		`scale=${escala}:${escala}:force_original_aspect_ratio=increase,` +
+		`crop=${escala}:${escala}`
+
+	const geqCircle = `geq=lum='p(X,Y)':a='if(lte(hypot(X-${radius},Y-${radius}),${radius}),255,0)'`
+
+	if (style === 'circle') {
+		return `${baseCoverCrop},format=rgba,${geqCircle}`
+	}
+	if (style === 'crop') {
+		return baseCoverCrop
+	}
+	if (style === 'bw') {
+		return `${baseContain},hue=s=0`
+	}
+	if (style === 'invert') {
+		return `${baseContain},negate`
+	}
+	if (style === 'blur') {
+		return `${baseContain},gblur=sigma=6`
+	}
+	if (style === 'pixel') {
+		const sp = Math.floor(escala / 4)
+		return `${baseContain},scale=${sp}:${sp}:flags=neighbor,scale=${escala}:${escala}:flags=neighbor`
+	}
+	if (style === 'sepia') {
+		return `${baseContain},colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131`
+	}
+	if (style === 'neon') {
+		return `${baseContain},edgedetect=low=0.08:high=0.2`
+	}
+	return baseContain
+}
+
 async function addExif(webpBuffer, packname, author) {
 	const packName = packname || global.packsticker || global.wm || 'Shadow Bot'
 	const authorName = author || global.dev || 'yosue'
@@ -229,7 +300,7 @@ async function obtenerDuracionMedia(bufferMedia) {
 	}
 }
 
-async function convertirMediaParaSticker(bufferMedia, esVideo = false) {
+async function convertirMediaParaSticker(bufferMedia, esVideo = false, style = 'normal') {
 	const dirTmp = join(process.cwd(), './tmp')
 	await fs.mkdir(dirTmp, { recursive: true })
 
@@ -241,26 +312,24 @@ async function convertirMediaParaSticker(bufferMedia, esVideo = false) {
 		await fs.writeFile(rutaEntrada, bufferMedia)
 		const ffmpegBin = await obtenerRutaFfmpeg()
 
-		const baseCrop = esVideo
-			? 'fps=10,scale=512:512:force_original_aspect_ratio=decrease,format=rgba,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
-			: 'fps=15,scale=512:512:force_original_aspect_ratio=decrease,format=rgba,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
+		const vf = construirFiltroSticker(esVideo, style, 512)
 		const cmdArgs = esVideo
-			? ['-y', '-i', rutaEntrada, '-t', '7', '-an', '-vf', baseCrop, '-loop', '0', '-q:v', '30', '-lossless', '0', '-compression_level', '4', '-vsync', '0', rutaSalida]
-			: ['-y', '-i', rutaEntrada, '-an', '-vf', baseCrop, '-loop', '0', '-vsync', '0', rutaSalida]
+			? ['-y', '-i', rutaEntrada, '-t', '7', '-an', '-vf', vf, '-loop', '0', '-q:v', '30', '-lossless', '0', '-compression_level', '4', '-vsync', '0', rutaSalida]
+			: ['-y', '-i', rutaEntrada, '-an', '-vf', vf, '-loop', '0', '-vsync', '0', rutaSalida]
 
 		await execFileAsync(ffmpegBin, cmdArgs)
 
 		if (esVideo) {
 			let stats = await fs.stat(rutaSalida).catch(() => null)
 			if (stats && stats.size > 950 * 1024) {
-				const fallbackCrop1 = 'fps=8,scale=384:384:force_original_aspect_ratio=decrease,format=rgba,pad=384:384:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
-				const fallbackArgs1 = ['-y', '-i', rutaEntrada, '-t', '7', '-an', '-vf', fallbackCrop1, '-loop', '0', '-q:v', '20', '-lossless', '0', '-compression_level', '4', '-vsync', '0', rutaSalida]
+				const fallbackVf1 = construirFiltroSticker(true, style, 384, 8)
+				const fallbackArgs1 = ['-y', '-i', rutaEntrada, '-t', '7', '-an', '-vf', fallbackVf1, '-loop', '0', '-q:v', '20', '-lossless', '0', '-compression_level', '4', '-vsync', '0', rutaSalida]
 				await execFileAsync(ffmpegBin, fallbackArgs1).catch(() => {})
 
 				stats = await fs.stat(rutaSalida).catch(() => null)
 				if (stats && stats.size > 950 * 1024) {
-					const fallbackCrop2 = 'fps=6,scale=288:288:force_original_aspect_ratio=decrease,format=rgba,pad=288:288:(ow-iw)/2:(oh-ih)/2:color=white@0.0'
-					const fallbackArgs2 = ['-y', '-i', rutaEntrada, '-t', '6', '-an', '-vf', fallbackCrop2, '-loop', '0', '-q:v', '15', '-lossless', '0', '-compression_level', '4', '-vsync', '0', rutaSalida]
+					const fallbackVf2 = construirFiltroSticker(true, style, 288, 6)
+					const fallbackArgs2 = ['-y', '-i', rutaEntrada, '-t', '6', '-an', '-vf', fallbackVf2, '-loop', '0', '-q:v', '15', '-lossless', '0', '-compression_level', '4', '-vsync', '0', rutaSalida]
 					await execFileAsync(ffmpegBin, fallbackArgs2).catch(() => {})
 				}
 			}
@@ -427,7 +496,7 @@ async function asegurarModificado() {
 	}
 }
 
-async function resolverBufferSticker(item, conn) {
+async function resolverBufferSticker(item, conn, style = 'normal') {
 	if (!item) return null
 
 	if (Buffer.isBuffer(item)) return item
@@ -454,35 +523,16 @@ async function resolverBufferSticker(item, conn) {
 
 	if (!descargado || !Buffer.isBuffer(descargado)) return null
 
-	// Si es imagen o video, convertir a formato WebP sticker como en .s
-	if (esImagen || esVideo || !mime.includes('webp')) {
+	// Si es imagen o video, o si se especificó un estilo diferente a normal, convertir
+	if (esImagen || esVideo || style !== 'normal' || !mime.includes('webp')) {
 		try {
-			return await convertirMediaParaSticker(descargado, esVideo)
+			return await convertirMediaParaSticker(descargado, esVideo, style)
 		} catch {
 			return descargado
 		}
 	}
 
 	return descargado
-}
-
-async function tienePistaDeAudio(bufferMedia) {
-	const dirTmp = join(process.cwd(), './tmp')
-	await fs.mkdir(dirTmp, { recursive: true })
-	const ruta = join(dirTmp, `chk_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.tmp`)
-	try {
-		await fs.writeFile(ruta, bufferMedia)
-		const ffmpegBin = await obtenerRutaFfmpeg()
-		try {
-			await execFileAsync(ffmpegBin, ['-i', ruta])
-			return false
-		} catch (err) {
-			const errStr = (err?.stderr || err?.stdout || err?.message || '').toString()
-			return /Stream #.*Audio:/i.test(errStr) || /Audio:\s*[a-zA-Z0-9_-]+/i.test(errStr)
-		}
-	} finally {
-		await fs.unlink(ruta).catch(() => {})
-	}
 }
 
 async function forjarYEnviarAudioSticker(conn, idChat, bufferSticker, bufferAudio, packName, authorName, quotedMsg, duracionSugerida = 2) {
@@ -563,12 +613,21 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 	const remitente = m.sender
 	const idChat = m.chat
 	const claveSesion = `${idChat}_${remitente}`
-	const subComando = (args[0] || '').toLowerCase()
+	const rawOpt = (args[0] || '').toLowerCase().trim()
+	const opt = rawOpt.replace(/^--?/, '')
 
 	const packName = global.packsticker || global.wm || 'Shadow Bot'
 	const authorName = global.dev || 'yosue'
 
-	if (subComando === 'cancelar' || subComando === 'cancel') {
+	if (opt === 'list' || opt === 'help' || opt === 'estilos') {
+		const listText =
+			'🎃🦇 _Lista de estilos y ángulos para AudioSticker_ (*stickeraudio* <estilo>)\n\n' +
+			Object.keys(styles).map(k => `• *${usedPrefix + command} ${k}* — ${styles[k]}`).join('\n') +
+			`\n\n• *${usedPrefix + command} list*`
+		return conn.sendMessage(idChat, { text: listText }, { quoted: m })
+	}
+
+	if (opt === 'cancelar' || opt === 'cancel') {
 		if (SESIONES.has(claveSesion)) {
 			SESIONES.delete(claveSesion)
 			return m.reply('🎃❌ _Sesión de AudioSticker cancelada con éxito._')
@@ -576,6 +635,8 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
 		return m.reply('ℹ️ No tienes ninguna sesión de AudioSticker activa.')
 	}
+
+	const style = parseStyle(opt)
 
 	const objetivo = m.quoted ? m.quoted : m
 	const infoObjetivo = objetivo ? objetivo.msg || objetivo : null
@@ -602,6 +663,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
 	// Caso especial: Video (Método rápido de 1 solo paso sin sesión previa)
 	// Funciona para videos largos o de poca duración (2s, 4s, etc.), con audio o sin audio (fallback silencioso)
+	// y aplica los tamaños y ángulos exactos del comando .s (normal, circle, crop, etc.)
 	if (!sesion && esVideo) {
 		const videoBuffer = await descargarBuffer(objetivo, conn)
 		if (videoBuffer) {
@@ -610,7 +672,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 				const duracion = (infoObjetivo?.seconds && Number(infoObjetivo.seconds) > 0)
 					? Number(infoObjetivo.seconds)
 					: await obtenerDuracionMedia(videoBuffer)
-				const bufferSticker = await convertirMediaParaSticker(videoBuffer, true)
+				const bufferSticker = await convertirMediaParaSticker(videoBuffer, true, style)
 				await forjarYEnviarAudioSticker(conn, idChat, bufferSticker, videoBuffer, packName, authorName, m, duracion)
 				await m.react?.('🔊').catch(() => {})
 				return
@@ -623,7 +685,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
 	if (!sesion) {
 		if (esStickerOImagen || esVideo) {
-			const bufferSticker = await resolverBufferSticker(objetivo, conn)
+			const bufferSticker = await resolverBufferSticker(objetivo, conn, style)
 
 			if (!bufferSticker) {
 				return m.reply('❌ No se pudo descargar ni procesar el sticker/imagen.')
@@ -632,6 +694,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 			SESIONES.set(claveSesion, {
 				bufferSticker,
 				bufferAudio: null,
+				style,
 				creadoEn: Date.now()
 			})
 
@@ -654,6 +717,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 			SESIONES.set(claveSesion, {
 				bufferSticker: null,
 				bufferAudio,
+				style,
 				creadoEn: Date.now()
 			})
 
@@ -668,14 +732,20 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
 		return m.reply(
 			'🎃🦇 *[ SHADOW GARDEN • STICKER CON AUDIO ]* 🦇🎃\n\n' +
-			'Forja sellos sombríos con audio integrado de WhatsApp.\n\n' +
+			'Forja sellos sombríos con audio integrado de WhatsApp manteniendo proporciones, tamaños y ángulos de *.s*.\n\n' +
 			'*¿Cómo usarlo?*\n' +
 			'📹 *1. Modo directo (1 paso):*\n' +
-			`• Responde a un *Video* con *${usedPrefix + command}* para convertirlo en sticker con audio al instante (incluso videos cortos de 2s o 4s).\n\n` +
+			`• Responde a un *Video* con *${usedPrefix + command} [estilo]* para convertirlo en sticker con audio al instante (incluso videos cortos de 2s o 4s).\n\n` +
 			'🎴 *2. Modo combinado (2 pasos):*\n' +
-			`• 1️⃣ Responde a un *Sticker* (o imagen) con *${usedPrefix + command}*\n` +
+			`• 1️⃣ Responde a un *Sticker* (o imagen) con *${usedPrefix + command} [estilo]*\n` +
 			`• 2️⃣ Luego responde al *Audio / Nota de voz* con *${usedPrefix + command}*\n` +
 			'_(También funciona al revés: primero audio y luego sticker)_\n\n' +
+			'📐 *Estilos y ángulos disponibles:*\n' +
+			`• *normal:* Ajuste proporcional completo 512x512 (por defecto)\n` +
+			`• *circle / redondo:* Recorte circular 512x512\n` +
+			`• *crop / cuadrado:* Recorte centrado 512x512\n` +
+			`• *bw, invert, blur, pixel, sepia, neon*\n\n` +
+			`• Ver lista completa: *${usedPrefix + command} list*\n` +
 			`• Para cancelar: *${usedPrefix + command} cancelar*`
 		)
 	}
@@ -707,7 +777,8 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 			)
 		}
 
-		const bufferSticker = await resolverBufferSticker(objetivo, conn)
+		const estiloFinal = style !== 'normal' ? style : (sesion.style || 'normal')
+		const bufferSticker = await resolverBufferSticker(objetivo, conn, estiloFinal)
 
 		if (!bufferSticker) {
 			return m.reply('❌ No se pudo descargar el sticker.')
@@ -729,7 +800,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 	}
 }
 
-handler.help = ['stickeraudio', 'audiosticker']
+handler.help = ['stickeraudio [estilo]', 'audiosticker [estilo]']
 handler.tags = ['sticker']
 handler.command = [
 	'stickeraudio',

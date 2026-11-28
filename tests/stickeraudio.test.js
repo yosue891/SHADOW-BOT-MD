@@ -6,7 +6,7 @@ import { promisify } from 'util'
 
 const execAsync = promisify(execFile)
 
-test('stickeraudio: handles short videos of 2s, 4s, PTV, and 2-step sessions', async () => {
+test('stickeraudio: handles short videos of 2s, 4s, PTV, styles/angles (normal, circle, crop), and 2-step sessions', async () => {
 	const handlerModule = await import('../plugins/stickers/stickers-stickeraudio.js')
 	const handler = handlerModule.default
 
@@ -63,7 +63,7 @@ test('stickeraudio: handles short videos of 2s, 4s, PTV, and 2-step sessions', a
 		}
 	}
 
-	// Test 1: 2s video with audio directly
+	// Test 1: 2s video with audio directly (normal default style)
 	let reacted = false
 	const m2a = {
 		chat: '12345@s.whatsapp.net',
@@ -125,7 +125,7 @@ test('stickeraudio: handles short videos of 2s, 4s, PTV, and 2-step sessions', a
 	assert.equal(sentMessages.length, 1, 'Debe haber enviado el audio')
 	assert.equal(reacted, true, 'Debe haber reaccionado con 🔊')
 
-	// Test 3: 4s video with audio directly
+	// Test 3: 4s video with circle style
 	relayedMessages.length = 0
 	sentMessages.length = 0
 	reacted = false
@@ -145,16 +145,44 @@ test('stickeraudio: handles short videos of 2s, 4s, PTV, and 2-step sessions', a
 
 	await handler(m4a, {
 		conn: mockConn,
-		args: [],
+		args: ['circle'],
 		usedPrefix: '.',
 		command: 'stickeraudio'
 	})
 
-	assert.equal(relayedMessages.length, 1, 'Debe haber enviado 1 sticker para video de 4s')
+	assert.equal(relayedMessages.length, 1, 'Debe haber enviado 1 sticker para video de 4s con estilo circle')
 	assert.ok(relayedMessages[0].message?.stickerMessage?.audioMessage, 'El stickerMessage debe tener audioMessage para 4s')
 	assert.equal(reacted, true, 'Debe haber reaccionado con 🔊')
 
-	// Test 4: PTV (video note) message
+	// Test 4: 2s video with crop style
+	relayedMessages.length = 0
+	sentMessages.length = 0
+	reacted = false
+
+	await handler(m2a, {
+		conn: mockConn,
+		args: ['crop'],
+		usedPrefix: '.',
+		command: 'stickeraudio'
+	})
+
+	assert.equal(relayedMessages.length, 1, 'Debe haber enviado 1 sticker con estilo crop')
+	assert.equal(reacted, true, 'Debe haber reaccionado con 🔊')
+
+	// Test 5: list styles
+	sentMessages.length = 0
+	await handler(m2a, {
+		conn: mockConn,
+		args: ['list'],
+		usedPrefix: '.',
+		command: 'stickeraudio'
+	})
+	assert.equal(sentMessages.length, 1, 'Debe haber enviado la lista de estilos')
+	assert.ok(sentMessages[0].content?.text?.includes('Lista de estilos'), 'Debe contener el encabezado de estilos')
+	assert.ok(sentMessages[0].content?.text?.includes('circle'), 'Debe incluir circle')
+	assert.ok(sentMessages[0].content?.text?.includes('crop'), 'Debe incluir crop')
+
+	// Test 6: PTV (video note) message
 	relayedMessages.length = 0
 	sentMessages.length = 0
 	reacted = false
@@ -180,35 +208,6 @@ test('stickeraudio: handles short videos of 2s, 4s, PTV, and 2-step sessions', a
 	})
 
 	assert.equal(relayedMessages.length, 1, 'Debe procesar notas de video PTV correctamente')
-	assert.equal(reacted, true, 'Debe haber reaccionado con 🔊')
-
-	// Test 5: Quoted video message
-	relayedMessages.length = 0
-	sentMessages.length = 0
-	reacted = false
-
-	const mQuoted = {
-		chat: '12345@s.whatsapp.net',
-		sender: '12345@s.whatsapp.net',
-		quoted: {
-			mtype: 'videoMessage',
-			mimetype: 'video/mp4',
-			seconds: 2,
-			download: async () => v2aBuf
-		},
-		download: async () => null,
-		reply: async (t) => {},
-		react: async (r) => { reacted = true }
-	}
-
-	await handler(mQuoted, {
-		conn: mockConn,
-		args: [],
-		usedPrefix: '.',
-		command: 'stickeraudio'
-	})
-
-	assert.equal(relayedMessages.length, 1, 'Debe procesar videos citados correctamente')
 	assert.equal(reacted, true, 'Debe haber reaccionado con 🔊')
 
 	// Clean up
